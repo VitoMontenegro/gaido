@@ -201,9 +201,9 @@ export default function HomePage() {
               </Link>
             </div>
             {aboutImage ? (
-              <img src={aboutImage} alt="" className="aspect-[4/3] w-full rounded-[28px] object-cover" loading="lazy" />
+              <img src={aboutImage} alt="" className="aspect-4/3 w-full rounded-[28px] object-cover" loading="lazy" />
             ) : (
-              <div className="aspect-[4/3] rounded-[28px] bg-sand-100" />
+              <div className="aspect-4/3 rounded-[28px] bg-sand-100" />
             )}
           </div>
         </section>
@@ -286,7 +286,9 @@ export default function HomePage() {
       {(content?.stats?.length ?? 0) > 0 && (
         <section className="bg-ink py-14 text-white">
           <div className="container-site">
-            <h2 className="section-title mb-10 text-center text-white">З нами подорожують мільйони</h2>
+            <h2 className="section-title mb-10 text-center text-white">
+              {content!.stats_title || 'З нами подорожують мільйони'}
+            </h2>
             <div className="grid gap-8 sm:grid-cols-3">
               {content!.stats.map((stat) => (
                 <div key={stat.label} className="text-center">
@@ -326,12 +328,12 @@ export default function HomePage() {
             )}
           </div>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <Link to={cta?.primary_url ?? '/search'} className="btn-accent min-w-[180px] justify-center">
+            <Link to={cta?.primary_url ?? '/search'} className="btn-accent min-w-45 justify-center">
               {cta?.primary_label ?? 'Знайти екскурсію'}
             </Link>
             <Link
               to={cta?.secondary_url ?? '/register'}
-              className="inline-flex min-h-10 min-w-[180px] items-center justify-center rounded-xl border border-white/25 bg-white/10 px-3 py-1 text-base font-medium text-white transition hover:bg-white/20"
+              className="inline-flex min-h-10 min-w-45 items-center justify-center rounded-xl border border-white/25 bg-white/10 px-3 py-1 text-base font-medium text-white transition hover:bg-white/20"
             >
               {cta?.secondary_label ?? 'Стати гідом'}
             </Link>

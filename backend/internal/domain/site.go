@@ -37,6 +37,7 @@ type HomeContent struct {
 	CategoryTiles          []HomeCategoryTile `json:"category_tiles"`
 	AboutImageURL          string             `json:"about_image_url"`
 	Cta                    HomeCta            `json:"cta"`
+	StatsTitle             string             `json:"stats_title"`
 	Stats                  []HomeStat         `json:"stats"`
 	Benefits               []HomeBenefit      `json:"benefits"`
 	FAQ                    []HomeFAQ          `json:"faq"`

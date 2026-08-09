@@ -35,6 +35,7 @@ func defaultHomeContent() domain.HomeContent {
 			SecondaryLabel: "Стати гідом",
 			SecondaryURL:   "/register",
 		},
+		StatsTitle: "З нами подорожують мільйони",
 		Stats: []domain.HomeStat{
 			{Value: "2 млн+", Label: "мандрівників"},
 			{Value: "5000+", Label: "гідів"},
@@ -79,6 +80,9 @@ func mergeHomeContent(stored domain.HomeContent) domain.HomeContent {
 	}
 	if stored.Cta.Title == "" {
 		stored.Cta = def.Cta
+	}
+	if stored.StatsTitle == "" {
+		stored.StatsTitle = def.StatsTitle
 	}
 	if len(stored.Stats) == 0 {
 		stored.Stats = def.Stats

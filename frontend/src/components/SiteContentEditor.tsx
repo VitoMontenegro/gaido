@@ -21,6 +21,7 @@ function normalizeHome(home: HomeContent): HomeContent {
     ...home,
     category_tiles: normalizeCategoryTiles(home.category_tiles),
     cta: home.cta?.title ? home.cta : DEFAULT_CTA,
+    stats_title: home.stats_title || 'З нами подорожують мільйони',
   }
 }
 
@@ -159,15 +160,24 @@ export function SiteContentEditor() {
         </div>
       </section>
 
-      <ListEditor
-        title="Статистика (блок «З нами подорожують мільйони»)"
-        items={home.stats}
-        onChange={(stats) => updateHome({ stats })}
-        fields={[
-          { key: 'value', label: 'Значення', placeholder: '2 млн+' },
-          { key: 'label', label: 'Підпис', placeholder: 'мандрівників на рік' },
-        ]}
-      />
+      <section className="space-y-3">
+        <h3 className="font-medium text-ink">Статистика</h3>
+        <input
+          className="input"
+          value={home.stats_title ?? ''}
+          onChange={(e) => updateHome({ stats_title: e.target.value })}
+          placeholder="З нами подорожують мільйони"
+        />
+        <ListEditor
+          title="Показники"
+          items={home.stats}
+          onChange={(stats) => updateHome({ stats })}
+          fields={[
+            { key: 'value', label: 'Значення', placeholder: '2 млн+' },
+            { key: 'label', label: 'Підпис', placeholder: 'мандрівників на рік' },
+          ]}
+        />
+      </section>
 
       <ListEditor
         title="Переваги"

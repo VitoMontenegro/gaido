@@ -496,6 +496,7 @@ export type HomeContent = {
   category_tiles: HomeCategoryTile[]
   about_image_url: string
   cta: HomeCta
+  stats_title: string
   stats: HomeStat[]
   benefits: HomeBenefit[]
   faq: HomeFAQ[]
