@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { asHtml } from '../lib/html'
 import BrandLogo from './BrandLogo'
 
 const SLIDES = [
@@ -59,9 +60,10 @@ export default function HomeHero({ title, subtitle }: Props) {
         <h1 className="mt-3 max-w-3xl font-display text-[28px] font-medium uppercase leading-[1.15] text-white sm:text-4xl md:text-5xl">
           {title}
         </h1>
-        <p className="mt-4 max-w-xl text-base leading-relaxed text-white/80 md:text-lg">
-          {subtitle}
-        </p>
+        <p
+          className="mt-4 max-w-xl text-base leading-relaxed text-white/80 md:text-lg"
+          dangerouslySetInnerHTML={{ __html: asHtml(subtitle) }}
+        />
 
         <form
           onSubmit={onSearch}
