@@ -1,9 +1,3 @@
-p, ROLE_TOURIST, /api/v1/account, GET
-p, ROLE_TOURIST, /api/v1/account/*, GET
-p, ROLE_TOURIST, /api/v1/account/*, POST
-p, ROLE_TOURIST, /api/v1/account/*, PUT
-p, ROLE_TOURIST, /api/v1/account/*, PATCH
-p, ROLE_TOURIST, /api/v1/account/*, DELETE
 p, ROLE_TOURIST, /api/v1/favorites, GET
 p, ROLE_TOURIST, /api/v1/favorites, POST
 p, ROLE_TOURIST, /api/v1/favorites/*, DELETE
@@ -34,6 +28,7 @@ p, ROLE_MODERATOR, /api/v1/moderator/*, PUT
 p, ROLE_MODERATOR, /api/v1/moderator/*, PATCH
 p, ROLE_MODERATOR, /api/v1/notifications, GET
 p, ROLE_MODERATOR, /api/v1/notifications/*, GET
+p, ROLE_MODERATOR, /api/v1/notifications/*, PATCH
 
 p, ROLE_MODERATOR, /api/v1/media, POST
 
@@ -45,5 +40,8 @@ p, ROLE_ADMIN, /api/v1/admin/*, PATCH
 p, ROLE_ADMIN, /api/v1/admin/*, DELETE
 p, ROLE_ADMIN, /api/v1/media, POST
 p, ROLE_ADMIN, /api/v1/payments/*, POST
+p, ROLE_ADMIN, /api/v1/notifications, GET
+p, ROLE_ADMIN, /api/v1/notifications/*, GET
+p, ROLE_ADMIN, /api/v1/notifications/*, PATCH
 
 g, ROLE_ADMIN, ROLE_MODERATOR

@@ -1,14 +1,13 @@
 import { Helmet } from 'react-helmet-async'
 import { useNavigate } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
-import { api } from '../api/client'
+import { guideApi } from '../api/guide'
 import ExcursionForm from '../components/ExcursionForm'
 
 export default function CreateExcursionPage() {
   const navigate = useNavigate()
   const mutation = useMutation({
-    mutationFn: (body: Record<string, unknown>) =>
-      api('/api/v1/account/guide/excursions', { method: 'POST', body: JSON.stringify(body) }),
+    mutationFn: (body: Record<string, unknown>) => guideApi.createExcursion(body),
     onSuccess: () => navigate('/account/guide/excursions'),
   })
 

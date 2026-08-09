@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { adminApi } from '../api/client'
 import GuideAvatar from './GuideAvatar'
 import { ImageUrlField } from './ImageUrlField'
@@ -17,8 +17,20 @@ export function AdminGuidesEditor() {
   const [items, setItems] = useState<AdminGuide[]>([])
   const [loading, setLoading] = useState(true)
   const [savingId, setSavingId] = useState<number | null>(null)
+  const [bypassId, setBypassId] = useState<number | null>(null)
   const [message, setMessage] = useState('')
   const [drafts, setDrafts] = useState<Record<number, string>>({})
+
+  const { data: settings } = useQuery({
+    queryKey: ['settings'],
+    queryFn: () => adminApi.settings(),
+  })
+  const { data: plans } = useQuery({
+    queryKey: ['admin-plans'],
+    queryFn: () => adminApi.plans(),
+  })
+  const placementPlanId = (plans?.items ?? []).find((p) => p.plan_type === 'GUIDE_PLACEMENT')?.id
+    ?? plans?.items?.[0]?.id
 
   useEffect(() => {
     adminApi.guides()
@@ -44,6 +56,25 @@ export function AdminGuidesEditor() {
       setMessage(e instanceof Error ? e.message : 'Помилка збереження')
     } finally {
       setSavingId(null)
+    }
+  }
+
+  const bypass = async (guide: AdminGuide) => {
+    if (!placementPlanId) {
+      setMessage('Немає тарифного плану для активації')
+      return
+    }
+    setBypassId(guide.id)
+    setMessage('')
+    try {
+      await adminApi.bypassGuide(guide.id, placementPlanId)
+      setItems((prev) => prev.map((g) => (g.id === guide.id ? { ...g, status: 'ACTIVE' } : g)))
+      qc.invalidateQueries({ queryKey: ['guides'] })
+      setMessage(`Активовано bypass: ${guide.display_name}`)
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : 'Помилка bypass')
+    } finally {
+      setBypassId(null)
     }
   }
 
@@ -80,14 +111,26 @@ export function AdminGuidesEditor() {
                   maxBytes={150 * 1024}
                   onChange={(avatar_url) => setDrafts((prev) => ({ ...prev, [guide.id]: avatar_url }))}
                 />
-                <button
-                  type="button"
-                  className="btn-primary"
-                  disabled={savingId === guide.id}
-                  onClick={() => save(guide)}
-                >
-                  {savingId === guide.id ? 'Збереження…' : 'Зберегти фото'}
-                </button>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    className="btn-primary"
+                    disabled={savingId === guide.id}
+                    onClick={() => save(guide)}
+                  >
+                    {savingId === guide.id ? 'Збереження…' : 'Зберегти фото'}
+                  </button>
+                  {!settings?.guide_placement_payments_enabled && guide.status !== 'ACTIVE' && (
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      disabled={bypassId === guide.id || !placementPlanId}
+                      onClick={() => bypass(guide)}
+                    >
+                      {bypassId === guide.id ? 'Активація…' : 'Bypass активація'}
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </li>

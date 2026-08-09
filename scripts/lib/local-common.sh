@@ -31,17 +31,74 @@ local_ensure_dirs() {
   mkdir -p "$root/.local/logs" "$root/.local/pids"
 }
 
+local_pid_cmdline() {
+  local pid="$1"
+  ps -p "$pid" -o command= 2>/dev/null | sed 's/^[[:space:]]*//' || true
+}
+
+local_is_backend_process() {
+  local cmd="$1"
+  [[ "$cmd" == *"cmd/api"* ]] \
+    || [[ "$cmd" == *"experts-tourister"* ]] \
+    || [[ "$cmd" == *"goproject/backend"* ]] \
+    || [[ "$cmd" == *"/backend"* && ( "$cmd" == *"go run"* || "$cmd" == *"go-build"* ) ]]
+}
+
+local_is_frontend_process() {
+  local cmd="$1"
+  [[ "$cmd" == *"vite"* ]] && [[ "$cmd" == *"frontend"* || "$cmd" == *"goproject"* || "$cmd" == *"experts-tourister"* ]]
+}
+
+# Kill only processes owned by this project. Never kill foreign listeners (e.g. OrbStack on :8081).
 local_kill_port() {
   local port="$1"
+  local kind="${2:-any}"
   local pids
   pids="$(lsof -ti tcp:"$port" -sTCP:LISTEN 2>/dev/null || true)"
-  if [[ -n "$pids" ]]; then
-    echo "→ stop port :$port (pid $pids)"
-    kill $pids 2>/dev/null || true
-    sleep 0.5
-    pids="$(lsof -ti tcp:"$port" -sTCP:LISTEN 2>/dev/null || true)"
-    [[ -z "$pids" ]] || kill -9 $pids 2>/dev/null || true
+  if [[ -z "$pids" ]]; then
+    return 0
   fi
+
+  local pid cmd matched=0
+  for pid in $pids; do
+    cmd="$(local_pid_cmdline "$pid")"
+    [[ -n "$cmd" ]] || continue
+
+    case "$kind" in
+      backend)
+        local_is_backend_process "$cmd" || continue
+        ;;
+      frontend)
+        local_is_frontend_process "$cmd" || continue
+        ;;
+      *)
+        local_is_backend_process "$cmd" || local_is_frontend_process "$cmd" || continue
+        ;;
+    esac
+
+    matched=1
+    echo "→ stop :$port (pid $pid)"
+    kill "$pid" 2>/dev/null || true
+  done
+
+  if [[ "$matched" == "1" ]]; then
+    sleep 0.5
+    for pid in $pids; do
+      cmd="$(local_pid_cmdline "$pid")"
+      [[ -n "$cmd" ]] || continue
+      case "$kind" in
+        backend) local_is_backend_process "$cmd" || continue ;;
+        frontend) local_is_frontend_process "$cmd" || continue ;;
+        *) local_is_backend_process "$cmd" || local_is_frontend_process "$cmd" || continue ;;
+      esac
+      kill -0 "$pid" 2>/dev/null && kill -9 "$pid" 2>/dev/null || true
+    done
+    return 0
+  fi
+
+  local foreign
+  foreign="$(local_pid_cmdline "${pids%% *}")"
+  echo "→ skip :$port (occupied by another app: ${foreign:0:72})" >&2
 }
 
 local_stop_pidfile() {

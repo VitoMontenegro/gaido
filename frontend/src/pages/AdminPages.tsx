@@ -10,7 +10,7 @@ import { AdminExcursionsList, AdminGuidesList, AdminReviewsList, AdminUsersList 
 import { ArticlesEditor } from '../components/ArticlesEditor'
 import { formatPrice } from '../components/excursionUi'
 
-type AdminTab = 'analytics' | 'users' | 'guides' | 'excursions' | 'reviews' | 'settings' | 'content' | 'journal'
+type AdminTab = 'analytics' | 'users' | 'guides' | 'excursions' | 'reviews' | 'settings' | 'content' | 'journal' | 'audit'
 
 const TABS: { id: AdminTab; label: string }[] = [
   { id: 'analytics', label: 'Аналітика' },
@@ -21,6 +21,7 @@ const TABS: { id: AdminTab; label: string }[] = [
   { id: 'settings', label: 'Налаштування' },
   { id: 'content', label: 'Контент сайту' },
   { id: 'journal', label: 'Журнал' },
+  { id: 'audit', label: 'Аудит' },
 ]
 
 export default function AdminPage() {
@@ -123,11 +124,11 @@ export default function AdminPage() {
             </div>
 
             <div className="card">
-              <p className="font-semibold">Оплата розміщення</p>
+              <p className="font-semibold">Монетизація (оплата розміщення / контакти / топ)</p>
               <p className="mt-1 text-sm text-stone-600">
                 {settings?.guide_placement_payments_enabled
-                  ? 'Увімкнено — гіди оплачують профіль, блок «Гіди за покликанням» та «Популярні екскурсії»'
-                  : 'Вимкнено — дати оплати в кабінеті показуються як «—», на головній випадкове розміщення'}
+                  ? 'Увімкнено — контакти лише з активною підпискою; гіди оплачують розміщення та просування в топ'
+                  : 'Вимкнено (режим наповнення) — контакти ACTIVE гідів відкриті; checkout не потрібен, доступний admin bypass'}
               </p>
               <button
                 type="button"
@@ -135,7 +136,7 @@ export default function AdminPage() {
                 disabled={!settings}
                 onClick={() => updateSetting({ guide_placement_payments_enabled: !settings?.guide_placement_payments_enabled })}
               >
-                {settings?.guide_placement_payments_enabled ? 'Вимкнути оплату' : 'Увімкнути оплату'}
+                {settings?.guide_placement_payments_enabled ? 'Вимкнути монетизацію' : 'Увімкнути монетизацію'}
               </button>
             </div>
           </div>
@@ -143,8 +144,31 @@ export default function AdminPage() {
 
         {tab === 'content' && <SiteContentEditor />}
         {tab === 'journal' && <ArticlesEditor apiBase="admin" />}
+        {tab === 'audit' && <AdminAuditLog />}
       </div>
     </>
+  )
+}
+
+function AdminAuditLog() {
+  const { data, isError, error } = useQuery({
+    queryKey: ['admin-audit'],
+    queryFn: () => adminApi.audit(),
+  })
+  return (
+    <div className="card">
+      <h2 className="font-display mb-4 text-xl font-bold">Журнал аудиту</h2>
+      {isError && <p className="mb-3 text-sm text-red-600">{error?.message}</p>}
+      <ul className="space-y-2 text-sm">
+        {(data?.items ?? []).map((e) => (
+          <li key={e.id} className="rounded-lg bg-sand-50 px-3 py-2">
+            <span className="font-medium">{e.action}</span>
+            <span className="text-muted"> · {e.entity_type}{e.entity_id != null ? `#${e.entity_id}` : ''}</span>
+            <span className="block text-xs text-muted-light">{new Date(e.created_at).toLocaleString('uk-UA')}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
   )
 }
 
@@ -282,58 +306,218 @@ function statusClass(status: string) {
   return 'bg-sand-100 text-stone-600'
 }
 
+type ModSection = 'excursions' | 'reviews' | 'documents' | 'geo' | 'journal'
+
 export function ModeratorPage() {
   const isModerator = useHasRole('ROLE_MODERATOR')
-  const [section, setSection] = useState<'excursions' | 'journal'>('excursions')
-  const { data, isError, error } = useQuery({
+  const qc = useQueryClient()
+  const [section, setSection] = useState<ModSection>('excursions')
+
+  const { data: excursions, isError: excErr, error: excError } = useQuery({
     queryKey: ['mod-excursions'],
     queryFn: () => api<{ items: { id: number; title: string }[] }>('/api/v1/moderator/excursions'),
     enabled: isModerator && section === 'excursions',
     retry: false,
   })
-  const approve = (id: number) => api(`/api/v1/moderator/excursions/${id}/approve`, { method: 'POST' })
+  const { data: reviews } = useQuery({
+    queryKey: ['mod-reviews'],
+    queryFn: () => api<{ items: { id: number; text: string; rating: number; author_name?: string }[] }>('/api/v1/moderator/reviews'),
+    enabled: isModerator && section === 'reviews',
+  })
+  const { data: documents } = useQuery({
+    queryKey: ['mod-documents'],
+    queryFn: () => api<{ items: { id: number; guide_id: number; type: string; guide_name?: string }[] }>('/api/v1/moderator/documents'),
+    enabled: isModerator && section === 'documents',
+  })
+  const { data: countries } = useQuery({
+    queryKey: ['countries'],
+    queryFn: () => api<{ items: { id: number; slug: string; name: string }[] }>('/api/v1/geo/countries'),
+    enabled: isModerator && section === 'geo',
+  })
+
+  const [geoCountry, setGeoCountry] = useState({ slug: '', name: '' })
+  const [geoRegion, setGeoRegion] = useState({ country_id: 0, slug: '', name: '' })
+  const [geoCity, setGeoCity] = useState({ country_id: 0, region_id: 0, slug: '', name: '', latitude: 0, longitude: 0 })
+  const [geoMsg, setGeoMsg] = useState('')
+
+  const sections: { id: ModSection; label: string }[] = [
+    { id: 'excursions', label: 'Екскурсії' },
+    { id: 'reviews', label: 'Відгуки' },
+    { id: 'documents', label: 'Документи' },
+    { id: 'geo', label: 'Гео' },
+    { id: 'journal', label: 'Журнал' },
+  ]
+
+  const refreshExc = () => qc.invalidateQueries({ queryKey: ['mod-excursions'] })
+  const refreshRev = () => qc.invalidateQueries({ queryKey: ['mod-reviews'] })
 
   return (
     <>
       <Helmet><title>Модератор</title></Helmet>
       <div className="space-y-4">
         <nav className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => setSection('excursions')}
-            className={section === 'excursions'
-              ? 'rounded-xl bg-ink px-4 py-2 text-sm font-medium text-white'
-              : 'rounded-xl border border-border bg-surface px-4 py-2 text-sm font-medium transition hover:bg-sand-100'}
-          >
-            Екскурсії
-          </button>
-          <button
-            type="button"
-            onClick={() => setSection('journal')}
-            className={section === 'journal'
-              ? 'rounded-xl bg-ink px-4 py-2 text-sm font-medium text-white'
-              : 'rounded-xl border border-border bg-surface px-4 py-2 text-sm font-medium transition hover:bg-sand-100'}
-          >
-            Журнал
-          </button>
+          {sections.map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => setSection(s.id)}
+              className={section === s.id
+                ? 'rounded-xl bg-ink px-4 py-2 text-sm font-medium text-white'
+                : 'rounded-xl border border-border bg-surface px-4 py-2 text-sm font-medium transition hover:bg-sand-100'}
+            >
+              {s.label}
+            </button>
+          ))}
         </nav>
 
-        {section === 'journal' ? (
-          <ArticlesEditor apiBase="moderator" />
-        ) : (
+        {section === 'journal' && <ArticlesEditor apiBase="moderator" />}
+
+        {section === 'excursions' && (
           <div className="card">
             <h1 className="font-display mb-4 text-2xl font-bold">Модерація екскурсій</h1>
-            {isError && (
-              <p className="mb-4 text-sm text-red-600">{error?.message ?? 'Помилка завантаження'}</p>
-            )}
+            {excErr && <p className="mb-4 text-sm text-red-600">{excError?.message ?? 'Помилка завантаження'}</p>}
             <ul className="space-y-2">
-              {(data?.items ?? []).map((e) => (
-                <li key={e.id} className="flex items-center justify-between rounded-lg bg-sand-50 px-3 py-2">
+              {(excursions?.items ?? []).map((e) => (
+                <li key={e.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-sand-50 px-3 py-2">
                   <span>{e.title}</span>
-                  <button type="button" className="btn-primary py-1 text-xs" onClick={() => approve(e.id)}>Схвалити</button>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      className="btn-primary py-1 text-xs"
+                      onClick={async () => { await adminApi.approveExcursion(e.id); refreshExc() }}
+                    >
+                      Схвалити
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-secondary py-1 text-xs"
+                      onClick={async () => { await adminApi.rejectExcursion(e.id); refreshExc() }}
+                    >
+                      Відхилити
+                    </button>
+                  </div>
                 </li>
               ))}
+              {(excursions?.items ?? []).length === 0 && !excErr && (
+                <p className="text-sm text-muted">Черга порожня</p>
+              )}
             </ul>
+          </div>
+        )}
+
+        {section === 'reviews' && (
+          <div className="card">
+            <h1 className="font-display mb-4 text-2xl font-bold">Модерація відгуків</h1>
+            <ul className="space-y-2">
+              {(reviews?.items ?? []).map((r) => (
+                <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-sand-50 px-3 py-2">
+                  <div>
+                    <p className="text-sm font-medium">{r.author_name ?? `Автор #${r.id}`} · {r.rating}/5</p>
+                    <p className="text-sm text-muted">{r.text}</p>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn-primary py-1 text-xs"
+                    onClick={async () => { await adminApi.approveReview(r.id); refreshRev() }}
+                  >
+                    Схвалити
+                  </button>
+                </li>
+              ))}
+              {(reviews?.items ?? []).length === 0 && <p className="text-sm text-muted">Немає відгуків на перевірку</p>}
+            </ul>
+          </div>
+        )}
+
+        {section === 'documents' && (
+          <div className="card">
+            <h1 className="font-display mb-4 text-2xl font-bold">Документи гідів</h1>
+            <ul className="space-y-2 text-sm">
+              {(documents?.items ?? []).map((d) => (
+                <li key={d.id} className="rounded-lg bg-sand-50 px-3 py-2">
+                  #{d.id} · гід {d.guide_name ?? d.guide_id} · {d.type}
+                </li>
+              ))}
+              {(documents?.items ?? []).length === 0 && <p className="text-muted">Немає завантажених документів</p>}
+            </ul>
+          </div>
+        )}
+
+        {section === 'geo' && (
+          <div className="card space-y-6">
+            <h1 className="font-display text-2xl font-bold">Географія</h1>
+            {geoMsg && <p className="text-sm text-muted">{geoMsg}</p>}
+
+            <form
+              className="grid gap-2 sm:grid-cols-3"
+              onSubmit={async (e) => {
+                e.preventDefault()
+                await adminApi.createCountry(geoCountry)
+                setGeoMsg(`Країну «${geoCountry.name}» додано`)
+                setGeoCountry({ slug: '', name: '' })
+                qc.invalidateQueries({ queryKey: ['countries'] })
+              }}
+            >
+              <p className="sm:col-span-3 font-medium">Країна</p>
+              <input className="input" placeholder="slug" value={geoCountry.slug} onChange={(e) => setGeoCountry({ ...geoCountry, slug: e.target.value })} required />
+              <input className="input" placeholder="Назва" value={geoCountry.name} onChange={(e) => setGeoCountry({ ...geoCountry, name: e.target.value })} required />
+              <button type="submit" className="btn-secondary">Додати країну</button>
+            </form>
+
+            <form
+              className="grid gap-2 sm:grid-cols-4"
+              onSubmit={async (e) => {
+                e.preventDefault()
+                await adminApi.createRegion(geoRegion)
+                setGeoMsg(`Регіон «${geoRegion.name}» додано`)
+                setGeoRegion({ country_id: 0, slug: '', name: '' })
+              }}
+            >
+              <p className="sm:col-span-4 font-medium">Регіон</p>
+              <select
+                className="input"
+                value={geoRegion.country_id || ''}
+                onChange={(e) => setGeoRegion({ ...geoRegion, country_id: Number(e.target.value) })}
+                required
+              >
+                <option value="">Країна</option>
+                {(countries?.items ?? []).map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+              <input className="input" placeholder="slug" value={geoRegion.slug} onChange={(e) => setGeoRegion({ ...geoRegion, slug: e.target.value })} required />
+              <input className="input" placeholder="Назва" value={geoRegion.name} onChange={(e) => setGeoRegion({ ...geoRegion, name: e.target.value })} required />
+              <button type="submit" className="btn-secondary">Додати регіон</button>
+            </form>
+
+            <form
+              className="grid gap-2 sm:grid-cols-3"
+              onSubmit={async (e) => {
+                e.preventDefault()
+                await adminApi.createCity(geoCity)
+                setGeoMsg(`Місто «${geoCity.name}» додано`)
+                setGeoCity({ country_id: 0, region_id: 0, slug: '', name: '', latitude: 0, longitude: 0 })
+              }}
+            >
+              <p className="sm:col-span-3 font-medium">Місто</p>
+              <select
+                className="input"
+                value={geoCity.country_id || ''}
+                onChange={(e) => setGeoCity({ ...geoCity, country_id: Number(e.target.value) })}
+                required
+              >
+                <option value="">Країна</option>
+                {(countries?.items ?? []).map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+              <input className="input" type="number" placeholder="region_id" value={geoCity.region_id || ''} onChange={(e) => setGeoCity({ ...geoCity, region_id: Number(e.target.value) })} required />
+              <input className="input" placeholder="slug" value={geoCity.slug} onChange={(e) => setGeoCity({ ...geoCity, slug: e.target.value })} required />
+              <input className="input" placeholder="Назва" value={geoCity.name} onChange={(e) => setGeoCity({ ...geoCity, name: e.target.value })} required />
+              <input className="input" type="number" step="any" placeholder="lat" value={geoCity.latitude || ''} onChange={(e) => setGeoCity({ ...geoCity, latitude: Number(e.target.value) })} />
+              <input className="input" type="number" step="any" placeholder="lng" value={geoCity.longitude || ''} onChange={(e) => setGeoCity({ ...geoCity, longitude: Number(e.target.value) })} />
+              <button type="submit" className="btn-secondary sm:col-span-3">Додати місто</button>
+            </form>
           </div>
         )}
       </div>

@@ -1,67 +1,86 @@
+import { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { PublicLayout, AccountLayout } from '../layouts/MainLayout'
-import HomePage from '../pages/HomePage'
-import SearchPage from '../pages/SearchPage'
-import GuidePage from '../pages/GuidePage'
-import ExcursionPage from '../pages/ExcursionPage'
-import GuidesListPage, { GuidesByCountryPage } from '../pages/CatalogPages'
-import LoginPage, { RegisterPage } from '../pages/AuthPages'
-import AccountPage, { FavoritesPage, SettingsPage } from '../pages/AccountPages'
-import {
-  GuideOverviewPage,
-  GuideProfilePage,
-  GuideBillingPage,
-  GuideDocumentsPage,
-  GuideExcursionsPage,
-  GuideCalendarPage,
-} from '../pages/GuidePages'
-import GuideLayout from '../components/crm/GuideLayout'
-import CityPage, { MapPage } from '../pages/CityMapPages'
-import CreateExcursionPage from '../pages/CreateExcursionPage'
-import EditExcursionPage from '../pages/EditExcursionPage'
-import AdminPage, { ModeratorPage } from '../pages/AdminPages'
-import DeployPage from '../pages/DeployPage'
-import { JournalListPage, JournalArticlePage } from '../pages/JournalPages'
 import { RoleGate } from '../components/RoleGate'
 import { GuideGate } from '../components/GuideGate'
+import GuideLayout from '../components/crm/GuideLayout'
+
+const HomePage = lazy(() => import('../pages/HomePage'))
+const SearchPage = lazy(() => import('../pages/SearchPage'))
+const GuidePage = lazy(() => import('../pages/GuidePage'))
+const ExcursionPage = lazy(() => import('../pages/ExcursionPage'))
+const GuidesListPage = lazy(() => import('../pages/CatalogPages').then((m) => ({ default: m.default })))
+const GuidesByCountryPage = lazy(() => import('../pages/CatalogPages').then((m) => ({ default: m.GuidesByCountryPage })))
+const LoginPage = lazy(() => import('../pages/AuthPages').then((m) => ({ default: m.default })))
+const RegisterPage = lazy(() => import('../pages/AuthPages').then((m) => ({ default: m.RegisterPage })))
+const AccountPage = lazy(() => import('../pages/AccountPages').then((m) => ({ default: m.default })))
+const FavoritesPage = lazy(() => import('../pages/AccountPages').then((m) => ({ default: m.FavoritesPage })))
+const SettingsPage = lazy(() => import('../pages/AccountPages').then((m) => ({ default: m.SettingsPage })))
+const GuideOverviewPage = lazy(() => import('../pages/guide').then((m) => ({ default: m.GuideOverviewPage })))
+const GuideProfilePage = lazy(() => import('../pages/guide').then((m) => ({ default: m.GuideProfilePage })))
+const GuideBillingPage = lazy(() => import('../pages/guide').then((m) => ({ default: m.GuideBillingPage })))
+const GuideDocumentsPage = lazy(() => import('../pages/guide').then((m) => ({ default: m.GuideDocumentsPage })))
+const GuideExcursionsPage = lazy(() => import('../pages/guide').then((m) => ({ default: m.GuideExcursionsPage })))
+const GuideCalendarPage = lazy(() => import('../pages/guide').then((m) => ({ default: m.GuideCalendarPage })))
+const CityPage = lazy(() => import('../pages/CityMapPages').then((m) => ({ default: m.default })))
+const MapPage = lazy(() => import('../pages/CityMapPages').then((m) => ({ default: m.MapPage })))
+const CreateExcursionPage = lazy(() => import('../pages/CreateExcursionPage'))
+const EditExcursionPage = lazy(() => import('../pages/EditExcursionPage'))
+const AdminPage = lazy(() => import('../pages/AdminPages').then((m) => ({ default: m.default })))
+const ModeratorPage = lazy(() => import('../pages/AdminPages').then((m) => ({ default: m.ModeratorPage })))
+const DeployPage = lazy(() => import('../pages/DeployPage'))
+const JournalListPage = lazy(() => import('../pages/JournalPages').then((m) => ({ default: m.JournalListPage })))
+const JournalArticlePage = lazy(() => import('../pages/JournalPages').then((m) => ({ default: m.JournalArticlePage })))
+
+function PageFallback() {
+  return (
+    <div className="container-site py-12">
+      <div className="card text-muted">Завантаження…</div>
+    </div>
+  )
+}
+
+function Lazy({ children }: { children: React.ReactNode }) {
+  return <Suspense fallback={<PageFallback />}>{children}</Suspense>
+}
 
 export default function App() {
   return (
     <Routes>
       <Route element={<PublicLayout />}>
-        <Route index element={<HomePage />} />
-        <Route path="search" element={<SearchPage />} />
-        <Route path="map" element={<MapPage />} />
-        <Route path="city/:slug" element={<CityPage />} />
-        <Route path="guides" element={<GuidesListPage />} />
-        <Route path="guides/:countrySlug" element={<GuidesByCountryPage />} />
-        <Route path="guide/:slug" element={<GuidePage />} />
+        <Route index element={<Lazy><HomePage /></Lazy>} />
+        <Route path="search" element={<Lazy><SearchPage /></Lazy>} />
+        <Route path="map" element={<Lazy><MapPage /></Lazy>} />
+        <Route path="city/:slug" element={<Lazy><CityPage /></Lazy>} />
+        <Route path="guides" element={<Lazy><GuidesListPage /></Lazy>} />
+        <Route path="guides/:countrySlug" element={<Lazy><GuidesByCountryPage /></Lazy>} />
+        <Route path="guide/:slug" element={<Lazy><GuidePage /></Lazy>} />
         <Route path="excursions" element={<Navigate to="/search" replace />} />
-        <Route path="excursion/:slug" element={<ExcursionPage />} />
-        <Route path="journal" element={<JournalListPage />} />
-        <Route path="journal/:slug" element={<JournalArticlePage />} />
-        <Route path="login" element={<LoginPage />} />
-        <Route path="register" element={<RegisterPage />} />
+        <Route path="excursion/:slug" element={<Lazy><ExcursionPage /></Lazy>} />
+        <Route path="journal" element={<Lazy><JournalListPage /></Lazy>} />
+        <Route path="journal/:slug" element={<Lazy><JournalArticlePage /></Lazy>} />
+        <Route path="login" element={<Lazy><LoginPage /></Lazy>} />
+        <Route path="register" element={<Lazy><RegisterPage /></Lazy>} />
       </Route>
 
       <Route element={<AccountLayout />}>
-        <Route path="/account" element={<AccountPage />} />
-        <Route path="/account/favorites" element={<FavoritesPage />} />
-        <Route path="/account/settings" element={<SettingsPage />} />
+        <Route path="/account" element={<Lazy><AccountPage /></Lazy>} />
+        <Route path="/account/favorites" element={<Lazy><FavoritesPage /></Lazy>} />
+        <Route path="/account/settings" element={<Lazy><SettingsPage /></Lazy>} />
         <Route path="/account/guide" element={<GuideGate><GuideLayout /></GuideGate>}>
-          <Route index element={<GuideOverviewPage />} />
-          <Route path="profile" element={<GuideProfilePage />} />
-          <Route path="billing" element={<GuideBillingPage />} />
-          <Route path="documents" element={<GuideDocumentsPage />} />
-          <Route path="excursions/new" element={<CreateExcursionPage />} />
-          <Route path="excursions/:id/edit" element={<EditExcursionPage />} />
-          <Route path="excursions" element={<GuideExcursionsPage />} />
-          <Route path="calendar" element={<GuideCalendarPage />} />
+          <Route index element={<Lazy><GuideOverviewPage /></Lazy>} />
+          <Route path="profile" element={<Lazy><GuideProfilePage /></Lazy>} />
+          <Route path="billing" element={<Lazy><GuideBillingPage /></Lazy>} />
+          <Route path="documents" element={<Lazy><GuideDocumentsPage /></Lazy>} />
+          <Route path="excursions/new" element={<Lazy><CreateExcursionPage /></Lazy>} />
+          <Route path="excursions/:id/edit" element={<Lazy><EditExcursionPage /></Lazy>} />
+          <Route path="excursions" element={<Lazy><GuideExcursionsPage /></Lazy>} />
+          <Route path="calendar" element={<Lazy><GuideCalendarPage /></Lazy>} />
         </Route>
-        <Route path="/admin" element={<RoleGate role="ROLE_ADMIN"><AdminPage /></RoleGate>} />
-        <Route path="/downloads" element={<RoleGate role="ROLE_ADMIN"><DeployPage /></RoleGate>} />
+        <Route path="/admin" element={<RoleGate role="ROLE_ADMIN"><Lazy><AdminPage /></Lazy></RoleGate>} />
+        <Route path="/downloads" element={<RoleGate role="ROLE_ADMIN"><Lazy><DeployPage /></Lazy></RoleGate>} />
         <Route path="/deploy" element={<Navigate to="/downloads?app=web-prod-2026" replace />} />
-        <Route path="/moderator" element={<RoleGate role="ROLE_MODERATOR"><ModeratorPage /></RoleGate>} />
+        <Route path="/moderator" element={<RoleGate role="ROLE_MODERATOR"><Lazy><ModeratorPage /></Lazy></RoleGate>} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

@@ -148,6 +148,36 @@ func (r *ArticleRepo) Delete(ctx context.Context, id int64) error {
 	return nil
 }
 
+func (r *ArticleRepo) ReassignAuthor(ctx context.Context, fromID, toID int64) error {
+	_, err := r.db.Pool.Exec(ctx, `
+		UPDATE articles SET author_id = $2, updated_at = NOW() WHERE author_id = $1
+	`, fromID, toID)
+	return err
+}
+
+func (r *ArticleRepo) AssignAdminToOrphans(ctx context.Context, adminID int64) error {
+	if adminID <= 0 {
+		return nil
+	}
+	_, err := r.db.Pool.Exec(ctx, `
+		UPDATE articles SET author_id = $1, updated_at = NOW() WHERE author_id IS NULL
+	`, adminID)
+	return err
+}
+
+func (r *ArticleRepo) SetAuthor(ctx context.Context, articleID, authorID int64) error {
+	tag, err := r.db.Pool.Exec(ctx, `
+		UPDATE articles SET author_id = $2, updated_at = NOW() WHERE id = $1
+	`, articleID, authorID)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return pgx.ErrNoRows
+	}
+	return nil
+}
+
 func (r *ArticleRepo) SlugTaken(ctx context.Context, slug string, excludeID int64) (bool, error) {
 	var id int64
 	err := r.db.Pool.QueryRow(ctx, `SELECT id FROM articles WHERE slug = $1 AND id <> $2`, slug, excludeID).Scan(&id)

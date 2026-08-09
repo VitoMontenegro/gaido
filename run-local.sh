@@ -55,7 +55,6 @@ export DATABASE_URL="${DATABASE_URL:-postgres://tourister:tourister@localhost:54
 export REDIS_URL="${REDIS_URL:-redis://localhost:6380/0}"
 export REDIS_SESSION_URL="${REDIS_SESSION_URL:-redis://localhost:6380/1}"
 export REDIS_SIGNAL_URL="${REDIS_SIGNAL_URL:-redis://localhost:6380/2}"
-export SEED_DEMO_DATA="${SEED_DEMO_DATA:-true}"
 export PAYMENT_STUB_ENABLED="${PAYMENT_STUB_ENABLED:-true}"
 
 if [[ "${LOCAL_SKIP_BACKEND:-0}" != "1" ]]; then
@@ -66,6 +65,10 @@ if [[ "${LOCAL_SKIP_BACKEND:-0}" != "1" ]]; then
   ) >>"$ROOT/.local/logs/backend.log" 2>&1 &
   echo $! >"$ROOT/.local/pids/backend.pid"
   local_wait_tcp "127.0.0.1" "$BACKEND_PORT" "backend" 45
+  if [[ "${LOCAL_SEED:-0}" == "1" ]]; then
+    echo "→ demo seed (LOCAL_SEED=1)"
+    (cd "$ROOT/backend" && go run ./cmd/seed -demo) >>"$ROOT/.local/logs/backend.log" 2>&1 || echo "→ seed failed (see backend.log)"
+  fi
 else
   echo "→ skip backend (LOCAL_SKIP_BACKEND=1)"
 fi

@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
-import { authApi, loadAccessToken, setAccessToken, ApiClientError } from '../api/client'
+import { authApi } from '../api/auth'
+import { getAccessToken, setAccessToken, ApiClientError, bootstrapAuth } from '../api/http'
 
 export function useMe() {
   return useQuery({
@@ -15,7 +16,16 @@ export function useMe() {
       }
     },
     retry: false,
-    enabled: !!loadAccessToken(),
+    enabled: !!getAccessToken(),
+  })
+}
+
+export function useBootstrapAuth() {
+  return useQuery({
+    queryKey: ['auth-bootstrap'],
+    queryFn: bootstrapAuth,
+    staleTime: Infinity,
+    retry: false,
   })
 }
 

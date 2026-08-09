@@ -1,0 +1,170 @@
+package handlers
+
+import (
+	"context"
+	"encoding/json"
+	"net/http"
+
+	"github.com/vitomonte/experts-tourister/internal/apperrors"
+	"github.com/vitomonte/experts-tourister/internal/domain"
+	"github.com/vitomonte/experts-tourister/internal/http/middleware"
+	"github.com/vitomonte/experts-tourister/internal/http/response"
+	guidesvc "github.com/vitomonte/experts-tourister/internal/service/guide"
+)
+
+func (h *Handlers) GetGuideProfile(w http.ResponseWriter, r *http.Request) {
+	g, err := h.Guides.GetByUserID(r.Context(), middleware.UserIDFromContext(r.Context()))
+	if err != nil || g == nil {
+		response.Error(w, r, apperrors.ErrNotFound)
+		return
+	}
+	response.JSON(w, r, 200, h.GuideAccountProfile(r.Context(), g))
+}
+func (h *Handlers) GuideAccountProfile(ctx context.Context, g *domain.GuideProfile) domain.GuideAccountProfile {
+	return guidesvc.BuildGuideAccountProfile(g, h.HasUploadedLicense(ctx, g))
+}
+func (h *Handlers) HasUploadedLicense(ctx context.Context, g *domain.GuideProfile) bool {
+	ok, _ := h.Guides.HasDocument(ctx, g.ID, domain.DocTypeGuideLicense)
+	if ok {
+		return true
+	}
+	ok, _ = h.Guides.HasDocument(ctx, g.ID, domain.DocTypeEntertainerLicense)
+	return ok
+}
+func (h *Handlers) UpdateGuideProfile(w http.ResponseWriter, r *http.Request) {
+	var req domain.GuideProfile
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Error(w, r, apperrors.ErrValidation)
+		return
+	}
+	profile, err := h.GuideSvc.UpdateProfile(r.Context(), middleware.UserIDFromContext(r.Context()), req)
+	if err != nil || profile == nil {
+		if err == nil {
+			response.Error(w, r, apperrors.ErrNotFound)
+			return
+		}
+		response.Error(w, r, apperrors.ErrInternal)
+		return
+	}
+	response.JSON(w, r, 200, profile)
+}
+func (h *Handlers) UploadDocument(w http.ResponseWriter, r *http.Request) {
+	g, _ := h.Guides.GetByUserID(r.Context(), middleware.UserIDFromContext(r.Context()))
+	if g == nil {
+		response.Error(w, r, apperrors.ErrNotFound)
+		return
+	}
+	if err := r.ParseMultipartForm(h.Cfg.MediaMaxUploadBytes); err != nil {
+		response.Error(w, r, apperrors.ErrValidation)
+		return
+	}
+	docType := r.FormValue("type")
+	if docType != domain.DocTypeGuideLicense && docType != domain.DocTypeEntertainerLicense {
+		response.Error(w, r, apperrors.ErrValidation)
+		return
+	}
+	file, hdr, err := r.FormFile("file")
+	if err != nil {
+		response.Error(w, r, apperrors.ErrValidation)
+		return
+	}
+	defer file.Close()
+	mime := hdr.Header.Get("Content-Type")
+	priv, pub, size, err := h.Media.SaveUpload(file, mime, h.Cfg.MediaMaxUploadBytes)
+	if err != nil {
+		response.Error(w, r, apperrors.ErrValidation)
+		return
+	}
+	_ = pub
+	if err := h.Guides.DeleteDocumentByType(r.Context(), g.ID, guidesvc.OppositeDocumentType(docType)); err != nil {
+		response.Error(w, r, apperrors.ErrInternal)
+		return
+	}
+	if err := h.Guides.AddDocument(r.Context(), g.ID, docType, priv, mime, size, ""); err != nil {
+		response.Error(w, r, apperrors.ErrInternal)
+		return
+	}
+	g.GuideType = guidesvc.GuideTypeForDocument(docType)
+	if err := h.Guides.UpdateProfile(r.Context(), g); err != nil {
+		response.Error(w, r, apperrors.ErrInternal)
+		return
+	}
+	response.JSON(w, r, 201, h.GuideAccountProfile(r.Context(), g))
+}
+func (h *Handlers) ListDocuments(w http.ResponseWriter, r *http.Request) {
+	g, _ := h.Guides.GetByUserID(r.Context(), middleware.UserIDFromContext(r.Context()))
+	if g == nil {
+		response.Error(w, r, apperrors.ErrNotFound)
+		return
+	}
+	items, err := h.Guides.ListDocuments(r.Context(), g.ID)
+	if err != nil {
+		response.Error(w, r, apperrors.ErrInternal)
+		return
+	}
+	response.JSON(w, r, 200, map[string]any{"items": items})
+}
+func (h *Handlers) ModListDocuments(w http.ResponseWriter, r *http.Request) {
+	items, err := h.Guides.ListDocumentsForModeration(r.Context(), 100)
+	if err != nil {
+		response.Error(w, r, apperrors.ErrInternal)
+		return
+	}
+	if items == nil {
+		items = []domain.GuideDocumentModerationItem{}
+	}
+	response.JSON(w, r, 200, map[string]any{"items": items})
+}
+func (h *Handlers) AddGuideCity(w http.ResponseWriter, r *http.Request) {
+	g, err := h.Guides.GetByUserID(r.Context(), middleware.UserIDFromContext(r.Context()))
+	if err != nil || g == nil {
+		response.Error(w, r, apperrors.ErrNotFound)
+		return
+	}
+	var req struct {
+		CityID    int64 `json:"city_id"`
+		IsPrimary bool  `json:"is_primary"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Error(w, r, apperrors.ErrValidation)
+		return
+	}
+	if req.CityID <= 0 {
+		response.Error(w, r, apperrors.ErrValidation)
+		return
+	}
+	if err := h.Guides.AddCity(r.Context(), g.ID, req.CityID, req.IsPrimary); err != nil {
+		response.Error(w, r, apperrors.ErrInternal)
+		return
+	}
+	response.JSON(w, r, 200, map[string]string{"status": "ok"})
+}
+func (h *Handlers) GuideDashboard(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	uid := middleware.UserIDFromContext(ctx)
+	g, err := h.Guides.GetByUserID(ctx, uid)
+	if err != nil || g == nil {
+		response.Error(w, r, apperrors.ErrNotFound)
+		return
+	}
+
+	stats, err := h.Admin.GuideDashboardStats(ctx, g.ID)
+	if err != nil {
+		response.Error(w, r, apperrors.ErrInternal)
+		return
+	}
+	sub, _ := h.Subs.GetActive(ctx, g.ID)
+	featuredGuide, _ := h.Featured.GetActiveGuideSlot(ctx, g.ID)
+	featuredExcursions, _ := h.Featured.ListActiveExcursionSlotsByGuide(ctx, g.ID)
+	paymentsEnabled, _ := h.Settings.GetBool(ctx, "guide_placement_payments_enabled", false)
+
+	response.JSON(w, r, 200, guidesvc.BuildDashboard(guidesvc.DashboardInput{
+		Guide:              g,
+		Stats:              stats,
+		Subscription:       sub,
+		FeaturedGuide:      featuredGuide,
+		FeaturedExcursions: featuredExcursions,
+		PaymentsEnabled:    paymentsEnabled,
+		HasLicense:         h.licensePresent(ctx, g),
+	}))
+}

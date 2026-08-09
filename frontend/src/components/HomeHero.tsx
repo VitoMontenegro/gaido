@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { asHtml } from '../lib/html'
+import { sanitizeHtml } from '../lib/html'
 import BrandLogo from './BrandLogo'
 
 const SLIDES = [
@@ -62,7 +62,7 @@ export default function HomeHero({ title, subtitle }: Props) {
         </h1>
         <p
           className="mt-4 max-w-xl text-base leading-relaxed text-white/80 md:text-lg"
-          dangerouslySetInnerHTML={{ __html: asHtml(subtitle) }}
+          dangerouslySetInnerHTML={{ __html: sanitizeHtml(subtitle) }}
         />
 
         <form

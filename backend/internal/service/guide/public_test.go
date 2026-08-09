@@ -12,7 +12,7 @@ func TestContactsVisible(t *testing.T) {
 	exp := time.Now().Add(24 * time.Hour)
 	g := &domain.GuideProfile{Status: domain.GuideStatusActive}
 	sub := &domain.GuideSubscription{Status: domain.SubscriptionActive, ExpiresAt: &exp}
-	dto := guidesvc.BuildPublicGuideDTO(g, sub, true)
+	dto := guidesvc.BuildPublicGuideDTO(g, sub, true, true)
 	if !dto.Contacts.Visible {
 		t.Fatal("expected contacts visible")
 	}
@@ -20,7 +20,7 @@ func TestContactsVisible(t *testing.T) {
 
 func TestContactsHiddenInactive(t *testing.T) {
 	g := &domain.GuideProfile{Status: domain.GuideStatusDraft}
-	dto := guidesvc.BuildPublicGuideDTO(g, nil, false)
+	dto := guidesvc.BuildPublicGuideDTO(g, nil, false, true)
 	if dto.Contacts.Visible {
 		t.Fatal("expected contacts hidden")
 	}
@@ -31,11 +31,11 @@ func TestContactsHiddenInactive(t *testing.T) {
 
 func TestTypeBadgeRequiresLicense(t *testing.T) {
 	g := &domain.GuideProfile{Status: domain.GuideStatusActive, GuideType: domain.GuideTypeGuide}
-	dto := guidesvc.BuildPublicGuideDTO(g, nil, false)
+	dto := guidesvc.BuildPublicGuideDTO(g, nil, false, true)
 	if dto.TypeBadge != nil {
 		t.Fatal("badge should be nil without license")
 	}
-	dto2 := guidesvc.BuildPublicGuideDTO(g, nil, true)
+	dto2 := guidesvc.BuildPublicGuideDTO(g, nil, true, true)
 	if dto2.TypeBadge == nil || *dto2.TypeBadge != "Гід" {
 		t.Fatal("expected guide badge")
 	}

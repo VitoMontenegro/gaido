@@ -7,6 +7,7 @@ import ExcursionCard, { excursionCardPropsFromPartial } from '../components/Excu
 import GuideAvatar from '../components/GuideAvatar'
 import ApiErrorBanner from '../components/ApiErrorBanner'
 import { useHasRole, useMe } from '../hooks/useAuth'
+import NotificationsPanel from '../components/NotificationsPanel'
 
 export default function AccountPage() {
   const { data: me } = useMe()
@@ -47,6 +48,8 @@ export default function AccountPage() {
             )}
           </div>
         </div>
+
+        <NotificationsPanel />
 
         {!isAdmin && (
           <section className="card space-y-3">

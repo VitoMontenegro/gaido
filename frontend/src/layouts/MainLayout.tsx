@@ -1,30 +1,22 @@
-import { Link, Outlet, useNavigate, Navigate } from 'react-router-dom'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { catalogApi, loadAccessToken, setAccessToken, authApi } from '../api/client'
-import { useHasRole, useMe } from '../hooks/useAuth'
+import { Link, Outlet, Navigate } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
+import { catalogApi } from '../api/client'
+import { useBootstrapAuth, useHasRole, useMe } from '../hooks/useAuth'
+import { useLogout } from '../hooks/useLogout'
+import { useNotifications } from '../hooks/useNotifications'
 import ErrorBoundary from '../components/ErrorBoundary'
 import SiteHeader from '../components/SiteHeader'
 import SiteFooter from '../components/SiteFooter'
 import AccountNavLink from '../components/crm/AccountNavLink'
 
-loadAccessToken()
-
 export function PublicLayout() {
-  const navigate = useNavigate()
-  const qc = useQueryClient()
+  const logout = useLogout()
 
   useQuery({
     queryKey: ['site'],
     queryFn: () => catalogApi.site(),
     staleTime: 60_000,
   })
-
-  const logout = async () => {
-    await authApi.logout()
-    setAccessToken(null)
-    qc.removeQueries({ queryKey: ['me'] })
-    navigate('/')
-  }
 
   return (
     <div className="flex min-h-screen flex-col bg-page">
@@ -41,21 +33,15 @@ export function PublicLayout() {
 }
 
 export function AccountLayout() {
-  const navigate = useNavigate()
-  const qc = useQueryClient()
+  const logout = useLogout()
+  const { isLoading: authLoading } = useBootstrapAuth()
   const { data: me, isLoading, isError } = useMe()
   const isGuide = useHasRole('ROLE_GUIDE')
   const isModerator = useHasRole('ROLE_MODERATOR')
   const isAdmin = useHasRole('ROLE_ADMIN')
+  const { unread } = useNotifications()
 
-  const logout = async () => {
-    await authApi.logout()
-    setAccessToken(null)
-    qc.removeQueries({ queryKey: ['me'] })
-    navigate('/')
-  }
-
-  if (isLoading) {
+  if (authLoading || isLoading) {
     return (
       <div className="container-site py-12">
         <div className="card text-muted">Завантаження…</div>
@@ -75,7 +61,9 @@ export function AccountLayout() {
             ← На головну
           </Link>
           <p className="section-title-sm mb-4">Кабінет</p>
-          <AccountNavLink to="/account" end>Огляд</AccountNavLink>
+          <AccountNavLink to="/account" end>
+            Огляд{unread > 0 ? ` (${unread})` : ''}
+          </AccountNavLink>
           {!isAdmin && (
             <AccountNavLink to="/account/favorites">Обране</AccountNavLink>
           )}

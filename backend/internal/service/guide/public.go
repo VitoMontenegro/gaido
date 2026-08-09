@@ -16,7 +16,7 @@ type SubscriptionChecker interface {
 	GetActiveSubscription(ctx context.Context, guideID int64) (*domain.GuideSubscription, error)
 }
 
-func BuildPublicGuideDTO(g *domain.GuideProfile, sub *domain.GuideSubscription, hasLicense bool) domain.PublicGuideDTO {
+func BuildPublicGuideDTO(g *domain.GuideProfile, sub *domain.GuideSubscription, hasLicense bool, requireSubscription bool) domain.PublicGuideDTO {
 	dto := domain.PublicGuideDTO{
 		ID:          g.ID,
 		Slug:        g.WebsiteSlug,
@@ -34,7 +34,7 @@ func BuildPublicGuideDTO(g *domain.GuideProfile, sub *domain.GuideSubscription, 
 		dto.TypeBadge = &badge
 	}
 
-	if contactsVisible(g, sub) {
+	if contactsVisible(g, sub, requireSubscription) {
 		dto.Contacts = domain.ContactsDTO{
 			Visible:                true,
 			Phone:                  g.Phone,
@@ -79,7 +79,7 @@ func OppositeDocumentType(docType string) string {
 }
 
 func BuildGuideAccountProfile(g *domain.GuideProfile, hasLicense bool) domain.GuideAccountProfile {
-	public := BuildPublicGuideDTO(g, nil, hasLicense)
+	public := BuildPublicGuideDTO(g, nil, hasLicense, true)
 	return domain.GuideAccountProfile{
 		GuideProfile:  *g,
 		TypeBadge:     public.TypeBadge,
@@ -104,12 +104,15 @@ func typeBadge(guideType string, hasLicense bool) string {
 	return ""
 }
 
-func contactsVisible(g *domain.GuideProfile, sub *domain.GuideSubscription) bool {
+func contactsVisible(g *domain.GuideProfile, sub *domain.GuideSubscription, requireSubscription bool) bool {
 	if g.Status != domain.GuideStatusActive {
 		return false
 	}
 	if g.Status == domain.GuideStatusBlocked || g.Status == domain.GuideStatusSuspended {
 		return false
+	}
+	if !requireSubscription {
+		return true
 	}
 	if sub == nil || sub.Status != domain.SubscriptionActive {
 		return false

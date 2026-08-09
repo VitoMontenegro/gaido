@@ -22,4 +22,13 @@ func TestResolveMapEmbed(t *testing.T) {
 	if got := ResolveMapEmbed("https://example.com/page"); got != "" {
 		t.Fatalf("non-map url must be rejected, got %q", got)
 	}
+	if got := ResolveMapEmbed("http://www.google.com/maps/embed"); got != "" {
+		t.Fatalf("http must be rejected, got %q", got)
+	}
+	if got := ResolveMapEmbed("https://evil.tld/maps"); got != "" {
+		t.Fatalf("substring /maps must not allow host, got %q", got)
+	}
+	if got := ResolveMapEmbed("https://evil-google.com/embed"); got != "" {
+		t.Fatalf("substring google. must not allow host, got %q", got)
+	}
 }

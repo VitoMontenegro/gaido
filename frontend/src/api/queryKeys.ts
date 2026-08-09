@@ -1,0 +1,15 @@
+export const queryKeys = {
+  me: ['me'] as const,
+  guides: (params?: Record<string, string>) => ['guides', params] as const,
+  guide: (slug: string) => ['guide', slug] as const,
+  excursions: (params?: Record<string, string>) => ['excursions', params] as const,
+  excursion: (slug: string) => ['excursion', slug] as const,
+  site: ['site'] as const,
+  favorites: ['favorites'] as const,
+  reviews: (params: Record<string, string>) => ['reviews', params] as const,
+  guideDashboard: ['guide', 'dashboard'] as const,
+  guideProfile: ['guide', 'profile'] as const,
+  guideExcursions: ['guide', 'excursions'] as const,
+  adminAnalytics: ['admin', 'analytics'] as const,
+  adminGuides: (status?: string) => ['admin', 'guides', status] as const,
+}

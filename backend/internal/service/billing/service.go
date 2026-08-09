@@ -2,10 +2,12 @@ package billing
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/vitomonte/experts-tourister/internal/apperrors"
 	"github.com/vitomonte/experts-tourister/internal/domain"
 	"github.com/vitomonte/experts-tourister/internal/repo/postgres"
@@ -25,9 +27,9 @@ type Service struct {
 
 func (s *Service) PaymentsEnabled(ctx context.Context) (bool, error) {
 	if s.Settings == nil {
-		return true, nil
+		return false, nil
 	}
-	return s.Settings.GetBool(ctx, "guide_placement_payments_enabled", true)
+	return s.Settings.GetBool(ctx, "guide_placement_payments_enabled", false)
 }
 
 func (s *Service) BillingStatus(ctx context.Context, userID int64) (*domain.BillingStatusDTO, error) {
@@ -54,6 +56,11 @@ func (s *Service) BillingStatus(ctx context.Context, userID int64) (*domain.Bill
 	return status, nil
 }
 
+func isUniqueViolation(err error) bool {
+	var pgErr *pgconn.PgError
+	return errors.As(err, &pgErr) && pgErr.Code == "23505"
+}
+
 func (s *Service) ActivateGuideSubscription(ctx context.Context, guideID, planID int64, paymentID *int64, source string, actorID *int64) error {
 	tx, err := s.DB.Pool.Begin(ctx)
 	if err != nil {
@@ -66,18 +73,20 @@ func (s *Service) ActivateGuideSubscription(ctx context.Context, guideID, planID
 		if err := tx.QueryRow(ctx, `SELECT status FROM payments WHERE id=$1 FOR UPDATE`, *paymentID).Scan(&pstatus); err != nil {
 			return err
 		}
-		if pstatus == domain.PaymentPaid {
-			var subStatus string
-			err := tx.QueryRow(ctx, `
-				SELECT status FROM guide_subscriptions
-				WHERE guide_id=$1 AND status=$2 AND expires_at > NOW()
-				ORDER BY id DESC LIMIT 1`, guideID, domain.SubscriptionActive).Scan(&subStatus)
-			if err == nil && subStatus == domain.SubscriptionActive {
-				return tx.Commit(ctx)
-			}
+		var existingID int64
+		err := tx.QueryRow(ctx, `
+			SELECT id FROM guide_subscriptions WHERE payment_id=$1 LIMIT 1
+		`, *paymentID).Scan(&existingID)
+		if err == nil {
+			return tx.Commit(ctx)
+		}
+		if !errors.Is(err, pgx.ErrNoRows) {
+			return err
 		}
 		if pstatus != domain.PaymentPaid && source == domain.ActivationPayment {
-			_, _ = tx.Exec(ctx, `UPDATE payments SET status=$2, updated_at=NOW() WHERE id=$1`, *paymentID, domain.PaymentPaid)
+			if _, err := tx.Exec(ctx, `UPDATE payments SET status=$2, updated_at=NOW() WHERE id=$1`, *paymentID, domain.PaymentPaid); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -95,6 +104,8 @@ func (s *Service) ActivateGuideSubscription(ctx context.Context, guideID, planID
 	base := now
 	if err == nil && existingExpires.After(base) {
 		base = existingExpires
+	} else if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return err
 	}
 	expires := base.Add(time.Duration(duration) * 24 * time.Hour)
 
@@ -103,6 +114,9 @@ func (s *Service) ActivateGuideSubscription(ctx context.Context, guideID, planID
 		VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
 	`, guideID, planID, domain.SubscriptionActive, now, expires, now, paymentID, source)
 	if err != nil {
+		if paymentID != nil && isUniqueViolation(err) {
+			return tx.Commit(ctx)
+		}
 		return err
 	}
 
@@ -128,15 +142,37 @@ func (s *Service) ActivateGuideSubscription(ctx context.Context, guideID, planID
 }
 
 func (s *Service) ActivateFeaturedPlacement(ctx context.Context, guideID, planID int64, excursionID *int64, paymentID *int64) error {
+	tx, err := s.DB.Pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
 	plan, err := s.Subs.GetPlan(ctx, planID)
 	if err != nil || plan == nil {
 		return apperrors.ErrNotFound
 	}
+
 	if paymentID != nil {
-		if err := s.Payments.MarkPaid(ctx, *paymentID); err != nil {
+		var pstatus string
+		if err := tx.QueryRow(ctx, `SELECT status FROM payments WHERE id=$1 FOR UPDATE`, *paymentID).Scan(&pstatus); err != nil {
 			return err
 		}
+		var existingID int64
+		err := tx.QueryRow(ctx, `SELECT id FROM featured_placements WHERE payment_id=$1 LIMIT 1`, *paymentID).Scan(&existingID)
+		if err == nil {
+			return tx.Commit(ctx)
+		}
+		if !errors.Is(err, pgx.ErrNoRows) {
+			return err
+		}
+		if pstatus != domain.PaymentPaid {
+			if _, err := tx.Exec(ctx, `UPDATE payments SET status=$2, updated_at=NOW() WHERE id=$1`, *paymentID, domain.PaymentPaid); err != nil {
+				return err
+			}
+		}
 	}
+
 	slotType := domain.FeaturedSlotGuide
 	if plan.PlanType == domain.PlanTypeFeaturedExcursion {
 		slotType = domain.FeaturedSlotExcursion
@@ -148,13 +184,74 @@ func (s *Service) ActivateFeaturedPlacement(ctx context.Context, guideID, planID
 			return apperrors.ErrValidation
 		}
 	}
-	return s.Featured.Upsert(ctx, guideID, excursionID, slotType, planID, plan.DurationDays, paymentID)
+
+	now := time.Now().UTC()
+	expires := now.Add(time.Duration(plan.DurationDays) * 24 * time.Hour)
+
+	var existingID int64
+	var existingExpires time.Time
+	q := `
+		SELECT id, expires_at FROM featured_placements
+		WHERE guide_id=$1 AND slot_type=$2 AND status=$3 AND expires_at > NOW()`
+	args := []any{guideID, slotType, domain.FeaturedPlacementActive}
+	if excursionID != nil {
+		q += ` AND excursion_id=$4`
+		args = append(args, *excursionID)
+	} else {
+		q += ` AND excursion_id IS NULL`
+	}
+	q += ` ORDER BY id DESC LIMIT 1`
+	err = tx.QueryRow(ctx, q, args...).Scan(&existingID, &existingExpires)
+	if err == nil {
+		base := existingExpires
+		if base.Before(now) {
+			base = now
+		}
+		expires = base.Add(time.Duration(plan.DurationDays) * 24 * time.Hour)
+		_, err = tx.Exec(ctx, `
+			UPDATE featured_placements
+			SET plan_id=$2, expires_at=$3, paid_at=$4, payment_id=$5, updated_at=NOW()
+			WHERE id=$1
+		`, existingID, planID, expires, now, paymentID)
+		if err != nil {
+			if paymentID != nil && isUniqueViolation(err) {
+				return tx.Commit(ctx)
+			}
+			return err
+		}
+		return tx.Commit(ctx)
+	}
+	if !errors.Is(err, pgx.ErrNoRows) {
+		return err
+	}
+
+	_, err = tx.Exec(ctx, `
+		INSERT INTO featured_placements (guide_id, excursion_id, slot_type, plan_id, status, starts_at, expires_at, paid_at, payment_id)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+	`, guideID, excursionID, slotType, planID, domain.FeaturedPlacementActive, now, expires, now, paymentID)
+	if err != nil {
+		if paymentID != nil && isUniqueViolation(err) {
+			return tx.Commit(ctx)
+		}
+		return err
+	}
+	return tx.Commit(ctx)
 }
 
-func (s *Service) ConfirmPayment(ctx context.Context, paymentID int64, planIDFallback int64) error {
+func checkPaymentOwner(p *domain.Payment, callerUserID int64, requireOwner bool) error {
+	if requireOwner && p.PayerID != callerUserID {
+		return apperrors.ErrForbidden
+	}
+	return nil
+}
+
+func (s *Service) ConfirmPayment(ctx context.Context, paymentID int64, planIDFallback int64, callerUserID int64, requireOwner bool) error {
 	p, err := s.Payments.GetByID(ctx, paymentID)
 	if err != nil || p == nil {
 		return apperrors.ErrNotFound
+	}
+	if err := checkPaymentOwner(p, callerUserID, requireOwner); err != nil {
+		return err
 	}
 	planID := planIDFallback
 	if v, ok := p.Metadata["plan_id"]; ok {
@@ -178,13 +275,7 @@ func (s *Service) ConfirmPayment(ctx context.Context, paymentID int64, planIDFal
 		return apperrors.ErrNotFound
 	}
 
-	if p.Status != domain.PaymentPaid {
-		if err := s.Payments.MarkPaid(ctx, paymentID); err != nil {
-			return err
-		}
-	}
 	pid := paymentID
-
 	switch plan.PlanType {
 	case domain.PlanTypeGuidePlacement:
 		return s.ActivateGuideSubscription(ctx, g.ID, planID, &pid, domain.ActivationPayment, nil)
@@ -266,4 +357,58 @@ func (s *Service) AdminBypass(ctx context.Context, guideID, planID int64, actorI
 	return s.ActivateGuideSubscription(ctx, guideID, planID, nil, domain.ActivationAdminBypass, &actorID)
 }
 
-var _ = pgx.ErrNoRows
+// ExpireStale marks expired subscriptions/featured and demotes guides when monetization is on.
+func (s *Service) ExpireStale(ctx context.Context) (int64, error) {
+	tag, err := s.DB.Pool.Exec(ctx, `
+		UPDATE guide_subscriptions
+		SET status=$2, updated_at=NOW()
+		WHERE status=$1 AND expires_at <= NOW()
+	`, domain.SubscriptionActive, domain.SubscriptionExpired)
+	if err != nil {
+		return 0, err
+	}
+	n := tag.RowsAffected()
+
+	if _, err := s.DB.Pool.Exec(ctx, `
+		UPDATE featured_placements
+		SET status=$2, updated_at=NOW()
+		WHERE status=$1 AND expires_at <= NOW()
+	`, domain.FeaturedPlacementActive, domain.FeaturedPlacementExpired); err != nil {
+		return n, err
+	}
+
+	enabled, err := s.PaymentsEnabled(ctx)
+	if err != nil || !enabled {
+		return n, err
+	}
+
+	rows, err := s.DB.Pool.Query(ctx, `
+		SELECT gp.id, gp.user_id FROM guide_profiles gp
+		WHERE gp.status = $1
+		AND NOT EXISTS (
+			SELECT 1 FROM guide_subscriptions gs
+			WHERE gs.guide_id = gp.id AND gs.status = $2 AND gs.expires_at > NOW()
+		)
+	`, domain.GuideStatusActive, domain.SubscriptionActive)
+	if err != nil {
+		return n, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var guideID, userID int64
+		if err := rows.Scan(&guideID, &userID); err != nil {
+			return n, err
+		}
+		if _, err := s.DB.Pool.Exec(ctx, `
+			UPDATE guide_profiles SET status=$2, updated_at=NOW() WHERE id=$1
+		`, guideID, domain.GuideStatusExpired); err != nil {
+			return n, err
+		}
+		if s.Notify != nil {
+			_ = s.Notify(ctx, userID, "SUBSCRIPTION_EXPIRED", `{}`)
+		}
+		n++
+	}
+	return n, rows.Err()
+}

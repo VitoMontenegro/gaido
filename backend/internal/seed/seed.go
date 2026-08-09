@@ -244,11 +244,6 @@ func (s *Seeder) ensurePlan(ctx context.Context) (int64, error) {
 	var planID int64
 	err := s.DB.Pool.QueryRow(ctx, `SELECT id FROM subscription_plans WHERE code='basic' LIMIT 1`).Scan(&planID)
 	if err == nil {
-		_, _ = s.DB.Pool.Exec(ctx, `
-			UPDATE subscription_plans
-			SET name=$1, description=$2, price=$3, currency=$4, plan_type=$5
-			WHERE id=$6
-		`, "Базове розміщення", "Розміщення профілю гіда — помісячно", 990.00, "UAH", domain.PlanTypeGuidePlacement, planID)
 		return planID, nil
 	}
 	err = s.DB.Pool.QueryRow(ctx, `

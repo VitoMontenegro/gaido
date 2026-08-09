@@ -15,6 +15,7 @@ type User struct {
 	Roles        []string
 	Status       string
 	CreatedAt    time.Time
+	DeletedAt    *time.Time
 }
 
 type GuideProfile struct {
@@ -44,6 +45,18 @@ type GuideAccountProfile struct {
 	TypeBadge     *string `json:"type_badge,omitempty"`
 	HasLicense    bool    `json:"has_license"`
 	CatalogStatus string  `json:"catalog_status"`
+}
+
+type GuideDocumentModerationItem struct {
+	ID          int64  `json:"id"`
+	GuideID     int64  `json:"guide_id"`
+	GuideName   string `json:"guide_name"`
+	GuideStatus string `json:"guide_status"`
+	GuideType   string `json:"guide_type"`
+	Type        string `json:"type"`
+	MimeType    string `json:"mime_type"`
+	Size        int64  `json:"size"`
+	UploadedAt  string `json:"uploaded_at"`
 }
 
 type GuideDocument struct {

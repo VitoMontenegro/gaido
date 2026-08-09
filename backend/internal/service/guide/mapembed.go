@@ -8,6 +8,27 @@ import (
 
 var iframeSrcRe = regexp.MustCompile(`(?i)<iframe[^>]+src=["']([^"']+)["']`)
 
+// Exact host allowlist for map embeds (https only).
+var mapHosts = map[string]struct{}{
+	"www.google.com":        {},
+	"maps.google.com":       {},
+	"maps.googleapis.com":   {},
+	"www.google.com.ua":     {},
+	"www.openstreetmap.org": {},
+	"openstreetmap.org":     {},
+	"www.osm.org":           {},
+	"osm.org":               {},
+	"yandex.ru":             {},
+	"yandex.ua":             {},
+	"yandex.com":            {},
+	"www.yandex.ru":         {},
+	"www.yandex.ua":         {},
+	"www.yandex.com":        {},
+	"mapy.cz":               {},
+	"www.mapy.cz":           {},
+	"maps.apple.com":        {},
+}
+
 // ResolveMapEmbed accepts a maps embed URL or full <iframe src="..."> HTML.
 // Plain text (e.g. pasted program paragraphs) is rejected.
 func ResolveMapEmbed(raw string) string {
@@ -28,22 +49,11 @@ func ResolveMapEmbed(raw string) string {
 	}
 
 	u, err := url.Parse(candidate)
-	if err != nil || (u.Scheme != "http" && u.Scheme != "https") {
+	if err != nil || u.Scheme != "https" {
 		return ""
 	}
 	host := strings.ToLower(u.Hostname())
-	href := strings.ToLower(u.String())
-	looksLikeMap := strings.Contains(host, "google.") ||
-		strings.Contains(host, "googleapis.com") ||
-		strings.Contains(host, "openstreetmap.org") ||
-		strings.Contains(host, "osm.org") ||
-		strings.Contains(host, "yandex.") ||
-		strings.Contains(host, "mapy.cz") ||
-		strings.Contains(host, "maps.apple.com") ||
-		strings.Contains(href, "/maps") ||
-		strings.Contains(href, "map=") ||
-		strings.Contains(href, "embed")
-	if !looksLikeMap {
+	if _, ok := mapHosts[host]; !ok {
 		return ""
 	}
 	return u.String()

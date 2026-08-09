@@ -2,6 +2,27 @@
 
 Каталог гидов и экскурсий (Go + React).
 
+## Документация
+
+| Документ | Описание |
+|----------|----------|
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | обзор архитектуры |
+| [docs/CONVENTIONS.md](docs/CONVENTIONS.md) | слои, service, PR checklist |
+| [docs/ENV.md](docs/ENV.md) | переменные окружения dev/prod |
+| [docs/REFACTORING_PLAN.md](docs/REFACTORING_PLAN.md) | план рефакторинга |
+| [docs/adr/002-multi-vertical-modular-monolith.md](docs/adr/002-multi-vertical-modular-monolith.md) | масштабирование transport/services |
+| [DEPLOY.md](DEPLOY.md) | деплой |
+
+### Prod checklist (перед релизом)
+
+- [ ] `APP_ENV=production` и `config.Validate` проходит
+- [ ] `PAYMENT_STUB_ENABLED=false`
+- [ ] JWT-секреты уникальны (≥32 символов), не dev-defaults
+- [ ] `CORS_ORIGINS` — конкретные домены, не `*`
+- [ ] `DATABASE_URL` с осознанным `sslmode`
+- [ ] `TRUST_PROXY=true` за reverse-proxy (иначе rate-limit видит IP прокси)
+- [ ] Монетизация выключена в админке до наполнения каталога (`guide_placement_payments_enabled=false` — контакты ACTIVE открыты; при `true` — paywall контактов + checkout)
+
 ## Quick start
 
 ### Одной командой (PhpStorm / терминал)
@@ -19,6 +40,7 @@ chmod +x restart-local.sh stop-local.sh run-local.sh
 | `LOCAL_SKIP_BACKEND=1` | только Vite |
 | `LOCAL_SKIP_DOCKER=1` | не поднимать compose (PG/Redis уже запущены) |
 | `LOCAL_SKIP_MIGRATE=1` | пропустить миграции |
+| `LOCAL_SEED=1` | после старта API один раз `go run ./cmd/seed -demo` |
 
 **PhpStorm:** Run → Edit Configurations → Shell Script → Script path: `$ProjectFileDir$/restart-local.sh`
 
@@ -36,12 +58,16 @@ cp .env.example .env
 cd backend && go mod download
 go run ./cmd/migrate -cmd up
 go run ./cmd/api
+# optional demo data (dev only, never on API startup):
+# go run ./cmd/seed -demo
 
 # Frontend (separate terminal)
 cd frontend && npm install && npm run dev
 ```
 
 ## Demo accounts
+
+Демо-аккаунты появляются только после ручного seed (`go run ./cmd/seed -demo` или `LOCAL_SEED=1`). На проде seed при старте API не выполняется.
 
 | User | Password | Role | Описание |
 |------|----------|------|----------|
@@ -54,8 +80,6 @@ cd frontend && npm install && npm run dev
 | tourist2 | tourist12345 | TOURIST | Отзывы на guide1, guide3, guide4 |
 | moderator | moderator123 | MODERATOR | Модерация |
 | admin | admin12345 | ADMIN | Админка |
-
-Seed создаётся при старте API (`SEED_DEMO_DATA=true`). Повторный запуск идемпотентен — добавляет недостающих гидов и экскурсии.
 
 ## Health
 

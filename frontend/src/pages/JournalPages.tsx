@@ -1,9 +1,10 @@
-import { Helmet } from 'react-helmet-async'
+import { Seo } from '../lib/seo'
 import { Link, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { articlesApi, resolveMediaUrl, type ArticleListItem } from '../api/client'
 import Breadcrumbs from '../components/Breadcrumbs'
 import { pageTitle } from '../lib/brand'
+import { sanitizeHtml } from '../lib/html'
 
 function formatArticleDate(value?: string) {
   if (!value) return ''
@@ -44,10 +45,11 @@ export function JournalListPage() {
 
   return (
     <>
-      <Helmet>
-        <title>{pageTitle('Журнал')}</title>
-        <meta name="description" content="Поради мандрівникам: як обрати гіда, підготуватися до екскурсії та користуватися каталогом." />
-      </Helmet>
+      <Seo
+        title={pageTitle('Журнал')}
+        description="Поради мандрівникам: як обрати гіда, підготуватися до екскурсії та користуватися каталогом."
+        path="/journal"
+      />
 
       <Breadcrumbs items={[{ label: 'Журнал' }]} />
 
@@ -96,10 +98,12 @@ export function JournalArticlePage() {
 
   return (
     <>
-      <Helmet>
-        <title>{pageTitle(article.title)}</title>
-        <meta name="description" content={(article.excerpt || article.title).slice(0, 160)} />
-      </Helmet>
+      <Seo
+        title={pageTitle(article.title)}
+        description={article.excerpt || article.title}
+        path={`/journal/${article.slug}`}
+        image={cover}
+      />
 
       <Breadcrumbs
         items={[
@@ -134,7 +138,7 @@ export function JournalArticlePage() {
           )}
           <div
             className="excursion-body mt-8"
-            dangerouslySetInnerHTML={{ __html: article.body_html }}
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(article.body_html) }}
           />
           <div className="mt-10 border-t border-divider pt-8">
             <Link to="/journal" className="link-accent text-sm normal-case">

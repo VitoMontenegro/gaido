@@ -1,16 +1,23 @@
 import { useState } from 'react'
 import { Helmet } from 'react-helmet-async'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
-import { authApi, setAccessToken } from '../api/client'
+import { authApi } from '../api/auth'
+import { formatApiError, setAccessToken } from '../api/http'
 import { pageTitle } from '../lib/brand'
+
+function safeReturnPath(from: unknown): string {
+  return typeof from === 'string' && from.startsWith('/') && !from.startsWith('//') ? from : '/account'
+}
 
 export default function LoginPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const qc = useQueryClient()
   const [login, setLogin] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const from = (location.state as { from?: string } | null)?.from
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -18,9 +25,9 @@ export default function LoginPage() {
       const res = await authApi.login({ login, password })
       setAccessToken(res.access_token)
       await qc.invalidateQueries({ queryKey: ['me'] })
-      navigate('/account')
+      navigate(safeReturnPath(from))
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Помилка входу')
+      setError(formatApiError(err))
     }
   }
 
@@ -54,7 +61,7 @@ export function RegisterPage() {
       await qc.invalidateQueries({ queryKey: ['me'] })
       navigate(form.as_guide ? '/account/guide' : '/account')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Помилка реєстрації')
+      setError(formatApiError(err))
     }
   }
 

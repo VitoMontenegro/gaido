@@ -601,25 +601,11 @@ set -a && source /var/www/tourister/.env && set +a
 
 ## Фаза 4 — первый admin и go-live (новая БД)
 
-Демо-аккаунты из README (`admin` / `admin12345`) **не появятся**, пока `SEED_DEMO_DATA=false`.
+API **не сидит данные при старте**. Демо-аккаунты из README — только локально: `cd backend && go run ./cmd/seed -demo` (`cmd/seed` отказывается работать при `APP_ENV=production`).
 
 ### 4.1. Создать первого администратора
 
-**Вариант A — одноразовый seed (проще):**
-
-```bash
-# в /var/www/tourister/.env временно:
-SEED_DEMO_DATA=true
-
-sudo systemctl restart tourister-api
-# дождаться старта, войти admin/admin12345, сменить пароль в UI
-
-# затем вернуть и перезапустить:
-SEED_DEMO_DATA=false
-sudo systemctl restart tourister-api
-```
-
-**Вариант B — регистрация + роль в БД:**
+**Рекомендуемый способ — регистрация + роль в БД:**
 
 ```bash
 # 1. Зарегистрировать пользователя через /register на сайте
@@ -803,7 +789,7 @@ pg_dump, pg_restore, rsync storage — НЕ использовать.
 | PG/Redis | Docker compose :5433/:6380 | apt, :5432/:6379 |
 | Frontend | Vite :5173 + proxy | `frontend/dist` через Go |
 | API | `go run ./cmd/api` | systemd binary |
-| Seed | `SEED_DEMO_DATA=true` | `false` |
+| Seed | ручной `go run ./cmd/seed -demo` | не запускать |
 | Deploy UI | `DEPLOY_ENABLED=false` | `true` |
 | TLS | нет | Nginx + certbot |
 

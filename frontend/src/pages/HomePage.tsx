@@ -1,5 +1,4 @@
 import { useState, type ReactNode } from 'react'
-import { Helmet } from 'react-helmet-async'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { catalogApi, articlesApi, resolveMediaUrl, type HomeCategoryTile, type PublicGuide, type ArticleListItem } from '../api/client'
@@ -8,6 +7,7 @@ import GuideCard from '../components/GuideCard'
 import HorizontalSwiper from '../components/HorizontalSwiper'
 import HomeHero from '../components/HomeHero'
 import { pageTitle, SITE_TAGLINE } from '../lib/brand'
+import { Seo } from '../lib/seo'
 import { normalizeCategoryTiles } from '../lib/categoryTiles'
 import type { ExcursionItem } from '../components/excursionUi'
 import { useRecentViews, type RecentView } from '../hooks/useRecentViews'
@@ -113,9 +113,7 @@ function JournalPreviewCard({ article }: { article: ArticleListItem }) {
 function HomePageLoading() {
   return (
     <>
-      <Helmet>
-        <title>{pageTitle()}</title>
-      </Helmet>
+      <Seo title={pageTitle()} path="/" />
       <div
         className="home-hero relative min-h-[min(78vh,720px)] animate-pulse bg-ink"
         aria-busy="true"
@@ -152,10 +150,7 @@ export default function HomePage() {
 
   return (
     <>
-      <Helmet>
-        <title>{pageTitle(SITE_TAGLINE)}</title>
-        <meta name="description" content={content.hero_subtitle} />
-      </Helmet>
+      <Seo title={pageTitle(SITE_TAGLINE)} description={content.hero_subtitle} path="/" />
 
       <HomeHero title={content.hero_title} subtitle={content.hero_subtitle} />
 

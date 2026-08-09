@@ -10,17 +10,18 @@ LOCAL_ROOT="$ROOT"
 # shellcheck disable=SC1091
 source "$ROOT/scripts/lib/local-common.sh"
 
-BACKEND_PORT="${BACKEND_PORT:-8081}"
-FRONTEND_PORT="${FRONTEND_PORT:-5173}"
-
 local_load_env "$ROOT"
+
+BACKEND_PORT="${HTTP_ADDR:-${BACKEND_PORT:-8081}}"
+BACKEND_PORT="${BACKEND_PORT#:}"
+FRONTEND_PORT="${FRONTEND_PORT:-5173}"
 
 echo "■ stop-local.sh"
 
 local_stop_pidfile "$ROOT/.local/pids/backend.pid" "backend"
 local_stop_pidfile "$ROOT/.local/pids/frontend.pid" "frontend"
 
-local_kill_port "$BACKEND_PORT"
-local_kill_port "$FRONTEND_PORT"
+local_kill_port "$BACKEND_PORT" backend
+local_kill_port "$FRONTEND_PORT" frontend
 
 echo "✓ stopped (infra docker compose — отдельно)"

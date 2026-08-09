@@ -10,6 +10,7 @@ type Config struct {
 	AppEnv              string
 	HTTPAddr            string
 	CORSOrigins         []string
+	PublicBaseURL       string
 	DatabaseURL         string
 	RedisURL            string
 	RedisSessionURL     string
@@ -22,6 +23,7 @@ type Config struct {
 	MediaStoragePath    string
 	MediaMaxUploadBytes int64
 	SeedDemoData        bool
+	TrustProxy          bool
 	DeployEnabled       bool
 	DeployScript        string
 	DeployLog           string
@@ -34,6 +36,7 @@ func Load() Config {
 		AppEnv:              getEnv("APP_ENV", "development"),
 		HTTPAddr:            getEnv("HTTP_ADDR", ":8081"),
 		CORSOrigins:         splitCSV(getEnv("CORS_ORIGINS", "http://localhost:5173")),
+		PublicBaseURL:       getEnv("PUBLIC_BASE_URL", "http://localhost:5173"),
 		DatabaseURL:         getEnv("DATABASE_URL", "postgres://tourister:tourister@localhost:5433/tourister?sslmode=disable"),
 		RedisURL:            getEnv("REDIS_URL", "redis://localhost:6380/0"),
 		RedisSessionURL:     getEnv("REDIS_SESSION_URL", "redis://localhost:6380/1"),
@@ -46,6 +49,7 @@ func Load() Config {
 		MediaStoragePath:    getEnv("MEDIA_STORAGE_PATH", "./storage"),
 		MediaMaxUploadBytes: int64(getEnvInt("MEDIA_MAX_UPLOAD_MB", 10)) * 1024 * 1024,
 		SeedDemoData:        seedDemoDataEnabled(getEnv("APP_ENV", "development"), getEnv("SEED_DEMO_DATA", "")),
+		TrustProxy:          getEnv("TRUST_PROXY", "false") == "true",
 		DeployEnabled:       getEnv("DEPLOY_ENABLED", "false") == "true",
 		DeployScript:        getEnv("DEPLOY_SCRIPT", ""),
 		DeployLog:           getEnv("DEPLOY_LOG", ""),
@@ -100,8 +104,5 @@ func seedDemoDataEnabled(appEnv, explicit string) bool {
 	if appEnv == "production" {
 		return false
 	}
-	if explicit != "" {
-		return explicit == "true"
-	}
-	return true
+	return explicit == "true"
 }

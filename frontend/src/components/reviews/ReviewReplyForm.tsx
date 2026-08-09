@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
-import { api } from '../../api/client'
+import { reviewsApi } from '../../api/reviews'
 import ApiErrorBanner from '../ApiErrorBanner'
 
 export default function ReviewReplyForm({
@@ -14,10 +14,7 @@ export default function ReviewReplyForm({
 }) {
   const [text, setText] = useState('')
   const mutation = useMutation({
-    mutationFn: () => api(`/api/v1/reviews/${reviewId}/comments`, {
-      method: 'POST',
-      body: JSON.stringify({ text }),
-    }),
+    mutationFn: () => reviewsApi.addComment(reviewId, text),
     onSuccess: () => {
       setText('')
       onSuccess()

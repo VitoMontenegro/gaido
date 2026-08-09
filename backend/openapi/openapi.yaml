@@ -2,22 +2,1041 @@ openapi: 3.0.3
 info:
   title: Experts Tourister API
   version: 1.0.0
+tags:
+  - name: health
+  - name: auth
+  - name: geo
+  - name: site
+  - name: catalog
+  - name: articles
+  - name: reviews
+  - name: media
+  - name: account
+  - name: guide
+  - name: billing
+  - name: moderator
+  - name: admin
+components:
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code: { type: string }
+            message: { type: string }
+            request_id: { type: string }
 paths:
   /healthz:
     get:
+      tags: [health]
       summary: Liveness probe
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /readyz:
+    get:
+      tags: [health]
+      summary: Readiness probe
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/v1/auth/register:
     post:
+      tags: [auth]
       summary: Register user
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/v1/auth/login:
     post:
+      tags: [auth]
       summary: Login
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/auth/refresh:
+    post:
+      tags: [auth]
+      summary: Refresh tokens
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/auth/logout:
+    post:
+      tags: [auth]
+      summary: Logout
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/geo/countries:
+    get:
+      tags: [geo]
+      summary: List countries
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/geo/countries/{country}/cities:
+    get:
+      tags: [geo]
+      summary: List cities by country
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/geo/cities:
+    get:
+      tags: [geo]
+      summary: List cities
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/geo/cities/id/{id}:
+    get:
+      tags: [geo]
+      summary: Get city by ID
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/geo/cities/{slug}:
+    get:
+      tags: [geo]
+      summary: Get city by slug
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/map/points:
+    get:
+      tags: [geo]
+      summary: List map points
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/site:
+    get:
+      tags: [site]
+      summary: Get site content
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/guides/top:
+    get:
+      tags: [catalog]
+      summary: List top guides
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/guides/{slug}/excursions:
+    get:
+      tags: [catalog]
+      summary: List guide excursions
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/v1/guides:
     get:
-      summary: List public guides
+      tags: [catalog]
+      summary: List guides
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/v1/guides/{slug}:
     get:
-      summary: Get guide by slug
+      tags: [catalog]
+      summary: Get guide
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/excursions:
+    get:
+      tags: [catalog]
+      summary: List excursions
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/excursions/{slug}:
+    get:
+      tags: [catalog]
+      summary: Get excursion
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/articles:
+    get:
+      tags: [articles]
+      summary: List public articles
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/articles/{slug}:
+    get:
+      tags: [articles]
+      summary: Get public article
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/reviews:
+    get:
+      tags: [reviews]
+      summary: List public reviews
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/media/public/{key}:
+    get:
+      tags: [media]
+      summary: Serve public media
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/account/me:
+    get:
+      tags: [account]
+      summary: Current user
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/account/profile:
+    put:
+      tags: [account]
+      summary: Update profile
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/favorites:
+    get:
+      tags: [account]
+      summary: List favorites
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/favorites:
+    post:
+      tags: [account]
+      summary: Toggle favorite
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/reviews:
+    post:
+      tags: [reviews]
+      summary: Create review
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/reviews/{id}/comments:
+    post:
+      tags: [reviews]
+      summary: Create review comment
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/notifications:
+    get:
+      tags: [account]
+      summary: List notifications
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/notifications/longpoll:
+    get:
+      tags: [account]
+      summary: Long-poll notifications
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/account/guide/dashboard:
+    get:
+      tags: [guide]
+      summary: Guide dashboard
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/account/guide/profile:
+    get:
+      tags: [guide]
+      summary: Get guide profile
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/account/guide/profile:
+    put:
+      tags: [guide]
+      summary: Update guide profile
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/account/guide/documents:
+    post:
+      tags: [guide]
+      summary: Upload document
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/account/guide/documents:
+    get:
+      tags: [guide]
+      summary: List documents
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/account/guide/cities:
+    post:
+      tags: [guide]
+      summary: Add guide city
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/account/guide/geo/cities:
+    post:
+      tags: [guide]
+      summary: Create geo city
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/account/guide/billing/plans:
+    get:
+      tags: [billing]
+      summary: List billing plans
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/account/guide/billing/status:
+    get:
+      tags: [billing]
+      summary: Billing status
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/v1/account/guide/billing/checkout:
     post:
-      summary: Start guide placement checkout
+      tags: [billing]
+      summary: Start checkout
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/account/guide/billing/confirm/{id}:
+    post:
+      tags: [billing]
+      summary: Confirm guide payment
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/account/guide/subscription:
+    get:
+      tags: [billing]
+      summary: Get subscription
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/account/guide/excursions:
+    get:
+      tags: [guide]
+      summary: List my excursions
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/account/guide/excursions/{id}:
+    get:
+      tags: [guide]
+      summary: Get my excursion
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/account/guide/excursions:
+    post:
+      tags: [guide]
+      summary: Create excursion
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/account/guide/excursions/{id}:
+    put:
+      tags: [guide]
+      summary: Update excursion
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/account/guide/excursions/{id}:
+    delete:
+      tags: [guide]
+      summary: Delete excursion
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/account/guide/excursions/{id}/submit:
+    post:
+      tags: [guide]
+      summary: Submit excursion
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/account/guide/excursions/{id}/draft:
+    post:
+      tags: [guide]
+      summary: Draft excursion
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/account/guide/calendar:
+    get:
+      tags: [guide]
+      summary: List calendar slots
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/account/guide/calendar:
+    post:
+      tags: [guide]
+      summary: Create calendar slot
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/account/guide/calendar/{id}:
+    delete:
+      tags: [guide]
+      summary: Delete calendar slot
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/media:
+    post:
+      tags: [media]
+      summary: Upload media
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/moderator/excursions:
+    get:
+      tags: [moderator]
+      summary: List excursions for moderation
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/moderator/excursions/{id}/approve:
+    post:
+      tags: [moderator]
+      summary: Approve excursion
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/moderator/excursions/{id}/reject:
+    post:
+      tags: [moderator]
+      summary: Reject excursion
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/moderator/reviews:
+    get:
+      tags: [moderator]
+      summary: List reviews for moderation
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/moderator/reviews/{id}/approve:
+    post:
+      tags: [moderator]
+      summary: Approve review
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/moderator/documents:
+    post:
+      tags: [moderator]
+      summary: List documents for moderation
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/moderator/geo/countries:
+    post:
+      tags: [moderator]
+      summary: Create country
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/moderator/geo/regions:
+    post:
+      tags: [moderator]
+      summary: Create region
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/moderator/geo/cities:
+    post:
+      tags: [moderator]
+      summary: Create city
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/moderator/articles:
+    get:
+      tags: [moderator]
+      summary: List articles (CMS)
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/moderator/articles/{id}:
+    get:
+      tags: [moderator]
+      summary: Get article (CMS)
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/moderator/articles:
+    post:
+      tags: [moderator]
+      summary: Create article
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/moderator/articles/{id}:
+    put:
+      tags: [moderator]
+      summary: Update article
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/moderator/articles/{id}:
+    delete:
+      tags: [moderator]
+      summary: Delete article
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/admin/users:
+    get:
+      tags: [admin]
+      summary: List users
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/admin/users/{id}:
+    delete:
+      tags: [admin]
+      summary: Delete user
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/admin/analytics:
+    get:
+      tags: [admin]
+      summary: Analytics
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/admin/settings:
+    get:
+      tags: [admin]
+      summary: Get settings
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/admin/settings:
+    put:
+      tags: [admin]
+      summary: Update settings
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/admin/site-content:
+    get:
+      tags: [admin]
+      summary: Get site content
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/admin/site-content:
+    put:
+      tags: [admin]
+      summary: Update site content
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/admin/audit:
+    get:
+      tags: [admin]
+      summary: Audit log
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/admin/guides:
+    get:
+      tags: [admin]
+      summary: List guides
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/admin/guides/{id}:
+    put:
+      tags: [admin]
+      summary: Update guide
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/admin/guides/{id}:
+    delete:
+      tags: [admin]
+      summary: Delete guide
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/admin/guides/{id}/bypass:
+    post:
+      tags: [admin]
+      summary: Bypass guide moderation
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/admin/excursions:
+    get:
+      tags: [admin]
+      summary: List excursions
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/admin/excursions/{id}:
+    delete:
+      tags: [admin]
+      summary: Delete excursion
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/admin/reviews:
+    get:
+      tags: [admin]
+      summary: List reviews
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/admin/articles:
+    get:
+      tags: [admin]
+      summary: List articles (admin)
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/admin/articles/{id}:
+    get:
+      tags: [admin]
+      summary: Get article (admin)
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/admin/articles:
+    post:
+      tags: [admin]
+      summary: Create article (admin)
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/admin/articles/{id}:
+    put:
+      tags: [admin]
+      summary: Update article (admin)
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/admin/articles/{id}:
+    delete:
+      tags: [admin]
+      summary: Delete article (admin)
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/payments/{id}/confirm:
+    post:
+      tags: [admin]
+      summary: Confirm payment
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/admin/deploy/info:
+    get:
+      tags: [admin]
+      summary: Deploy info
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/admin/deploy/status:
+    get:
+      tags: [admin]
+      summary: Deploy status
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/admin/deploy:
+    post:
+      tags: [admin]
+      summary: Start deploy
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'

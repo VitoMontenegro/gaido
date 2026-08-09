@@ -20,6 +20,19 @@ type Storage struct {
 	BasePath string
 }
 
+var allowedMIMEs = map[string]string{
+	"image/jpeg":      ".jpg",
+	"image/jpg":       ".jpg",
+	"image/png":       ".png",
+	"image/webp":      ".webp",
+	"application/pdf": ".pdf",
+}
+
+func AllowedMIME(mime string) (ext string, ok bool) {
+	ext, ok = allowedMIMEs[strings.ToLower(strings.TrimSpace(mime))]
+	return ext, ok
+}
+
 func NewStorage(base string) (*Storage, error) {
 	dirs := []string{"private", "public"}
 	for _, d := range dirs {
@@ -37,17 +50,6 @@ func (s *Storage) randomKey(ext string) string {
 }
 
 func (s *Storage) SaveUpload(r io.Reader, mime string, maxBytes int64) (privateKey, publicKey string, size int64, err error) {
-	ext := ".bin"
-	if strings.Contains(mime, "jpeg") || strings.Contains(mime, "jpg") {
-		ext = ".jpg"
-	} else if strings.Contains(mime, "png") {
-		ext = ".png"
-	} else if strings.Contains(mime, "webp") {
-		ext = ".webp"
-	} else if strings.Contains(mime, "pdf") {
-		ext = ".pdf"
-	}
-
 	limited := io.LimitReader(r, maxBytes+1)
 	data, err := io.ReadAll(limited)
 	if err != nil {
@@ -55,6 +57,15 @@ func (s *Storage) SaveUpload(r io.Reader, mime string, maxBytes int64) (privateK
 	}
 	if int64(len(data)) > maxBytes {
 		return "", "", 0, fmt.Errorf("file too large")
+	}
+
+	mime, err = DetectMIME(data, mime)
+	if err != nil {
+		return "", "", 0, err
+	}
+	ext, ok := AllowedMIME(mime)
+	if !ok {
+		return "", "", 0, fmt.Errorf("unsupported mime type")
 	}
 
 	privateKey = s.randomKey(ext)
@@ -74,7 +85,14 @@ func (s *Storage) SaveUpload(r io.Reader, mime string, maxBytes int64) (privateK
 }
 
 func (s *Storage) PublicPath(key string) string {
-	return filepath.Join(s.BasePath, "public", key)
+	if key == "" || strings.Contains(key, "..") || strings.ContainsAny(key, `/\`) {
+		return ""
+	}
+	safe := filepath.Base(key)
+	if safe == "." || safe == ".." {
+		return ""
+	}
+	return filepath.Join(s.BasePath, "public", safe)
 }
 
 func applyWatermark(data []byte, mime string) ([]byte, error) {

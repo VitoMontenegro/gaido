@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { HelmetProvider } from 'react-helmet-async'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter } from 'react-router-dom'
+import { ApiClientError, bootstrapAuth } from './api/http'
 import App from './app/App'
 import './styles/globals.css'
 
@@ -10,8 +11,7 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: (failureCount, error) => {
-        const msg = error instanceof Error ? error.message : ''
-        if (msg.includes('Authentication') || msg.includes('Forbidden') || msg.includes('required')) {
+        if (error instanceof ApiClientError && (error.code === 'UNAUTHORIZED' || error.code === 'FORBIDDEN')) {
           return false
         }
         return failureCount < 2
@@ -20,14 +20,18 @@ const queryClient = new QueryClient({
   },
 })
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <HelmetProvider>
-      <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <App />
-        </BrowserRouter>
-      </QueryClientProvider>
-    </HelmetProvider>
-  </StrictMode>,
-)
+function renderApp() {
+  createRoot(document.getElementById('root')!).render(
+    <StrictMode>
+      <HelmetProvider>
+        <QueryClientProvider client={queryClient}>
+          <BrowserRouter>
+            <App />
+          </BrowserRouter>
+        </QueryClientProvider>
+      </HelmetProvider>
+    </StrictMode>,
+  )
+}
+
+bootstrapAuth().finally(renderApp)

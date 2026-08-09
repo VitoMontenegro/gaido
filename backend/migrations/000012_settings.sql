@@ -6,7 +6,7 @@ CREATE TABLE site_settings (
 );
 
 INSERT INTO site_settings (key, value) VALUES
-    ('guide_placement_payments_enabled', 'true'::jsonb);
+    ('guide_placement_payments_enabled', 'false'::jsonb);
 
 -- +goose Down
 DROP TABLE IF EXISTS site_settings;

@@ -1,6 +1,6 @@
 import { normalizeItems } from '../lib/bookingTerms'
 import { cn } from '../lib/cn'
-import { asHtml } from '../lib/html'
+import { sanitizeHtml } from '../lib/html'
 
 type Props = {
   included?: string[] | null
@@ -13,7 +13,7 @@ type Props = {
 export default function BookingTermsSection({ included, excluded, notesHtml, meetingPoint, className }: Props) {
   const inc = normalizeItems(included)
   const exc = normalizeItems(excluded)
-  const notes = asHtml(notesHtml ?? '')
+  const notes = sanitizeHtml(notesHtml ?? '')
   const meeting = (meetingPoint ?? '').trim()
   if (!inc.length && !exc.length && !notes && !meeting) return null
 

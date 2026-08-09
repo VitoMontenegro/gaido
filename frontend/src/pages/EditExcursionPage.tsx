@@ -1,7 +1,7 @@
 import { Helmet } from 'react-helmet-async'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { api } from '../api/client'
+import { guideApi } from '../api/guide'
 import ExcursionForm, { type ExcursionFormData } from '../components/ExcursionForm'
 
 export default function EditExcursionPage() {
@@ -9,7 +9,7 @@ export default function EditExcursionPage() {
   const navigate = useNavigate()
   const { data, isLoading, isError } = useQuery({
     queryKey: ['my-excursion', id],
-    queryFn: () => api<ExcursionFormData>(`/api/v1/account/guide/excursions/${id}`),
+    queryFn: () => guideApi.getExcursion(id) as Promise<ExcursionFormData>,
   })
 
   if (isLoading) return <div className="card text-stone-600">Завантаження…</div>
@@ -25,10 +25,7 @@ export default function EditExcursionPage() {
           initial={data}
           submitLabel="Зберегти"
           onSubmit={async (body) => {
-            await api(`/api/v1/account/guide/excursions/${id}`, {
-              method: 'PUT',
-              body: JSON.stringify(body),
-            })
+            await guideApi.updateExcursion(Number(id), body)
             navigate('/account/guide/excursions')
           }}
         />

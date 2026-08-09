@@ -1,8 +1,8 @@
-import { Helmet } from 'react-helmet-async'
 import { useEffect } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, catalogApi, type PublicGuide } from '../api/client'
+import { reviewsApi } from '../api/reviews'
 import Breadcrumbs from '../components/Breadcrumbs'
 import ExcursionCard from '../components/ExcursionCard'
 import GuideAvatar from '../components/GuideAvatar'
@@ -13,6 +13,7 @@ import type { Review } from '../components/reviews/types'
 import { trackRecentView } from '../hooks/useRecentViews'
 import { useHasRole, useMe } from '../hooks/useAuth'
 import { pageTitle } from '../lib/brand'
+import { Seo } from '../lib/seo'
 
 export default function GuidePage() {
   const { slug = '' } = useParams()
@@ -41,7 +42,7 @@ export default function GuidePage() {
 
   const reviewMutation = useMutation({
     mutationFn: (body: { excursion_id: number; rating: number; text: string }) =>
-      api('/api/v1/reviews', { method: 'POST', body: JSON.stringify(body) }),
+      reviewsApi.create(body),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['reviews', guide?.id] })
     },
@@ -65,10 +66,20 @@ export default function GuidePage() {
 
   return (
     <>
-      <Helmet>
-        <title>{pageTitle(guide.display_name)}</title>
-        <meta name="description" content={(guide.about ?? '').slice(0, 160)} />
-      </Helmet>
+      <Seo
+        title={pageTitle(guide.display_name)}
+        description={guide.about ?? ''}
+        path={`/guide/${guide.slug}`}
+        image={guide.avatar_url}
+        jsonLd={{
+          '@context': 'https://schema.org',
+          '@type': 'Person',
+          name: guide.display_name,
+          description: guide.about,
+          image: guide.avatar_url,
+          url: `/guide/${guide.slug}`,
+        }}
+      />
 
       <Breadcrumbs
         items={[

@@ -73,11 +73,15 @@ export default function CitiesMap({ points }: Props) {
     })
 
     points.forEach((p) => {
-      const marker = L.marker([p.lat, p.lng])
-        .addTo(map)
-        .bindPopup(
-          `<strong>${p.name}</strong><br/><a href="/city/${p.slug}">Гіди та екскурсії →</a>`,
-        )
+      const popup = L.DomUtil.create('div')
+      const title = L.DomUtil.create('strong', '', popup)
+      title.textContent = p.name
+      L.DomUtil.create('br', '', popup)
+      const link = L.DomUtil.create('a', '', popup) as HTMLAnchorElement
+      link.href = `/city/${encodeURIComponent(p.slug)}`
+      link.textContent = 'Гіди та екскурсії →'
+
+      const marker = L.marker([p.lat, p.lng]).addTo(map).bindPopup(popup)
       marker.bindTooltip(p.name, { direction: 'top', offset: [0, -28] })
     })
 

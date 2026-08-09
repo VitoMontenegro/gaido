@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { Helmet } from 'react-helmet-async'
 import { Link, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api/client'
+import { reviewsApi } from '../api/reviews'
 import type { ExcursionItem } from '../components/excursionUi'
 import {
   excursionTypeLabel,
@@ -20,6 +20,8 @@ import { trackRecentView } from '../hooks/useRecentViews'
 import { useHasRole, useMe } from '../hooks/useAuth'
 import { resolveMapEmbed } from '../lib/mapEmbed'
 import { pageTitle } from '../lib/brand'
+import { Seo } from '../lib/seo'
+import { sanitizeHtml } from '../lib/html'
 
 type TabId = 'program' | 'reviews' | 'details'
 
@@ -118,7 +120,7 @@ export default function ExcursionPage() {
 
   const reviewMutation = useMutation({
     mutationFn: (body: { excursion_id: number; rating: number; text: string }) =>
-      api('/api/v1/reviews', { method: 'POST', body: JSON.stringify(body) }),
+      reviewsApi.create(body),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['reviews', 'excursion', excursion?.id] })
       qc.invalidateQueries({ queryKey: ['excursion', slug] })
@@ -169,10 +171,20 @@ export default function ExcursionPage() {
 
   return (
     <>
-      <Helmet>
-        <title>{pageTitle(excursion.title)}</title>
-        <meta name="description" content={(excursion.description ?? '').slice(0, 160)} />
-      </Helmet>
+      <Seo
+        title={pageTitle(excursion.title)}
+        description={excursion.description ?? ''}
+        path={`/excursion/${excursion.slug}`}
+        image={excursion.cover_image_url}
+        jsonLd={{
+          '@context': 'https://schema.org',
+          '@type': 'TouristTrip',
+          name: excursion.title,
+          description: excursion.description,
+          image: excursion.cover_image_url,
+          url: `/excursion/${excursion.slug}`,
+        }}
+      />
 
       <Breadcrumbs
         items={[
@@ -268,7 +280,7 @@ export default function ExcursionPage() {
             <section className="mt-6" role="tabpanel">
               <div
                 className="excursion-body"
-                dangerouslySetInnerHTML={{ __html: body || '<p>Опис зʼявиться незабаром.</p>' }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(body) || '<p>Опис зʼявиться незабаром.</p>' }}
               />
               {mapUrl && (
                 <div className="mt-8">

@@ -21,6 +21,11 @@ func main() {
 	cfg := config.Load()
 	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 
+	if err := config.Validate(cfg); err != nil {
+		log.Error("invalid configuration", "error", err)
+		os.Exit(1)
+	}
+
 	ctx := context.Background()
 	application, err := app.New(ctx, cfg, log)
 	if err != nil {
