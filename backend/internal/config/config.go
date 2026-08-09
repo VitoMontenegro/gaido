@@ -45,7 +45,7 @@ func Load() Config {
 		PaymentStubEnabled:  getEnv("PAYMENT_STUB_ENABLED", "true") == "true",
 		MediaStoragePath:    getEnv("MEDIA_STORAGE_PATH", "./storage"),
 		MediaMaxUploadBytes: int64(getEnvInt("MEDIA_MAX_UPLOAD_MB", 10)) * 1024 * 1024,
-		SeedDemoData:        getEnv("SEED_DEMO_DATA", "true") == "true",
+		SeedDemoData:        seedDemoDataEnabled(getEnv("APP_ENV", "development"), getEnv("SEED_DEMO_DATA", "")),
 		DeployEnabled:       getEnv("DEPLOY_ENABLED", "false") == "true",
 		DeployScript:        getEnv("DEPLOY_SCRIPT", ""),
 		DeployLog:           getEnv("DEPLOY_LOG", ""),
@@ -94,4 +94,14 @@ func splitCSV(s string) []string {
 		return []string{s}
 	}
 	return out
+}
+
+func seedDemoDataEnabled(appEnv, explicit string) bool {
+	if appEnv == "production" {
+		return false
+	}
+	if explicit != "" {
+		return explicit == "true"
+	}
+	return true
 }

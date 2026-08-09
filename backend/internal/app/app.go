@@ -110,8 +110,18 @@ func New(ctx context.Context, cfg config.Config, log *slog.Logger) (*App, error)
 		Featured: a.featured, Exc: a.exc, Settings: a.settings, Audit: a.audit,
 		Notify: a.createNotification,
 	}
-	if cfg.SeedDemoData {
-		_ = (&seed.Seeder{DB: db, Users: a.users, Geo: a.geo, Guides: a.guides}).Run(ctx)
+	seeder := &seed.Seeder{DB: db, Users: a.users, Geo: a.geo, Guides: a.guides}
+	if cfg.AppEnv == "production" {
+		if os.Getenv("SEED_DEMO_DATA") == "true" {
+			log.Warn("SEED_DEMO_DATA=true is ignored in production")
+		}
+		if err := seeder.RunReference(ctx); err != nil {
+			log.Warn("reference seed failed", "err", err)
+		}
+	} else if cfg.SeedDemoData {
+		if err := seeder.Run(ctx); err != nil {
+			log.Warn("demo seed failed", "err", err)
+		}
 	}
 	return a, nil
 }

@@ -17,7 +17,17 @@ type Seeder struct {
 	Guides *postgres.GuideRepo
 }
 
-func (s *Seeder) Run(ctx context.Context) error {
+func (s *Seeder) RunReference(ctx context.Context) error {
+	if _, _, err := s.ensureGeo(ctx); err != nil {
+		return err
+	}
+	if _, err := s.ensurePlan(ctx); err != nil {
+		return err
+	}
+	return s.ensureCategories(ctx)
+}
+
+func (s *Seeder) RunDemo(ctx context.Context) error {
 	core := []struct {
 		login, email, pass, firstName, lastName string
 		roles                                   []string
@@ -38,15 +48,13 @@ func (s *Seeder) Run(ctx context.Context) error {
 		}
 	}
 
-	moscowID, spbID, err := s.ensureGeo(ctx)
-	if err != nil {
-		return err
-	}
 	planID, err := s.ensurePlan(ctx)
 	if err != nil {
 		return err
 	}
-	if err := s.ensureCategories(ctx); err != nil {
+
+	moscowID, spbID, err := s.ensureGeo(ctx)
+	if err != nil {
 		return err
 	}
 
@@ -120,6 +128,13 @@ func (s *Seeder) Run(ctx context.Context) error {
 	}
 
 	return s.ensureReviews(ctx)
+}
+
+func (s *Seeder) Run(ctx context.Context) error {
+	if err := s.RunReference(ctx); err != nil {
+		return err
+	}
+	return s.RunDemo(ctx)
 }
 
 type cityBind struct {
