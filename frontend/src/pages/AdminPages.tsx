@@ -6,23 +6,28 @@ import StatCard, { StatGrid } from '../components/crm/StatCard'
 import { useHasRole } from '../hooks/useAuth'
 import { SiteContentEditor } from '../components/SiteContentEditor'
 import { AdminGuidesEditor } from '../components/AdminGuidesEditor'
+import { AdminExcursionsList, AdminGuidesList, AdminReviewsList, AdminUsersList } from '../components/AdminEntityLists'
 import { ArticlesEditor } from '../components/ArticlesEditor'
 import { formatPrice } from '../components/excursionUi'
 
-type AdminTab = 'analytics' | 'settings' | 'content' | 'guides' | 'journal'
+type AdminTab = 'analytics' | 'users' | 'guides' | 'excursions' | 'reviews' | 'settings' | 'content' | 'journal'
 
 const TABS: { id: AdminTab; label: string }[] = [
   { id: 'analytics', label: 'Аналітика' },
+  { id: 'users', label: 'Користувачі' },
+  { id: 'guides', label: 'Гіди' },
+  { id: 'excursions', label: 'Екскурсії' },
+  { id: 'reviews', label: 'Відгуки' },
   { id: 'settings', label: 'Налаштування' },
   { id: 'content', label: 'Контент сайту' },
   { id: 'journal', label: 'Журнал' },
-  { id: 'guides', label: 'Гіди' },
 ]
 
 export default function AdminPage() {
   const isAdmin = useHasRole('ROLE_ADMIN')
   const qc = useQueryClient()
   const [tab, setTab] = useState<AdminTab>('analytics')
+  const [guidesFilter, setGuidesFilter] = useState<string | undefined>()
 
   const { data: analytics, isError: analyticsError, error: analyticsErr } = useQuery({
     queryKey: ['analytics'],
@@ -59,7 +64,10 @@ export default function AdminPage() {
             <button
               key={t.id}
               type="button"
-              onClick={() => setTab(t.id)}
+              onClick={() => {
+                if (t.id === 'guides') setGuidesFilter(undefined)
+                setTab(t.id)
+              }}
               className={tab === t.id
                 ? 'rounded-xl bg-ink px-4 py-2 text-sm font-medium text-white'
                 : 'rounded-xl border border-border bg-surface px-4 py-2 text-sm font-medium transition hover:bg-sand-100'}
@@ -76,8 +84,24 @@ export default function AdminPage() {
         )}
 
         {tab === 'analytics' && analytics && (
-          <AnalyticsDashboard data={analytics} />
+          <AnalyticsDashboard
+            data={analytics}
+            onOpenUsers={() => setTab('users')}
+            onOpenGuides={() => { setGuidesFilter('ACTIVE'); setTab('guides') }}
+            onOpenExcursions={() => setTab('excursions')}
+            onOpenReviews={() => setTab('reviews')}
+          />
         )}
+
+        {tab === 'users' && <AdminUsersList />}
+        {tab === 'guides' && (
+          <div className="space-y-4">
+            <AdminGuidesList statusFilter={guidesFilter} />
+            <AdminGuidesEditor />
+          </div>
+        )}
+        {tab === 'excursions' && <AdminExcursionsList />}
+        {tab === 'reviews' && <AdminReviewsList />}
 
         {tab === 'settings' && (
           <div className="space-y-4">
@@ -119,22 +143,33 @@ export default function AdminPage() {
 
         {tab === 'content' && <SiteContentEditor />}
         {tab === 'journal' && <ArticlesEditor apiBase="admin" />}
-        {tab === 'guides' && <AdminGuidesEditor />}
       </div>
     </>
   )
 }
 
-function AnalyticsDashboard({ data }: { data: AdminAnalytics }) {
+function AnalyticsDashboard({
+  data,
+  onOpenUsers,
+  onOpenGuides,
+  onOpenExcursions,
+  onOpenReviews,
+}: {
+  data: AdminAnalytics
+  onOpenUsers: () => void
+  onOpenGuides: () => void
+  onOpenExcursions: () => void
+  onOpenReviews: () => void
+}) {
   return (
     <div className="space-y-5">
       <section className="space-y-3">
         <h2 className="font-display text-lg font-bold">Огляд платформи</h2>
         <StatGrid cols={4}>
-          <StatCard label="Користувачі" value={data.total_users} hint={`${data.total_guides} гідів`} tone="brand" />
-          <StatCard label="Активні гіди" value={data.active_guides} tone="teal" />
-          <StatCard label="Екскурсії" value={data.published_excursions} hint={`${data.pending_moderation_excursions} на модерації`} />
-          <StatCard label="Відгуки" value={data.published_reviews} hint={`${data.pending_reviews} очікують`} />
+          <StatCard label="Користувачі" value={data.total_users} hint={`${data.total_guides} гідів`} tone="brand" onClick={onOpenUsers} />
+          <StatCard label="Активні гіди" value={data.active_guides} tone="teal" onClick={onOpenGuides} />
+          <StatCard label="Екскурсії" value={data.published_excursions} hint={`${data.pending_moderation_excursions} на модерації`} onClick={onOpenExcursions} />
+          <StatCard label="Відгуки" value={data.published_reviews} hint={`${data.pending_reviews} очікують`} onClick={onOpenReviews} />
         </StatGrid>
       </section>
 

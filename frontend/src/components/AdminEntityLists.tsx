@@ -1,0 +1,225 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Link } from 'react-router-dom'
+import { adminApi, userDisplayName, type AdminExcursion, type AdminReview, type AdminUser } from '../api/client'
+import { formatPrice } from './excursionUi'
+import GuideAvatar from './GuideAvatar'
+
+function statusBadge(status: string) {
+  const map: Record<string, string> = {
+    ACTIVE: 'bg-emerald-50 text-emerald-700',
+    PUBLISHED: 'bg-emerald-50 text-emerald-700',
+    PENDING: 'bg-amber-50 text-amber-800',
+    PENDING_MODERATION: 'bg-amber-50 text-amber-800',
+    DRAFT: 'bg-sand-100 text-stone-600',
+    REJECTED: 'bg-red-50 text-red-700',
+  }
+  return map[status] ?? 'bg-sand-100 text-stone-600'
+}
+
+function statusLabel(status: string) {
+  const map: Record<string, string> = {
+    ACTIVE: 'Активний',
+    PUBLISHED: 'Опубліковано',
+    PENDING: 'Очікує',
+    PENDING_MODERATION: 'На модерації',
+    DRAFT: 'Чернетка',
+    REJECTED: 'Відхилено',
+  }
+  return map[status] ?? status
+}
+
+export function AdminUsersList() {
+  const { data, isLoading, isError, error } = useQuery({
+    queryKey: ['admin-users'],
+    queryFn: () => adminApi.users(),
+  })
+
+  if (isLoading) return <ListShell title="Користувачі">Завантаження…</ListShell>
+  if (isError) return <ListShell title="Користувачі">{error?.message ?? 'Помилка'}</ListShell>
+
+  return (
+    <ListShell title="Користувачі" count={data?.items.length}>
+      <table className="w-full min-w-[640px] text-sm">
+        <thead>
+          <tr className="border-b border-divider bg-sand-50 text-left text-stone-500">
+            <th className="px-4 py-2 font-medium">#</th>
+            <th className="px-4 py-2 font-medium">Логін</th>
+            <th className="px-4 py-2 font-medium">Email</th>
+            <th className="px-4 py-2 font-medium">Ролі</th>
+            <th className="px-4 py-2 font-medium">Статус</th>
+          </tr>
+        </thead>
+        <tbody>
+          {(data?.items ?? []).map((u: AdminUser) => (
+            <tr key={u.id} className="border-b border-divider last:border-0">
+              <td className="px-4 py-2.5">{u.id}</td>
+              <td className="px-4 py-2.5 font-medium">{userDisplayName(u)}</td>
+              <td className="px-4 py-2.5 text-stone-600">{u.email}</td>
+              <td className="px-4 py-2.5">{u.roles.join(', ')}</td>
+              <td className="px-4 py-2.5">
+                <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusBadge(u.status)}`}>
+                  {u.status}
+                </span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </ListShell>
+  )
+}
+
+export function AdminGuidesList({ statusFilter }: { statusFilter?: string }) {
+  const { data, isLoading, isError, error } = useQuery({
+    queryKey: ['admin-guides', statusFilter ?? 'all'],
+    queryFn: () => adminApi.guides(statusFilter ? { status: statusFilter } : undefined),
+  })
+
+  const title = statusFilter === 'ACTIVE' ? 'Активні гіди' : 'Гіди'
+
+  if (isLoading) return <ListShell title={title}>Завантаження…</ListShell>
+  if (isError) return <ListShell title={title}>{error?.message ?? 'Помилка'}</ListShell>
+
+  return (
+    <ListShell title={title} count={data?.items.length}>
+      <ul className="divide-y divide-divider">
+        {(data?.items ?? []).map((g) => (
+          <li key={g.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
+            <GuideAvatar avatar={g.avatar_url} name={g.display_name} className="h-10 w-10 shrink-0 rounded-xl" />
+            <div className="min-w-0 flex-1">
+              <p className="font-medium">{g.display_name}</p>
+              <p className="text-sm text-stone-500">/{g.slug}</p>
+            </div>
+            <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusBadge(g.status)}`}>
+              {statusLabel(g.status)}
+            </span>
+            <Link to={`/guides/${g.slug}`} className="text-sm text-brand-700 hover:underline" target="_blank">
+              Відкрити
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </ListShell>
+  )
+}
+
+export function AdminExcursionsList() {
+  const qc = useQueryClient()
+  const { data, isLoading, isError, error } = useQuery({
+    queryKey: ['admin-excursions'],
+    queryFn: () => adminApi.excursions(),
+  })
+
+  const remove = useMutation({
+    mutationFn: (id: number) => adminApi.deleteExcursion(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-excursions'] })
+      qc.invalidateQueries({ queryKey: ['analytics'] })
+    },
+  })
+
+  if (isLoading) return <ListShell title="Екскурсії">Завантаження…</ListShell>
+  if (isError) return <ListShell title="Екскурсії">{error?.message ?? 'Помилка'}</ListShell>
+
+  return (
+    <ListShell title="Екскурсії" count={data?.items.length}>
+      <table className="w-full min-w-[720px] text-sm">
+        <thead>
+          <tr className="border-b border-divider bg-sand-50 text-left text-stone-500">
+            <th className="px-4 py-2 font-medium">#</th>
+            <th className="px-4 py-2 font-medium">Назва</th>
+            <th className="px-4 py-2 font-medium">Гід</th>
+            <th className="px-4 py-2 font-medium">Ціна</th>
+            <th className="px-4 py-2 font-medium">Статус</th>
+            <th className="px-4 py-2 font-medium" />
+          </tr>
+        </thead>
+        <tbody>
+          {(data?.items ?? []).map((e: AdminExcursion) => (
+            <tr key={e.id} className="border-b border-divider last:border-0">
+              <td className="px-4 py-2.5">{e.id}</td>
+              <td className="px-4 py-2.5">
+                <p className="font-medium">{e.title}</p>
+                <p className="text-xs text-stone-500">/{e.slug}</p>
+              </td>
+              <td className="px-4 py-2.5 text-stone-600">{e.guide_name || `#${e.guide_id}`}</td>
+              <td className="px-4 py-2.5">{formatPrice(e.price_from, e.currency)}</td>
+              <td className="px-4 py-2.5">
+                <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusBadge(e.status)}`}>
+                  {statusLabel(e.status)}
+                </span>
+              </td>
+              <td className="px-4 py-2.5 text-right">
+                <div className="flex justify-end gap-2">
+                  <Link to={`/excursion/${e.slug}`} className="text-sm text-brand-700 hover:underline" target="_blank">
+                    Відкрити
+                  </Link>
+                  <button
+                    type="button"
+                    className="rounded-lg border border-red-200 px-2 py-1 text-xs text-red-700 hover:bg-red-50 disabled:opacity-50"
+                    disabled={remove.isPending}
+                    onClick={() => {
+                      if (window.confirm(`Видалити «${e.title}»? Цю дію не можна скасувати.`)) {
+                        remove.mutate(e.id)
+                      }
+                    }}
+                  >
+                    Видалити
+                  </button>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </ListShell>
+  )
+}
+
+export function AdminReviewsList() {
+  const { data, isLoading, isError, error } = useQuery({
+    queryKey: ['admin-reviews'],
+    queryFn: () => adminApi.reviews(),
+  })
+
+  if (isLoading) return <ListShell title="Відгуки">Завантаження…</ListShell>
+  if (isError) return <ListShell title="Відгуки">{error?.message ?? 'Помилка'}</ListShell>
+
+  return (
+    <ListShell title="Відгуки" count={data?.items.length}>
+      <ul className="divide-y divide-divider">
+        {(data?.items ?? []).map((r: AdminReview) => (
+          <li key={r.id} className="space-y-1 px-4 py-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-medium">{r.author_name ?? `Користувач #${r.author_id}`}</span>
+              <span className="text-amber-600">{'★'.repeat(r.rating)}</span>
+              <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusBadge(r.status)}`}>
+                {statusLabel(r.status)}
+              </span>
+            </div>
+            {r.excursion_title && (
+              <p className="text-sm text-stone-500">Екскурсія: {r.excursion_title}</p>
+            )}
+            <p className="text-sm text-stone-700">{r.text}</p>
+          </li>
+        ))}
+      </ul>
+    </ListShell>
+  )
+}
+
+function ListShell({ title, count, children }: { title: string; count?: number; children: React.ReactNode }) {
+  return (
+    <section className="card overflow-hidden p-0">
+      <div className="border-b border-divider px-4 py-3">
+        <h2 className="font-display text-lg font-bold">
+          {title}
+          {count != null && <span className="ml-2 text-base font-normal text-stone-500">({count})</span>}
+        </h2>
+      </div>
+      <div className="overflow-x-auto">
+        {children}
+      </div>
+    </section>
+  )
+}

@@ -3,6 +3,7 @@ type StatCardProps = {
   value?: string | number
   hint?: string
   tone?: 'default' | 'brand' | 'teal' | 'amber' | 'red'
+  onClick?: () => void
 }
 
 const TONES = {
@@ -13,12 +14,20 @@ const TONES = {
   red: 'bg-red-50 text-red-700',
 }
 
-export default function StatCard({ label, value, hint, tone = 'default' }: StatCardProps) {
+export default function StatCard({ label, value, hint, tone = 'default', onClick }: StatCardProps) {
+  const interactive = Boolean(onClick)
   return (
-    <div className={`rounded-2xl p-4 ${TONES[tone]}`}>
+    <div
+      role={interactive ? 'button' : undefined}
+      tabIndex={interactive ? 0 : undefined}
+      onClick={onClick}
+      onKeyDown={interactive ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.() } } : undefined}
+      className={`rounded-2xl p-4 ${TONES[tone]}${interactive ? ' cursor-pointer transition hover:opacity-90 hover:ring-2 hover:ring-ink/10' : ''}`}
+    >
       <p className="text-sm text-stone-600">{label}</p>
       <p className="font-display mt-1 text-2xl font-bold md:text-3xl">{value ?? '—'}</p>
       {hint && <p className="mt-1 text-xs opacity-80">{hint}</p>}
+      {interactive && <p className="mt-2 text-xs font-medium opacity-70">Відкрити список →</p>}
     </div>
   )
 }

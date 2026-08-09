@@ -192,9 +192,23 @@ export const adminApi = {
     fd.append('file', file)
     return api<{ public_key: string }>('/api/v1/media', { method: 'POST', body: fd })
   },
-  guides: () => api<{ items: AdminGuide[] }>('/api/v1/admin/guides'),
+  guides: (params?: { status?: string }) => {
+    const q = params?.status ? `?status=${encodeURIComponent(params.status)}` : ''
+    return api<{ items: AdminGuide[] }>(`/api/v1/admin/guides${q}`)
+  },
   updateGuide: (id: number, body: { avatar_url: string }) =>
     api<AdminGuide>(`/api/v1/admin/guides/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+  users: () => api<{ items: AdminUser[] }>('/api/v1/admin/users'),
+  excursions: (params?: { status?: string }) => {
+    const q = params?.status ? `?status=${encodeURIComponent(params.status)}` : ''
+    return api<{ items: AdminExcursion[] }>(`/api/v1/admin/excursions${q}`)
+  },
+  deleteExcursion: (id: number) =>
+    api<{ status: string }>(`/api/v1/admin/excursions/${id}`, { method: 'DELETE' }),
+  reviews: (params?: { status?: string }) => {
+    const q = params?.status ? `?status=${encodeURIComponent(params.status)}` : ''
+    return api<{ items: AdminReview[] }>(`/api/v1/admin/reviews${q}`)
+  },
   deployInfo: () => api<DeployInfo>('/api/v1/admin/deploy/info'),
   deployStatus: (app: string) =>
     api<DeployStatus>(`/api/v1/admin/deploy/status?app=${encodeURIComponent(app)}`),
@@ -233,6 +247,40 @@ export type AdminGuide = {
   slug: string
   status: string
   avatar_url: string
+}
+
+export type AdminUser = {
+  id: number
+  email: string
+  login: string
+  first_name: string
+  last_name: string
+  roles: string[]
+  status: string
+  created_at: string
+}
+
+export type AdminExcursion = {
+  id: number
+  guide_id: number
+  guide_name: string
+  title: string
+  slug: string
+  status: string
+  price_from: number
+  currency: string
+}
+
+export type AdminReview = {
+  id: number
+  guide_id: number
+  author_id: number
+  author_name?: string
+  excursion_id: number
+  excursion_title?: string
+  rating: number
+  text: string
+  status: string
 }
 
 export type AdminSettings = {

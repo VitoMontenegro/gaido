@@ -16,6 +16,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/vitomonte/experts-tourister/internal/apperrors"
 	"github.com/vitomonte/experts-tourister/internal/auth"
@@ -235,6 +236,9 @@ func (a *App) Router() http.Handler {
 			ar.Get("/admin/guides", a.adminListGuides)
 			ar.Put("/admin/guides/{id}", a.adminUpdateGuide)
 			ar.Post("/admin/guides/{id}/bypass", a.adminBypass)
+			ar.Get("/admin/excursions", a.adminListExcursions)
+			ar.Delete("/admin/excursions/{id}", a.adminDeleteExcursion)
+			ar.Get("/admin/reviews", a.adminListReviews)
 			a.registerAdminArticleRoutes(ar)
 			ar.Post("/payments/{id}/confirm", a.confirmPayment)
 			ar.Get("/admin/deploy/info", a.adminDeployInfo)
@@ -1007,8 +1011,12 @@ func (a *App) adminListGuides(w http.ResponseWriter, r *http.Request) {
 		response.Error(w, r, apperrors.ErrInternal)
 		return
 	}
+	statusFilter := strings.TrimSpace(r.URL.Query().Get("status"))
 	out := make([]map[string]any, 0, len(items))
 	for _, g := range items {
+		if statusFilter != "" && g.Status != statusFilter {
+			continue
+		}
 		out = append(out, map[string]any{
 			"id":           g.ID,
 			"display_name": g.DisplayName,
@@ -1552,7 +1560,56 @@ func (a *App) longpoll(w http.ResponseWriter, r *http.Request) {
 
 // admin
 func (a *App) adminUsers(w http.ResponseWriter, r *http.Request) {
-	items, err := a.users.List(r.Context(), 50, 0)
+	items, err := a.users.List(r.Context(), 100, 0)
+	if err != nil {
+		response.Error(w, r, apperrors.ErrInternal)
+		return
+	}
+	out := make([]map[string]any, 0, len(items))
+	for _, u := range items {
+		out = append(out, map[string]any{
+			"id": u.ID, "email": u.Email, "login": u.Login,
+			"first_name": u.FirstName, "last_name": u.LastName,
+			"roles": u.Roles, "status": u.Status, "created_at": u.CreatedAt,
+		})
+	}
+	response.JSON(w, r, 200, map[string]any{"items": out})
+}
+
+func (a *App) adminListExcursions(w http.ResponseWriter, r *http.Request) {
+	status := strings.TrimSpace(r.URL.Query().Get("status"))
+	items, err := a.exc.ListAdmin(r.Context(), status, 100)
+	if err != nil {
+		response.Error(w, r, apperrors.ErrInternal)
+		return
+	}
+	response.JSON(w, r, 200, map[string]any{"items": items})
+}
+
+func (a *App) adminDeleteExcursion(w http.ResponseWriter, r *http.Request) {
+	id, _ := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if id <= 0 {
+		response.Error(w, r, apperrors.ErrNotFound)
+		return
+	}
+	guideID, err := a.exc.AdminDelete(r.Context(), id)
+	if errors.Is(err, pgx.ErrNoRows) {
+		response.Error(w, r, apperrors.ErrNotFound)
+		return
+	}
+	if err != nil {
+		response.Error(w, r, apperrors.ErrInternal)
+		return
+	}
+	if guideID > 0 {
+		_ = a.reviews.RecalcRating(r.Context(), guideID)
+	}
+	response.JSON(w, r, 200, map[string]string{"status": "deleted"})
+}
+
+func (a *App) adminListReviews(w http.ResponseWriter, r *http.Request) {
+	status := strings.TrimSpace(r.URL.Query().Get("status"))
+	items, err := a.reviews.ListAdmin(r.Context(), status, 100)
 	if err != nil {
 		response.Error(w, r, apperrors.ErrInternal)
 		return

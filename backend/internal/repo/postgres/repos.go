@@ -879,6 +879,85 @@ func (r *ExcursionRepo) Delete(ctx context.Context, guideID, id int64) error {
 	return nil
 }
 
+func (r *ExcursionRepo) AdminDelete(ctx context.Context, id int64) (guideID int64, err error) {
+	tx, err := r.db.Pool.Begin(ctx)
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Rollback(ctx)
+
+	err = tx.QueryRow(ctx, `SELECT guide_id FROM excursions WHERE id=$1`, id).Scan(&guideID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return 0, pgx.ErrNoRows
+	}
+	if err != nil {
+		return 0, err
+	}
+
+	if _, err = tx.Exec(ctx, `
+		DELETE FROM review_comments
+		WHERE review_id IN (SELECT id FROM guide_reviews WHERE excursion_id = $1)
+	`, id); err != nil {
+		return 0, err
+	}
+	if _, err = tx.Exec(ctx, `DELETE FROM guide_reviews WHERE excursion_id = $1`, id); err != nil {
+		return 0, err
+	}
+	if _, err = tx.Exec(ctx, `DELETE FROM favorites WHERE target_type = 'EXCURSION' AND target_id = $1`, id); err != nil {
+		return 0, err
+	}
+
+	tag, err := tx.Exec(ctx, `DELETE FROM excursions WHERE id = $1`, id)
+	if err != nil {
+		return 0, err
+	}
+	if tag.RowsAffected() == 0 {
+		return 0, pgx.ErrNoRows
+	}
+	return guideID, tx.Commit(ctx)
+}
+
+type AdminExcursionRow struct {
+	ID        int64   `json:"id"`
+	GuideID   int64   `json:"guide_id"`
+	GuideName string  `json:"guide_name"`
+	Title     string  `json:"title"`
+	Slug      string  `json:"slug"`
+	Status    string  `json:"status"`
+	PriceFrom float64 `json:"price_from"`
+	Currency  string  `json:"currency"`
+}
+
+func (r *ExcursionRepo) ListAdmin(ctx context.Context, status string, limit int) ([]AdminExcursionRow, error) {
+	if limit <= 0 || limit > 200 {
+		limit = 100
+	}
+	q := `
+		SELECT e.id, e.guide_id, COALESCE(gp.display_name, ''), e.title, e.slug, e.status, e.price_from, e.currency
+		FROM excursions e
+		LEFT JOIN guide_profiles gp ON gp.id = e.guide_id`
+	args := []any{}
+	if status != "" {
+		q += ` WHERE e.status=$1`
+		args = append(args, status)
+	}
+	q += ` ORDER BY e.id DESC LIMIT ` + fmt.Sprintf("%d", limit)
+	rows, err := r.db.Pool.Query(ctx, q, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []AdminExcursionRow
+	for rows.Next() {
+		var row AdminExcursionRow
+		if err := rows.Scan(&row.ID, &row.GuideID, &row.GuideName, &row.Title, &row.Slug, &row.Status, &row.PriceFrom, &row.Currency); err != nil {
+			return nil, err
+		}
+		out = append(out, row)
+	}
+	return out, rows.Err()
+}
+
 func (r *ExcursionRepo) ListByGuideEnriched(ctx context.Context, guideID int64) ([]domain.ExcursionView, error) {
 	rows, err := r.db.Pool.Query(ctx, `
 		SELECT `+excursionSelectColsAliased+`,
@@ -1241,6 +1320,26 @@ func (r *ReviewRepo) ListCommentsByReviewIDs(ctx context.Context, reviewIDs []in
 func (r *ReviewRepo) SetStatus(ctx context.Context, id int64, status string) error {
 	_, err := r.db.Pool.Exec(ctx, `UPDATE guide_reviews SET status=$2, updated_at=NOW() WHERE id=$1`, id, status)
 	return err
+}
+
+func (r *ReviewRepo) ListAdmin(ctx context.Context, status string, limit int) ([]domain.Review, error) {
+	if limit <= 0 || limit > 200 {
+		limit = 100
+	}
+	q := `
+		SELECT r.id, r.guide_id, r.author_id, r.rating, r.text, r.status, r.excursion_id,
+			COALESCE(NULLIF(TRIM(CONCAT(u.first_name, ' ', u.last_name)), ''), u.login) AS author_name,
+			COALESCE(e.title, '') AS excursion_title
+		FROM guide_reviews r
+		JOIN users u ON u.id = r.author_id
+		LEFT JOIN excursions e ON e.id = r.excursion_id`
+	args := []any{}
+	if status != "" {
+		q += ` WHERE r.status=$1`
+		args = append(args, status)
+	}
+	q += ` ORDER BY r.id DESC LIMIT ` + fmt.Sprintf("%d", limit)
+	return r.listReviews(ctx, q, args...)
 }
 
 func (r *ReviewRepo) RecalcRating(ctx context.Context, guideID int64) error {
