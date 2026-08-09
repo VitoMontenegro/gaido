@@ -1,6 +1,6 @@
 import { Link, Outlet, useNavigate, Navigate } from 'react-router-dom'
-import { useQueryClient } from '@tanstack/react-query'
-import { loadAccessToken, setAccessToken, authApi } from '../api/client'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { catalogApi, loadAccessToken, setAccessToken, authApi } from '../api/client'
 import { useHasRole, useMe } from '../hooks/useAuth'
 import ErrorBoundary from '../components/ErrorBoundary'
 import SiteHeader from '../components/SiteHeader'
@@ -12,6 +12,12 @@ loadAccessToken()
 export function PublicLayout() {
   const navigate = useNavigate()
   const qc = useQueryClient()
+
+  useQuery({
+    queryKey: ['site'],
+    queryFn: () => catalogApi.site(),
+    staleTime: 60_000,
+  })
 
   const logout = async () => {
     await authApi.logout()

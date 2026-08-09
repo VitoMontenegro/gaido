@@ -110,10 +110,26 @@ function JournalPreviewCard({ article }: { article: ArticleListItem }) {
   )
 }
 
+function HomePageLoading() {
+  return (
+    <>
+      <Helmet>
+        <title>{pageTitle()}</title>
+      </Helmet>
+      <div
+        className="home-hero relative min-h-[min(78vh,720px)] animate-pulse bg-ink"
+        aria-busy="true"
+        aria-label="Завантаження головної сторінки"
+      />
+    </>
+  )
+}
+
 export default function HomePage() {
-  const { data: site, isLoading } = useQuery({
+  const { data: site } = useQuery({
     queryKey: ['site'],
     queryFn: () => catalogApi.site(),
+    staleTime: 60_000,
   })
   const { data: articlesData } = useQuery({
     queryKey: ['articles', 'home'],
@@ -121,29 +137,27 @@ export default function HomePage() {
   })
   const recent = useRecentViews().filter((item) => item.type === 'excursion').slice(0, 8)
 
-  const content = site?.home.content
-  const featuredGuides = site?.home.featured_guides ?? []
-  const featuredExcursions = (site?.home.featured_excursions ?? []) as ExcursionItem[]
-  const destinations = site?.home.popular_destinations ?? []
-  const categoryTiles = normalizeCategoryTiles(content?.category_tiles)
+  if (!site) {
+    return <HomePageLoading />
+  }
+
+  const content = site.home.content
+  const featuredGuides = site.home.featured_guides ?? []
+  const featuredExcursions = (site.home.featured_excursions ?? []) as ExcursionItem[]
+  const destinations = site.home.popular_destinations ?? []
+  const categoryTiles = normalizeCategoryTiles(content.category_tiles)
   const journalArticles = articlesData?.items ?? []
-  const cta = content?.cta
-  const aboutImage = resolveMediaUrl(content?.about_image_url ?? '')
+  const cta = content.cta
+  const aboutImage = resolveMediaUrl(content.about_image_url)
 
   return (
     <>
       <Helmet>
         <title>{pageTitle(SITE_TAGLINE)}</title>
-        <meta name="description" content={content?.hero_subtitle ?? SITE_TAGLINE} />
+        <meta name="description" content={content.hero_subtitle} />
       </Helmet>
 
-      <HomeHero
-        title={content?.hero_title ?? SITE_TAGLINE}
-        subtitle={
-          content?.hero_subtitle ??
-          'Авторські маршрути від місцевих гідів — обирайте програму та звʼязуйтеся напряму'
-        }
-      />
+      <HomeHero title={content.hero_title} subtitle={content.hero_subtitle} />
 
       <section className="container-site py-6 md:py-10">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-2.5">
@@ -166,7 +180,7 @@ export default function HomePage() {
         </section>
       )}
 
-      {!isLoading && featuredExcursions.length > 0 && (
+      {featuredExcursions.length > 0 && (
         <section className="container-site py-14">
           <SectionTitle
             title="Нові маршрути"
@@ -185,16 +199,16 @@ export default function HomePage() {
         </section>
       )}
 
-      {(content?.benefits?.length ?? 0) > 0 && (
+      {content.benefits.length > 0 && (
         <section className="bg-surface py-14">
           <div className="container-site grid items-center gap-10 md:grid-cols-2">
             <div>
               <p className="section-title-sm mb-4">Про нас</p>
               <p className="text-base leading-relaxed text-muted">
-                {content!.benefits[0]?.text ?? 'Ми віримо, що кожна подорож має бути яскравою — з енергією та відкриттями.'}
+                {content.benefits[0]?.text}
               </p>
-              {content!.benefits.length > 1 && (
-                <p className="mt-4 text-base leading-relaxed text-muted">{content!.benefits[1]?.text}</p>
+              {content.benefits.length > 1 && (
+                <p className="mt-4 text-base leading-relaxed text-muted">{content.benefits[1]?.text}</p>
               )}
               <Link to="/guides" className="btn-accent mt-6">
                 Дізнатися більше
@@ -230,7 +244,7 @@ export default function HomePage() {
         </section>
       )}
 
-      {!isLoading && destinations.length > 0 && (
+      {destinations.length > 0 && (
         <section className="container-site py-14">
           <SectionTitle
             title="Популярні напрямки"
@@ -283,14 +297,14 @@ export default function HomePage() {
             </section>
         )}
 
-      {(content?.stats?.length ?? 0) > 0 && (
+      {content.stats.length > 0 && (
         <section className="bg-ink py-14 text-white">
           <div className="container-site">
             <h2 className="section-title mb-10 text-center text-white">
-              {content!.stats_title || 'З нами подорожують мільйони'}
+              {content.stats_title}
             </h2>
             <div className="grid gap-8 sm:grid-cols-3">
-              {content!.stats.map((stat) => (
+              {content.stats.map((stat) => (
                 <div key={stat.label} className="text-center">
                   <p className="font-display text-4xl font-medium uppercase md:text-5xl">{stat.value}</p>
                   <p className="mt-2 text-white/70">{stat.label}</p>
@@ -301,12 +315,12 @@ export default function HomePage() {
         </section>
       )}
 
-      {(content?.faq?.length ?? 0) > 0 && (
+      {content.faq.length > 0 && (
         <section className="bg-surface py-14">
           <div className="container-site max-w-3xl">
             <SectionTitle title="Часті запитання" />
             <div className="card px-4 md:px-6">
-              {content!.faq.map((item) => (
+              {content.faq.map((item) => (
                 <FAQItem key={item.question} question={item.question} answer={item.answer} />
               ))}
             </div>
@@ -318,24 +332,22 @@ export default function HomePage() {
         <div className="cta-panel grid gap-8 p-8 md:grid-cols-[1fr_auto] md:items-center md:gap-12 md:p-10 lg:p-12">
           <div>
             <h3 className="font-display text-xl font-medium uppercase text-white sm:text-2xl">
-              {cta?.title ?? 'Зʼявились питання?'}
+              {cta.title}
             </h3>
             <p className="mt-3 max-w-lg text-base leading-relaxed text-white/75">
-              {cta?.text ?? 'Звʼяжіться з нами — відповімо протягом 60 хвилин у робочий час'}
+              {cta.text}
             </p>
-            {(cta?.schedule ?? 'Пн–Нд 09:00 – 18:00') && (
-              <p className="badge-teal mt-5">{cta?.schedule ?? 'Пн–Нд 09:00 – 18:00'}</p>
-            )}
+            {cta.schedule && <p className="badge-teal mt-5">{cta.schedule}</p>}
           </div>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <Link to={cta?.primary_url ?? '/search'} className="btn-accent min-w-45 justify-center">
-              {cta?.primary_label ?? 'Знайти екскурсію'}
+            <Link to={cta.primary_url} className="btn-accent min-w-45 justify-center">
+              {cta.primary_label}
             </Link>
             <Link
-              to={cta?.secondary_url ?? '/register'}
+              to={cta.secondary_url}
               className="inline-flex min-h-10 min-w-45 items-center justify-center rounded-xl border border-white/25 bg-white/10 px-3 py-1 text-base font-medium text-white transition hover:bg-white/20"
             >
-              {cta?.secondary_label ?? 'Стати гідом'}
+              {cta.secondary_label}
             </Link>
           </div>
         </div>
