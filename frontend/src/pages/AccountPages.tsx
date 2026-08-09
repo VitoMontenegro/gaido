@@ -2,19 +2,11 @@ import { Helmet } from 'react-helmet-async'
 import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
-import { authApi, api, catalogApi, type FavoriteItem, userDisplayName } from '../api/client'
-import StatCard, { StatGrid } from '../components/crm/StatCard'
+import { authApi, api, type FavoriteItem, userDisplayName } from '../api/client'
 import ExcursionCard, { excursionCardPropsFromPartial } from '../components/ExcursionCard'
 import GuideAvatar from '../components/GuideAvatar'
 import ApiErrorBanner from '../components/ApiErrorBanner'
 import { useHasRole, useMe } from '../hooks/useAuth'
-
-const DISCOVER_LINKS = [
-  { to: '/search', label: 'Пошук', desc: 'Знайдіть екскурсію за містом або темою' },
-  { to: '/map', label: 'Карта', desc: 'Досліджуйте напрямки на інтерактивній карті' },
-  { to: '/guides', label: 'Гіди', desc: 'Оберіть експерта за відгуками та досвідом' },
-  { to: '/search', label: 'Екскурсії', desc: 'Популярні програми від місцевих гідів' },
-]
 
 export default function AccountPage() {
   const { data: me } = useMe()
@@ -25,92 +17,59 @@ export default function AccountPage() {
   const { data: favorites } = useQuery({
     queryKey: ['favorites'],
     queryFn: () => api<{ items: FavoriteItem[] }>('/api/v1/favorites'),
-  })
-  const { data: excursions } = useQuery({
-    queryKey: ['catalog-excursions-preview'],
-    queryFn: () => catalogApi.excursions({ limit: '4' }),
-  })
-  const { data: site } = useQuery({
-    queryKey: ['site'],
-    queryFn: () => catalogApi.site(),
+    enabled: !isAdmin,
   })
 
-  const favCount = favorites?.items.length ?? 0
-  const stats = site?.home?.content?.stats ?? []
+  const favItems = favorites?.items ?? []
+  const favCount = favItems.length
 
   return (
     <>
       <Helmet><title>Особистий кабінет</title></Helmet>
       <div className="space-y-5">
-        <div className="card bg-gradient-to-br from-brand-50 to-surface">
+        <div className="card">
           <h1 className="font-display text-2xl font-bold">Привіт, {name}!</h1>
           <p className="mt-2 text-stone-600">
-            Ваш особистий простір для планування подорожей. Зберігайте обране та відкривайте нові напрямки.
+            Тут ваші особисті дані, обране та доступ до робочих розділів.
           </p>
-          {!isGuide && (
-            <Link to="/register" className="btn-accent mt-4 inline-flex text-sm">
-              Стати гідом і заробляти на екскурсіях
-            </Link>
-          )}
+          <div className="mt-4 flex flex-wrap gap-3">
+            {isAdmin && (
+              <Link to="/admin" className="btn-primary">Аналітика платформи</Link>
+            )}
+            {isGuide && (
+              <Link to="/account/guide" className="btn-primary">Кабінет гіда</Link>
+            )}
+            <Link to="/account/settings" className="btn-secondary">Налаштування профілю</Link>
+            {!isGuide && !isAdmin && (
+              <Link to="/register" className="btn-accent text-sm">
+                Стати гідом
+              </Link>
+            )}
+          </div>
         </div>
 
-        <StatGrid cols={3}>
-          <StatCard label="У обраному" value={favCount} hint="збережених місць" tone="brand" />
-          <StatCard label="Екскурсій на сайті" value={stats[0]?.value ?? excursions?.items.length ?? '—'} tone="teal" />
-          <StatCard label="Гідів онлайн" value={stats[1]?.value ?? '—'} />
-        </StatGrid>
-
-        <section className="card space-y-4">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="font-display text-lg font-bold">Куди поїхати далі?</h2>
-            <Link to="/search" className="text-sm text-brand-700 hover:underline">Усі екскурсії →</Link>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {(excursions?.items ?? []).slice(0, 4).map((e) => (
-              <ExcursionCard key={e.id} e={e} compact />
-            ))}
-          </div>
-          {!excursions?.items.length && (
-            <p className="text-sm text-stone-500">Завантаження рекомендацій…</p>
-          )}
-        </section>
-
-        <section className="grid gap-3 sm:grid-cols-2">
-          {DISCOVER_LINKS.map((link) => (
-            <Link
-              key={link.to}
-              to={link.to}
-              className="card group transition hover:shadow-[0_10px_30px_rgba(0,0,0,0.06)]"
-            >
-              <p className="font-display font-semibold group-hover:text-brand-700">{link.label}</p>
-              <p className="mt-1 text-sm text-stone-600">{link.desc}</p>
-            </Link>
-          ))}
-        </section>
-
-        {favCount > 0 && (
+        {!isAdmin && (
           <section className="card space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="font-display text-lg font-bold">Ваше обране</h2>
-              <Link to="/account/favorites" className="text-sm text-brand-700 hover:underline">Дивитись усе →</Link>
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h2 className="font-display text-lg font-bold">Обране</h2>
+                <p className="mt-1 text-sm text-stone-500">
+                  {favCount > 0 ? `${favCount} збережено` : 'Поки порожньо — додавайте з карток екскурсій і гідів'}
+                </p>
+              </div>
+              <Link to="/account/favorites" className="text-sm text-brand-700 hover:underline">
+                Усі →
+              </Link>
             </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {(favorites?.items ?? []).slice(0, 4).map((f) => (
-                <FavoritePreview key={`${f.target_type}-${f.target_id}`} item={f} />
-              ))}
-            </div>
+            {favCount > 0 && (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {favItems.slice(0, 4).map((f) => (
+                  <FavoritePreview key={`${f.target_type}-${f.target_id}`} item={f} />
+                ))}
+              </div>
+            )}
           </section>
         )}
-
-        <div className="flex flex-wrap gap-3">
-          {isAdmin && (
-            <Link to="/admin" className="btn-primary">Аналітика платформи</Link>
-          )}
-          {isGuide && (
-            <Link to="/account/guide" className="btn-primary">Кабінет гіда</Link>
-          )}
-          <Link to="/account/settings" className="btn-secondary">Налаштування профілю</Link>
-        </div>
       </div>
     </>
   )
