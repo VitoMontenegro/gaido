@@ -105,14 +105,7 @@ export function transportLabel(mode: string) {
   }
 }
 
-export function languageLabel(code: string) {
-  switch (code) {
-    case 'uk': return 'Українською мовою'
-    case 'ru': return 'Російською мовою'
-    case 'en': return 'English'
-    default: return code
-  }
-}
+export { languageLabel } from '../lib/excursionLanguages'
 
 export function statusTone(status: string) {
   switch (status) {

@@ -3,6 +3,7 @@ import { normalizeItems } from '../lib/bookingTerms'
 import { resolveMapEmbed } from '../lib/mapEmbed'
 import BookingTermsEditor from './BookingTermsEditor'
 import CityPicker from './CityPicker'
+import { DEFAULT_EXCURSION_LANGUAGE, EXCURSION_LANGUAGES } from '../lib/excursionLanguages'
 import { ImageUrlField } from './ImageUrlField'
 
 const RichTextEditor = lazy(() => import('./RichTextEditor'))
@@ -171,10 +172,10 @@ export default function ExcursionForm({ initial, submitLabel, onSubmit }: Props)
       </Field>
 
       <Field label="Мова екскурсії">
-        <select name="language" className="input w-full" defaultValue={initial?.language ?? 'uk'}>
-          <option value="uk">Українська</option>
-          <option value="ru">Російська</option>
-          <option value="en">English</option>
+        <select name="language" className="input w-full" defaultValue={initial?.language ?? DEFAULT_EXCURSION_LANGUAGE}>
+          {EXCURSION_LANGUAGES.map(({ code, label }) => (
+            <option key={code} value={code}>{label}</option>
+          ))}
         </select>
       </Field>
 
