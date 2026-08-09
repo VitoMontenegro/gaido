@@ -1,0 +1,18 @@
+[Unit]
+Description=Experts Tourister API
+After=network.target postgresql.service redis-server.service
+Wants=postgresql.service redis-server.service
+
+[Service]
+User=deploy
+Group=deploy
+WorkingDirectory=/var/www/tourister/repo/backend
+EnvironmentFile=/var/www/tourister/.env
+ExecStart=/var/www/tourister/bin/tourister-api
+Restart=always
+RestartSec=5
+StandardOutput=append:/var/www/tourister/logs/api.log
+StandardError=append:/var/www/tourister/logs/api.log
+
+[Install]
+WantedBy=multi-user.target

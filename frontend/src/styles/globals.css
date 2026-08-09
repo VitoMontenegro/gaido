@@ -1,0 +1,384 @@
+@import "tailwindcss";
+
+/* Roboto — body text */
+@font-face {
+  font-family: "Roboto";
+  src: url("/fonts/Roboto-Light.woff2") format("woff2"), url("/fonts/Roboto-Light.woff") format("woff");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Roboto";
+  src: url("/fonts/Roboto-Regular.woff2") format("woff2"), url("/fonts/Roboto-Regular.woff") format("woff");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Roboto";
+  src: url("/fonts/Roboto-Medium.woff2") format("woff2"), url("/fonts/Roboto-Medium.woff") format("woff");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Roboto";
+  src: url("/fonts/Roboto-Bold.woff2") format("woff2"), url("/fonts/Roboto-Bold.woff") format("woff");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* MTS Extended — headings */
+@font-face {
+  font-family: "MTS Extended";
+  src: url("/fonts/MTSExtended-Medium.woff2") format("woff2"), url("/fonts/MTSExtended-Medium.woff") format("woff");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "MTS Extended";
+  src: url("/fonts/MTSExtended-Bold.woff2") format("woff2"), url("/fonts/MTSExtended-Bold.woff") format("woff");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@theme {
+  --font-sans: "Roboto", Arial, sans-serif;
+  --font-display: "MTS Extended", Arial, sans-serif;
+
+  --color-ink: #060606;
+  --color-ink-soft: #020202;
+  --color-muted: #636363;
+  --color-muted-light: #979797;
+  --color-border: #dddddd;
+  --color-surface: #ffffff;
+  --color-page: #fafafa;
+  --color-divider: #f5f5f5;
+
+  --color-brand-50: #fff5f0;
+  --color-brand-100: #ffe8dc;
+  --color-brand-500: #fb7036;
+  --color-brand-600: #fb7036;
+  --color-brand-700: #c95a2b;
+
+  --color-teal: #2cb2ab;
+  --color-teal-dark: #239a94;
+
+  --color-sand-50: #fafafa;
+  --color-sand-100: #f5f5f5;
+}
+
+@layer base {
+  body {
+    @apply bg-page text-ink font-sans antialiased;
+    font-size: 16px;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+  }
+
+  h1, h2, h3 {
+    @apply font-display font-medium uppercase text-ink;
+    word-break: break-word;
+  }
+}
+
+@layer components {
+  .container-site {
+    @apply mx-auto w-full max-w-[1460px] px-5 md:px-[30px];
+  }
+
+  .section-title {
+    @apply font-display text-[28px] font-medium uppercase leading-[1.2] text-ink md:text-[28px];
+  }
+
+  .section-title-sm {
+    @apply font-display text-lg font-medium uppercase leading-[1.2] text-ink sm:text-[22px];
+  }
+
+  .btn-primary {
+    @apply inline-flex min-h-10 items-center justify-center rounded-xl bg-ink px-3 py-1 text-base font-medium text-white transition hover:bg-[#383838] focus:outline-none focus:ring-2 focus:ring-ink/20 focus:ring-offset-2;
+    letter-spacing: -0.02em;
+  }
+
+  .btn-accent {
+    @apply inline-flex min-h-10 items-center justify-center rounded-xl bg-brand-500 px-3 py-1 text-base font-medium text-white transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:ring-offset-2;
+    letter-spacing: -0.02em;
+  }
+
+  .btn-secondary {
+    @apply inline-flex min-h-10 items-center justify-center rounded-xl border border-border bg-surface px-3 py-1 text-base font-medium text-ink transition hover:bg-sand-100;
+    letter-spacing: -0.02em;
+  }
+
+  .btn-ghost {
+    @apply inline-flex min-h-10 items-center justify-center rounded-xl bg-transparent px-3 py-1 text-base font-medium text-ink transition hover:text-muted;
+    letter-spacing: -0.02em;
+  }
+
+  .card {
+    @apply rounded-3xl bg-surface p-4;
+  }
+
+  .card-flat {
+    @apply rounded-3xl border border-divider bg-surface;
+  }
+
+  .input {
+    @apply w-full rounded-xl border border-border bg-surface px-4 py-3 text-base text-ink outline-none transition placeholder:text-muted-light focus:border-brand-500 focus:ring-2 focus:ring-brand-50;
+    caret-color: #fb7036;
+    letter-spacing: -0.02em;
+  }
+
+  .nav-link {
+    @apply text-base text-ink transition hover:text-muted;
+    letter-spacing: -0.02em;
+  }
+
+  .link-accent {
+    @apply text-base font-medium text-ink underline decoration-brand-500 decoration-2 underline-offset-2 transition hover:text-muted;
+  }
+
+  .badge-teal {
+    @apply inline-flex rounded-md bg-teal px-1.5 py-0.5 text-sm text-white;
+    letter-spacing: -0.02em;
+  }
+
+  .category-tile {
+    @apply relative flex aspect-[4/3] min-h-[120px] w-full items-end overflow-hidden rounded-2xl p-3 no-underline transition active:scale-[0.98] sm:aspect-auto sm:min-h-[130px] sm:rounded-[28px] sm:p-5 md:min-h-[164px];
+  }
+
+  .category-tile::before {
+    content: "";
+    @apply absolute inset-0 bg-ink/40 transition duration-200;
+    z-index: 1;
+  }
+
+  .category-tile:hover::before {
+    @apply bg-ink/25;
+  }
+
+  .category-tile::after {
+    content: "";
+    @apply pointer-events-none absolute bottom-3 right-3 z-10 h-7 w-7 rounded-[8px] bg-white opacity-0 transition duration-200 sm:bottom-5 sm:right-5 sm:h-9 sm:w-9 sm:rounded-[10px];
+    background-image: url("data:image/svg+xml,%3Csvg width='36' height='36' viewBox='0 0 36 36' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='36' height='36' rx='10' fill='white'/%3E%3Cpath d='M11 19.2259H20.5097L16.6306 23.2592L18.2997 25L25 18L18.2997 11L16.6306 12.7408L20.5097 16.7741H11V19.2259Z' fill='%23FB7036'/%3E%3C/svg%3E");
+    background-size: contain;
+    background-repeat: no-repeat;
+  }
+
+  .category-tile:hover::after {
+    @apply opacity-100;
+  }
+
+  .category-tile__img {
+    @apply absolute inset-0 h-full w-full object-cover;
+    z-index: 0;
+  }
+
+  .category-tile__label {
+    @apply relative max-w-[85%] font-display text-xs font-medium uppercase leading-tight text-white sm:max-w-none sm:text-xl md:text-2xl;
+    z-index: 2;
+  }
+
+  .journal-card {
+    @apply flex h-full flex-col overflow-hidden rounded-[28px] border border-divider bg-surface no-underline shadow-[0_2px_10px_rgba(0,0,0,0.04)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)];
+  }
+
+  .journal-card__media {
+    @apply relative aspect-[16/10] overflow-hidden bg-sand-100;
+  }
+
+  .journal-card__img {
+    @apply h-full w-full object-cover transition duration-300 group-hover:scale-[1.03];
+  }
+
+  .journal-card__placeholder {
+    @apply h-full w-full bg-gradient-to-br from-brand-500/80 to-ink/70;
+  }
+
+  .journal-card__body {
+    @apply flex flex-1 flex-col p-5;
+  }
+
+  .journal-card__date {
+    @apply text-xs uppercase tracking-wide text-muted-light;
+  }
+
+  .journal-card__title {
+    @apply mt-2 font-display text-lg font-medium normal-case leading-snug text-ink transition group-hover:text-brand-700;
+  }
+
+  .journal-card__excerpt {
+    @apply mt-2 flex-1 text-sm leading-relaxed text-muted;
+  }
+
+  .journal-card__more {
+    @apply mt-4 text-sm font-medium text-brand-600;
+  }
+
+  .cta-panel {
+    @apply overflow-hidden rounded-[28px] bg-ink text-white;
+  }
+
+  .home-hero {
+    min-height: min(78vh, 720px);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .home-hero__slide {
+      transition: none !important;
+    }
+  }
+
+  .leaflet-map {
+    @apply w-full rounded-3xl border border-border;
+    height: 520px;
+  }
+
+  .excursion-body {
+    @apply max-w-none text-[17px] leading-[1.7] text-stone-700;
+  }
+
+  .excursion-body h2,
+  .excursion-body h3 {
+    @apply mb-3 mt-8 font-display text-xl font-bold normal-case tracking-normal text-stone-900 first:mt-0 md:text-2xl;
+  }
+
+  .excursion-body p {
+    @apply mb-5;
+  }
+
+  .excursion-body p:empty,
+  .excursion-body p:has(> br:only-child) {
+    display: none;
+  }
+
+  .excursion-body ul,
+  .excursion-body ol {
+    @apply mb-5 list-disc space-y-1.5 pl-5;
+  }
+
+  .excursion-body ol {
+    @apply list-decimal;
+  }
+
+  .excursion-body > img,
+  .excursion-body p > img,
+  .excursion-body figure > img {
+    display: block;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    margin: 1.25rem 0;
+    border-radius: 1rem;
+    object-fit: cover;
+  }
+
+  .excursion-body figure {
+    margin: 1.25rem 0;
+  }
+
+  .excursion-body figcaption {
+    @apply mt-2 text-center text-sm text-stone-500;
+  }
+
+  /* Olimpus-style photo pairs in TinyMCE tables */
+  .excursion-body table {
+    width: 100% !important;
+    max-width: 100%;
+    margin: 1.75rem 0 1.25rem;
+    border: 0 !important;
+    border-collapse: separate !important;
+    border-spacing: 0 !important; /* no outer inset */
+    table-layout: fixed;
+  }
+
+  .excursion-body table[border],
+  .excursion-body table[style*="border"] {
+    border: 0 !important;
+  }
+
+  .excursion-body table col {
+    width: 50% !important;
+  }
+
+  .excursion-body th,
+  .excursion-body td {
+    border: 0 !important;
+    padding: 0 !important;
+    vertical-align: top;
+    background: transparent !important;
+    width: 50%;
+  }
+
+  /* Gap only between photos (~10px = half of previous ~20px) */
+  .excursion-body tr > td:first-child,
+  .excursion-body tr > th:first-child {
+    padding-right: 0.3125rem !important;
+  }
+
+  .excursion-body tr > td:last-child,
+  .excursion-body tr > th:last-child {
+    padding-left: 0.3125rem !important;
+  }
+
+  .excursion-body td img,
+  .excursion-body th img {
+    display: block;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    min-height: 160px;
+    margin: 0 !important;
+    border-radius: 1rem;
+    object-fit: cover;
+    aspect-ratio: 4 / 3;
+    background: #f5f5f4;
+  }
+
+  /* Map / video embeds pasted into the program body */
+  .excursion-body iframe,
+  .excursion-body video {
+    display: block;
+    width: 100% !important;
+    max-width: 100% !important;
+    aspect-ratio: 16 / 9;
+    height: auto !important;
+    min-height: 280px;
+    margin: 1.75rem 0;
+    border: 0 !important;
+    border-radius: 1rem;
+    background: #f5f5f4;
+  }
+
+  .excursion-body a {
+    @apply font-medium text-brand-700 underline underline-offset-2;
+  }
+
+  .excursion-body blockquote {
+    @apply my-5 border-l-4 border-brand-500 bg-sand-50 px-4 py-3 text-stone-700;
+  }
+
+  @media (max-width: 640px) {
+    .excursion-body table,
+    .excursion-body tbody,
+    .excursion-body tr {
+      display: block;
+      width: 100% !important;
+    }
+
+    .excursion-body th,
+    .excursion-body td {
+      display: block;
+      width: 100% !important;
+      margin-bottom: 0.625rem;
+    }
+
+    .excursion-body table {
+      border-spacing: 0;
+    }
+  }
+}

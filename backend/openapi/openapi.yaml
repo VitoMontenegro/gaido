@@ -1,0 +1,23 @@
+openapi: 3.0.3
+info:
+  title: Experts Tourister API
+  version: 1.0.0
+paths:
+  /healthz:
+    get:
+      summary: Liveness probe
+  /api/v1/auth/register:
+    post:
+      summary: Register user
+  /api/v1/auth/login:
+    post:
+      summary: Login
+  /api/v1/guides:
+    get:
+      summary: List public guides
+  /api/v1/guides/{slug}:
+    get:
+      summary: Get guide by slug
+  /api/v1/account/guide/billing/checkout:
+    post:
+      summary: Start guide placement checkout
