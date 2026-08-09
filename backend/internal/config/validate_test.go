@@ -28,7 +28,7 @@ func TestValidate_productionInvalid(t *testing.T) {
 		JWTAccessSecret:    defaultAccessSecret,
 		JWTRefreshSecret:   defaultRefreshSecret,
 		CORSOrigins:        []string{"*"},
-		DatabaseURL:        "postgres://localhost:5432/t?sslmode=disable",
+		DatabaseURL:        "postgres://db.example.com:5432/t?sslmode=disable",
 	}
 	err := Validate(cfg)
 	if err == nil {
@@ -61,5 +61,20 @@ func TestValidate_productionValid(t *testing.T) {
 	}
 	if err := Validate(cfg); err != nil {
 		t.Fatalf("expected nil, got %v", err)
+	}
+}
+
+func TestValidate_productionLocalPostgresSSLDisableOK(t *testing.T) {
+	cfg := Config{
+		AppEnv:             "production",
+		PaymentStubEnabled: false,
+		SeedDemoData:       false,
+		JWTAccessSecret:    "prod-access-secret-that-is-long-enough-32",
+		JWTRefreshSecret:   "prod-refresh-secret-that-is-long-enough-32",
+		CORSOrigins:        []string{"https://gaido.top"},
+		DatabaseURL:        "postgres://tourister:x@127.0.0.1:5432/tourister?sslmode=disable",
+	}
+	if err := Validate(cfg); err != nil {
+		t.Fatalf("local postgres sslmode=disable should pass, got %v", err)
 	}
 }
