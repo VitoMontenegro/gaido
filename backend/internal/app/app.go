@@ -235,6 +235,7 @@ func (a *App) Router() http.Handler {
 			ar.Get("/admin/audit", a.adminAudit)
 			ar.Get("/admin/guides", a.adminListGuides)
 			ar.Put("/admin/guides/{id}", a.adminUpdateGuide)
+			ar.Delete("/admin/guides/{id}", a.adminDeleteGuide)
 			ar.Post("/admin/guides/{id}/bypass", a.adminBypass)
 			ar.Get("/admin/excursions", a.adminListExcursions)
 			ar.Delete("/admin/excursions/{id}", a.adminDeleteExcursion)
@@ -1056,6 +1057,30 @@ func (a *App) adminUpdateGuide(w http.ResponseWriter, r *http.Request) {
 		"status":       g.Status,
 		"avatar_url":   g.AvatarURL,
 	})
+}
+
+func (a *App) adminDeleteGuide(w http.ResponseWriter, r *http.Request) {
+	id, _ := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if id <= 0 {
+		response.Error(w, r, apperrors.ErrNotFound)
+		return
+	}
+	g, err := a.guides.GetByID(r.Context(), id)
+	if err != nil || g == nil {
+		response.Error(w, r, apperrors.ErrNotFound)
+		return
+	}
+	if err := a.guides.AdminDelete(r.Context(), id); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			response.Error(w, r, apperrors.ErrNotFound)
+			return
+		}
+		response.Error(w, r, apperrors.ErrInternal)
+		return
+	}
+	actor := userIDFromCtx(r.Context())
+	_ = a.audit.Log(r.Context(), &actor, "GUIDE_DELETE", "guide", &id, g.DisplayName, "", r.RemoteAddr, r.UserAgent())
+	response.JSON(w, r, 200, map[string]string{"status": "deleted"})
 }
 
 func hasRole(ctx context.Context, role string) bool {

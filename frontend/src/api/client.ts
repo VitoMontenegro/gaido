@@ -198,6 +198,8 @@ export const adminApi = {
   },
   updateGuide: (id: number, body: { avatar_url: string }) =>
     api<AdminGuide>(`/api/v1/admin/guides/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+  deleteGuide: (id: number) =>
+    api<{ status: string }>(`/api/v1/admin/guides/${id}`, { method: 'DELETE' }),
   users: () => api<{ items: AdminUser[] }>('/api/v1/admin/users'),
   excursions: (params?: { status?: string }) => {
     const q = params?.status ? `?status=${encodeURIComponent(params.status)}` : ''

@@ -171,6 +171,34 @@ func (r *GuideRepo) SetStatus(ctx context.Context, id int64, status string) erro
 	return err
 }
 
+func (r *GuideRepo) AdminDelete(ctx context.Context, id int64) error {
+	tx, err := r.db.Pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	if _, err = tx.Exec(ctx, `DELETE FROM favorites WHERE target_type = 'GUIDE' AND target_id = $1`, id); err != nil {
+		return err
+	}
+	if _, err = tx.Exec(ctx, `
+		DELETE FROM favorites
+		WHERE target_type = 'EXCURSION'
+		  AND target_id IN (SELECT id FROM excursions WHERE guide_id = $1)
+	`, id); err != nil {
+		return err
+	}
+
+	tag, err := tx.Exec(ctx, `DELETE FROM guide_profiles WHERE id = $1`, id)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return pgx.ErrNoRows
+	}
+	return tx.Commit(ctx)
+}
+
 func (r *GuideRepo) ListPublic(ctx context.Context, cityID, countryID *int64, guideType string, limit, offset int) ([]domain.GuideProfile, error) {
 	q := `SELECT ` + guideProfileSelect + ` FROM guide_profiles WHERE status=$1`
 	args := []any{domain.GuideStatusActive}

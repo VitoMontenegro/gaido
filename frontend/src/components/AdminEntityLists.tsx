@@ -70,9 +70,18 @@ export function AdminUsersList() {
 }
 
 export function AdminGuidesList({ statusFilter }: { statusFilter?: string }) {
+  const qc = useQueryClient()
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['admin-guides', statusFilter ?? 'all'],
     queryFn: () => adminApi.guides(statusFilter ? { status: statusFilter } : undefined),
+  })
+
+  const remove = useMutation({
+    mutationFn: (id: number) => adminApi.deleteGuide(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-guides'] })
+      qc.invalidateQueries({ queryKey: ['analytics'] })
+    },
   })
 
   const title = statusFilter === 'ACTIVE' ? 'Активні гіди' : 'Гіди'
@@ -93,9 +102,23 @@ export function AdminGuidesList({ statusFilter }: { statusFilter?: string }) {
             <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusBadge(g.status)}`}>
               {statusLabel(g.status)}
             </span>
-            <Link to={`/guides/${g.slug}`} className="text-sm text-brand-700 hover:underline" target="_blank">
-              Відкрити
-            </Link>
+            <div className="flex items-center gap-2">
+              <Link to={`/guides/${g.slug}`} className="text-sm text-brand-700 hover:underline" target="_blank">
+                Відкрити
+              </Link>
+              <button
+                type="button"
+                className="rounded-lg border border-red-200 px-2 py-1 text-xs text-red-700 hover:bg-red-50 disabled:opacity-50"
+                disabled={remove.isPending}
+                onClick={() => {
+                  if (window.confirm(`Видалити гіда «${g.display_name}»? Профіль, екскурсії та відгуки будуть видалені.`)) {
+                    remove.mutate(g.id)
+                  }
+                }}
+              >
+                Видалити
+              </button>
+            </div>
           </li>
         ))}
       </ul>

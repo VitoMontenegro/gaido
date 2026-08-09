@@ -219,12 +219,25 @@ func (a *App) resolveFeaturedExcursions(ctx context.Context, limit int) []domain
 }
 
 func (a *App) resolvePopularDestinations(ctx context.Context, citySlugs []string) []domain.DestinationGroup {
-	if len(citySlugs) > 0 {
-		return a.destinationsFromCitySlugs(ctx, citySlugs)
-	}
 	points, err := a.geo.ListMapPoints(ctx)
 	if err != nil || len(points) == 0 {
-		return a.fallbackDestinations(ctx)
+		return nil
+	}
+	if len(citySlugs) > 0 {
+		withExcursions := make(map[string]bool, len(points))
+		for _, p := range points {
+			withExcursions[p.Slug] = true
+		}
+		filtered := make([]string, 0, len(citySlugs))
+		for _, slug := range citySlugs {
+			if withExcursions[slug] {
+				filtered = append(filtered, slug)
+			}
+		}
+		if len(filtered) == 0 {
+			return nil
+		}
+		return a.destinationsFromCitySlugs(ctx, filtered)
 	}
 	groups := map[string]*domain.DestinationGroup{}
 	order := []string{}
@@ -272,36 +285,6 @@ func (a *App) destinationsFromCitySlugs(ctx context.Context, slugs []string) []d
 	out := make([]domain.DestinationGroup, 0, len(order))
 	for _, key := range order {
 		out = append(out, *groups[key])
-	}
-	return out
-}
-
-func (a *App) fallbackDestinations(ctx context.Context) []domain.DestinationGroup {
-	countries, err := a.geo.ListCountries(ctx)
-	if err != nil {
-		return nil
-	}
-	out := make([]domain.DestinationGroup, 0, 8)
-	for _, country := range countries {
-		if len(out) >= 8 {
-			break
-		}
-		cities, err := a.geo.ListCitiesByCountry(ctx, country.Slug)
-		if err != nil || len(cities) == 0 {
-			continue
-		}
-		group := domain.DestinationGroup{
-			CountrySlug: country.Slug,
-			CountryName: country.Name,
-		}
-		limit := 6
-		if len(cities) < limit {
-			limit = len(cities)
-		}
-		for _, c := range cities[:limit] {
-			group.Cities = append(group.Cities, domain.DestinationCity{Slug: c.Slug, Name: c.Name})
-		}
-		out = append(out, group)
 	}
 	return out
 }
