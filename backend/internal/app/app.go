@@ -7,6 +7,8 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -241,7 +243,7 @@ func (a *App) Router() http.Handler {
 		})
 	})
 
-	fs := http.FileServer(http.Dir("../frontend/dist"))
+	fs := spaFileServer("../frontend/dist")
 	r.Get("/*", func(w http.ResponseWriter, req *http.Request) {
 		if strings.HasPrefix(req.URL.Path, "/api/") {
 			http.NotFound(w, req)
@@ -250,6 +252,21 @@ func (a *App) Router() http.Handler {
 		fs.ServeHTTP(w, req)
 	})
 	return r
+}
+
+func spaFileServer(dist string) http.Handler {
+	fileServer := http.FileServer(http.Dir(dist))
+	index := filepath.Join(dist, "index.html")
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/" {
+			path := filepath.Join(dist, filepath.Clean("/"+strings.TrimPrefix(r.URL.Path, "/")))
+			if info, err := os.Stat(path); err != nil || info.IsDir() {
+				http.ServeFile(w, r, index)
+				return
+			}
+		}
+		fileServer.ServeHTTP(w, r)
+	})
 }
 
 func (a *App) ready(w http.ResponseWriter, r *http.Request) {

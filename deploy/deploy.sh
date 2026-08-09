@@ -12,6 +12,8 @@ mkdir -p "$(dirname "$LOG")"
 exec >>"$LOG" 2>&1
 echo "=== DEPLOY START $(date -Is) branch=$GIT_BRANCH ==="
 
+git config --global --add safe.directory "$REPO" 2>/dev/null || true
+
 cd "$REPO"
 if [ -d "$REPO/.git" ]; then
   echo "→ git fetch origin/$GIT_BRANCH"
