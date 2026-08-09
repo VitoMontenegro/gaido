@@ -5,17 +5,48 @@ APP_ROOT="${APP_ROOT:-/var/www/tourister}"
 REPO="${REPO:-$APP_ROOT/repo}"
 ENV_FILE="${ENV_FILE:-$APP_ROOT/.env}"
 LOG="${LOG:-$APP_ROOT/logs/deploy.log}"
+STATUS_FILE="${DEPLOY_STATUS_FILE:-$APP_ROOT/logs/deploy.status.json}"
 GIT_BRANCH="${GIT_BRANCH:-main}"
 GIT_REPO="${GIT_REPO:-https://github.com/VitoMontenegro/gaido.git}"
+APP_SLUG="${DEPLOY_APP_SLUG:-web-prod-2026}"
+
+write_status() {
+  local status="$1"
+  local exit_code="${2:-0}"
+  local finished="${3:-}"
+  local started_at="${DEPLOY_STARTED_AT:-$(date -u +"%Y-%m-%dT%H:%M:%SZ")}"
+  local finished_at=""
+  if [ -n "$finished" ]; then
+    finished_at="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+  fi
+  mkdir -p "$(dirname "$STATUS_FILE")"
+  cat >"$STATUS_FILE" <<EOF
+{"status":"$status","app":"$APP_SLUG","started_at":"$started_at","finished_at":$( [ -n "$finished_at" ] && printf '"%s"' "$finished_at" || echo null ),"exit_code":$exit_code}
+EOF
+}
+
+on_error() {
+  local code=$?
+  write_status "failed" "$code" "1"
+  echo "=== DEPLOY FAILED $(date -Is) exit=$code ==="
+}
+trap on_error ERR
 
 mkdir -p "$(dirname "$LOG")"
 exec >>"$LOG" 2>&1
-echo "=== DEPLOY START $(date -Is) branch=$GIT_BRANCH ==="
+DEPLOY_STARTED_AT="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+write_status "running" -1
+echo "=== DEPLOY START $(date -Is) branch=$GIT_BRANCH user=$(id -un) ==="
 
 git config --global --add safe.directory "$REPO" 2>/dev/null || true
 
 cd "$REPO"
 if [ -d "$REPO/.git" ]; then
+  if [ ! -w "$REPO/.git" ]; then
+    echo "ERROR: $REPO/.git not writable by $(id -un)."
+    echo "Fix as root: chown -R deploy:deploy $REPO"
+    exit 255
+  fi
   echo "→ git fetch origin/$GIT_BRANCH"
   git fetch origin "$GIT_BRANCH"
   git reset --hard "origin/$GIT_BRANCH"
@@ -52,12 +83,17 @@ mkdir -p "$APP_ROOT/bin"
 echo "→ migrations"
 "$APP_ROOT/bin/tourister-migrate" -cmd up
 
-echo "→ restart api"
-sudo systemctl restart tourister-api
+# Mark success BEFORE restart: systemctl kills the API process that started us.
+write_status "success" 0 "1"
+echo "→ restart api (deferred, so deploy parent is not killed mid-run)"
+if command -v systemd-run >/dev/null 2>&1; then
+  sudo systemd-run --quiet --collect --on-active=2s /bin/systemctl restart tourister-api
+else
+  # Fallback: background restart after this script exits the wait briefly.
+  (sleep 2; sudo systemctl restart tourister-api) >/dev/null 2>&1 &
+  disown || true
+fi
 
-sleep 2
-PORT="${HTTP_ADDR#:}"
-PORT="${PORT:-8081}"
-curl -sf "http://127.0.0.1:${PORT}/readyz" | head -c 200
-echo
 echo "=== DEPLOY OK $(date -Is) ==="
+trap - ERR
+exit 0

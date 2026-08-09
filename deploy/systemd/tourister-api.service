@@ -9,6 +9,8 @@ Group=deploy
 WorkingDirectory=/var/www/tourister/repo/backend
 EnvironmentFile=/var/www/tourister/.env
 ExecStart=/var/www/tourister/bin/tourister-api
+# Only kill the main API PID on restart so an in-flight deploy.sh can finish.
+KillMode=process
 Restart=always
 RestartSec=5
 StandardOutput=append:/var/www/tourister/logs/api.log

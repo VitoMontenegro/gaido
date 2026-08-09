@@ -30,6 +30,14 @@ type deployStartRequest struct {
 	App     string `json:"app"`
 }
 
+type deployStatusFile struct {
+	Status     string  `json:"status"`
+	App        string  `json:"app"`
+	StartedAt  string  `json:"started_at"`
+	FinishedAt *string `json:"finished_at"`
+	ExitCode   int     `json:"exit_code"`
+}
+
 func (a *App) adminDeployInfo(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, r, 200, map[string]any{
 		"enabled":    a.cfg.DeployEnabled,
@@ -59,6 +67,11 @@ func (a *App) adminStartDeploy(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.App == "" || req.App != a.cfg.DeployAppSlug {
 		response.Error(w, r, apperrors.ErrNotFound)
+		return
+	}
+
+	if st := a.readDeployStatusFile(); st != nil && st.Status == "running" {
+		response.Error(w, r, apperrors.New("DEPLOY_IN_PROGRESS", "Deploy already running", 409))
 		return
 	}
 
@@ -100,6 +113,23 @@ func (a *App) adminDeployStatus(w http.ResponseWriter, r *http.Request) {
 	exitCode := deployExit
 	deployMu.Unlock()
 
+	// Status file survives API restart (deploy kills the parent process).
+	if file := a.readDeployStatusFile(); file != nil {
+		status = file.Status
+		running = file.Status == "running"
+		exitCode = file.ExitCode
+		if t, err := time.Parse(time.RFC3339, file.StartedAt); err == nil {
+			started = t
+		}
+		if file.FinishedAt != nil && *file.FinishedAt != "" {
+			if t, err := time.Parse(time.RFC3339, *file.FinishedAt); err == nil {
+				ended = t
+			}
+		} else if file.Status == "running" {
+			ended = time.Time{}
+		}
+	}
+
 	repo := repoFromDeployScript(a.cfg.DeployScript)
 	branch, commit, commitMsg := gitHeadInfo(repo, a.cfg.GitBranch)
 	logTail := tailFile(a.cfg.DeployLog, 80)
@@ -117,25 +147,28 @@ func (a *App) adminDeployStatus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response.JSON(w, r, 200, map[string]any{
-		"status":          status,
-		"running":         running,
-		"app":             app,
-		"enabled":         a.cfg.DeployEnabled,
-		"branch":          branch,
-		"commit":          commit,
-		"commit_message":  commitMsg,
-		"started_at":      formatTimeISO(started),
-		"finished_at":     formatTimeISO(ended),
-		"exit_code":       exitCode,
-		"duration_sec":    durationSec,
-		"log_tail":        logTail,
-		"readyz_ok":       readyzOK,
+		"status":         status,
+		"running":        running,
+		"app":            app,
+		"enabled":        a.cfg.DeployEnabled,
+		"branch":         branch,
+		"commit":         commit,
+		"commit_message": commitMsg,
+		"started_at":     formatTimeISO(started),
+		"finished_at":    formatTimeISO(ended),
+		"exit_code":      exitCode,
+		"duration_sec":   durationSec,
+		"log_tail":       logTail,
+		"readyz_ok":      readyzOK,
 	})
 }
 
 func (a *App) runDeployScript() {
 	cmd := exec.Command("/bin/bash", a.cfg.DeployScript)
-	cmd.Env = os.Environ()
+	cmd.Env = append(os.Environ(),
+		"DEPLOY_APP_SLUG="+a.cfg.DeployAppSlug,
+		"DEPLOY_STATUS_FILE="+a.deployStatusPath(),
+	)
 
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
@@ -146,8 +179,15 @@ func (a *App) runDeployScript() {
 		exitCode = 1
 		if ee, ok := err.(*exec.ExitError); ok {
 			exitCode = ee.ExitCode()
+			if exitCode < 0 {
+				exitCode = 255
+			}
 		}
-		if a.cfg.DeployLog != "" {
+		// If script already wrote success before deferred restart, keep success.
+		if file := a.readDeployStatusFile(); file != nil && file.Status == "success" {
+			exitCode = 0
+			err = nil
+		} else if a.cfg.DeployLog != "" {
 			_ = appendDeployLog(a.cfg.DeployLog, "deploy failed: "+err.Error()+"\n"+stderr.String())
 		}
 	}
@@ -162,6 +202,28 @@ func (a *App) runDeployScript() {
 		deployStatus = "failed"
 	}
 	deployMu.Unlock()
+}
+
+func (a *App) deployStatusPath() string {
+	if a.cfg.DeployLog != "" {
+		return filepath.Join(filepath.Dir(a.cfg.DeployLog), "deploy.status.json")
+	}
+	return "/var/www/tourister/logs/deploy.status.json"
+}
+
+func (a *App) readDeployStatusFile() *deployStatusFile {
+	data, err := os.ReadFile(a.deployStatusPath())
+	if err != nil {
+		return nil
+	}
+	var st deployStatusFile
+	if err := json.Unmarshal(data, &st); err != nil {
+		return nil
+	}
+	if st.Status == "" {
+		return nil
+	}
+	return &st
 }
 
 func repoFromDeployScript(script string) string {

@@ -59,7 +59,7 @@ fi
 # deploy user
 id deploy &>/dev/null || useradd -m deploy
 usermod -aG wheel deploy
-echo 'deploy ALL=(ALL) NOPASSWD: /bin/systemctl restart tourister-api, /bin/systemctl status tourister-api' \
+echo 'deploy ALL=(ALL) NOPASSWD: /bin/systemctl restart tourister-api, /bin/systemctl status tourister-api, /usr/bin/systemd-run' \
   > /etc/sudoers.d/tourister-deploy
 chmod 440 /etc/sudoers.d/tourister-deploy
 visudo -cf /etc/sudoers.d/tourister-deploy
