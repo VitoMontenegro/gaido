@@ -237,6 +237,7 @@ func (a *App) Router() http.Handler {
 			ar.Use(a.authMiddleware)
 			ar.Use(a.rbacMiddleware)
 			ar.Get("/admin/users", a.adminUsers)
+			ar.Delete("/admin/users/{id}", a.adminDeleteUser)
 			ar.Get("/admin/analytics", a.adminAnalytics)
 			ar.Get("/admin/settings", a.adminGetSettings)
 			ar.Put("/admin/settings", a.adminSetSettings)
@@ -1609,6 +1610,48 @@ func (a *App) adminUsers(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 	response.JSON(w, r, 200, map[string]any{"items": out})
+}
+
+func (a *App) adminDeleteUser(w http.ResponseWriter, r *http.Request) {
+	id, _ := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	actor := userIDFromCtx(r.Context())
+	if id <= 0 {
+		response.Error(w, r, apperrors.ErrNotFound)
+		return
+	}
+	if id == actor {
+		response.Error(w, r, apperrors.ErrForbidden)
+		return
+	}
+	u, err := a.users.GetByID(r.Context(), id)
+	if err != nil || u == nil {
+		response.Error(w, r, apperrors.ErrNotFound)
+		return
+	}
+	for _, role := range u.Roles {
+		if role == domain.RoleAdmin {
+			n, err := a.users.CountAdmins(r.Context())
+			if err != nil {
+				response.Error(w, r, apperrors.ErrInternal)
+				return
+			}
+			if n <= 1 {
+				response.Error(w, r, apperrors.ErrForbidden)
+				return
+			}
+			break
+		}
+	}
+	if err := a.users.AdminDelete(r.Context(), id); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			response.Error(w, r, apperrors.ErrNotFound)
+			return
+		}
+		response.Error(w, r, apperrors.ErrInternal)
+		return
+	}
+	_ = a.audit.Log(r.Context(), &actor, "USER_DELETE", "user", &id, u.Login, "", r.RemoteAddr, r.UserAgent())
+	response.JSON(w, r, 200, map[string]string{"status": "deleted"})
 }
 
 func (a *App) adminListExcursions(w http.ResponseWriter, r *http.Request) {

@@ -80,6 +80,52 @@ func (r *UserRepo) DeleteRefreshToken(ctx context.Context, hash string) error {
 	return err
 }
 
+func (r *UserRepo) CountAdmins(ctx context.Context) (int, error) {
+	var n int
+	err := r.db.Pool.QueryRow(ctx, `
+		SELECT COUNT(*) FROM users WHERE status = 'ACTIVE' AND 'ROLE_ADMIN' = ANY(roles)
+	`).Scan(&n)
+	return n, err
+}
+
+func (r *UserRepo) AdminDelete(ctx context.Context, id int64) error {
+	tx, err := r.db.Pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	var guideID int64
+	err = tx.QueryRow(ctx, `SELECT id FROM guide_profiles WHERE user_id=$1`, id).Scan(&guideID)
+	if err == nil {
+		if _, err = tx.Exec(ctx, `DELETE FROM favorites WHERE target_type = 'GUIDE' AND target_id = $1`, guideID); err != nil {
+			return err
+		}
+		if _, err = tx.Exec(ctx, `
+			DELETE FROM favorites
+			WHERE target_type = 'EXCURSION'
+			  AND target_id IN (SELECT id FROM excursions WHERE guide_id = $1)
+		`, guideID); err != nil {
+			return err
+		}
+	} else if !errors.Is(err, pgx.ErrNoRows) {
+		return err
+	}
+
+	if _, err = tx.Exec(ctx, `DELETE FROM payments WHERE payer_id = $1`, id); err != nil {
+		return err
+	}
+
+	tag, err := tx.Exec(ctx, `DELETE FROM users WHERE id = $1`, id)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return pgx.ErrNoRows
+	}
+	return tx.Commit(ctx)
+}
+
 type GuideRepo struct{ db *DB }
 
 func NewGuideRepo(db *DB) *GuideRepo { return &GuideRepo{db: db} }

@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { adminApi, userDisplayName, type AdminExcursion, type AdminReview, type AdminUser } from '../api/client'
+import { useMe } from '../hooks/useAuth'
 import { formatPrice } from './excursionUi'
 import GuideAvatar from './GuideAvatar'
 
@@ -29,9 +30,21 @@ function statusLabel(status: string) {
 }
 
 export function AdminUsersList() {
+  const qc = useQueryClient()
+  const { data: me } = useMe()
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['admin-users'],
     queryFn: () => adminApi.users(),
+  })
+
+  const remove = useMutation({
+    mutationFn: (id: number) => adminApi.deleteUser(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-users'] })
+      qc.invalidateQueries({ queryKey: ['admin-guides'] })
+      qc.invalidateQueries({ queryKey: ['admin-excursions'] })
+      qc.invalidateQueries({ queryKey: ['analytics'] })
+    },
   })
 
   if (isLoading) return <ListShell title="Користувачі">Завантаження…</ListShell>
@@ -39,7 +52,7 @@ export function AdminUsersList() {
 
   return (
     <ListShell title="Користувачі" count={data?.items.length}>
-      <table className="w-full min-w-[640px] text-sm">
+      <table className="w-full min-w-[720px] text-sm">
         <thead>
           <tr className="border-b border-divider bg-sand-50 text-left text-stone-500">
             <th className="px-4 py-2 font-medium">#</th>
@@ -47,6 +60,7 @@ export function AdminUsersList() {
             <th className="px-4 py-2 font-medium">Email</th>
             <th className="px-4 py-2 font-medium">Ролі</th>
             <th className="px-4 py-2 font-medium">Статус</th>
+            <th className="px-4 py-2 font-medium" />
           </tr>
         </thead>
         <tbody>
@@ -60,6 +74,24 @@ export function AdminUsersList() {
                 <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusBadge(u.status)}`}>
                   {u.status}
                 </span>
+              </td>
+              <td className="px-4 py-2.5 text-right">
+                {me?.id !== u.id && (
+                  <button
+                    type="button"
+                    className="rounded-lg border border-red-200 px-2 py-1 text-xs text-red-700 hover:bg-red-50 disabled:opacity-50"
+                    disabled={remove.isPending}
+                    onClick={() => {
+                      const label = userDisplayName(u)
+                      const extra = u.roles.includes('ROLE_GUIDE') ? ' Профіль гіда та екскурсії також будуть видалені.' : ''
+                      if (window.confirm(`Видалити «${label}»?${extra}`)) {
+                        remove.mutate(u.id)
+                      }
+                    }}
+                  >
+                    Видалити
+                  </button>
+                )}
               </td>
             </tr>
           ))}

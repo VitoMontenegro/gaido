@@ -201,6 +201,8 @@ export const adminApi = {
   deleteGuide: (id: number) =>
     api<{ status: string }>(`/api/v1/admin/guides/${id}`, { method: 'DELETE' }),
   users: () => api<{ items: AdminUser[] }>('/api/v1/admin/users'),
+  deleteUser: (id: number) =>
+    api<{ status: string }>(`/api/v1/admin/users/${id}`, { method: 'DELETE' }),
   excursions: (params?: { status?: string }) => {
     const q = params?.status ? `?status=${encodeURIComponent(params.status)}` : ''
     return api<{ items: AdminExcursion[] }>(`/api/v1/admin/excursions${q}`)
