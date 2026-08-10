@@ -170,13 +170,29 @@ func spaFileServer(dist string) http.Handler {
 	fileServer := http.FileServer(http.Dir(dist))
 	index := filepath.Join(dist, "index.html")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/" {
-			path := filepath.Join(dist, filepath.Clean("/"+strings.TrimPrefix(r.URL.Path, "/")))
-			if info, err := os.Stat(path); err != nil || info.IsDir() {
-				http.ServeFile(w, r, index)
-				return
-			}
+		rel := strings.TrimPrefix(r.URL.Path, "/")
+		if rel == "" {
+			setSpaCacheHeaders(w, "", true)
+			http.ServeFile(w, r, index)
+			return
 		}
+		path := filepath.Join(dist, filepath.Clean("/"+rel))
+		if info, err := os.Stat(path); err != nil || info.IsDir() {
+			setSpaCacheHeaders(w, "", true)
+			http.ServeFile(w, r, index)
+			return
+		}
+		setSpaCacheHeaders(w, rel, false)
 		fileServer.ServeHTTP(w, r)
 	})
+}
+
+func setSpaCacheHeaders(w http.ResponseWriter, rel string, isIndex bool) {
+	if isIndex {
+		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+		return
+	}
+	if strings.HasPrefix(rel, "assets/") {
+		w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+	}
 }
