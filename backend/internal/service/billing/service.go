@@ -349,12 +349,12 @@ func (s *Service) Checkout(ctx context.Context, userID, planID int64, excursionI
 	return s.Payments.Create(ctx, userID, purpose, plan.Price, plan.Currency, metadata)
 }
 
-func (s *Service) AdminBypass(ctx context.Context, guideID, planID int64, actorID int64) error {
-	enabled, _ := s.PaymentsEnabled(ctx)
-	if enabled {
-		return apperrors.New("PAYMENTS_REQUIRED", "Payments are enabled; use checkout", 400)
-	}
+func (s *Service) AdminApproveGuide(ctx context.Context, guideID, planID int64, actorID int64) error {
 	return s.ActivateGuideSubscription(ctx, guideID, planID, nil, domain.ActivationAdminBypass, &actorID)
+}
+
+func (s *Service) AdminBypass(ctx context.Context, guideID, planID int64, actorID int64) error {
+	return s.AdminApproveGuide(ctx, guideID, planID, actorID)
 }
 
 // ExpireStale marks expired subscriptions/featured and demotes guides when monetization is on.

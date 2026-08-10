@@ -5,6 +5,7 @@ export type RegisterFormData = {
   email: string
   login: string
   password: string
+  password_confirm: string
   first_name: string
   last_name: string
   accept_privacy: boolean
@@ -30,6 +31,8 @@ export function validateRegisterForm(
     return 'Логін: лише латиниця, цифри та символи _ . - (від 3 до 32 символів)'
   }
   if (form.password.length < 8) return 'Пароль — мінімум 8 символів'
+  if (!form.password_confirm) return 'Повторіть пароль'
+  if (form.password !== form.password_confirm) return 'Паролі не співпадають'
   if (!form.accept_privacy) return 'Потрібна згода з політикою конфіденційності'
   if (mode === 'tourist' && !form.accept_site_rules) return 'Потрібна згода з правилами сайту'
   if (mode === 'guide' && !form.accept_placement_rules) return 'Потрібна згода з правилами розміщення'

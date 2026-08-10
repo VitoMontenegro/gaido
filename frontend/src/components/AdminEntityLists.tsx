@@ -11,8 +11,11 @@ function statusBadge(status: string) {
     PUBLISHED: 'bg-emerald-50 text-emerald-700',
     PENDING: 'bg-amber-50 text-amber-800',
     PENDING_MODERATION: 'bg-amber-50 text-amber-800',
+    WAITING_PAYMENT: 'bg-amber-50 text-amber-800',
     DRAFT: 'bg-sand-100 text-stone-600',
     REJECTED: 'bg-red-50 text-red-700',
+    BLOCKED: 'bg-red-50 text-red-700',
+    EXPIRED: 'bg-stone-100 text-stone-600',
   }
   return map[status] ?? 'bg-sand-100 text-stone-600'
 }
@@ -23,10 +26,17 @@ function statusLabel(status: string) {
     PUBLISHED: 'Опубліковано',
     PENDING: 'Очікує',
     PENDING_MODERATION: 'На модерації',
+    WAITING_PAYMENT: 'Очікує оплату',
     DRAFT: 'Чернетка',
     REJECTED: 'Відхилено',
+    BLOCKED: 'Заблоковано',
+    EXPIRED: 'Закінчився',
   }
   return map[status] ?? status
+}
+
+function guideNeedsApproval(status: string) {
+  return status === 'DRAFT' || status === 'WAITING_PAYMENT' || status === 'EXPIRED'
 }
 
 export function AdminUsersList() {
@@ -107,6 +117,12 @@ export function AdminGuidesList({ statusFilter }: { statusFilter?: string }) {
     queryKey: ['admin-guides', statusFilter ?? 'all'],
     queryFn: () => adminApi.guides(statusFilter ? { status: statusFilter } : undefined),
   })
+  const { data: plans } = useQuery({
+    queryKey: ['admin-plans'],
+    queryFn: () => adminApi.plans(),
+  })
+  const placementPlanId = (plans?.items ?? []).find((p) => p.plan_type === 'GUIDE_PLACEMENT')?.id
+    ?? plans?.items?.[0]?.id
 
   const remove = useMutation({
     mutationFn: (id: number) => adminApi.deleteGuide(id),
@@ -116,7 +132,23 @@ export function AdminGuidesList({ statusFilter }: { statusFilter?: string }) {
     },
   })
 
-  const title = statusFilter === 'ACTIVE' ? 'Активні гіди' : 'Гіди'
+  const approve = useMutation({
+    mutationFn: (id: number) => adminApi.approveGuide(id, placementPlanId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-guides'] })
+      qc.invalidateQueries({ queryKey: ['guides'] })
+      qc.invalidateQueries({ queryKey: ['site'] })
+      qc.invalidateQueries({ queryKey: ['analytics'] })
+    },
+  })
+
+  const title = statusFilter === 'ACTIVE'
+    ? 'Активні гіди'
+    : statusFilter === 'DRAFT'
+      ? 'Гіди — чернетки'
+      : statusFilter === 'WAITING_PAYMENT'
+        ? 'Гіди — очікують активації'
+        : 'Гіди'
 
   if (isLoading) return <ListShell title={title}>Завантаження…</ListShell>
   if (isError) return <ListShell title={title}>{error?.message ?? 'Помилка'}</ListShell>
@@ -135,7 +167,22 @@ export function AdminGuidesList({ statusFilter }: { statusFilter?: string }) {
               {statusLabel(g.status)}
             </span>
             <div className="flex items-center gap-2">
-              <Link to={`/guides/${g.slug}`} className="text-sm text-brand-700 hover:underline" target="_blank">
+              {guideNeedsApproval(g.status) && (
+                <button
+                  type="button"
+                  className="rounded-lg border border-emerald-200 px-2 py-1 text-xs text-emerald-800 hover:bg-emerald-50 disabled:opacity-50"
+                  disabled={approve.isPending || !placementPlanId}
+                  title={placementPlanId ? undefined : 'Немає тарифного плану'}
+                  onClick={() => {
+                    if (window.confirm(`Схвалити гіда «${g.display_name}»? Профіль стане ACTIVE.`)) {
+                      approve.mutate(g.id)
+                    }
+                  }}
+                >
+                  Схвалити
+                </button>
+              )}
+              <Link to={`/guide/${g.slug}`} className="text-sm text-brand-700 hover:underline" target="_blank">
                 Відкрити
               </Link>
               <button

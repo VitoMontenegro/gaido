@@ -140,6 +140,7 @@ func NewRouter(cfg config.Config, log *slog.Logger, h *handlers.Handlers) http.H
 			ar.Put("/admin/guides/{id}", h.AdminUpdateGuide)
 			ar.Delete("/admin/guides/{id}", h.AdminDeleteGuide)
 			ar.Post("/admin/guides/{id}/bypass", h.AdminBypass)
+			ar.Post("/admin/guides/{id}/approve", h.AdminApproveGuide)
 			ar.Get("/admin/excursions", h.AdminListExcursions)
 			ar.Delete("/admin/excursions/{id}", h.AdminDeleteExcursion)
 			ar.Get("/admin/reviews", h.AdminListReviews)

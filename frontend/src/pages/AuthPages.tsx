@@ -6,6 +6,7 @@ import { authApi } from '../api/auth'
 import { formatApiError, setAccessToken } from '../api/http'
 import { validateRegisterForm, type RegisterFormData } from '../lib/authValidation'
 import { legalPath } from '../components/LegalContentEditor'
+import PasswordInput from '../components/PasswordInput'
 import { pageTitle } from '../lib/brand'
 
 function safeReturnPath(from: unknown): string {
@@ -16,6 +17,7 @@ const emptyRegisterForm = (): RegisterFormData => ({
   email: '',
   login: '',
   password: '',
+  password_confirm: '',
   first_name: '',
   last_name: '',
   accept_privacy: false,
@@ -114,13 +116,19 @@ function RegisterForm({ mode }: { mode: 'tourist' | 'guide' }) {
         value={form.login}
         onChange={(e) => setForm({ ...form, login: e.target.value })}
       />
-      <input
-        className="input"
-        type="password"
+      <PasswordInput
+        name="password"
         autoComplete="new-password"
         placeholder="Пароль (мін. 8 символів)"
         value={form.password}
-        onChange={(e) => setForm({ ...form, password: e.target.value })}
+        onChange={(password) => setForm({ ...form, password })}
+      />
+      <PasswordInput
+        name="password_confirm"
+        autoComplete="off"
+        placeholder="Повторіть пароль"
+        value={form.password_confirm}
+        onChange={(password_confirm) => setForm({ ...form, password_confirm })}
       />
 
       <div className="space-y-3 border-t border-divider pt-4">

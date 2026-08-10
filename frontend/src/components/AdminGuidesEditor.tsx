@@ -21,10 +21,6 @@ export function AdminGuidesEditor() {
   const [message, setMessage] = useState('')
   const [drafts, setDrafts] = useState<Record<number, string>>({})
 
-  const { data: settings } = useQuery({
-    queryKey: ['settings'],
-    queryFn: () => adminApi.settings(),
-  })
   const { data: plans } = useQuery({
     queryKey: ['admin-plans'],
     queryFn: () => adminApi.plans(),
@@ -59,7 +55,7 @@ export function AdminGuidesEditor() {
     }
   }
 
-  const bypass = async (guide: AdminGuide) => {
+  const activate = async (guide: AdminGuide) => {
     if (!placementPlanId) {
       setMessage('Немає тарифного плану для активації')
       return
@@ -67,12 +63,14 @@ export function AdminGuidesEditor() {
     setBypassId(guide.id)
     setMessage('')
     try {
-      await adminApi.bypassGuide(guide.id, placementPlanId)
+      await adminApi.approveGuide(guide.id, placementPlanId)
       setItems((prev) => prev.map((g) => (g.id === guide.id ? { ...g, status: 'ACTIVE' } : g)))
+      qc.invalidateQueries({ queryKey: ['admin-guides'] })
       qc.invalidateQueries({ queryKey: ['guides'] })
-      setMessage(`Активовано bypass: ${guide.display_name}`)
+      qc.invalidateQueries({ queryKey: ['site'] })
+      setMessage(`Схвалено: ${guide.display_name}`)
     } catch (e) {
-      setMessage(e instanceof Error ? e.message : 'Помилка bypass')
+      setMessage(e instanceof Error ? e.message : 'Помилка активації')
     } finally {
       setBypassId(null)
     }
@@ -120,14 +118,14 @@ export function AdminGuidesEditor() {
                   >
                     {savingId === guide.id ? 'Збереження…' : 'Зберегти фото'}
                   </button>
-                  {!settings?.guide_placement_payments_enabled && guide.status !== 'ACTIVE' && (
+                  {guide.status !== 'ACTIVE' && (
                     <button
                       type="button"
-                      className="btn-secondary"
+                      className="btn-accent"
                       disabled={bypassId === guide.id || !placementPlanId}
-                      onClick={() => bypass(guide)}
+                      onClick={() => activate(guide)}
                     >
-                      {bypassId === guide.id ? 'Активація…' : 'Bypass активація'}
+                      {bypassId === guide.id ? 'Активація…' : 'Схвалити'}
                     </button>
                   )}
                 </div>

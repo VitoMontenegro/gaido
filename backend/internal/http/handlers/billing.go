@@ -91,14 +91,44 @@ func (h *Handlers) GetSubscription(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, r, 200, map[string]any{"subscription": sub})
 }
 func (h *Handlers) AdminBypass(w http.ResponseWriter, r *http.Request) {
+	h.adminApproveGuide(w, r)
+}
+func (h *Handlers) AdminApproveGuide(w http.ResponseWriter, r *http.Request) {
+	h.adminApproveGuide(w, r)
+}
+func (h *Handlers) adminApproveGuide(w http.ResponseWriter, r *http.Request) {
 	gid, _ := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if gid <= 0 {
+		response.Error(w, r, apperrors.ErrNotFound)
+		return
+	}
+	g, err := h.Guides.GetByID(r.Context(), gid)
+	if err != nil || g == nil {
+		response.Error(w, r, apperrors.ErrNotFound)
+		return
+	}
+	if g.Status == domain.GuideStatusActive {
+		response.JSON(w, r, 200, map[string]any{"status": g.Status, "id": gid})
+		return
+	}
 	var req struct {
 		PlanID int64 `json:"plan_id"`
 	}
 	_ = json.NewDecoder(r.Body).Decode(&req)
-	if err := h.Billing.AdminBypass(r.Context(), gid, req.PlanID, middleware.UserIDFromContext(r.Context())); err != nil {
+	planID := req.PlanID
+	if planID == 0 {
+		plans, err := h.Subs.ListPlansByType(r.Context(), domain.PlanTypeGuidePlacement)
+		if err != nil || len(plans) == 0 {
+			response.Error(w, r, apperrors.New("PLAN_NOT_FOUND", "guide placement plan not found", 400))
+			return
+		}
+		planID = plans[0].ID
+	}
+	actor := middleware.UserIDFromContext(r.Context())
+	if err := h.Billing.AdminApproveGuide(r.Context(), gid, planID, actor); err != nil {
 		response.Error(w, r, err)
 		return
 	}
-	response.JSON(w, r, 200, map[string]string{"status": "activated"})
+	_ = h.Audit.Log(r.Context(), &actor, "GUIDE_ADMIN_APPROVE", "guide", &gid, g.Status, domain.GuideStatusActive, r.RemoteAddr, r.UserAgent())
+	response.JSON(w, r, 200, map[string]any{"status": domain.GuideStatusActive, "id": gid})
 }

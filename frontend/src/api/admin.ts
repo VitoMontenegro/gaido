@@ -160,6 +160,11 @@ export const adminApi = {
     api<{ items: { id: number; code: string; name: string; plan_type: string }[] }>('/api/v1/admin/plans'),
   bypassGuide: (id: number, planId: number) =>
     api(`/api/v1/admin/guides/${id}/bypass`, { method: 'POST', body: JSON.stringify({ plan_id: planId }) }),
+  approveGuide: (id: number, planId?: number) =>
+    api<{ status: string; id: number }>(`/api/v1/admin/guides/${id}/approve`, {
+      method: 'POST',
+      body: JSON.stringify(planId ? { plan_id: planId } : {}),
+    }),
   deployInfo: () => api<DeployInfo>('/api/v1/admin/deploy/info'),
   deployStatus: (app: string) =>
     api<DeployStatus>(`/api/v1/admin/deploy/status?app=${encodeURIComponent(app)}`),

@@ -97,6 +97,23 @@ export default function AdminPage() {
         {tab === 'users' && <AdminUsersList />}
         {tab === 'guides' && (
           <div className="space-y-4">
+            <div className="flex flex-wrap gap-2">
+              {[
+                { id: undefined, label: 'Усі' },
+                { id: 'DRAFT', label: 'Чернетки' },
+                { id: 'WAITING_PAYMENT', label: 'Очікують' },
+                { id: 'ACTIVE', label: 'Активні' },
+              ].map((f) => (
+                <button
+                  key={f.label}
+                  type="button"
+                  className={guidesFilter === f.id ? 'btn-primary' : 'btn-secondary'}
+                  onClick={() => setGuidesFilter(f.id)}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
             <AdminGuidesList statusFilter={guidesFilter} />
             <AdminGuidesEditor />
           </div>
