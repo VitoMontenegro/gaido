@@ -37,9 +37,16 @@ const JournalArticlePage = lazyImport(() => import('../pages/JournalPages').then
 
 function PageFallback() {
   return (
-    <div className="container-site py-12">
-      <div className="card text-muted">Завантаження…</div>
-    </div>
+    <>
+      <div className="border-b border-divider bg-page">
+        <div className="container-site py-4">
+          <div className="h-5 w-40 animate-pulse rounded bg-sand-100" aria-hidden />
+        </div>
+      </div>
+      <div className="container-site py-8">
+        <div className="h-9 w-64 max-w-full animate-pulse rounded bg-sand-100" aria-label="Завантаження" />
+      </div>
+    </>
   )
 }
 

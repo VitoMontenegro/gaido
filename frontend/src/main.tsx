@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter } from 'react-router-dom'
 import { ApiClientError, bootstrapAuth } from './api/http'
 import App from './app/App'
-import { clearChunkReloadFlag, handleDynamicImportRejection } from './lib/lazyImport'
+import { handleDynamicImportRejection } from './lib/lazyImport'
 import './styles/globals.css'
 
 window.addEventListener('unhandledrejection', (event) => {
@@ -28,7 +28,6 @@ const queryClient = new QueryClient({
 })
 
 function renderApp() {
-  clearChunkReloadFlag()
   createRoot(document.getElementById('root')!).render(
     <StrictMode>
       <HelmetProvider>

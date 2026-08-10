@@ -51,7 +51,7 @@ export default function SiteFooter() {
               )}
 
               {footer?.description && (
-                <p className="mt-2 max-w-sm text-sm leading-relaxed text-muted">{footer.description}</p>
+                <p className="mt-2 max-w-sm whitespace-pre-line text-sm leading-relaxed text-muted">{footer.description}</p>
               )}
             </div>
 

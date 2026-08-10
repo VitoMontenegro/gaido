@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
+import { getAccessToken } from '../api/http'
 import { useMe } from '../hooks/useAuth'
 import BrandLogo from './BrandLogo'
 import { cn } from '../lib/cn'
@@ -34,6 +35,7 @@ export default function SiteHeader({ onLogout }: SiteHeaderProps) {
   const { data: me, isLoading } = useMe()
   const location = useLocation()
   const [menuOpen, setMenuOpen] = useState(false)
+  const authPending = isLoading && !!getAccessToken()
 
   useEffect(() => {
     setMenuOpen(false)
@@ -71,8 +73,10 @@ export default function SiteHeader({ onLogout }: SiteHeaderProps) {
               ))}
             </nav>
 
-            <div className="ml-auto flex items-center gap-1.5 md:ml-0 md:gap-2">
-              {!isLoading && me ? (
+            <div className="ml-auto flex h-9 min-w-[132px] items-center justify-end gap-1.5 md:ml-0 md:min-w-[220px] md:gap-2">
+              {authPending ? (
+                <div className="h-9 w-full max-w-[180px] animate-pulse rounded-xl bg-sand-100/80" aria-hidden />
+              ) : me ? (
                 <>
                   <span className="hidden text-sm text-muted lg:inline">{me.login}</span>
                   <Link to="/account" className="btn-secondary hidden py-2 sm:inline-flex">
