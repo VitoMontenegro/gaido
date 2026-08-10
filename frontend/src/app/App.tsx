@@ -1,38 +1,39 @@
-import { lazy, Suspense } from 'react'
+import { Suspense } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { PublicLayout, AccountLayout } from '../layouts/MainLayout'
 import { RoleGate } from '../components/RoleGate'
 import { GuideGate } from '../components/GuideGate'
 import GuideLayout from '../components/crm/GuideLayout'
+import { lazyImport } from '../lib/lazyImport'
 
-const HomePage = lazy(() => import('../pages/HomePage'))
-const SearchPage = lazy(() => import('../pages/SearchPage'))
-const GuidePage = lazy(() => import('../pages/GuidePage'))
-const ExcursionPage = lazy(() => import('../pages/ExcursionPage'))
-const GuidesListPage = lazy(() => import('../pages/CatalogPages').then((m) => ({ default: m.default })))
-const GuidesByCountryPage = lazy(() => import('../pages/CatalogPages').then((m) => ({ default: m.GuidesByCountryPage })))
-const LoginPage = lazy(() => import('../pages/AuthPages').then((m) => ({ default: m.default })))
-const RegisterTouristPage = lazy(() => import('../pages/AuthPages').then((m) => ({ default: m.RegisterTouristPage })))
-const RegisterGuidePage = lazy(() => import('../pages/AuthPages').then((m) => ({ default: m.RegisterGuidePage })))
-const LegalDocumentPage = lazy(() => import('../components/LegalContentEditor').then((m) => ({ default: m.LegalDocumentPage })))
-const AccountPage = lazy(() => import('../pages/AccountPages').then((m) => ({ default: m.default })))
-const FavoritesPage = lazy(() => import('../pages/AccountPages').then((m) => ({ default: m.FavoritesPage })))
-const SettingsPage = lazy(() => import('../pages/AccountPages').then((m) => ({ default: m.SettingsPage })))
-const GuideOverviewPage = lazy(() => import('../pages/guide').then((m) => ({ default: m.GuideOverviewPage })))
-const GuideProfilePage = lazy(() => import('../pages/guide').then((m) => ({ default: m.GuideProfilePage })))
-const GuideBillingPage = lazy(() => import('../pages/guide').then((m) => ({ default: m.GuideBillingPage })))
-const GuideDocumentsPage = lazy(() => import('../pages/guide').then((m) => ({ default: m.GuideDocumentsPage })))
-const GuideExcursionsPage = lazy(() => import('../pages/guide').then((m) => ({ default: m.GuideExcursionsPage })))
-const GuideCalendarPage = lazy(() => import('../pages/guide').then((m) => ({ default: m.GuideCalendarPage })))
-const CityPage = lazy(() => import('../pages/CityMapPages').then((m) => ({ default: m.default })))
-const MapPage = lazy(() => import('../pages/CityMapPages').then((m) => ({ default: m.MapPage })))
-const CreateExcursionPage = lazy(() => import('../pages/CreateExcursionPage'))
-const EditExcursionPage = lazy(() => import('../pages/EditExcursionPage'))
-const AdminPage = lazy(() => import('../pages/AdminPages').then((m) => ({ default: m.default })))
-const ModeratorPage = lazy(() => import('../pages/AdminPages').then((m) => ({ default: m.ModeratorPage })))
-const DeployPage = lazy(() => import('../pages/DeployPage'))
-const JournalListPage = lazy(() => import('../pages/JournalPages').then((m) => ({ default: m.JournalListPage })))
-const JournalArticlePage = lazy(() => import('../pages/JournalPages').then((m) => ({ default: m.JournalArticlePage })))
+const HomePage = lazyImport(() => import('../pages/HomePage'))
+const SearchPage = lazyImport(() => import('../pages/SearchPage'))
+const GuidePage = lazyImport(() => import('../pages/GuidePage'))
+const ExcursionPage = lazyImport(() => import('../pages/ExcursionPage'))
+const GuidesListPage = lazyImport(() => import('../pages/CatalogPages').then((m) => ({ default: m.default })))
+const GuidesByCountryPage = lazyImport(() => import('../pages/CatalogPages').then((m) => ({ default: m.GuidesByCountryPage })))
+const LoginPage = lazyImport(() => import('../pages/AuthPages').then((m) => ({ default: m.default })))
+const RegisterTouristPage = lazyImport(() => import('../pages/AuthPages').then((m) => ({ default: m.RegisterTouristPage })))
+const RegisterGuidePage = lazyImport(() => import('../pages/AuthPages').then((m) => ({ default: m.RegisterGuidePage })))
+const LegalDocumentPage = lazyImport(() => import('../components/LegalContentEditor').then((m) => ({ default: m.LegalDocumentPage })))
+const AccountPage = lazyImport(() => import('../pages/AccountPages').then((m) => ({ default: m.default })))
+const FavoritesPage = lazyImport(() => import('../pages/AccountPages').then((m) => ({ default: m.FavoritesPage })))
+const SettingsPage = lazyImport(() => import('../pages/AccountPages').then((m) => ({ default: m.SettingsPage })))
+const GuideOverviewPage = lazyImport(() => import('../pages/guide').then((m) => ({ default: m.GuideOverviewPage })))
+const GuideProfilePage = lazyImport(() => import('../pages/guide').then((m) => ({ default: m.GuideProfilePage })))
+const GuideBillingPage = lazyImport(() => import('../pages/guide').then((m) => ({ default: m.GuideBillingPage })))
+const GuideDocumentsPage = lazyImport(() => import('../pages/guide').then((m) => ({ default: m.GuideDocumentsPage })))
+const GuideExcursionsPage = lazyImport(() => import('../pages/guide').then((m) => ({ default: m.GuideExcursionsPage })))
+const GuideCalendarPage = lazyImport(() => import('../pages/guide').then((m) => ({ default: m.GuideCalendarPage })))
+const CityPage = lazyImport(() => import('../pages/CityMapPages').then((m) => ({ default: m.default })))
+const MapPage = lazyImport(() => import('../pages/CityMapPages').then((m) => ({ default: m.MapPage })))
+const CreateExcursionPage = lazyImport(() => import('../pages/CreateExcursionPage'))
+const EditExcursionPage = lazyImport(() => import('../pages/EditExcursionPage'))
+const AdminPage = lazyImport(() => import('../pages/AdminPages').then((m) => ({ default: m.default })))
+const ModeratorPage = lazyImport(() => import('../pages/AdminPages').then((m) => ({ default: m.ModeratorPage })))
+const DeployPage = lazyImport(() => import('../pages/DeployPage'))
+const JournalListPage = lazyImport(() => import('../pages/JournalPages').then((m) => ({ default: m.JournalListPage })))
+const JournalArticlePage = lazyImport(() => import('../pages/JournalPages').then((m) => ({ default: m.JournalArticlePage })))
 
 function PageFallback() {
   return (

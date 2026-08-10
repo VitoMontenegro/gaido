@@ -27,6 +27,8 @@
 | `POST /auth/register` | 5/min per IP |
 | `POST /auth/refresh` | 30/min per IP |
 
+Admins can reset login/IP blocks via `POST /api/v1/admin/auth/clear-rate-limit` (in-memory only; restart clears all buckets).
+
 ## Payments / monetization
 
 | Variable / setting | Notes |

@@ -133,6 +133,7 @@ func NewRouter(cfg config.Config, log *slog.Logger, h *handlers.Handlers) http.H
 			ar.Get("/admin/plans", h.ListPlans)
 			ar.Get("/admin/settings", h.AdminGetSettings)
 			ar.Put("/admin/settings", h.AdminSetSettings)
+			ar.Post("/admin/auth/clear-rate-limit", h.AdminClearLoginRateLimit)
 			ar.Get("/admin/site-content", h.AdminGetSiteContent)
 			ar.Put("/admin/site-content", h.AdminSetSiteContent)
 			ar.Get("/admin/audit", h.AdminAudit)
@@ -154,7 +155,7 @@ func NewRouter(cfg config.Config, log *slog.Logger, h *handlers.Handlers) http.H
 		})
 	})
 
-	fs := spaFileServer("../frontend/dist")
+	fs := spaFileServer(cfg.StaticDir)
 	r.Get("/*", func(w http.ResponseWriter, req *http.Request) {
 		if strings.HasPrefix(req.URL.Path, "/api/") {
 			http.NotFound(w, req)

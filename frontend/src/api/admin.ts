@@ -194,4 +194,9 @@ export const adminApi = {
       method: 'POST',
       body: JSON.stringify({ app, confirm }),
     }),
+  clearLoginRateLimit: (body: { login?: string; ip?: string }) =>
+    api<{ status: string; login_cleared: boolean; ip_cleared: boolean }>(
+      '/api/v1/admin/auth/clear-rate-limit',
+      { method: 'POST', body: JSON.stringify(body) },
+    ),
 }

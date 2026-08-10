@@ -1,6 +1,6 @@
 import { Helmet } from 'react-helmet-async'
 import { useState } from 'react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { adminApi, api, type AdminAnalytics, type AdminPaymentRow } from '../api/client'
 import StatCard, { StatGrid } from '../components/crm/StatCard'
 import { useHasRole } from '../hooks/useAuth'
@@ -156,6 +156,8 @@ export default function AdminPage() {
                 {settings?.guide_placement_payments_enabled ? 'Вимкнути монетизацію' : 'Увімкнути монетизацію'}
               </button>
             </div>
+
+            <LoginRateLimitReset />
           </div>
         )}
 
@@ -164,6 +166,63 @@ export default function AdminPage() {
         {tab === 'audit' && <AdminAuditLog />}
       </div>
     </>
+  )
+}
+
+function LoginRateLimitReset() {
+  const [login, setLogin] = useState('')
+  const [ip, setIp] = useState('')
+  const [message, setMessage] = useState('')
+  const clear = useMutation({
+    mutationFn: () => adminApi.clearLoginRateLimit({
+      ...(login.trim() ? { login: login.trim() } : {}),
+      ...(ip.trim() ? { ip: ip.trim() } : {}),
+    }),
+    onSuccess: (res) => {
+      const parts: string[] = []
+      if (login.trim()) parts.push(res.login_cleared ? 'логін знято' : 'логін не був заблокований')
+      if (ip.trim()) parts.push(res.ip_cleared ? 'IP знято' : 'IP не був заблокований')
+      setMessage(parts.join('; ') || 'Готово')
+    },
+    onError: (err: Error) => setMessage(err.message),
+  })
+
+  return (
+    <div className="card">
+      <p className="font-semibold">Блок входу (rate limit)</p>
+      <p className="mt-1 text-sm text-stone-600">
+        Зняти in-memory блок після невдалих спроб входу. Потрібен хоча б один параметр — логін або IP.
+      </p>
+      <form
+        className="mt-3 grid gap-3 sm:grid-cols-2"
+        onSubmit={(e) => {
+          e.preventDefault()
+          if (!login.trim() && !ip.trim()) {
+            setMessage('Вкажіть логін або IP')
+            return
+          }
+          setMessage('')
+          clear.mutate()
+        }}
+      >
+        <input
+          className="input"
+          placeholder="Логін"
+          value={login}
+          onChange={(e) => setLogin(e.target.value)}
+        />
+        <input
+          className="input"
+          placeholder="IP-адреса"
+          value={ip}
+          onChange={(e) => setIp(e.target.value)}
+        />
+        <button type="submit" className="btn-primary sm:col-span-2" disabled={clear.isPending}>
+          Зняти блок
+        </button>
+      </form>
+      {message && <p className="mt-2 text-sm text-stone-600">{message}</p>}
+    </div>
   )
 }
 

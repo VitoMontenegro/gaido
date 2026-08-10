@@ -70,6 +70,11 @@ cd "$REPO/frontend"
 npm ci
 npm run build
 
+STATIC_DIR="${STATIC_DIR:-$APP_ROOT/www}"
+echo "→ publish static to $STATIC_DIR"
+mkdir -p "$STATIC_DIR"
+rsync -a --delete "$REPO/frontend/dist/" "$STATIC_DIR/"
+
 echo "→ backend build"
 cd "$REPO/backend"
 GO_BIN="${GO_BIN:-go}"

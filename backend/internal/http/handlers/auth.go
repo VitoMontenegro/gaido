@@ -110,8 +110,8 @@ func (h *Handlers) Login(w http.ResponseWriter, r *http.Request) {
 		response.Error(w, r, apperrors.ErrValidation)
 		return
 	}
-	ok, retryAfter := middleware.CheckLoginLimits(r, req.Login, h.Cfg.TrustProxy)
-	if !ok {
+	blocked, retryAfter := middleware.LoginRateLimitBlocked(r, req.Login, h.Cfg.TrustProxy)
+	if blocked {
 		if retryAfter > 0 {
 			w.Header().Set("Retry-After", strconv.Itoa(retryAfter))
 		}
@@ -120,11 +120,13 @@ func (h *Handlers) Login(w http.ResponseWriter, r *http.Request) {
 	}
 	u, err := h.Users.GetByLogin(r.Context(), req.Login)
 	if err != nil || u == nil {
+		middleware.RecordFailedLogin(r, req.Login, h.Cfg.TrustProxy)
 		response.Error(w, r, apperrors.ErrUnauthorized)
 		return
 	}
 	okPw, err := password.Verify(req.Password, u.PasswordHash)
 	if err != nil || !okPw {
+		middleware.RecordFailedLogin(r, req.Login, h.Cfg.TrustProxy)
 		response.Error(w, r, apperrors.ErrUnauthorized)
 		return
 	}

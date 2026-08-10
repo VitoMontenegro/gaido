@@ -24,6 +24,7 @@ type Config struct {
 	MediaMaxUploadBytes int64
 	SeedDemoData        bool
 	TrustProxy          bool
+	StaticDir           string
 	DeployEnabled       bool
 	DeployScript        string
 	DeployLog           string
@@ -51,6 +52,7 @@ func Load() Config {
 		MediaMaxUploadBytes: int64(getEnvInt("MEDIA_MAX_UPLOAD_MB", 10)) * 1024 * 1024,
 		SeedDemoData:        seedDemoDataEnabled(getEnv("APP_ENV", "development"), getEnv("SEED_DEMO_DATA", "")),
 		TrustProxy:          getEnv("TRUST_PROXY", "false") == "true",
+		StaticDir:           getEnv("STATIC_DIR", "../frontend/dist"),
 		DeployEnabled:       getEnv("DEPLOY_ENABLED", "false") == "true",
 		DeployScript:        getEnv("DEPLOY_SCRIPT", ""),
 		DeployLog:           getEnv("DEPLOY_LOG", ""),

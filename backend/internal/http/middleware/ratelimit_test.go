@@ -67,26 +67,83 @@ func TestClientIP_trustProxy(t *testing.T) {
 	}
 }
 
-func TestCheckLoginLimits_loginKey(t *testing.T) {
+func TestLoginRateLimitBlocked_afterFailures(t *testing.T) {
 	ResetLoginLimitersForTest()
 	defer ResetLoginLimitersForTest()
 
 	for i := 0; i < 5; i++ {
 		req := httptest.NewRequest(http.MethodPost, "/auth/login", nil)
 		req.RemoteAddr = "198.51.100." + itoa(i+1) + ":1234"
-		ok, _ := CheckLoginLimits(req, "victim", false)
-		if !ok {
-			t.Fatalf("attempt %d should pass", i+1)
-		}
+		RecordFailedLogin(req, "victim", false)
 	}
 	req := httptest.NewRequest(http.MethodPost, "/auth/login", nil)
 	req.RemoteAddr = "198.51.100.99:1234"
-	ok, ra := CheckLoginLimits(req, "victim", false)
-	if ok {
-		t.Fatal("6th attempt on same login should be blocked")
+	blocked, ra := LoginRateLimitBlocked(req, "victim", false)
+	if !blocked {
+		t.Fatal("6th check on same login should be blocked")
 	}
 	if ra <= 0 {
 		t.Fatal("expected retry-after > 0")
+	}
+}
+
+func TestLoginRateLimitBlocked_successDoesNotBlock(t *testing.T) {
+	ResetLoginLimitersForTest()
+	defer ResetLoginLimitersForTest()
+
+	req := httptest.NewRequest(http.MethodPost, "/auth/login", nil)
+	req.RemoteAddr = "203.0.113.77:1234"
+	for i := 0; i < 20; i++ {
+		blocked, _ := LoginRateLimitBlocked(req, "user", false)
+		if blocked {
+			t.Fatalf("successful login path should not be blocked on attempt %d", i+1)
+		}
+	}
+}
+
+func TestClearLoginRateLimit(t *testing.T) {
+	ResetLoginLimitersForTest()
+	defer ResetLoginLimitersForTest()
+
+	req := httptest.NewRequest(http.MethodPost, "/auth/login", nil)
+	req.RemoteAddr = "203.0.113.88:1234"
+	for i := 0; i < 5; i++ {
+		RecordFailedLogin(req, "blocked_user", false)
+	}
+	blocked, _ := LoginRateLimitBlocked(req, "blocked_user", false)
+	if !blocked {
+		t.Fatal("expected login to be blocked")
+	}
+
+	if !ClearLoginRateLimit("blocked_user") {
+		t.Fatal("expected clear to remove login key")
+	}
+	blocked, _ = LoginRateLimitBlocked(req, "blocked_user", false)
+	if blocked {
+		t.Fatal("expected login to be unblocked after clear")
+	}
+}
+
+func TestClearIPRateLimit(t *testing.T) {
+	ResetLoginLimitersForTest()
+	defer ResetLoginLimitersForTest()
+
+	req := httptest.NewRequest(http.MethodPost, "/auth/login", nil)
+	req.RemoteAddr = "203.0.113.99:1234"
+	for i := 0; i < 10; i++ {
+		RecordFailedLogin(req, "user"+strconv.Itoa(i), false)
+	}
+	blocked, _ := LoginRateLimitBlocked(req, "another", false)
+	if !blocked {
+		t.Fatal("expected IP to be blocked")
+	}
+
+	if !ClearIPRateLimit("203.0.113.99") {
+		t.Fatal("expected clear to remove IP key")
+	}
+	blocked, _ = LoginRateLimitBlocked(req, "another", false)
+	if blocked {
+		t.Fatal("expected IP to be unblocked after clear")
 	}
 }
 

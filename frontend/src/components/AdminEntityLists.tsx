@@ -57,6 +57,17 @@ export function AdminUsersList() {
     },
   })
 
+  const clearLoginBlock = useMutation({
+    mutationFn: (login: string) => adminApi.clearLoginRateLimit({ login }),
+    onSuccess: (res, login) => {
+      const msg = res.login_cleared
+        ? `Блок входу для «${login}» знято`
+        : `Логін «${login}» не був заблокований`
+      window.alert(msg)
+    },
+    onError: (err: Error) => window.alert(err.message),
+  })
+
   if (isLoading) return <ListShell title="Користувачі">Завантаження…</ListShell>
   if (isError) return <ListShell title="Користувачі">{error?.message ?? 'Помилка'}</ListShell>
 
@@ -86,22 +97,37 @@ export function AdminUsersList() {
                 </span>
               </td>
               <td className="px-4 py-2.5 text-right">
-                {me?.id !== u.id && (
+                <div className="flex justify-end gap-2">
                   <button
                     type="button"
-                    className="rounded-lg border border-red-200 px-2 py-1 text-xs text-red-700 hover:bg-red-50 disabled:opacity-50"
-                    disabled={remove.isPending}
+                    className="rounded-lg border border-amber-200 px-2 py-1 text-xs text-amber-800 hover:bg-amber-50 disabled:opacity-50"
+                    disabled={clearLoginBlock.isPending}
                     onClick={() => {
                       const label = userDisplayName(u)
-                      const extra = u.roles.includes('ROLE_GUIDE') ? ' Профіль гіда та екскурсії також будуть видалені.' : ''
-                      if (window.confirm(`Видалити «${label}»?${extra}`)) {
-                        remove.mutate(u.id)
+                      if (window.confirm(`Зняти блок входу для «${label}»?`)) {
+                        clearLoginBlock.mutate(u.login)
                       }
                     }}
                   >
-                    Видалити
+                    Зняти блок входу
                   </button>
-                )}
+                  {me?.id !== u.id && (
+                    <button
+                      type="button"
+                      className="rounded-lg border border-red-200 px-2 py-1 text-xs text-red-700 hover:bg-red-50 disabled:opacity-50"
+                      disabled={remove.isPending}
+                      onClick={() => {
+                        const label = userDisplayName(u)
+                        const extra = u.roles.includes('ROLE_GUIDE') ? ' Профіль гіда та екскурсії також будуть видалені.' : ''
+                        if (window.confirm(`Видалити «${label}»?${extra}`)) {
+                          remove.mutate(u.id)
+                        }
+                      }}
+                    >
+                      Видалити
+                    </button>
+                  )}
+                </div>
               </td>
             </tr>
           ))}
