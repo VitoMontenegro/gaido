@@ -110,6 +110,7 @@ func (h *Handlers) Login(w http.ResponseWriter, r *http.Request) {
 		response.Error(w, r, apperrors.ErrValidation)
 		return
 	}
+	req.Login = strings.TrimSpace(req.Login)
 	blocked, retryAfter := middleware.LoginRateLimitBlocked(r, req.Login, h.Cfg.TrustProxy)
 	if blocked {
 		if retryAfter > 0 {
@@ -118,16 +119,20 @@ func (h *Handlers) Login(w http.ResponseWriter, r *http.Request) {
 		response.Error(w, r, apperrors.ErrRateLimited)
 		return
 	}
-	u, err := h.Users.GetByLogin(r.Context(), req.Login)
-	if err != nil || u == nil {
+	u, err := h.Users.GetByLoginOrEmail(r.Context(), req.Login)
+	if err != nil {
+		response.Error(w, r, apperrors.ErrInternal)
+		return
+	}
+	if u == nil {
 		middleware.RecordFailedLogin(r, req.Login, h.Cfg.TrustProxy)
-		response.Error(w, r, apperrors.ErrUnauthorized)
+		response.Error(w, r, apperrors.ErrInvalidCredentials)
 		return
 	}
 	okPw, err := password.Verify(req.Password, u.PasswordHash)
 	if err != nil || !okPw {
 		middleware.RecordFailedLogin(r, req.Login, h.Cfg.TrustProxy)
-		response.Error(w, r, apperrors.ErrUnauthorized)
+		response.Error(w, r, apperrors.ErrInvalidCredentials)
 		return
 	}
 	h.WriteTokens(w, r, u.ID, u.Roles)

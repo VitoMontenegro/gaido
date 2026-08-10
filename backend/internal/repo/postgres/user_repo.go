@@ -31,6 +31,15 @@ func (r *UserRepo) GetByLogin(ctx context.Context, login string) (*domain.User, 
 	return scanUser(row)
 }
 
+func (r *UserRepo) GetByLoginOrEmail(ctx context.Context, ident string) (*domain.User, error) {
+	row := r.db.Pool.QueryRow(ctx, `
+		SELECT `+userSelectCols+` FROM users
+		WHERE deleted_at IS NULL AND (lower(login)=lower($1) OR lower(email)=lower($1))
+		LIMIT 1
+	`, ident)
+	return scanUser(row)
+}
+
 func (r *UserRepo) GetByEmail(ctx context.Context, email string) (*domain.User, error) {
 	row := r.db.Pool.QueryRow(ctx, `
 		SELECT `+userSelectCols+` FROM users WHERE email=$1 AND deleted_at IS NULL

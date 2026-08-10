@@ -18,6 +18,7 @@ func New(code, message string, status int) *AppError {
 
 var (
 	ErrUnauthorized    = New("UNAUTHORIZED", "Authentication required", 401)
+	ErrInvalidCredentials = New("INVALID_CREDENTIALS", "Invalid login or password", 401)
 	ErrForbidden       = New("FORBIDDEN", "Access denied", 403)
 	ErrNotFound        = New("NOT_FOUND", "Resource not found", 404)
 	ErrValidation      = New("VALIDATION_ERROR", "Validation failed", 400)

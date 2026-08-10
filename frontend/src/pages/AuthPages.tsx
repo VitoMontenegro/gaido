@@ -185,12 +185,16 @@ export default function LoginPage() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
-      const res = await authApi.login({ login, password })
+      const res = await authApi.login({ login: login.trim(), password })
       setAccessToken(res.access_token)
-      await qc.invalidateQueries({ queryKey: ['me'] })
+      await qc.prefetchQuery({ queryKey: ['me'], queryFn: authApi.me })
       navigate(safeReturnPath(from))
     } catch (err) {
-      setError(formatApiError(err))
+      setError(formatApiError(err, {
+        UNAUTHORIZED: 'Невірний логін або пароль',
+        INVALID_CREDENTIALS: 'Невірний логін або пароль',
+        RATE_LIMITED: 'Забагато невдалих спроб. Спробуйте пізніше',
+      }))
     }
   }
 
@@ -204,7 +208,7 @@ export default function LoginPage() {
             className="input"
             name="login"
             autoComplete="off"
-            placeholder="Логін (не email)"
+            placeholder="Логін або email"
             value={login}
             onChange={(e) => setLogin(e.target.value)}
           />

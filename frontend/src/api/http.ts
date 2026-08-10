@@ -18,6 +18,7 @@ export class ApiClientError extends Error {
 
 const API_ERROR_MESSAGES: Record<string, string> = {
   UNAUTHORIZED: 'Увійдіть в акаунт, щоб виконати цю дію',
+  INVALID_CREDENTIALS: 'Невірний логін або пароль',
   FORBIDDEN: 'Недостатньо прав для цієї дії',
   NOT_FOUND: 'Запитаний ресурс не знайдено',
   VALIDATION: 'Перевірте правильність введених даних',
