@@ -7,12 +7,119 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/vitomonte/experts-tourister/internal/apperrors"
 	"github.com/vitomonte/experts-tourister/internal/http/response"
 )
+
+func (h *Handlers) validateDeployApp(w http.ResponseWriter, r *http.Request) bool {
+	app := r.URL.Query().Get("app")
+	if app == "" || app != h.Cfg.DeployAppSlug {
+		response.Error(w, r, apperrors.ErrNotFound)
+		return false
+	}
+	return true
+}
+
+func (h *Handlers) deployLogDir() string {
+	if h.Cfg.DeployLog != "" {
+		return filepath.Dir(h.Cfg.DeployLog)
+	}
+	return "/var/www/tourister/logs"
+}
+
+func (h *Handlers) resolveAdminLogPath(kind string) (path, name string, ok bool) {
+	switch kind {
+	case "deploy":
+		if h.Cfg.DeployLog != "" {
+			return h.Cfg.DeployLog, "deploy.log", true
+		}
+		p := filepath.Join(h.deployLogDir(), "deploy.log")
+		return p, "deploy.log", true
+	case "api":
+		if h.Cfg.DeployAPILog != "" {
+			return h.Cfg.DeployAPILog, "api.log", true
+		}
+		if h.Cfg.DeployLog != "" {
+			p := filepath.Join(filepath.Dir(h.Cfg.DeployLog), "api.log")
+			return p, "api.log", true
+		}
+		p := filepath.Join(h.deployLogDir(), "api.log")
+		return p, "api.log", true
+	default:
+		return "", "", false
+	}
+}
+
+func (h *Handlers) AdminDeployLogs(w http.ResponseWriter, r *http.Request) {
+	if !h.validateDeployApp(w, r) {
+		return
+	}
+	kind := r.URL.Query().Get("kind")
+	if kind == "" {
+		kind = "deploy"
+	}
+	maxLines := 1000
+	if v := r.URL.Query().Get("lines"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 && n <= 5000 {
+			maxLines = n
+		}
+	}
+	path, name, ok := h.resolveAdminLogPath(kind)
+	if !ok {
+		response.Error(w, r, apperrors.ErrNotFound)
+		return
+	}
+	content, totalLines, truncated := tailFileMeta(path, maxLines)
+	response.JSON(w, r, 200, map[string]any{
+		"kind":           kind,
+		"name":           name,
+		"lines":          maxLines,
+		"total_lines":    totalLines,
+		"returned_lines": countNonEmptyLines(content),
+		"truncated":      truncated,
+		"content":        content,
+	})
+}
+
+func (h *Handlers) AdminClearDeployLogs(w http.ResponseWriter, r *http.Request) {
+	if !h.validateDeployApp(w, r) {
+		return
+	}
+	var req struct {
+		Confirm string `json:"confirm"`
+		Kind    string `json:"kind"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Error(w, r, apperrors.ErrValidation)
+		return
+	}
+	if req.Confirm != "CLEAR" {
+		response.Error(w, r, apperrors.New("VALIDATION_ERROR", "confirm must be CLEAR", 400))
+		return
+	}
+	kind := req.Kind
+	if kind == "" {
+		kind = "deploy"
+	}
+	path, name, ok := h.resolveAdminLogPath(kind)
+	if !ok {
+		response.Error(w, r, apperrors.ErrNotFound)
+		return
+	}
+	if err := os.WriteFile(path, nil, 0o644); err != nil && !os.IsNotExist(err) {
+		response.Error(w, r, apperrors.ErrInternal)
+		return
+	}
+	response.JSON(w, r, 200, map[string]any{
+		"status": "cleared",
+		"kind":   kind,
+		"name":   name,
+	})
+}
 
 func (h *Handlers) AdminDeployInfo(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, r, 200, map[string]any{
@@ -22,12 +129,10 @@ func (h *Handlers) AdminDeployInfo(w http.ResponseWriter, r *http.Request) {
 	})
 }
 func (h *Handlers) AdminDeployStatus(w http.ResponseWriter, r *http.Request) {
-	app := r.URL.Query().Get("app")
-	if app == "" || app != h.Cfg.DeployAppSlug {
-		response.Error(w, r, apperrors.ErrNotFound)
+	if !h.validateDeployApp(w, r) {
 		return
 	}
-
+	app := r.URL.Query().Get("app")
 	deployMu.Lock()
 	running := deployRunning
 	status := deployStatus

@@ -203,18 +203,38 @@ func runGit(dir string, args ...string) string {
 	return string(out)
 }
 func tailFile(path string, maxLines int) string {
+	content, _, _ := tailFileMeta(path, maxLines)
+	return content
+}
+
+func tailFileMeta(path string, maxLines int) (content string, totalLines int, truncated bool) {
 	if path == "" {
-		return ""
+		return "", 0, false
 	}
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return ""
+		return "", 0, false
+	}
+	if len(data) == 0 {
+		return "", 0, false
 	}
 	lines := strings.Split(string(data), "\n")
+	totalLines = len(lines)
+	if lines[len(lines)-1] == "" {
+		totalLines--
+	}
 	if len(lines) > maxLines {
 		lines = lines[len(lines)-maxLines:]
+		truncated = true
 	}
-	return strings.TrimSpace(strings.Join(lines, "\n"))
+	return strings.TrimRight(strings.Join(lines, "\n"), "\n"), totalLines, truncated
+}
+
+func countNonEmptyLines(content string) int {
+	if content == "" {
+		return 0
+	}
+	return len(strings.Split(content, "\n"))
 }
 func appendDeployLog(path, msg string) error {
 	f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)

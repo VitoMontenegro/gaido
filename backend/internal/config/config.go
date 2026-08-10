@@ -27,6 +27,7 @@ type Config struct {
 	DeployEnabled       bool
 	DeployScript        string
 	DeployLog           string
+	DeployAPILog        string
 	DeployAppSlug       string
 	GitBranch           string
 }
@@ -53,6 +54,7 @@ func Load() Config {
 		DeployEnabled:       getEnv("DEPLOY_ENABLED", "false") == "true",
 		DeployScript:        getEnv("DEPLOY_SCRIPT", ""),
 		DeployLog:           getEnv("DEPLOY_LOG", ""),
+		DeployAPILog:        getEnv("API_LOG", ""),
 		DeployAppSlug:       getEnv("DEPLOY_APP_SLUG", "web-prod-2026"),
 		GitBranch:           getEnv("GIT_BRANCH", "main"),
 	}

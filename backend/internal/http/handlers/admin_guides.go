@@ -76,6 +76,10 @@ func (h *Handlers) AdminDeleteGuide(w http.ResponseWriter, r *http.Request) {
 		response.Error(w, r, apperrors.ErrNotFound)
 		return
 	}
+	if err := h.Exc.DeleteAllByGuide(r.Context(), id); err != nil {
+		response.Error(w, r, apperrors.ErrInternal)
+		return
+	}
 	if err := h.Guides.AdminDelete(r.Context(), id); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			response.Error(w, r, apperrors.ErrNotFound)

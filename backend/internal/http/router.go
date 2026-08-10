@@ -148,6 +148,8 @@ func NewRouter(cfg config.Config, log *slog.Logger, h *handlers.Handlers) http.H
 			ar.Post("/payments/{id}/confirm", h.ConfirmPayment)
 			ar.Get("/admin/deploy/info", h.AdminDeployInfo)
 			ar.Get("/admin/deploy/status", h.AdminDeployStatus)
+			ar.Get("/admin/deploy/logs", h.AdminDeployLogs)
+			ar.Delete("/admin/deploy/logs", h.AdminClearDeployLogs)
 			ar.Post("/admin/deploy", h.AdminStartDeploy)
 		})
 	})

@@ -117,8 +117,9 @@ export function statusTone(status: string) {
   }
 }
 
-export function formatPrice(price: number, currency?: string) {
+export function formatPrice(price: number | null | undefined, currency?: string) {
+  const amount = Number(price ?? 0)
   const code = (currency || 'EUR').toUpperCase()
   const symbol = code === 'EUR' ? '€' : code === 'RUB' ? '₽' : code === 'USD' ? '$' : code
-  return `від ${price.toLocaleString('uk-UA')} ${symbol}`
+  return `від ${amount.toLocaleString('uk-UA')} ${symbol}`
 }

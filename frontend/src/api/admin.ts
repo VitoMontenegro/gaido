@@ -27,7 +27,7 @@ export type AdminExcursion = {
   title: string
   slug: string
   status: string
-  price_from: number
+  price_from: number | null
   currency: string
 }
 
@@ -103,6 +103,18 @@ export type DeployStatus = {
   readyz_ok: boolean
 }
 
+export type DeployLogKind = 'deploy' | 'api'
+
+export type DeployLogs = {
+  kind: DeployLogKind
+  name: string
+  lines: number
+  total_lines: number
+  returned_lines: number
+  truncated: boolean
+  content: string
+}
+
 export const adminApi = {
   analytics: () => api<AdminAnalytics>('/api/v1/admin/analytics'),
   settings: () => api<AdminSettings>('/api/v1/admin/settings'),
@@ -168,6 +180,15 @@ export const adminApi = {
   deployInfo: () => api<DeployInfo>('/api/v1/admin/deploy/info'),
   deployStatus: (app: string) =>
     api<DeployStatus>(`/api/v1/admin/deploy/status?app=${encodeURIComponent(app)}`),
+  deployLogs: (app: string, kind: DeployLogKind = 'deploy', lines = 1000) =>
+    api<DeployLogs>(
+      `/api/v1/admin/deploy/logs?app=${encodeURIComponent(app)}&kind=${kind}&lines=${lines}`,
+    ),
+  clearDeployLogs: (app: string, kind: DeployLogKind, confirm: string) =>
+    api<{ status: string; kind: string; name: string }>(
+      `/api/v1/admin/deploy/logs?app=${encodeURIComponent(app)}`,
+      { method: 'DELETE', body: JSON.stringify({ kind, confirm }) },
+    ),
   startDeploy: (app: string, confirm: string) =>
     api<{ status: string; app: string; message: string }>('/api/v1/admin/deploy', {
       method: 'POST',

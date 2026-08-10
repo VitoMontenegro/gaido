@@ -128,7 +128,10 @@ export function AdminGuidesList({ statusFilter }: { statusFilter?: string }) {
     mutationFn: (id: number) => adminApi.deleteGuide(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin-guides'] })
+      qc.invalidateQueries({ queryKey: ['admin-excursions'] })
       qc.invalidateQueries({ queryKey: ['analytics'] })
+      qc.invalidateQueries({ queryKey: ['excursions'] })
+      qc.invalidateQueries({ queryKey: ['site'] })
     },
   })
 

@@ -198,6 +198,50 @@ func (r *ExcursionRepo) AdminDelete(ctx context.Context, id int64) (guideID int6
 	return guideID, tx.Commit(ctx)
 }
 
+func (r *ExcursionRepo) DeleteAllByGuide(ctx context.Context, guideID int64) error {
+	tx, err := r.db.Pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	if _, err = tx.Exec(ctx, `
+		DELETE FROM review_comments
+		WHERE review_id IN (
+			SELECT id FROM guide_reviews
+			WHERE guide_id = $1
+			   OR excursion_id IN (SELECT id FROM excursions WHERE guide_id = $1)
+		)
+	`, guideID); err != nil {
+		return err
+	}
+	if _, err = tx.Exec(ctx, `
+		DELETE FROM guide_reviews
+		WHERE guide_id = $1
+		   OR excursion_id IN (SELECT id FROM excursions WHERE guide_id = $1)
+	`, guideID); err != nil {
+		return err
+	}
+	if _, err = tx.Exec(ctx, `
+		DELETE FROM favorites
+		WHERE (target_type = 'GUIDE' AND target_id = $1)
+		   OR (target_type = 'EXCURSION' AND target_id IN (SELECT id FROM excursions WHERE guide_id = $1))
+	`, guideID); err != nil {
+		return err
+	}
+	if _, err = tx.Exec(ctx, `
+		DELETE FROM featured_placements
+		WHERE guide_id = $1
+		   OR excursion_id IN (SELECT id FROM excursions WHERE guide_id = $1)
+	`, guideID); err != nil {
+		return err
+	}
+	if _, err = tx.Exec(ctx, `DELETE FROM excursions WHERE guide_id = $1`, guideID); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
+}
+
 type AdminExcursionRow struct {
 	ID        int64   `json:"id"`
 	GuideID   int64   `json:"guide_id"`
@@ -214,9 +258,9 @@ func (r *ExcursionRepo) ListAdmin(ctx context.Context, status string, limit int)
 		limit = 100
 	}
 	q := `
-		SELECT e.id, e.guide_id, COALESCE(gp.display_name, ''), e.title, e.slug, e.status, e.price_from, e.currency
+		SELECT e.id, e.guide_id, gp.display_name, e.title, e.slug, e.status, e.price_from, e.currency
 		FROM excursions e
-		LEFT JOIN guide_profiles gp ON gp.id = e.guide_id`
+		INNER JOIN guide_profiles gp ON gp.id = e.guide_id`
 	args := []any{}
 	if status != "" {
 		q += ` WHERE e.status=$1`
@@ -494,8 +538,12 @@ func (r *ExcursionRepo) ListByStatus(ctx context.Context, status string, limit i
 		limit = 50
 	}
 	rows, err := r.db.Pool.Query(ctx, `
-		SELECT id, guide_id, city_id, category_id, title, slug, description, type, max_guests, price_from, currency, status
-		FROM excursions WHERE status=$1 ORDER BY id DESC LIMIT $2`, status, limit)
+		SELECT e.id, e.guide_id, e.city_id, e.category_id, e.title, e.slug, e.description, e.type, e.max_guests, e.price_from, e.currency, e.status
+		FROM excursions e
+		INNER JOIN guide_profiles gp ON gp.id = e.guide_id
+		WHERE e.status=$1
+		ORDER BY e.id DESC
+		LIMIT $2`, status, limit)
 	if err != nil {
 		return nil, err
 	}
