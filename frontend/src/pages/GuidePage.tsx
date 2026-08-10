@@ -10,8 +10,10 @@ import type { ExcursionItem } from '../components/excursionUi'
 import ReviewCard from '../components/reviews/ReviewCard'
 import ReviewForm from '../components/reviews/ReviewForm'
 import type { Review } from '../components/reviews/types'
-import { trackRecentView } from '../hooks/useRecentViews'
+import { trackRecentView, removeRecentView } from '../hooks/useRecentViews'
 import { useHasRole, useMe } from '../hooks/useAuth'
+import { getApiErrorCode } from '../api/http'
+import CatalogNotFound from '../components/CatalogNotFound'
 import { pageTitle } from '../lib/brand'
 import { Seo } from '../lib/seo'
 
@@ -20,9 +22,10 @@ export default function GuidePage() {
   const qc = useQueryClient()
   const { data: me } = useMe()
   const isGuideRole = useHasRole('ROLE_GUIDE')
-  const { data: guide, isLoading } = useQuery({
+  const { data: guide, isLoading, isError, error } = useQuery({
     queryKey: ['guide', slug],
     queryFn: () => catalogApi.guide(slug),
+    retry: (_, err) => getApiErrorCode(err) !== 'NOT_FOUND',
   })
   const { data: myGuide } = useQuery({
     queryKey: ['my-guide-profile'],
@@ -61,8 +64,14 @@ export default function GuidePage() {
     })
   }, [guide])
 
-  if (isLoading) return <div className="p-8">Завантаження...</div>
-  if (!guide) return <div className="p-8">Гіда не знайдено</div>
+  useEffect(() => {
+    if (isError && getApiErrorCode(error) === 'NOT_FOUND' && slug) {
+      removeRecentView('guide', slug)
+    }
+  }, [isError, error, slug])
+
+  if (isLoading) return <div className="container-site p-8 text-muted">Завантаження…</div>
+  if (isError || !guide) return <CatalogNotFound kind="guide" />
 
   return (
     <>

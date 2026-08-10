@@ -10,7 +10,7 @@ import { pageTitle, SITE_TAGLINE } from '../lib/brand'
 import { Seo } from '../lib/seo'
 import { normalizeCategoryTiles } from '../lib/categoryTiles'
 import type { ExcursionItem } from '../components/excursionUi'
-import { useRecentViews, type RecentView } from '../hooks/useRecentViews'
+import { useRecentViews, validateRecentViews, type RecentView } from '../hooks/useRecentViews'
 
 function SectionTitle({ title, subtitle, action }: { title: string; subtitle?: string; action?: ReactNode }) {
   return (
@@ -133,7 +133,17 @@ export default function HomePage() {
     queryKey: ['articles', 'home'],
     queryFn: () => articlesApi.list(3),
   })
-  const recent = useRecentViews().filter((item) => item.type === 'excursion').slice(0, 8)
+  const recentRaw = useRecentViews()
+  const recentKey = recentRaw.map((r) => `${r.type}:${r.slug}`).join('|')
+  const { data: recentValid, isPending: recentValidating } = useQuery({
+    queryKey: ['recent-views-valid', recentKey],
+    queryFn: validateRecentViews,
+    staleTime: 60_000,
+    enabled: recentRaw.length > 0,
+  })
+  const recent = (recentValid ?? [])
+    .filter((item) => item.type === 'excursion')
+    .slice(0, 8)
 
   if (!site) {
     return <HomePageLoading />
@@ -162,7 +172,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {recent.length > 0 && (
+      {recentRaw.length > 0 && !recentValidating && recent.length > 0 && (
         <section className="border-y border-divider bg-surface py-8 md:py-10">
           <div className="container-site">
             <SectionTitle title="Ви недавно переглядали" />

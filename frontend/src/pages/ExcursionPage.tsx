@@ -16,8 +16,10 @@ import GuideAvatar from '../components/GuideAvatar'
 import ReviewCard from '../components/reviews/ReviewCard'
 import ReviewForm from '../components/reviews/ReviewForm'
 import { renderStars, type Review } from '../components/reviews/types'
-import { trackRecentView } from '../hooks/useRecentViews'
+import { trackRecentView, removeRecentView } from '../hooks/useRecentViews'
 import { useHasRole, useMe } from '../hooks/useAuth'
+import { getApiErrorCode } from '../api/http'
+import CatalogNotFound from '../components/CatalogNotFound'
 import { resolveMapEmbed } from '../lib/mapEmbed'
 import { pageTitle } from '../lib/brand'
 import { Seo } from '../lib/seo'
@@ -103,9 +105,10 @@ export default function ExcursionPage() {
     })
   }
 
-  const { data: excursion, isLoading } = useQuery({
+  const { data: excursion, isLoading, isError, error } = useQuery({
     queryKey: ['excursion', slug],
     queryFn: () => api<ExcursionItem>(`/api/v1/excursions/${slug}`),
+    retry: (_, err) => getApiErrorCode(err) !== 'NOT_FOUND',
   })
   const { data: myGuide } = useQuery({
     queryKey: ['my-guide-profile'],
@@ -151,8 +154,14 @@ export default function ExcursionPage() {
     })
   }, [excursion])
 
-  if (isLoading) return <div className="p-8">Завантаження...</div>
-  if (!excursion) return <div className="p-8">Екскурсію не знайдено</div>
+  useEffect(() => {
+    if (isError && getApiErrorCode(error) === 'NOT_FOUND' && slug) {
+      removeRecentView('excursion', slug)
+    }
+  }, [isError, error, slug])
+
+  if (isLoading) return <div className="container-site p-8 text-muted">Завантаження…</div>
+  if (isError || !excursion) return <CatalogNotFound kind="excursion" />
 
   const duration = excursion.duration_minutes ?? 180
   const transport = excursion.transport_mode ?? 'WALKING'
