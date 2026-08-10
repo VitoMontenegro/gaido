@@ -14,6 +14,7 @@ import (
 	"github.com/vitomonte/experts-tourister/internal/domain"
 	"github.com/vitomonte/experts-tourister/internal/http/middleware"
 	"github.com/vitomonte/experts-tourister/internal/http/response"
+	"github.com/vitomonte/experts-tourister/internal/repo/postgres"
 	guidesvc "github.com/vitomonte/experts-tourister/internal/service/guide"
 )
 
@@ -164,6 +165,9 @@ func (h *Handlers) AdminListExcursions(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		response.Error(w, r, apperrors.ErrInternal)
 		return
+	}
+	if items == nil {
+		items = []postgres.AdminExcursionRow{}
 	}
 	response.JSON(w, r, 200, map[string]any{"items": items})
 }

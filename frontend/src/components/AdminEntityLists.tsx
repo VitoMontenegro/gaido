@@ -61,7 +61,7 @@ export function AdminUsersList() {
   if (isError) return <ListShell title="Користувачі">{error?.message ?? 'Помилка'}</ListShell>
 
   return (
-    <ListShell title="Користувачі" count={data?.items.length}>
+    <ListShell title="Користувачі" count={(data?.items ?? []).length}>
       <table className="w-full min-w-[720px] text-sm">
         <thead>
           <tr className="border-b border-divider bg-sand-50 text-left text-stone-500">
@@ -157,7 +157,7 @@ export function AdminGuidesList({ statusFilter }: { statusFilter?: string }) {
   if (isError) return <ListShell title={title}>{error?.message ?? 'Помилка'}</ListShell>
 
   return (
-    <ListShell title={title} count={data?.items.length}>
+    <ListShell title={title} count={(data?.items ?? []).length}>
       <ul className="divide-y divide-divider">
         {(data?.items ?? []).map((g) => (
           <li key={g.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
@@ -227,7 +227,7 @@ export function AdminExcursionsList() {
   if (isError) return <ListShell title="Екскурсії">{error?.message ?? 'Помилка'}</ListShell>
 
   return (
-    <ListShell title="Екскурсії" count={data?.items.length}>
+    <ListShell title="Екскурсії" count={(data?.items ?? []).length}>
       <table className="w-full min-w-[720px] text-sm">
         <thead>
           <tr className="border-b border-divider bg-sand-50 text-left text-stone-500">
@@ -291,7 +291,7 @@ export function AdminReviewsList() {
   if (isError) return <ListShell title="Відгуки">{error?.message ?? 'Помилка'}</ListShell>
 
   return (
-    <ListShell title="Відгуки" count={data?.items.length}>
+    <ListShell title="Відгуки" count={(data?.items ?? []).length}>
       <ul className="divide-y divide-divider">
         {(data?.items ?? []).map((r: AdminReview) => (
           <li key={r.id} className="space-y-1 px-4 py-3">

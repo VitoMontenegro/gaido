@@ -90,7 +90,7 @@ export default function GuidePage() {
 
       <div className="bg-gradient-to-b from-brand-50/80 to-sand-50 pb-12">
         <div className="container-site py-10">
-          <GuideHero guide={guide} excursionCount={excursions?.items.length ?? 0} />
+          <GuideHero guide={guide} excursionCount={(excursions?.items ?? []).length} />
         </div>
       </div>
 

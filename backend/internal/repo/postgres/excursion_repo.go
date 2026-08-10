@@ -272,7 +272,7 @@ func (r *ExcursionRepo) ListAdmin(ctx context.Context, status string, limit int)
 		return nil, err
 	}
 	defer rows.Close()
-	var out []AdminExcursionRow
+	out := make([]AdminExcursionRow, 0)
 	for rows.Next() {
 		var row AdminExcursionRow
 		if err := rows.Scan(&row.ID, &row.GuideID, &row.GuideName, &row.Title, &row.Slug, &row.Status, &row.PriceFrom, &row.Currency); err != nil {
