@@ -87,18 +87,18 @@ func (r *GeoRepo) ListCountriesWithGuideCount(ctx context.Context) ([]CountryWit
 		SELECT co.id, co.slug, co.name, COUNT(DISTINCT gp.id)::int
 		FROM countries co
 		JOIN cities c ON c.country_id = co.id AND c.is_active = true
-		JOIN guide_cities gc ON gc.city_id = c.id AND gc.is_active = true
-		JOIN guide_profiles gp ON gp.id = gc.guide_id AND gp.status = $1
+		JOIN excursions e ON e.city_id = c.id AND e.status = $1
+		JOIN guide_profiles gp ON gp.id = e.guide_id AND gp.status = $2
 		WHERE co.is_active = true
 		GROUP BY co.id, co.slug, co.name
 		HAVING COUNT(DISTINCT gp.id) > 0
 		ORDER BY COUNT(DISTINCT gp.id) DESC, co.name ASC
-	`, domain.GuideStatusActive)
+	`, domain.ExcursionPublished, domain.GuideStatusActive)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var out []CountryWithGuideCount
+	out := make([]CountryWithGuideCount, 0)
 	for rows.Next() {
 		var c CountryWithGuideCount
 		if err := rows.Scan(&c.ID, &c.Slug, &c.Name, &c.GuideCount); err != nil {

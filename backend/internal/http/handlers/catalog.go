@@ -92,6 +92,26 @@ func (h *Handlers) ResolveTopGuides(ctx context.Context, limit int) []domain.Pub
 		}
 	}
 
+	if len(out) < limit {
+		exclude := make([]int64, 0, len(seen))
+		for id := range seen {
+			exclude = append(exclude, id)
+		}
+		rest, _ := h.Guides.ListPublicRandom(ctx, limit-len(out), exclude)
+		for i := range rest {
+			g := &rest[i]
+			if seen[g.ID] {
+				continue
+			}
+			seen[g.ID] = true
+			touchIDs = append(touchIDs, g.ID)
+			out = append(out, h.publicGuideDTO(ctx, g))
+			if len(out) >= limit {
+				break
+			}
+		}
+	}
+
 	_ = h.Guides.TouchShown(ctx, touchIDs)
 	return out
 }

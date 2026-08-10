@@ -146,7 +146,11 @@ func (r *GuideRepo) ListPublic(ctx context.Context, cityID, countryID *int64, gu
 	args := []any{domain.GuideStatusActive}
 	n := 2
 	if cityID != nil {
-		q += fmt.Sprintf(` AND id IN (SELECT guide_id FROM guide_cities WHERE city_id=$%d AND is_active=true)`, n)
+		q += fmt.Sprintf(` AND id IN (
+			SELECT guide_id FROM guide_cities WHERE city_id=$%d AND is_active=true
+			UNION
+			SELECT e.guide_id FROM excursions e WHERE e.city_id=$%d AND e.status='PUBLISHED'
+		)`, n, n)
 		args = append(args, *cityID)
 		n++
 	}
@@ -155,7 +159,11 @@ func (r *GuideRepo) ListPublic(ctx context.Context, cityID, countryID *int64, gu
 			SELECT gc.guide_id FROM guide_cities gc
 			JOIN cities c ON c.id = gc.city_id AND c.is_active=true
 			WHERE c.country_id=$%d AND gc.is_active=true
-		)`, n)
+			UNION
+			SELECT e.guide_id FROM excursions e
+			JOIN cities c ON c.id = e.city_id AND c.is_active=true
+			WHERE c.country_id=$%d AND e.status='PUBLISHED'
+		)`, n, n)
 		args = append(args, *countryID)
 		n++
 	}

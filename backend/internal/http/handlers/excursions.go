@@ -74,6 +74,9 @@ func (h *Handlers) UpdateExcursion(w http.ResponseWriter, r *http.Request) {
 		response.Error(w, r, err)
 		return
 	}
+	if updated.CityID > 0 {
+		_ = h.Guides.AddCity(r.Context(), g.ID, updated.CityID, true)
+	}
 	response.JSON(w, r, 200, updated)
 }
 func (h *Handlers) SubmitExcursion(w http.ResponseWriter, r *http.Request) {

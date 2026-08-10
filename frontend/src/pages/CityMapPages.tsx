@@ -27,10 +27,6 @@ export default function CityPage() {
 
   if (!city) return <div className="p-8">Завантаження...</div>
 
-  const mapPoint = city.latitude && city.longitude
-    ? [{ id: city.id, slug: city.slug, name: city.name, country_slug: city.country_slug ?? '', lat: city.latitude, lng: city.longitude }]
-    : []
-
   return (
     <>
       <Helmet><title>{pageTitle(city.name)}</title></Helmet>
@@ -42,12 +38,6 @@ export default function CityPage() {
       />
       <div className="container-site py-8">
         <h1 className="font-display text-3xl font-bold">{city.name}</h1>
-
-        {mapPoint.length > 0 && (
-          <section className="mt-6">
-            <CitiesMap points={mapPoint} />
-          </section>
-        )}
 
         <section className="mt-8">
           <h2 className="mb-4 text-xl font-semibold">Гіди</h2>
