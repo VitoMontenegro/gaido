@@ -4,10 +4,12 @@ import tailwindcss from '@tailwindcss/vite'
 import { resolve } from 'path'
 
 export default defineConfig(({ mode }) => {
-  const root = resolve(import.meta.dirname, '..')
+  const frontendDir = import.meta.dirname
+  const root = resolve(frontendDir, '..')
   const env = {
     ...loadEnv(mode, root, ''),
     ...loadEnv(mode, resolve(root, '.local'), ''),
+    ...loadEnv(mode, frontendDir, ''),
   }
   const backendPort = (
     process.env.HTTP_ADDR ||

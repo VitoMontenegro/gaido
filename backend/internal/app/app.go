@@ -91,6 +91,8 @@ func New(ctx context.Context, cfg config.Config, log *slog.Logger) (*App, error)
 	h.ReviewSvc = &reviewsvc.Service{Reviews: h.Reviews, Exc: h.Exc, Settings: h.Settings}
 	h.GuideSvc = &guidesvc.Service{Guides: h.Guides, Exc: h.Exc, Settings: h.Settings}
 
+	h.SyncCatalogFillingMode(ctx)
+
 	a := &App{cfg: cfg, log: log, db: db, redis: rdb, handlers: h, billing: billingSvc}
 	a.startExpirationLoop()
 	return a, nil

@@ -103,6 +103,9 @@ func (h *Handlers) AdminGetSettings(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	payments, _ := h.Settings.GetBool(ctx, "guide_placement_payments_enabled", false)
 	moderation, _ := h.Settings.GetBool(ctx, "moderation_enabled", true)
+	if !payments || !moderation {
+		h.SyncCatalogFillingMode(ctx)
+	}
 	response.JSON(w, r, 200, map[string]bool{
 		"guide_placement_payments_enabled": payments,
 		"moderation_enabled":               moderation,
@@ -124,12 +127,27 @@ func (h *Handlers) AdminSetSettings(w http.ResponseWriter, r *http.Request) {
 		case "guide_placement_payments_enabled", "moderation_enabled":
 			_ = h.Settings.Set(r.Context(), key, val)
 			_ = h.Audit.Log(r.Context(), &actor, "SITE_SETTING_CHANGE", "site_settings", nil, key, val, r.RemoteAddr, r.UserAgent())
-			if key == "moderation_enabled" && !v {
-				h.PublishAllPendingContent(r.Context())
-			}
 		}
 	}
+	h.SyncCatalogFillingMode(r.Context())
 	h.AdminGetSettings(w, r)
+}
+func (h *Handlers) SyncCatalogFillingMode(ctx context.Context) {
+	payments, _ := h.Settings.GetBool(ctx, "guide_placement_payments_enabled", false)
+	moderation := h.IsModerationEnabled(ctx)
+	if payments && moderation {
+		return
+	}
+	if !payments {
+		if n, err := h.Guides.ActivateAllForCatalogFilling(ctx); err != nil {
+			h.Log.Warn("catalog filling: activate guides failed", "error", err)
+		} else if n > 0 {
+			h.Log.Info("catalog filling: guides activated", "count", n)
+		}
+	}
+	if !moderation {
+		h.PublishAllPendingContent(ctx)
+	}
 }
 func (h *Handlers) AutoPublishPendingForGuide(ctx context.Context, guideID int64) {
 	if h.IsModerationEnabled(ctx) {

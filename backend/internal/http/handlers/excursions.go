@@ -50,6 +50,10 @@ func (h *Handlers) CreateExcursion(w http.ResponseWriter, r *http.Request) {
 		response.Error(w, r, err)
 		return
 	}
+	if e.CityID > 0 {
+		_ = h.Guides.AddCity(r.Context(), g.ID, e.CityID, true)
+	}
+	_ = h.GuideSvc.ActivateForCatalogFilling(r.Context(), g.ID)
 	e.ID = id
 	response.JSON(w, r, 201, e)
 }

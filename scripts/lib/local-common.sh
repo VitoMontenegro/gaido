@@ -88,7 +88,8 @@ local_resolve_ports() {
 
   backend_preferred="$BACKEND_PORT"
   if local_port_busy "$backend_preferred" && ! local_is_our_backend_on_port "$backend_preferred"; then
-    picked="$(local_pick_free_port 8091 8092 8093 8094 18091 18092)" || exit 1
+    # shellcheck disable=SC2046
+    picked="$(local_pick_free_port $(local_backend_port_candidates))" || exit 1
     echo "→ backend :${backend_preferred} busy (OrbStack?), using :${picked}" >&2
     BACKEND_PORT="$picked"
   fi
@@ -117,6 +118,14 @@ PUBLIC_BASE_URL=${PUBLIC_BASE_URL}
 PG_PORT=${PG_PORT}
 REDIS_PORT=${REDIS_PORT}
 EOF
+
+  cat >"$root/frontend/.env.local" <<EOF
+# Auto-synced from .local/ports.env by run-local.sh — do not commit
+FRONTEND_PORT=${FRONTEND_PORT}
+BACKEND_PORT=${BACKEND_PORT}
+HTTP_ADDR=:${BACKEND_PORT}
+VITE_PUBLIC_SITE_URL=${PUBLIC_BASE_URL}
+EOF
 }
 
 local_ensure_dirs() {
@@ -129,12 +138,18 @@ local_pid_cmdline() {
   ps -p "$pid" -o command= 2>/dev/null | sed 's/^[[:space:]]*//' || true
 }
 
+# Candidate backend ports (8093–8096, 8080–8082 often taken by OrbStack).
+local_backend_port_candidates() {
+  echo 8091 8092 8097 8098 8099 18091 18092 18093 18094
+}
+
 local_is_backend_process() {
   local cmd="$1"
   [[ "$cmd" == *"cmd/api"* ]] \
     || [[ "$cmd" == *"experts-tourister"* ]] \
     || [[ "$cmd" == *"goproject/backend"* ]] \
-    || [[ "$cmd" == *"/backend"* && ( "$cmd" == *"go run"* || "$cmd" == *"go-build"* ) ]]
+    || [[ "$cmd" == *"/backend"* && ( "$cmd" == *"go run"* || "$cmd" == *"go-build"* ) ]] \
+    || { [[ "$cmd" == *"go-build"* ]] && [[ "$cmd" == */api || "$cmd" == */exe/api ]]; }
 }
 
 local_is_frontend_process() {

@@ -21,7 +21,11 @@ echo "■ stop-local.sh"
 local_stop_pidfile "$ROOT/.local/pids/backend.pid" "backend"
 local_stop_pidfile "$ROOT/.local/pids/frontend.pid" "frontend"
 
-local_kill_port "$BACKEND_PORT" backend
+# Kill all known backend candidates — orphaned go-build binaries may linger on old ports.
+# shellcheck disable=SC2046
+for port in $(local_backend_port_candidates); do
+  local_kill_port "$port" backend
+done
 local_kill_port "$FRONTEND_PORT" frontend
 
 echo "✓ stopped (infra docker compose — отдельно)"

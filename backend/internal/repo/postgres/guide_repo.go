@@ -96,6 +96,18 @@ func (r *GuideRepo) ListAdmin(ctx context.Context) ([]domain.GuideProfile, error
 	return out, rows.Err()
 }
 
+func (r *GuideRepo) ActivateAllForCatalogFilling(ctx context.Context) (int64, error) {
+	tag, err := r.db.Pool.Exec(ctx, `
+		UPDATE guide_profiles
+		SET status=$1, updated_at=NOW()
+		WHERE status IN ($2, $3, $4)
+	`, domain.GuideStatusActive, domain.GuideStatusDraft, domain.GuideStatusWaitingPayment, domain.GuideStatusExpired)
+	if err != nil {
+		return 0, err
+	}
+	return tag.RowsAffected(), nil
+}
+
 func (r *GuideRepo) SetStatus(ctx context.Context, id int64, status string) error {
 	_, err := r.db.Pool.Exec(ctx, `UPDATE guide_profiles SET status=$2, updated_at=NOW() WHERE id=$1`, id, status)
 	return err

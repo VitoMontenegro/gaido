@@ -10,7 +10,9 @@ import (
 
 type GuideRepository interface {
 	GetByUserID(ctx context.Context, userID int64) (*domain.GuideProfile, error)
+	GetByID(ctx context.Context, id int64) (*domain.GuideProfile, error)
 	UpdateProfile(ctx context.Context, g *domain.GuideProfile) error
+	SetStatus(ctx context.Context, id int64, status string) error
 	DeleteLicenseDocuments(ctx context.Context, guideID int64) error
 	HasDocument(ctx context.Context, guideID int64, docType string) (bool, error)
 	DeleteDocumentByType(ctx context.Context, guideID int64, docType string) error
@@ -58,7 +60,7 @@ func (s *Service) AccountProfile(ctx context.Context, g *domain.GuideProfile) do
 	return BuildGuideAccountProfile(g, s.HasUploadedLicense(ctx, g))
 }
 
-func (s *Service) ApplyProfileUpdate(g *domain.GuideProfile, req domain.GuideProfile) {
+func (s *Service) ApplyProfileUpdate(ctx context.Context, g *domain.GuideProfile, req domain.GuideProfile) {
 	if req.GuideType == domain.GuideTypeCompanion {
 		g.GuideType = domain.GuideTypeCompanion
 	} else if g.GuideType == domain.GuideTypeCompanion {
@@ -74,9 +76,37 @@ func (s *Service) ApplyProfileUpdate(g *domain.GuideProfile, req domain.GuidePro
 	g.Telegram = req.Telegram
 	g.Whatsapp = req.Whatsapp
 	g.AvatarURL = strings.TrimSpace(req.AvatarURL)
-	if g.DisplayName != "" && g.Status == domain.GuideStatusDraft {
-		g.Status = domain.GuideStatusWaitingPayment
+	if g.DisplayName != "" && (g.Status == domain.GuideStatusDraft || g.Status == domain.GuideStatusWaitingPayment) {
+		payments, _ := s.Settings.GetBool(ctx, "guide_placement_payments_enabled", false)
+		if payments {
+			g.Status = domain.GuideStatusWaitingPayment
+		} else {
+			g.Status = domain.GuideStatusActive
+		}
 	}
+}
+
+func (s *Service) PaymentsEnabled(ctx context.Context) bool {
+	if s.Settings == nil {
+		return false
+	}
+	enabled, _ := s.Settings.GetBool(ctx, "guide_placement_payments_enabled", false)
+	return enabled
+}
+
+func (s *Service) ActivateForCatalogFilling(ctx context.Context, guideID int64) error {
+	if s.PaymentsEnabled(ctx) {
+		return nil
+	}
+	g, err := s.Guides.GetByID(ctx, guideID)
+	if err != nil || g == nil || g.Status == domain.GuideStatusActive {
+		return err
+	}
+	if err := s.Guides.SetStatus(ctx, guideID, domain.GuideStatusActive); err != nil {
+		return err
+	}
+	s.AutoPublishPending(ctx, guideID)
+	return nil
 }
 
 func (s *Service) UpdateProfile(ctx context.Context, userID int64, req domain.GuideProfile) (*domain.GuideAccountProfile, error) {
@@ -90,10 +120,11 @@ func (s *Service) UpdateProfile(ctx context.Context, userID int64, req domain.Gu
 	if req.GuideType == domain.GuideTypeCompanion {
 		_ = s.Guides.DeleteLicenseDocuments(ctx, g.ID)
 	}
-	s.ApplyProfileUpdate(g, req)
+	s.ApplyProfileUpdate(ctx, g, req)
 	if err := s.Guides.UpdateProfile(ctx, g); err != nil {
 		return nil, err
 	}
+	_ = s.ActivateForCatalogFilling(ctx, g.ID)
 	profile := s.AccountProfile(ctx, g)
 	return &profile, nil
 }

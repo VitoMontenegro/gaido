@@ -466,17 +466,26 @@ func (r *ExcursionRepo) SetStatus(ctx context.Context, id int64, status string) 
 }
 
 func (r *ExcursionRepo) PublishPendingByGuide(ctx context.Context, guideID int64) error {
+	return r.PublishCatalogReadyByGuide(ctx, guideID)
+}
+
+func (r *ExcursionRepo) PublishCatalogReadyByGuide(ctx context.Context, guideID int64) error {
 	_, err := r.db.Pool.Exec(ctx, `
 		UPDATE excursions SET status=$1, updated_at=NOW()
-		WHERE guide_id=$2 AND status=$3
-	`, domain.ExcursionPublished, guideID, domain.ExcursionPendingModeration)
+		WHERE guide_id=$2 AND status IN ($3, $4)
+	`, domain.ExcursionPublished, guideID, domain.ExcursionDraft, domain.ExcursionPendingModeration)
 	return err
 }
 
 func (r *ExcursionRepo) PublishAllPending(ctx context.Context) error {
+	return r.PublishAllCatalogReady(ctx)
+}
+
+func (r *ExcursionRepo) PublishAllCatalogReady(ctx context.Context) error {
 	_, err := r.db.Pool.Exec(ctx, `
-		UPDATE excursions SET status=$1, updated_at=NOW() WHERE status=$2
-	`, domain.ExcursionPublished, domain.ExcursionPendingModeration)
+		UPDATE excursions SET status=$1, updated_at=NOW()
+		WHERE status IN ($2, $3)
+	`, domain.ExcursionPublished, domain.ExcursionDraft, domain.ExcursionPendingModeration)
 	return err
 }
 
