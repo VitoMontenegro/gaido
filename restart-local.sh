@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Единая точка локального запуска Experts Tourister.
-# Postgres (:5433) и Redis (:6380) — docker compose / OrbStack (опционально skip).
+# Порты: API :8091, Vite :5173, PG :5433, Redis :6380 (OrbStack-safe, см. .local/ports.env).
 #
 #   ./restart-local.sh
 #   LOCAL_SKIP_FRONTEND=1 ./restart-local.sh

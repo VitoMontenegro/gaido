@@ -15,11 +15,12 @@ func NewUserRepo(db *DB) *UserRepo { return &UserRepo{db: db} }
 
 const userSelectCols = `id, email, login, first_name, last_name, password_hash, roles, status, created_at, deleted_at`
 
-func (r *UserRepo) Create(ctx context.Context, email, login, hash string, roles []string) (int64, error) {
+func (r *UserRepo) Create(ctx context.Context, email, login, firstName, lastName, hash string, roles []string) (int64, error) {
 	var id int64
 	err := r.db.Pool.QueryRow(ctx, `
-		INSERT INTO users (email, login, password_hash, roles) VALUES ($1,$2,$3,$4) RETURNING id
-	`, email, login, hash, roles).Scan(&id)
+		INSERT INTO users (email, login, first_name, last_name, password_hash, roles)
+		VALUES ($1,$2,$3,$4,$5,$6) RETURNING id
+	`, email, login, firstName, lastName, hash, roles).Scan(&id)
 	return id, err
 }
 
@@ -27,6 +28,13 @@ func (r *UserRepo) GetByLogin(ctx context.Context, login string) (*domain.User, 
 	row := r.db.Pool.QueryRow(ctx, `
 		SELECT `+userSelectCols+` FROM users WHERE login=$1 AND deleted_at IS NULL
 	`, login)
+	return scanUser(row)
+}
+
+func (r *UserRepo) GetByEmail(ctx context.Context, email string) (*domain.User, error) {
+	row := r.db.Pool.QueryRow(ctx, `
+		SELECT `+userSelectCols+` FROM users WHERE email=$1 AND deleted_at IS NULL
+	`, email)
 	return scanUser(row)
 }
 
@@ -164,7 +172,12 @@ func (r *UserRepo) SoftDelete(ctx context.Context, id int64) error {
 
 	tag, err := tx.Exec(ctx, `
 		UPDATE users
-		SET status = 'DELETED', deleted_at = NOW(), updated_at = NOW()
+		SET
+			email = 'deleted_' || id || '@deleted.local',
+			login = 'deleted_' || id,
+			status = 'DELETED',
+			deleted_at = NOW(),
+			updated_at = NOW()
 		WHERE id = $1 AND deleted_at IS NULL
 	`, id)
 	if err != nil {

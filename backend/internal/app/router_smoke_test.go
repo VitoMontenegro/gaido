@@ -99,10 +99,15 @@ func uniqueLogin(prefix string) string {
 func registerUser(t *testing.T, a *app.App, login string, asGuide bool) (token string, cookies []*http.Cookie) {
 	t.Helper()
 	res := smokeRequest(t, a, http.MethodPost, "/api/v1/auth/register", map[string]any{
-		"email":    login + "@test.local",
-		"login":    login,
-		"password": "smokepass12345",
-		"as_guide": asGuide,
+		"email":                  login + "@test.local",
+		"login":                  login,
+		"password":               "smokepass12345",
+		"first_name":             "Smoke",
+		"last_name":              "User",
+		"as_guide":               asGuide,
+		"accept_privacy":         true,
+		"accept_site_rules":      !asGuide,
+		"accept_placement_rules": asGuide,
 	}, "", nil)
 	if res.code != http.StatusOK && res.code != http.StatusCreated {
 		t.Fatalf("register: %d %s", res.code, res.body)
@@ -183,9 +188,13 @@ func TestSmoke_authRegisterLogin(t *testing.T) {
 	a := newTestApp(t)
 	login := uniqueLogin("smoke_")
 	res := smokeRequest(t, a, http.MethodPost, "/api/v1/auth/register", map[string]any{
-		"email":    login + "@test.local",
-		"login":    login,
-		"password": "smokepass12345",
+		"email":             login + "@test.local",
+		"login":             login,
+		"password":          "smokepass12345",
+		"first_name":        "Smoke",
+		"last_name":         "Test",
+		"accept_privacy":    true,
+		"accept_site_rules": true,
 	}, "", nil)
 	if res.code != http.StatusOK && res.code != http.StatusCreated {
 		t.Fatalf("register: got %d body=%s", res.code, res.body)

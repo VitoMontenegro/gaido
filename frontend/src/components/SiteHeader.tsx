@@ -97,8 +97,8 @@ export default function SiteHeader({ onLogout }: SiteHeaderProps) {
                   <Link to="/login" className="btn-ghost px-2.5 py-1.5 text-sm md:py-2">
                     Вхід
                   </Link>
-                  <Link to="/register" className="btn-primary px-3 py-1.5 text-sm md:py-2">
-                    Реєстрація
+                  <Link to="/register/guide" className="btn-primary px-3 py-1.5 text-sm md:py-2">
+                    Стати гідом
                   </Link>
                 </>
               )}

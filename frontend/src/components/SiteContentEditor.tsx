@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { adminApi, type FooterContent, type HomeContent, type HomeCta } from '../api/client'
+import { adminApi, type FooterContent, type HomeContent, type HomeCta, type LegalContent } from '../api/client'
 import { ImageUrlField } from './ImageUrlField'
+import { LegalPageEditor } from './LegalContentEditor'
 import { normalizeCategoryTiles } from '../lib/categoryTiles'
+import { normalizeLegalContent } from '../lib/legalContent'
 
-type SiteContentPayload = { home: HomeContent; footer: FooterContent }
+type SiteContentPayload = { home: HomeContent; footer: FooterContent; legal: LegalContent }
 
 const DEFAULT_CTA: HomeCta = {
   title: 'Зʼявились питання?',
@@ -13,7 +15,7 @@ const DEFAULT_CTA: HomeCta = {
   primary_label: 'Знайти екскурсію',
   primary_url: '/search',
   secondary_label: 'Стати гідом',
-  secondary_url: '/register',
+  secondary_url: '/register/guide',
 }
 
 function normalizeHome(home: HomeContent): HomeContent {
@@ -32,7 +34,11 @@ export function SiteContentEditor() {
   const [message, setMessage] = useState('')
 
   useEffect(() => {
-    adminApi.siteContent().then((data) => setDraft({ ...data, home: normalizeHome(data.home) })).catch(() => setMessage('Не вдалося завантажити контент сайту'))
+    adminApi.siteContent().then((data) => setDraft({
+      ...data,
+      home: normalizeHome(data.home),
+      legal: normalizeLegalContent(data.legal),
+    })).catch(() => setMessage('Не вдалося завантажити контент сайту'))
   }, [])
 
   const save = async () => {
@@ -41,7 +47,11 @@ export function SiteContentEditor() {
     setMessage('')
     try {
       const saved = await adminApi.saveSiteContent(draft)
-      setDraft({ ...saved, home: normalizeHome(saved.home) })
+      setDraft({
+        ...saved,
+        home: normalizeHome(saved.home),
+        legal: normalizeLegalContent(saved.legal),
+      })
       qc.invalidateQueries({ queryKey: ['site'] })
       setMessage('Збережено')
     } catch (e) {
@@ -57,9 +67,11 @@ export function SiteContentEditor() {
 
   const home = draft.home
   const footer = draft.footer
+  const legal = draft.legal
 
   const updateHome = (patch: Partial<HomeContent>) => setDraft({ ...draft, home: { ...home, ...patch } })
   const updateFooter = (patch: Partial<FooterContent>) => setDraft({ ...draft, footer: { ...footer, ...patch } })
+  const updateLegal = (patch: Partial<LegalContent>) => setDraft({ ...draft, legal: { ...legal, ...patch } })
   const updateCta = (patch: Partial<HomeCta>) => updateHome({ cta: { ...home.cta, ...patch } })
 
   return (
@@ -229,6 +241,30 @@ export function SiteContentEditor() {
         </div>
         <textarea className="input min-h-20" value={footer.description} onChange={(e) => updateFooter({ description: e.target.value })} placeholder="Опис у футері" />
         <FooterColumnsEditor columns={footer.columns} onChange={(columns) => updateFooter({ columns })} />
+      </section>
+
+      <section className="space-y-4 border-t border-divider pt-6">
+        <div>
+          <h2 className="section-title-sm">Юридичні документи</h2>
+          <p className="mt-1 text-sm text-muted">
+            Тексти для сторінок реєстрації та посилань у футері. Публічні URL: /legal/privacy, /legal/site-rules, /legal/placement-rules.
+          </p>
+        </div>
+        <LegalPageEditor
+          label="Політика конфіденційності"
+          page={legal.privacy_policy}
+          onChange={(privacy_policy) => updateLegal({ privacy_policy })}
+        />
+        <LegalPageEditor
+          label="Правила сайту (мандрівники)"
+          page={legal.site_rules}
+          onChange={(site_rules) => updateLegal({ site_rules })}
+        />
+        <LegalPageEditor
+          label="Правила розміщення (гіди)"
+          page={legal.placement_rules}
+          onChange={(placement_rules) => updateLegal({ placement_rules })}
+        />
       </section>
 
       <div className="flex items-center gap-3">

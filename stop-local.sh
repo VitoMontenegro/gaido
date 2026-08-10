@@ -12,8 +12,8 @@ source "$ROOT/scripts/lib/local-common.sh"
 
 local_load_env "$ROOT"
 
-BACKEND_PORT="${HTTP_ADDR:-${BACKEND_PORT:-8081}}"
-BACKEND_PORT="${BACKEND_PORT#:}"
+BACKEND_PORT="${BACKEND_PORT:-${HTTP_ADDR#:}}"
+BACKEND_PORT="${BACKEND_PORT:-8091}"
 FRONTEND_PORT="${FRONTEND_PORT:-5173}"
 
 echo "■ stop-local.sh"

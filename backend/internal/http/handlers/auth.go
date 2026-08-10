@@ -23,16 +23,47 @@ var (
 	loginRe = regexp.MustCompile(`^[a-zA-Z0-9_.-]{3,32}$`)
 )
 
+func validateRegisterReq(req registerReq) error {
+	firstName := strings.TrimSpace(req.FirstName)
+	lastName := strings.TrimSpace(req.LastName)
+	switch {
+	case req.Email == "":
+		return apperrors.New("VALIDATION_ERROR", "email is required", 400)
+	case !emailRe.MatchString(req.Email):
+		return apperrors.New("VALIDATION_ERROR", "invalid email format", 400)
+	case req.Login == "":
+		return apperrors.New("VALIDATION_ERROR", "login is required", 400)
+	case !loginRe.MatchString(req.Login):
+		return apperrors.New("VALIDATION_ERROR", "login must be 3-32 latin letters, digits, _, . or -", 400)
+	case utf8.RuneCountInString(req.Password) < 8:
+		return apperrors.New("VALIDATION_ERROR", "password must be at least 8 characters", 400)
+	case firstName == "":
+		return apperrors.New("VALIDATION_ERROR", "first_name is required", 400)
+	case lastName == "":
+		return apperrors.New("VALIDATION_ERROR", "last_name is required", 400)
+	case !req.AcceptPrivacy:
+		return apperrors.New("VALIDATION_ERROR", "privacy policy must be accepted", 400)
+	case req.AsGuide && !req.AcceptPlacementRules:
+		return apperrors.New("VALIDATION_ERROR", "placement rules must be accepted", 400)
+	case !req.AsGuide && !req.AcceptSiteRules:
+		return apperrors.New("VALIDATION_ERROR", "site rules must be accepted", 400)
+	default:
+		return nil
+	}
+}
+
 func (h *Handlers) Register(w http.ResponseWriter, r *http.Request) {
 	var req registerReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.Error(w, r, apperrors.ErrValidation)
+		response.Error(w, r, apperrors.New("VALIDATION_ERROR", "invalid JSON body", 400))
 		return
 	}
 	req.Email = strings.TrimSpace(req.Email)
 	req.Login = strings.TrimSpace(req.Login)
-	if !emailRe.MatchString(req.Email) || !loginRe.MatchString(req.Login) || utf8.RuneCountInString(req.Password) < 8 {
-		response.Error(w, r, apperrors.ErrValidation)
+	req.FirstName = strings.TrimSpace(req.FirstName)
+	req.LastName = strings.TrimSpace(req.LastName)
+	if err := validateRegisterReq(req); err != nil {
+		response.Error(w, r, err)
 		return
 	}
 	roles := []string{domain.RoleTourist}
@@ -44,7 +75,21 @@ func (h *Handlers) Register(w http.ResponseWriter, r *http.Request) {
 		response.Error(w, r, apperrors.ErrInternal)
 		return
 	}
-	id, err := h.Users.Create(r.Context(), req.Email, req.Login, hash, roles)
+	if u, err := h.Users.GetByEmail(r.Context(), req.Email); err != nil {
+		response.Error(w, r, apperrors.ErrInternal)
+		return
+	} else if u != nil {
+		response.Error(w, r, apperrors.New("EMAIL_ALREADY_EXISTS", "email already registered", 409))
+		return
+	}
+	if u, err := h.Users.GetByLogin(r.Context(), req.Login); err != nil {
+		response.Error(w, r, apperrors.ErrInternal)
+		return
+	} else if u != nil {
+		response.Error(w, r, apperrors.New("LOGIN_ALREADY_EXISTS", "login already taken", 409))
+		return
+	}
+	id, err := h.Users.Create(r.Context(), req.Email, req.Login, req.FirstName, req.LastName, hash, roles)
 	if err != nil {
 		response.Error(w, r, apperrors.ErrConflict)
 		return

@@ -23,10 +23,15 @@ import (
 )
 
 type registerReq struct {
-	Email    string `json:"email"`
-	Login    string `json:"login"`
-	Password string `json:"password"`
-	AsGuide  bool   `json:"as_guide"`
+	Email                string `json:"email"`
+	Login                string `json:"login"`
+	Password             string `json:"password"`
+	FirstName            string `json:"first_name"`
+	LastName             string `json:"last_name"`
+	AsGuide              bool   `json:"as_guide"`
+	AcceptPrivacy        bool   `json:"accept_privacy"`
+	AcceptSiteRules      bool   `json:"accept_site_rules"`
+	AcceptPlacementRules bool   `json:"accept_placement_rules"`
 }
 type loginReq struct {
 	Login    string `json:"login"`
@@ -230,6 +235,7 @@ func formatTimeISO(t time.Time) any {
 const (
 	keyHomeContent   = "home_content"
 	keyFooterContent = "footer_content"
+	keyLegalContent  = "legal_content"
 )
 
 func defaultHomeContent() domain.HomeContent {
@@ -250,7 +256,7 @@ func defaultHomeContent() domain.HomeContent {
 			PrimaryLabel:   "Знайти екскурсію",
 			PrimaryURL:     "/search",
 			SecondaryLabel: "Стати гідом",
-			SecondaryURL:   "/register",
+			SecondaryURL:   "/register/guide",
 		},
 		StatsTitle: "З нами подорожують мільйони",
 		Stats: []domain.HomeStat{
@@ -317,5 +323,12 @@ func defaultFooterContent() domain.FooterContent {
 		Email:       "hello@gaido.example",
 		Description: "Каталог гідів та авторських екскурсій. Прямий контакт без посередників.",
 		Copyright:   "Gaido",
+	}
+}
+func defaultLegalContent() domain.LegalContent {
+	return domain.LegalContent{
+		PrivacyPolicy:  domain.LegalPage{Title: "Політика конфіденційності", BodyHTML: ""},
+		SiteRules:      domain.LegalPage{Title: "Правила сайту", BodyHTML: ""},
+		PlacementRules: domain.LegalPage{Title: "Правила розміщення", BodyHTML: ""},
 	}
 }

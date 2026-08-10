@@ -41,6 +41,14 @@ export type FooterContent = {
   copyright: string
 }
 
+export type LegalPage = { title: string; body_html: string }
+
+export type LegalContent = {
+  privacy_policy: LegalPage
+  site_rules: LegalPage
+  placement_rules: LegalPage
+}
+
 export type DestinationCity = { slug: string; name: string }
 export type DestinationGroup = {
   country_slug: string
@@ -56,9 +64,11 @@ export type SitePayload = {
     popular_destinations: DestinationGroup[]
   }
   footer: FooterContent
+  legal: LegalContent
 }
 
 export type SiteContentPayload = {
   home: HomeContent
   footer: FooterContent
+  legal: LegalContent
 }

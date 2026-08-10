@@ -23,17 +23,38 @@ const API_ERROR_MESSAGES: Record<string, string> = {
   VALIDATION: 'Перевірте правильність введених даних',
   VALIDATION_ERROR: 'Перевірте правильність введених даних',
   CONFLICT: 'Такий запис уже існує',
+  EMAIL_ALREADY_EXISTS: 'Користувач з таким email вже існує',
+  LOGIN_ALREADY_EXISTS: 'Такий логін уже зайнятий',
   REVIEW_ALREADY_EXISTS: 'Ви вже залишили відгук на цю екскурсію',
   RATE_LIMITED: 'Забагато спроб. Спробуйте пізніше',
 }
 
 export type ApiErrorHints = Partial<Record<string, string>>
 
+const VALIDATION_MESSAGE_UA: Record<string, string> = {
+  'email is required': 'Вкажіть email',
+  'invalid email format': 'Невірний формат email',
+  'login is required': 'Вкажіть логін',
+  'login must be 3-32 latin letters, digits, _, . or -':
+    'Логін: лише латиниця, цифри та символи _ . - (від 3 до 32 символів)',
+  'password must be at least 8 characters': 'Пароль — мінімум 8 символів',
+  'invalid JSON body': 'Невірний формат запиту',
+  'first_name is required': 'Вкажіть імʼя',
+  'last_name is required': 'Вкажіть прізвище',
+  'privacy policy must be accepted': 'Потрібна згода з політикою конфіденційності',
+  'site rules must be accepted': 'Потрібна згода з правилами сайту',
+  'placement rules must be accepted': 'Потрібна згода з правилами розміщення',
+}
+
 export function formatApiError(error: unknown, hints?: string | ApiErrorHints): string {
   if (error instanceof ApiClientError) {
     if (typeof hints === 'string' && error.code === 'UNAUTHORIZED') return hints
     if (hints && typeof hints === 'object' && hints[error.code]) return hints[error.code]!
-    return API_ERROR_MESSAGES[error.code] ?? error.message
+    if (error.code === 'VALIDATION_ERROR' && error.message && error.message !== 'Validation failed') {
+      return VALIDATION_MESSAGE_UA[error.message] ?? error.message
+    }
+    if (API_ERROR_MESSAGES[error.code]) return API_ERROR_MESSAGES[error.code]!
+    return error.message
   }
   if (error instanceof Error && error.message) return error.message
   return 'Сталася помилка. Спробуйте ще раз.'

@@ -25,10 +25,31 @@ func (h *Handlers) LoadFooterContent(ctx context.Context) domain.FooterContent {
 	}
 	return c
 }
+func (h *Handlers) LoadLegalContent(ctx context.Context) domain.LegalContent {
+	var c domain.LegalContent
+	if err := h.Settings.GetJSON(ctx, keyLegalContent, &c); err != nil {
+		return defaultLegalContent()
+	}
+	return mergeLegalContent(c)
+}
+func mergeLegalContent(stored domain.LegalContent) domain.LegalContent {
+	def := defaultLegalContent()
+	if stored.PrivacyPolicy.Title == "" {
+		stored.PrivacyPolicy.Title = def.PrivacyPolicy.Title
+	}
+	if stored.SiteRules.Title == "" {
+		stored.SiteRules.Title = def.SiteRules.Title
+	}
+	if stored.PlacementRules.Title == "" {
+		stored.PlacementRules.Title = def.PlacementRules.Title
+	}
+	return stored
+}
 func (h *Handlers) GetSite(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	content := h.LoadHomeContent(ctx)
 	footer := h.LoadFooterContent(ctx)
+	legal := h.LoadLegalContent(ctx)
 
 	featuredGuides := h.ResolveFeaturedGuides(ctx, 4)
 	featuredExcursions := h.ResolveFeaturedExcursions(ctx, 6)
@@ -42,6 +63,7 @@ func (h *Handlers) GetSite(w http.ResponseWriter, r *http.Request) {
 			PopularDestinations: destinations,
 		},
 		Footer: footer,
+		Legal:  legal,
 	})
 }
 func (h *Handlers) ResolveFeaturedGuides(ctx context.Context, limit int) []domain.PublicGuideDTO {
@@ -159,12 +181,14 @@ func (h *Handlers) AdminGetSiteContent(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, r, 200, map[string]any{
 		"home":   h.LoadHomeContent(r.Context()),
 		"footer": h.LoadFooterContent(r.Context()),
+		"legal":  h.LoadLegalContent(r.Context()),
 	})
 }
 func (h *Handlers) AdminSetSiteContent(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Home   domain.HomeContent   `json:"home"`
 		Footer domain.FooterContent `json:"footer"`
+		Legal  domain.LegalContent  `json:"legal"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		response.Error(w, r, apperrors.ErrValidation)
@@ -176,6 +200,10 @@ func (h *Handlers) AdminSetSiteContent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := h.Settings.SetJSON(ctx, keyFooterContent, req.Footer); err != nil {
+		response.Error(w, r, apperrors.ErrInternal)
+		return
+	}
+	if err := h.Settings.SetJSON(ctx, keyLegalContent, req.Legal); err != nil {
 		response.Error(w, r, apperrors.ErrInternal)
 		return
 	}

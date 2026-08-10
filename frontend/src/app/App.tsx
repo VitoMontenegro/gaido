@@ -12,7 +12,9 @@ const ExcursionPage = lazy(() => import('../pages/ExcursionPage'))
 const GuidesListPage = lazy(() => import('../pages/CatalogPages').then((m) => ({ default: m.default })))
 const GuidesByCountryPage = lazy(() => import('../pages/CatalogPages').then((m) => ({ default: m.GuidesByCountryPage })))
 const LoginPage = lazy(() => import('../pages/AuthPages').then((m) => ({ default: m.default })))
-const RegisterPage = lazy(() => import('../pages/AuthPages').then((m) => ({ default: m.RegisterPage })))
+const RegisterTouristPage = lazy(() => import('../pages/AuthPages').then((m) => ({ default: m.RegisterTouristPage })))
+const RegisterGuidePage = lazy(() => import('../pages/AuthPages').then((m) => ({ default: m.RegisterGuidePage })))
+const LegalDocumentPage = lazy(() => import('../components/LegalContentEditor').then((m) => ({ default: m.LegalDocumentPage })))
 const AccountPage = lazy(() => import('../pages/AccountPages').then((m) => ({ default: m.default })))
 const FavoritesPage = lazy(() => import('../pages/AccountPages').then((m) => ({ default: m.FavoritesPage })))
 const SettingsPage = lazy(() => import('../pages/AccountPages').then((m) => ({ default: m.SettingsPage })))
@@ -60,7 +62,9 @@ export default function App() {
         <Route path="journal" element={<Lazy><JournalListPage /></Lazy>} />
         <Route path="journal/:slug" element={<Lazy><JournalArticlePage /></Lazy>} />
         <Route path="login" element={<Lazy><LoginPage /></Lazy>} />
-        <Route path="register" element={<Lazy><RegisterPage /></Lazy>} />
+        <Route path="register" element={<Lazy><RegisterTouristPage /></Lazy>} />
+        <Route path="register/guide" element={<Lazy><RegisterGuidePage /></Lazy>} />
+        <Route path="legal/:slug" element={<Lazy><LegalDocumentPage /></Lazy>} />
       </Route>
 
       <Route element={<AccountLayout />}>

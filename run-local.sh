@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Локальный запуск Experts Tourister: Docker (PG+Redis) → migrate → Go API → Vite.
-# Postgres (:5433) и Redis (:6380) — через docker compose / OrbStack.
+# Порты по умолчанию (OrbStack-safe): API :8091, Vite :5173, PG :5433, Redis :6380.
+# :8080/:8081 часто заняты OrbStack — не используем.
 #
 #   ./run-local.sh
 #   LOCAL_SKIP_FRONTEND=1 ./run-local.sh
@@ -14,23 +15,20 @@ LOCAL_ROOT="$ROOT"
 # shellcheck disable=SC1091
 source "$ROOT/scripts/lib/local-common.sh"
 
-BACKEND_PORT="${HTTP_ADDR:-${BACKEND_PORT:-8081}}"
-BACKEND_PORT="${BACKEND_PORT#:}"
-FRONTEND_PORT="${FRONTEND_PORT:-5173}"
-PG_HOST="${PG_HOST:-127.0.0.1}"
-PG_PORT="${PG_PORT:-5433}"
-REDIS_HOST="${REDIS_HOST:-127.0.0.1}"
-REDIS_PORT="${REDIS_PORT:-6380}"
-
-local_load_env "$ROOT"
 local_ensure_dirs "$ROOT"
-
-echo "■ run-local.sh"
 
 if [[ ! -f "$ROOT/.env" && -f "$ROOT/.env.example" ]]; then
   cp "$ROOT/.env.example" "$ROOT/.env"
   echo "→ created .env from .env.example"
 fi
+
+local_load_env "$ROOT"
+local_resolve_ports "$ROOT"
+
+PG_HOST="${PG_HOST:-127.0.0.1}"
+REDIS_HOST="${REDIS_HOST:-127.0.0.1}"
+
+echo "■ run-local.sh"
 
 if [[ "${LOCAL_SKIP_DOCKER:-0}" != "1" ]]; then
   echo "→ docker compose up -d"
@@ -50,17 +48,17 @@ else
   echo "→ skip migrate (LOCAL_SKIP_MIGRATE=1)"
 fi
 
-export HTTP_ADDR=":${BACKEND_PORT}"
-export DATABASE_URL="${DATABASE_URL:-postgres://tourister:tourister@localhost:5433/tourister?sslmode=disable}"
-export REDIS_URL="${REDIS_URL:-redis://localhost:6380/0}"
-export REDIS_SESSION_URL="${REDIS_SESSION_URL:-redis://localhost:6380/1}"
-export REDIS_SIGNAL_URL="${REDIS_SIGNAL_URL:-redis://localhost:6380/2}"
+export DATABASE_URL="${DATABASE_URL:-postgres://tourister:tourister@localhost:${PG_PORT}/tourister?sslmode=disable}"
+export REDIS_URL="${REDIS_URL:-redis://localhost:${REDIS_PORT}/0}"
+export REDIS_SESSION_URL="${REDIS_SESSION_URL:-redis://localhost:${REDIS_PORT}/1}"
+export REDIS_SIGNAL_URL="${REDIS_SIGNAL_URL:-redis://localhost:${REDIS_PORT}/2}"
 export PAYMENT_STUB_ENABLED="${PAYMENT_STUB_ENABLED:-true}"
 
 if [[ "${LOCAL_SKIP_BACKEND:-0}" != "1" ]]; then
   echo "→ backend :${BACKEND_PORT}"
   (
     cd "$ROOT/backend"
+    export HTTP_ADDR BACKEND_PORT CORS_ORIGINS PUBLIC_BASE_URL DATABASE_URL REDIS_URL REDIS_SESSION_URL REDIS_SIGNAL_URL
     exec go run ./cmd/api
   ) >>"$ROOT/.local/logs/backend.log" 2>&1 &
   echo $! >"$ROOT/.local/pids/backend.pid"
@@ -89,4 +87,5 @@ fi
 echo "→ frontend :${FRONTEND_PORT} (foreground — Ctrl+C stops vite only; ./stop-local.sh for all)"
 cd "$ROOT/frontend"
 export PORT="$FRONTEND_PORT"
+export BACKEND_PORT HTTP_ADDR
 exec npm run dev -- --host 127.0.0.1 --port "$FRONTEND_PORT"

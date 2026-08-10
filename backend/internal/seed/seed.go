@@ -185,7 +185,7 @@ func (s *Seeder) ensureUser(ctx context.Context, login, email, pass, firstName, 
 		if err != nil {
 			return err
 		}
-		if _, err = s.Users.Create(ctx, email, login, hash, roles); err != nil {
+		if _, err = s.Users.Create(ctx, email, login, firstName, lastName, hash, roles); err != nil {
 			return err
 		}
 	}

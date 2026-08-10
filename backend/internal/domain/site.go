@@ -65,6 +65,17 @@ type FooterContent struct {
 	Copyright   string         `json:"copyright"`
 }
 
+type LegalPage struct {
+	Title    string `json:"title"`
+	BodyHTML string `json:"body_html"`
+}
+
+type LegalContent struct {
+	PrivacyPolicy  LegalPage `json:"privacy_policy"`
+	SiteRules      LegalPage `json:"site_rules"`
+	PlacementRules LegalPage `json:"placement_rules"`
+}
+
 type DestinationCity struct {
 	Slug string `json:"slug"`
 	Name string `json:"name"`
@@ -86,4 +97,5 @@ type SiteHomePayload struct {
 type SitePayload struct {
 	Home   SiteHomePayload `json:"home"`
 	Footer FooterContent   `json:"footer"`
+	Legal  LegalContent    `json:"legal"`
 }
