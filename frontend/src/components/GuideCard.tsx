@@ -25,7 +25,7 @@ export default function GuideCard({
             className="aspect-[4/3] w-full"
           />
           {promoted && (
-            <span className="absolute left-2 top-2 rounded-md bg-brand-500 px-1.5 py-0.5 text-[10px] font-medium text-white">
+            <span className="absolute left-2 top-2 rounded-md badge-teal px-1.5 py-0.5 text-[10px] font-medium text-white">
               Топ
             </span>
           )}

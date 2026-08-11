@@ -104,7 +104,7 @@ export default function HomeHero({ title, subtitle }: Props) {
                 key={slide.src}
                 type="button"
                 className={`h-1.5 rounded-full transition-all ${
-                  i === active ? 'w-8 bg-brand-500' : 'w-3 bg-white/35 hover:bg-white/55'
+                  i === active ? 'w-8 badge-teal' : 'w-3 bg-white/35 hover:bg-white/55'
                 }`}
                 onClick={() => setActive(i)}
                 aria-label={`Слайд ${i + 1}`}
