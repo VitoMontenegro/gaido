@@ -11,4 +11,12 @@ describe('sanitizeHtml', () => {
   it('wraps plain text', () => {
     expect(sanitizeHtml('hello')).toContain('hello')
   })
+
+  it('strips form label artifacts from pasted editor content', () => {
+    const out = sanitizeHtml(
+      '<ul><li><span class="block text-sm font-medium text-stone-700">Повний опис</span></li></ul>',
+    )
+    expect(out).not.toContain('text-stone-700')
+    expect(out).toContain('Повний опис')
+  })
 })

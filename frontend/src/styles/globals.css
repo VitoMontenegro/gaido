@@ -88,7 +88,7 @@
 
 @layer components {
   .container-site {
-    @apply mx-auto w-full max-w-[1460px] px-5 md:px-[30px];
+    @apply mx-auto w-full max-w-365 px-5 md:px-7.5;
   }
 
   .section-title {
@@ -131,6 +131,26 @@
     @apply w-full rounded-xl border border-border bg-surface px-4 py-3 text-base text-ink outline-none transition placeholder:text-muted-light focus:border-brand-500 focus:ring-2 focus:ring-brand-50;
     caret-color: #fb7036;
     letter-spacing: -0.02em;
+  }
+
+  .form-field-label {
+    @apply block text-base font-medium text-ink;
+  }
+
+  .form-field-hint {
+    @apply text-base text-stone-500;
+  }
+
+  .excursion-parus-text {
+    @apply text-base leading-relaxed text-stone-700;
+  }
+
+  .excursion-parus-muted {
+    @apply text-base text-stone-500;
+  }
+
+  .excursion-parus-link {
+    @apply text-base font-medium text-brand-700 transition hover:underline;
   }
 
   .nav-link {
@@ -309,7 +329,7 @@
   }
 
   .excursion-body {
-    @apply max-w-none text-[17px] leading-[1.7] text-stone-700;
+    @apply max-w-none text-base leading-relaxed text-stone-700;
   }
 
   .excursion-body h2,
@@ -352,7 +372,7 @@
   }
 
   .excursion-body figcaption {
-    @apply mt-2 text-center text-sm text-stone-500;
+    @apply mt-2 text-center text-base text-stone-500;
   }
 
   /* Olimpus-style photo pairs in TinyMCE tables */
@@ -451,4 +471,234 @@
       border-spacing: 0;
     }
   }
+
+  /* Parus-style excursion page */
+  .excursion-parus-section {
+    @apply scroll-mt-28;
+  }
+
+  .excursion-parus-section__title {
+    @apply font-display mb-4 text-2xl font-bold normal-case tracking-normal text-stone-900 md:text-[28px];
+  }
+
+  .excursion-parus-route {
+    @apply grid gap-2 sm:grid-cols-2;
+    counter-reset: route;
+    list-style: none;
+    padding: 0;
+  }
+
+  .excursion-parus-route li {
+    @apply relative rounded-xl border border-stone-200 bg-stone-50/80 px-4 py-3 pl-10 text-base text-stone-800;
+    counter-increment: route;
+  }
+
+  .excursion-parus-route li::before {
+    content: counter(route);
+    @apply absolute left-3 top-3 flex h-5 w-5 items-center justify-center rounded-full bg-brand-100 text-xs font-bold text-brand-700;
+  }
+
+  .excursion-parus-checklist {
+    @apply grid gap-2 sm:grid-cols-2;
+    list-style: none;
+    padding: 0;
+  }
+
+  .excursion-parus-checklist li {
+    @apply relative pl-7 text-base text-stone-800;
+  }
+
+  .excursion-parus-checklist li::before {
+    content: '✓';
+    @apply absolute left-0 font-bold text-teal;
+  }
+
+  .excursion-parus-photos {
+    @apply grid grid-cols-2 gap-2 sm:grid-cols-4;
+  }
+
+  .excursion-parus-photos__item {
+    @apply block overflow-hidden rounded-3xl border-0 bg-stone-100 p-0 transition-opacity hover:opacity-95;
+  }
+
+  .excursion-parus-photos__item img {
+    @apply aspect-square w-full object-cover;
+  }
+
+  .excursion-parus-photos__item--desktop-only {
+    @apply hidden sm:block;
+  }
+
+  .excursion-parus-photos__item--hidden {
+    @apply hidden;
+  }
+
+  .excursion-parus-photos--expanded .excursion-parus-photos__item--desktop-only,
+  .excursion-parus-photos--expanded .excursion-parus-photos__item--hidden {
+    display: block !important;
+  }
+
+  .excursion-parus-photos__actions {
+    @apply mt-4 flex justify-center;
+  }
+
+  .excursion-parus-photos__actions--mobile-only {
+    @apply sm:hidden;
+  }
+
+  .excursion-parus-photos__more {
+    @apply inline-flex h-11 min-w-[140px] items-center justify-center rounded-xl bg-teal px-5 text-base text-white transition hover:bg-teal-600 sm:h-12 sm:text-lg;
+  }
+
+  .excursion-parus-comfort {
+    @apply grid gap-4 sm:grid-cols-2;
+  }
+
+  .excursion-parus-comfort__card {
+    @apply rounded-2xl border border-border bg-sand-50 p-5;
+  }
+
+  .excursion-parus-comfort__card h3 {
+    @apply font-display mb-2 text-lg font-bold text-stone-900;
+  }
+
+  .excursion-parus-comfort__card p {
+    @apply text-base leading-relaxed text-stone-700;
+  }
+
+  .excursion-parus-video img {
+    @apply w-full;
+  }
+
+  .excursion-parus-hero__grid--2 {
+    @apply sm:grid-cols-2;
+  }
+
+  .excursion-parus-hero__grid--4 {
+    @apply sm:grid-cols-2;
+  }
+
+  .excursion-parus-hero__thumb {
+    @apply aspect-[290/196];
+  }
+
+  .excursion-parus-hero__main {
+    @apply aspect-[606/404];
+  }
+
+  .excursion-parus-hero__bottom-left {
+    @apply aspect-[4/3] md:aspect-[368/249];
+  }
+
+  .excursion-parus-hero__bottom-right {
+    @apply aspect-[4/3] md:aspect-[528/255];
+  }
+
+  .excursion-parus-hero__half {
+    @apply aspect-[606/404];
+  }
+
+  .excursion-parus-hero__quad {
+    @apply min-h-0;
+  }
+
+  .excursion-parus-organizer {
+    @apply flex min-w-0 flex-row items-center gap-4;
+  }
+
+  .excursion-parus-organizer__photo-link {
+    @apply shrink-0;
+  }
+
+  .excursion-parus-organizer__photo {
+    @apply aspect-square max-h-[80px] w-auto overflow-hidden rounded-3xl sm:max-h-[220px];
+  }
+
+  .excursion-parus-organizer__heading {
+    @apply text-[28px] font-bold leading-[28px] text-stone-900;
+  }
+
+  .excursion-parus-organizer__name {
+    @apply text-[24px] font-semibold leading-6 text-stone-900 transition hover:text-brand-700;
+  }
+
+  .excursion-parus-organizer__name-mobile {
+    @apply text-lg font-semibold leading-5 text-stone-900 transition hover:text-brand-700;
+  }
+
+  .excursion-parus-organizer__about,
+  .excursion-parus-organizer__about-mobile {
+    @apply text-base leading-snug text-stone-700;
+  }
+
+  .excursion-parus-organizer__about-link,
+  .excursion-parus-organizer__about-link-mobile {
+    @apply text-base text-brand-700 transition hover:underline;
+  }
+
+  .excursion-parus-organizer__empty {
+    @apply text-base text-stone-500;
+  }
+
+  .excursion-parus-organizer__contacts {
+    @apply grid w-full min-w-0 grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-center;
+  }
+
+  .excursion-parus-organizer__pill {
+    @apply flex h-11 min-w-0 items-center justify-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium transition hover:opacity-90 sm:flex-1 sm:gap-2 sm:px-4 sm:text-base;
+  }
+
+  .excursion-parus-organizer__pill span {
+    @apply whitespace-nowrap;
+  }
+
+  .excursion-parus-organizer__pill:last-child:nth-child(odd) {
+    @apply col-span-2 sm:col-span-1;
+  }
+
+  .excursion-parus-organizer__pill--telegram {
+    @apply bg-[#29a1dd] text-white;
+  }
+
+  .excursion-parus-organizer__pill--whatsapp {
+    @apply bg-[#23bf5e] text-white;
+  }
+
+  .excursion-parus-organizer__pill--viber {
+    @apply bg-[#7360f2] text-white;
+  }
+
+  .excursion-parus-organizer__pill--email {
+    @apply bg-[#e7e5e5] text-[#0F1A28];
+  }
+}
+
+.calendar-month-header-sticky {
+  position: sticky;
+  left: 0;
+  z-index: 10;
+  background-color: white;
+  width: fit-content;
+  margin-bottom: 6px;
+}
+
+@media (min-width: 576px) {
+  .calendar-month-header-sticky {
+    padding-left: 14px;
+  }
+}
+
+.calendar-month-header-sticky p {
+  font-family: var(--font-display), sans-serif;
+  color: #0f1a28;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.excursion-parus-section {
+  background: #fff;
+  border-radius: 24px;
+}
+
+button {
+  @apply cursor-pointer;
 }

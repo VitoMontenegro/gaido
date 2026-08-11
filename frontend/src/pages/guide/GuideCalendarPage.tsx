@@ -1,117 +1,79 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../api/client'
+import AvailabilityCalendar from '../../components/AvailabilityCalendar'
+import { dateKeyFromISO, type CalendarDateItem } from '../../lib/calendarUtils'
 
 type Slot = { id: number; starts_at: string; ends_at: string; note: string }
 
 export function GuideCalendarPage() {
   const qc = useQueryClient()
-  const [startsAt, setStartsAt] = useState('')
-  const [endsAt, setEndsAt] = useState('')
-  const [note, setNote] = useState('')
+  const now = new Date()
+  const [year, setYear] = useState(now.getFullYear())
+  const [month, setMonth] = useState(now.getMonth() + 1)
 
   const { data, isLoading } = useQuery({
     queryKey: ['slots'],
     queryFn: () => api<{ items: Slot[] }>('/api/v1/account/guide/calendar'),
   })
 
-  const create = useMutation({
-    mutationFn: () =>
-      api<{ id: number }>('/api/v1/account/guide/calendar', {
+  const addSlot = useMutation({
+    mutationFn: (date: string) =>
+      api('/api/v1/account/guide/calendar/by-date', {
         method: 'POST',
-        body: JSON.stringify({
-          starts_at: new Date(startsAt).toISOString(),
-          ends_at: new Date(endsAt).toISOString(),
-          note,
-        }),
+        body: JSON.stringify({ date }),
       }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['slots'] })
-      setStartsAt('')
-      setEndsAt('')
-      setNote('')
-    },
-  })
-
-  const remove = useMutation({
-    mutationFn: (id: number) =>
-      api(`/api/v1/account/guide/calendar/${id}`, { method: 'DELETE' }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['slots'] }),
   })
+
+  const removeSlot = useMutation({
+    mutationFn: (id: number) => api(`/api/v1/account/guide/calendar/${id}`, { method: 'DELETE' }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['slots'] }),
+  })
+
+  const dates: CalendarDateItem[] = useMemo(
+    () =>
+      (data?.items ?? []).map((s) => ({
+        id: s.id,
+        date: dateKeyFromISO(s.starts_at),
+        starts_at: s.starts_at,
+        ends_at: s.ends_at,
+      })),
+    [data],
+  )
+
+  const pending = addSlot.isPending || removeSlot.isPending
 
   return (
     <div className="card space-y-5">
       <div>
         <h2 className="font-display mb-1 text-xl font-bold">Календар доступності</h2>
-        <p className="text-sm text-stone-500">Інформаційні слоти — без бронювання.</p>
+        <p className="text-sm text-stone-500">
+          Загальний календар для індивідуальних екскурсій. Клієнти бачать вільні дати на сторінках турів і в пошуку.
+        </p>
       </div>
 
-      <form
-        className="grid gap-3 sm:grid-cols-2"
-        onSubmit={(e) => {
-          e.preventDefault()
-          if (!startsAt || !endsAt) return
-          create.mutate()
+      <AvailabilityCalendar
+        year={year}
+        month={month}
+        dates={dates}
+        onMonthChange={(y, m) => {
+          setYear(y)
+          setMonth(m)
         }}
-      >
-        <label className="text-sm">
-          Початок
-          <input
-            type="datetime-local"
-            className="input mt-1 w-full"
-            value={startsAt}
-            onChange={(e) => setStartsAt(e.target.value)}
-            required
-          />
-        </label>
-        <label className="text-sm">
-          Кінець
-          <input
-            type="datetime-local"
-            className="input mt-1 w-full"
-            value={endsAt}
-            onChange={(e) => setEndsAt(e.target.value)}
-            required
-          />
-        </label>
-        <label className="text-sm sm:col-span-2">
-          Нотатка
-          <input
-            className="input mt-1 w-full"
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder="Опційно"
-          />
-        </label>
-        <div className="sm:col-span-2">
-          <button type="submit" className="btn-primary" disabled={create.isPending}>
-            {create.isPending ? 'Додаємо…' : 'Додати слот'}
-          </button>
-          {create.isError && (
-            <p className="mt-2 text-sm text-red-600">{(create.error as Error).message}</p>
-          )}
-        </div>
-      </form>
+        onDateClick={(dateKey, item) => {
+          if (pending) return
+          if (item?.id) removeSlot.mutate(item.id)
+          else addSlot.mutate(dateKey)
+        }}
+        mode="edit"
+        loading={isLoading || pending}
+        title="Доступні дати"
+      />
 
-      {isLoading && <p className="text-sm text-muted">Завантаження…</p>}
-      <ul className="space-y-2">
-        {(data?.items ?? []).map((s) => (
-          <li key={s.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-sand-50 px-3 py-2 text-sm">
-            <span>
-              {new Date(s.starts_at).toLocaleString('uk-UA')} — {new Date(s.ends_at).toLocaleString('uk-UA')}
-              {s.note ? ` · ${s.note}` : ''}
-            </span>
-            <button
-              type="button"
-              className="text-xs text-red-600 hover:underline"
-              disabled={remove.isPending}
-              onClick={() => remove.mutate(s.id)}
-            >
-              Видалити
-            </button>
-          </li>
-        ))}
-      </ul>
+      {(addSlot.isError || removeSlot.isError) && (
+        <p className="text-sm text-red-600">{(addSlot.error ?? removeSlot.error)?.message}</p>
+      )}
     </div>
   )
 }

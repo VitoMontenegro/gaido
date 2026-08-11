@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/vitomonte/experts-tourister/internal/domain"
@@ -17,11 +18,11 @@ func NewExcursionRepo(db *DB) *ExcursionRepo { return &ExcursionRepo{db: db} }
 
 const excursionSelectCols = `id, guide_id, city_id, category_id, title, slug, description, type, max_guests, price_from, currency, status,
 duration_minutes, transport_mode, children_allowed, language, organizational_details, meeting_point,
-cover_image_url, body_html, map_embed_url, included_items, excluded_items`
+cover_image_url, body_html, map_embed_url, included_items, excluded_items, structured_content`
 
 const excursionSelectColsAliased = `e.id, e.guide_id, e.city_id, e.category_id, e.title, e.slug, e.description, e.type, e.max_guests, e.price_from, e.currency, e.status,
 	e.duration_minutes, e.transport_mode, e.children_allowed, e.language, e.organizational_details, e.meeting_point,
-	e.cover_image_url, e.body_html, e.map_embed_url, e.included_items, e.excluded_items`
+	e.cover_image_url, e.body_html, e.map_embed_url, e.included_items, e.excluded_items, e.structured_content`
 
 const excursionReviewRatingCols = `,
 COALESCE((SELECT AVG(r.rating)::float8 FROM guide_reviews r WHERE r.excursion_id=e.id AND r.status='PUBLISHED'), 0),
@@ -51,37 +52,81 @@ func unmarshalStringSlice(raw []byte) []string {
 	return out
 }
 
+func marshalStructuredContent(v domain.ExcursionStructuredContent) []byte {
+	if v.Gallery == nil {
+		v.Gallery = []string{}
+	}
+	if v.RouteStops == nil {
+		v.RouteStops = []string{}
+	}
+	if v.PhotoLocations == nil {
+		v.PhotoLocations = []string{}
+	}
+	if v.ComfortItems == nil {
+		v.ComfortItems = []domain.ExcursionComfortItem{}
+	}
+	b, err := json.Marshal(v)
+	if err != nil {
+		return []byte("{}")
+	}
+	return b
+}
+
+func unmarshalStructuredContent(raw []byte) domain.ExcursionStructuredContent {
+	if len(raw) == 0 {
+		return domain.ExcursionStructuredContent{}
+	}
+	var out domain.ExcursionStructuredContent
+	if err := json.Unmarshal(raw, &out); err != nil {
+		return domain.ExcursionStructuredContent{}
+	}
+	if out.Gallery == nil {
+		out.Gallery = []string{}
+	}
+	if out.RouteStops == nil {
+		out.RouteStops = []string{}
+	}
+	if out.PhotoLocations == nil {
+		out.PhotoLocations = []string{}
+	}
+	if out.ComfortItems == nil {
+		out.ComfortItems = []domain.ExcursionComfortItem{}
+	}
+	return out
+}
+
 func scanExcursionFields(e *domain.Excursion, row pgx.Row) error {
-	var includedRaw, excludedRaw []byte
+	var includedRaw, excludedRaw, structuredRaw []byte
 	err := row.Scan(
 		&e.ID, &e.GuideID, &e.CityID, &e.CategoryID, &e.Title, &e.Slug, &e.Description, &e.Type, &e.MaxGuests, &e.PriceFrom, &e.Currency, &e.Status,
 		&e.DurationMinutes, &e.TransportMode, &e.ChildrenAllowed, &e.Language, &e.OrganizationalDetails, &e.MeetingPoint,
-		&e.CoverImageURL, &e.BodyHTML, &e.MapEmbedURL, &includedRaw, &excludedRaw,
+		&e.CoverImageURL, &e.BodyHTML, &e.MapEmbedURL, &includedRaw, &excludedRaw, &structuredRaw,
 	)
 	if err != nil {
 		return err
 	}
 	e.IncludedItems = unmarshalStringSlice(includedRaw)
 	e.ExcludedItems = unmarshalStringSlice(excludedRaw)
+	e.StructuredContent = unmarshalStructuredContent(structuredRaw)
 	return nil
 }
 
 func scanExcursionViewFields(v *domain.ExcursionView, row pgx.Row, withGuide, withRating bool) error {
-	var includedRaw, excludedRaw []byte
+	var includedRaw, excludedRaw, structuredRaw []byte
 	var err error
 	if withGuide {
 		if withRating {
 			err = row.Scan(
 				&v.ID, &v.GuideID, &v.CityID, &v.CategoryID, &v.Title, &v.Slug, &v.Description, &v.Type, &v.MaxGuests, &v.PriceFrom, &v.Currency, &v.Status,
 				&v.DurationMinutes, &v.TransportMode, &v.ChildrenAllowed, &v.Language, &v.OrganizationalDetails, &v.MeetingPoint,
-				&v.CoverImageURL, &v.BodyHTML, &v.MapEmbedURL, &includedRaw, &excludedRaw,
+				&v.CoverImageURL, &v.BodyHTML, &v.MapEmbedURL, &includedRaw, &excludedRaw, &structuredRaw,
 				&v.CityName, &v.CitySlug, &v.GuideName, &v.GuideSlug, &v.GuideAvatarURL, &v.RatingAvg, &v.RatingCount,
 			)
 		} else {
 			err = row.Scan(
 				&v.ID, &v.GuideID, &v.CityID, &v.CategoryID, &v.Title, &v.Slug, &v.Description, &v.Type, &v.MaxGuests, &v.PriceFrom, &v.Currency, &v.Status,
 				&v.DurationMinutes, &v.TransportMode, &v.ChildrenAllowed, &v.Language, &v.OrganizationalDetails, &v.MeetingPoint,
-				&v.CoverImageURL, &v.BodyHTML, &v.MapEmbedURL, &includedRaw, &excludedRaw,
+				&v.CoverImageURL, &v.BodyHTML, &v.MapEmbedURL, &includedRaw, &excludedRaw, &structuredRaw,
 				&v.CityName, &v.CitySlug, &v.GuideName, &v.GuideSlug, &v.GuideAvatarURL,
 			)
 		}
@@ -89,14 +134,14 @@ func scanExcursionViewFields(v *domain.ExcursionView, row pgx.Row, withGuide, wi
 		err = row.Scan(
 			&v.ID, &v.GuideID, &v.CityID, &v.CategoryID, &v.Title, &v.Slug, &v.Description, &v.Type, &v.MaxGuests, &v.PriceFrom, &v.Currency, &v.Status,
 			&v.DurationMinutes, &v.TransportMode, &v.ChildrenAllowed, &v.Language, &v.OrganizationalDetails, &v.MeetingPoint,
-			&v.CoverImageURL, &v.BodyHTML, &v.MapEmbedURL, &includedRaw, &excludedRaw,
+			&v.CoverImageURL, &v.BodyHTML, &v.MapEmbedURL, &includedRaw, &excludedRaw, &structuredRaw,
 			&v.CityName, &v.CitySlug, &v.RatingAvg, &v.RatingCount,
 		)
 	} else {
 		err = row.Scan(
 			&v.ID, &v.GuideID, &v.CityID, &v.CategoryID, &v.Title, &v.Slug, &v.Description, &v.Type, &v.MaxGuests, &v.PriceFrom, &v.Currency, &v.Status,
 			&v.DurationMinutes, &v.TransportMode, &v.ChildrenAllowed, &v.Language, &v.OrganizationalDetails, &v.MeetingPoint,
-			&v.CoverImageURL, &v.BodyHTML, &v.MapEmbedURL, &includedRaw, &excludedRaw,
+			&v.CoverImageURL, &v.BodyHTML, &v.MapEmbedURL, &includedRaw, &excludedRaw, &structuredRaw,
 			&v.CityName, &v.CitySlug,
 		)
 	}
@@ -105,6 +150,7 @@ func scanExcursionViewFields(v *domain.ExcursionView, row pgx.Row, withGuide, wi
 	}
 	v.IncludedItems = unmarshalStringSlice(includedRaw)
 	v.ExcludedItems = unmarshalStringSlice(excludedRaw)
+	v.StructuredContent = unmarshalStructuredContent(structuredRaw)
 	return nil
 }
 
@@ -113,11 +159,11 @@ func (r *ExcursionRepo) Create(ctx context.Context, e *domain.Excursion) (int64,
 	err := r.db.Pool.QueryRow(ctx, `
 		INSERT INTO excursions (guide_id, city_id, category_id, title, slug, description, type, max_guests, price_from, currency, status,
 			duration_minutes, transport_mode, children_allowed, language, organizational_details, meeting_point,
-			cover_image_url, body_html, map_embed_url, included_items, excluded_items)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21::jsonb,$22::jsonb) RETURNING id
+			cover_image_url, body_html, map_embed_url, included_items, excluded_items, structured_content)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21::jsonb,$22::jsonb,$23::jsonb) RETURNING id
 	`, e.GuideID, e.CityID, e.CategoryID, e.Title, e.Slug, e.Description, e.Type, e.MaxGuests, e.PriceFrom, e.Currency, e.Status,
 		e.DurationMinutes, e.TransportMode, e.ChildrenAllowed, e.Language, e.OrganizationalDetails, e.MeetingPoint,
-		e.CoverImageURL, e.BodyHTML, e.MapEmbedURL, string(marshalStringSlice(e.IncludedItems)), string(marshalStringSlice(e.ExcludedItems))).Scan(&id)
+		e.CoverImageURL, e.BodyHTML, e.MapEmbedURL, string(marshalStringSlice(e.IncludedItems)), string(marshalStringSlice(e.ExcludedItems)), string(marshalStructuredContent(e.StructuredContent))).Scan(&id)
 	return id, err
 }
 
@@ -329,11 +375,11 @@ func (r *ExcursionRepo) GetViewBySlug(ctx context.Context, slug string) (*domain
 		WHERE e.slug=$1
 	`, slug, domain.ReviewPublished)
 	var v domain.ExcursionView
-	var includedRaw, excludedRaw []byte
+	var includedRaw, excludedRaw, structuredRaw []byte
 	err := row.Scan(
 		&v.ID, &v.GuideID, &v.CityID, &v.CategoryID, &v.Title, &v.Slug, &v.Description, &v.Type, &v.MaxGuests, &v.PriceFrom, &v.Currency, &v.Status,
 		&v.DurationMinutes, &v.TransportMode, &v.ChildrenAllowed, &v.Language, &v.OrganizationalDetails, &v.MeetingPoint,
-		&v.CoverImageURL, &v.BodyHTML, &v.MapEmbedURL, &includedRaw, &excludedRaw,
+		&v.CoverImageURL, &v.BodyHTML, &v.MapEmbedURL, &includedRaw, &excludedRaw, &structuredRaw,
 		&v.CityName, &v.CitySlug, &v.GuideName, &v.GuideSlug, &v.GuideAvatarURL, &v.RatingAvg, &v.RatingCount,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -344,6 +390,7 @@ func (r *ExcursionRepo) GetViewBySlug(ctx context.Context, slug string) (*domain
 	}
 	v.IncludedItems = unmarshalStringSlice(includedRaw)
 	v.ExcludedItems = unmarshalStringSlice(excludedRaw)
+	v.StructuredContent = unmarshalStructuredContent(structuredRaw)
 	return &v, nil
 }
 
@@ -380,7 +427,7 @@ func scanExcursionViews(rows pgx.Rows, withRating bool) ([]domain.ExcursionView,
 	return out, rows.Err()
 }
 
-func (r *ExcursionRepo) ListPublicEnriched(ctx context.Context, cityID *int64, q string, limit, offset int) ([]domain.ExcursionView, error) {
+func (r *ExcursionRepo) ListPublicEnriched(ctx context.Context, cityID *int64, q string, date *time.Time, limit, offset int) ([]domain.ExcursionView, error) {
 	sql := `SELECT ` + excursionSelectColsAliased + `,
 			` + excursionCityCols + `,
 			g.display_name,
@@ -399,6 +446,22 @@ func (r *ExcursionRepo) ListPublicEnriched(ctx context.Context, cityID *int64, q
 	}
 	if strings.TrimSpace(q) != "" {
 		sql, args, n = appendExcursionTextSearch(sql, args, n, q, true)
+	}
+	if date != nil {
+		dayStart := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, time.UTC)
+		dayEnd := dayStart.Add(24 * time.Hour)
+		sql += fmt.Sprintf(` AND (
+			(e.type='GROUP' AND EXISTS (
+				SELECT 1 FROM excursion_dates ed
+				WHERE ed.excursion_id=e.id AND ed.starts_at >= $%d AND ed.starts_at < $%d AND ed.ends_at > NOW()
+			))
+			OR (e.type='INDIVIDUAL' AND EXISTS (
+				SELECT 1 FROM guide_availability_slots gas
+				WHERE gas.guide_id=e.guide_id AND gas.starts_at >= $%d AND gas.starts_at < $%d AND gas.ends_at > NOW()
+			))
+		)`, n, n+1, n, n+1)
+		args = append(args, dayStart, dayEnd)
+		n += 2
 	}
 	sql += fmt.Sprintf(` ORDER BY e.id DESC LIMIT $%d OFFSET $%d`, n, n+1)
 	args = append(args, limit, offset)
@@ -495,12 +558,14 @@ func (r *ExcursionRepo) Update(ctx context.Context, e *domain.Excursion) error {
 	_, err := r.db.Pool.Exec(ctx, `
 		UPDATE excursions SET city_id=$2, category_id=$3, title=$4, description=$5, type=$6, max_guests=$7, price_from=$8, status=$9,
 			duration_minutes=$10, transport_mode=$11, children_allowed=$12, language=$13, organizational_details=$14, meeting_point=$15,
-			cover_image_url=$16, body_html=$17, map_embed_url=$18, included_items=$19::jsonb, excluded_items=$20::jsonb, updated_at=NOW()
-		WHERE id=$1 AND guide_id=$21
+			cover_image_url=$16, body_html=$17, map_embed_url=$18, included_items=$19::jsonb, excluded_items=$20::jsonb,
+			structured_content=$21::jsonb, updated_at=NOW()
+		WHERE id=$1 AND guide_id=$22
 	`, e.ID, e.CityID, e.CategoryID, e.Title, e.Description, e.Type, e.MaxGuests, e.PriceFrom, e.Status,
 		e.DurationMinutes, e.TransportMode, e.ChildrenAllowed, e.Language, e.OrganizationalDetails, e.MeetingPoint,
 		e.CoverImageURL, e.BodyHTML, e.MapEmbedURL,
-		string(marshalStringSlice(e.IncludedItems)), string(marshalStringSlice(e.ExcludedItems)), e.GuideID)
+		string(marshalStringSlice(e.IncludedItems)), string(marshalStringSlice(e.ExcludedItems)),
+		string(marshalStructuredContent(e.StructuredContent)), e.GuideID)
 	return err
 }
 

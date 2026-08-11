@@ -10,6 +10,22 @@ type Props = {
   className?: string
 }
 
+function CheckIcon() {
+  return (
+    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-teal/15 text-xs font-bold text-teal-dark">
+      ✓
+    </span>
+  )
+}
+
+function CrossIcon() {
+  return (
+    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-rose-100 text-xs font-bold text-rose-600">
+      ×
+    </span>
+  )
+}
+
 export default function BookingTermsSection({ included, excluded, notesHtml, meetingPoint, className }: Props) {
   const inc = normalizeItems(included)
   const exc = normalizeItems(excluded)
@@ -18,20 +34,18 @@ export default function BookingTermsSection({ included, excluded, notesHtml, mee
   if (!inc.length && !exc.length && !notes && !meeting) return null
 
   return (
-    <section className={cn('mt-10 border-t border-divider pt-8', className)}>
-      <h2 className="section-title-sm">Умови бронювання</h2>
+    <section className={cn('excursion-parus-section scroll-mt-28 p-4 shadow-lg', className)}>
+      <h2 className="excursion-parus-section__title">Умови бронювання</h2>
 
       {(inc.length > 0 || exc.length > 0) && (
-        <div className="mt-5 grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-2">
           {inc.length > 0 && (
-            <div className="card-flat p-5">
-              <h3 className="text-sm font-medium uppercase tracking-wide text-muted">Що входить</h3>
+            <div className="rounded-2xl border border-stone-100 bg-stone-50/50 p-4">
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-stone-500">Що входить</h3>
               <ul className="mt-3 space-y-2.5">
                 {inc.map((item) => (
-                  <li key={item} className="flex items-start gap-2.5 text-[15px] leading-snug text-ink">
-                    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-teal/15 text-xs font-bold text-teal-dark">
-                      ✓
-                    </span>
+                  <li key={item} className="flex items-start gap-2.5 text-base leading-snug text-stone-800">
+                    <CheckIcon />
                     <span>{item}</span>
                   </li>
                 ))}
@@ -39,14 +53,12 @@ export default function BookingTermsSection({ included, excluded, notesHtml, mee
             </div>
           )}
           {exc.length > 0 && (
-            <div className="card-flat p-5">
-              <h3 className="text-sm font-medium uppercase tracking-wide text-muted">Що не входить</h3>
+            <div className="rounded-2xl border border-rose-100 bg-rose-50/70 p-4">
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-rose-700/80">Що не входить</h3>
               <ul className="mt-3 space-y-2.5">
                 {exc.map((item) => (
-                  <li key={item} className="flex items-start gap-2.5 text-[15px] leading-snug text-ink">
-                    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-sand-100 text-xs font-bold text-muted">
-                      ×
-                    </span>
+                  <li key={item} className="flex items-start gap-2.5 text-base leading-snug text-stone-800">
+                    <CrossIcon />
                     <span>{item}</span>
                   </li>
                 ))}
@@ -57,16 +69,16 @@ export default function BookingTermsSection({ included, excluded, notesHtml, mee
       )}
 
       {meeting && (
-        <div className="mt-6">
-          <h3 className="text-sm font-medium uppercase tracking-wide text-muted">Місце зустрічі</h3>
-          <p className="mt-2 whitespace-pre-wrap text-[15px] leading-relaxed text-ink">{meeting}</p>
+        <div className="mt-5 rounded-2xl border border-stone-100 bg-stone-50/50 p-4">
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-stone-500">Місце зустрічі</h3>
+          <p className="mt-2 whitespace-pre-wrap text-base leading-relaxed text-stone-800">{meeting}</p>
         </div>
       )}
 
       {notes && (
-        <div className="mt-6">
-          <h3 className="text-sm font-medium uppercase tracking-wide text-muted">Додатково</h3>
-          <div className="excursion-body mt-2" dangerouslySetInnerHTML={{ __html: notes }} />
+        <div className="mt-5 rounded-2xl border border-stone-100 bg-stone-50/50 p-4">
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-stone-500">Додатково</h3>
+          <div className="excursion-body mt-2 text-stone-800" dangerouslySetInnerHTML={{ __html: notes }} />
         </div>
       )}
     </section>

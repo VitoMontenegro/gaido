@@ -15,7 +15,7 @@ function ExcursionRating({ avg, count, className }: { avg?: number; count?: numb
 function ExcursionPreviewDescription({ text, className }: { text: string; className?: string }) {
   if (!text) return null
   return (
-    <p className={cn('hidden line-clamp-2 text-sm leading-snug text-muted md:block', className)}>
+    <p className={cn('line-clamp-2 text-sm leading-snug text-muted', className)}>
       {text}
     </p>
   )

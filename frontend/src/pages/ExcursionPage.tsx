@@ -1,18 +1,25 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api/client'
 import { reviewsApi } from '../api/reviews'
 import type { ExcursionItem } from '../components/excursionUi'
 import {
-  excursionTypeLabel,
+  excursionPriceCaption,
   formatPrice,
 } from '../components/excursionUi'
 import BookingTermsSection from '../components/BookingTermsSection'
 import Breadcrumbs from '../components/Breadcrumbs'
 import ExcursionCover from '../components/ExcursionCover'
+import ExcursionComfortBlock from '../components/ExcursionComfortBlock'
+import ExcursionHeroGallery from '../components/ExcursionHeroGallery'
 import ExcursionDetailsGrid from '../components/ExcursionDetailsGrid'
-import GuideAvatar from '../components/GuideAvatar'
+import ExcursionPhotoLocations from '../components/ExcursionPhotoLocations'
+import ExcursionReadMore from '../components/ExcursionReadMore'
+import ExcursionRouteSection from '../components/ExcursionRouteSection'
+import ExcursionVideoBlock from '../components/ExcursionVideoBlock'
+import ExcursionOrganizerSection from '../components/ExcursionOrganizerSection'
+import ExcursionAvailabilityPanel from '../components/ExcursionAvailabilityPanel'
 import ReviewCard from '../components/reviews/ReviewCard'
 import ReviewForm from '../components/reviews/ReviewForm'
 import { renderStars, type Review } from '../components/reviews/types'
@@ -21,11 +28,14 @@ import { useHasRole, useMe } from '../hooks/useAuth'
 import { getApiErrorCode } from '../api/http'
 import CatalogNotFound from '../components/CatalogNotFound'
 import { resolveMapEmbed } from '../lib/mapEmbed'
+import {
+  hasStructuredContent,
+  isValidMediaRef,
+  normalizeStructuredContent,
+} from '../lib/excursionStructuredContent'
 import { pageTitle } from '../lib/brand'
 import { Seo } from '../lib/seo'
 import { sanitizeHtml } from '../lib/html'
-
-type TabId = 'program' | 'reviews' | 'details'
 
 function ExcursionBookingPanel({
   excursion,
@@ -42,15 +52,15 @@ function ExcursionBookingPanel({
         <p className={`font-display font-bold text-brand-700 ${compact ? 'text-xl leading-tight' : 'text-3xl'}`}>
           {formatPrice(excursion.price_from, excursion.currency)}
         </p>
-        <p className={`text-stone-500 ${compact ? 'truncate text-xs' : 'text-sm'}`}>
-          за групу / формат {excursionTypeLabel(excursion.type).toLowerCase()}
+        <p className={`excursion-parus-muted ${compact ? 'truncate text-xs' : ''}`}>
+          {excursionPriceCaption(excursion.type)}
         </p>
       </div>
       <div className={compact ? 'flex shrink-0 items-center gap-2' : 'space-y-4'}>
         {excursion.guide_slug && (
           <Link
             to={`/guide/${excursion.guide_slug}`}
-            className={`btn-primary text-center ${compact ? 'px-4 py-2.5 text-sm whitespace-nowrap' : 'block w-full'}`}
+            className={`btn-primary text-center ${compact ? 'px-4 py-2.5 text-sm whitespace-nowrap' : 'flex w-full'}`}
           >
             Написати гіду
           </Link>
@@ -68,7 +78,7 @@ function ExcursionBookingPanel({
             {favMutation.isError && (
               <p className="text-xs text-red-600">Увійдіть, щоб додати до обраного</p>
             )}
-            <div className="border-t border-stone-100 pt-3 text-sm text-stone-600">
+            <div className="border-t border-stone-100 pt-3 excursion-parus-text">
               <p className="font-medium text-stone-800">Як це працює</p>
               <p className="mt-1">Звʼяжіться з гідом напряму — бронювання та оплата поза платформою.</p>
             </div>
@@ -95,15 +105,6 @@ export default function ExcursionPage() {
   const qc = useQueryClient()
   const { data: me } = useMe()
   const isGuideRole = useHasRole('ROLE_GUIDE')
-  const [tab, setTab] = useState<TabId>('program')
-  const sectionRef = useRef<HTMLElement>(null)
-
-  const selectTab = (id: TabId) => {
-    setTab(id)
-    requestAnimationFrame(() => {
-      sectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    })
-  }
 
   const { data: excursion, isLoading, isError, error } = useQuery({
     queryKey: ['excursion', slug],
@@ -163,6 +164,9 @@ export default function ExcursionPage() {
   if (isLoading) return <div className="container-site p-8 text-muted">Завантаження…</div>
   if (isError || !excursion) return <CatalogNotFound kind="excursion" />
 
+  const structured = normalizeStructuredContent(excursion.structured_content)
+  const gallery = structured.gallery.filter(isValidMediaRef)
+  const useParusLayout = hasStructuredContent(structured, excursion.cover_image_url)
   const duration = excursion.duration_minutes ?? 180
   const transport = excursion.transport_mode ?? 'WALKING'
   const language = excursion.language ?? 'uk'
@@ -179,7 +183,7 @@ export default function ExcursionPage() {
     !!excursion.meeting_point?.trim()
 
   return (
-    <>
+    <div className="excursion-parus pb-28 lg:pb-10">
       <Seo
         title={pageTitle(excursion.title)}
         description={excursion.description ?? ''}
@@ -208,73 +212,42 @@ export default function ExcursionPage() {
         ]}
       />
 
-      <ExcursionCover
-        cover={excursion.cover_image_url}
-        title={excursion.title}
-        className={
-          excursion.cover_image_url?.trim()
-            ? 'aspect-[16/9] w-full max-h-[420px]'
-            : 'aspect-[21/9] w-full max-h-[220px] border-b border-divider'
-        }
-      />
+      <header className="container-site pt-8">
+        <h1 className="font-display text-3xl font-bold normal-case tracking-normal md:text-4xl">
+          {excursion.title}
+        </h1>
+        {excursion.city_name && (
+          <p className="mt-2 excursion-parus-text text-stone-600">{excursion.city_name}</p>
+        )}
+      </header>
 
-      <div className="container-site grid gap-8 py-8 pb-28 lg:grid-cols-[1fr_340px] lg:pb-8">
-        <div>
+      <div className="container-site grid gap-8 py-8 lg:grid-cols-[1fr_340px]">
+        <div className="min-w-0 space-y-8">
           {ratingCount > 0 && (
-            <button
-              type="button"
-              className="mb-3 text-sm font-medium text-brand-700"
-              onClick={() => selectTab('reviews')}
-            >
+            <a href="#reviews" className="excursion-parus-link">
               {renderStars(ratingAvg)} {ratingAvg.toFixed(1)} · {ratingCount} відгуків
-            </button>
+            </a>
           )}
 
-          <h1 className="font-display text-3xl font-bold normal-case tracking-normal md:text-4xl">
-            {excursion.title}
-          </h1>
-          {excursion.city_name && (
-            <p className="mt-2 text-stone-600">{excursion.city_name}</p>
+          {useParusLayout && gallery.length > 0 ? (
+              <ExcursionHeroGallery
+                  images={gallery}
+                  mobileCover={structured.gallery_mobile_cover}
+                  title={excursion.title}
+              />
+          ) : (
+              <ExcursionCover
+                  cover={excursion.cover_image_url}
+                  title={excursion.title}
+                  className={
+                    excursion.cover_image_url?.trim()
+                        ? 'aspect-video w-full max-h-105'
+                        : 'aspect-21/9 w-full max-h-55 border-b border-divider'
+                  }
+              />
           )}
 
-          <nav
-            ref={sectionRef}
-            role="tablist"
-            aria-label="Розділи екскурсії"
-            className="sticky top-[124px] z-30 -mx-5 mt-5 scroll-mt-[124px] border-b border-divider bg-page/95 px-5 py-3 backdrop-blur-sm lg:top-[70px] lg:mx-0 lg:scroll-mt-[105px]"
-          >
-            <div className="grid grid-cols-3 gap-1 rounded-xl bg-stone-200/70 p-1 shadow-sm ring-1 ring-border/60">
-              {(
-                [
-                  ['program', 'Програма'],
-                  ['reviews', 'Відгуки', ratingCount],
-                  ['details', 'Умови'],
-                ] as const
-              ).map(([id, label, count]) => (
-                <button
-                  key={id}
-                  type="button"
-                  role="tab"
-                  aria-selected={tab === id}
-                  className={`flex min-h-11 items-center justify-center gap-1 rounded-lg px-2 py-2 text-sm font-medium transition md:text-[15px] ${
-                    tab === id
-                      ? 'bg-white text-brand-700 shadow-sm ring-1 ring-black/5'
-                      : 'text-stone-600 hover:bg-white/60 hover:text-ink'
-                  }`}
-                  onClick={() => selectTab(id)}
-                >
-                  <span>{label}</span>
-                  {typeof count === 'number' && count > 0 && (
-                    <span className="rounded-md bg-brand-100 px-1.5 py-0.5 text-xs font-medium text-brand-700">
-                      {count}
-                    </span>
-                  )}
-                </button>
-              ))}
-            </div>
-          </nav>
-
-          <div className="mt-5 border-y border-stone-200 py-4">
+          <div className="rounded-3xl bg-white p-4 shadow-lg">
             <ExcursionDetailsGrid
               type={excursion.type}
               maxGuests={excursion.max_guests}
@@ -285,96 +258,98 @@ export default function ExcursionPage() {
             />
           </div>
 
-          {tab === 'program' && (
-            <section className="mt-6" role="tabpanel">
-              <div
-                className="excursion-body"
-                dangerouslySetInnerHTML={{ __html: sanitizeHtml(body) || '<p>Опис зʼявиться незабаром.</p>' }}
+          {useParusLayout ? (
+            <>
+              <ExcursionRouteSection
+                stops={structured.route_stops}
+                disclaimer={structured.route_disclaimer}
               />
-              {mapUrl && (
-                <div className="mt-8">
-                  <h2 className="font-display mb-3 text-xl font-bold normal-case tracking-normal">
-                    Маршрут на карті
-                  </h2>
-                  <div className="overflow-hidden rounded-2xl border border-border bg-sand-50 shadow-sm">
-                    <iframe
-                      title="Маршрут екскурсії"
-                      src={mapUrl}
-                      className="aspect-video min-h-[280px] w-full border-0"
-                      loading="lazy"
-                      referrerPolicy="no-referrer-when-downgrade"
-                      allowFullScreen
-                    />
-                  </div>
-                </div>
-              )}
-            </section>
+              <ExcursionReadMore teaser={excursion.description} bodyHtml={excursion.body_html} />
+              <ExcursionPhotoLocations images={structured.photo_locations} />
+              <ExcursionVideoBlock video={structured.video} />
+              <ExcursionComfortBlock items={structured.comfort_items} />
+            </>
+          ) : (
+            <div
+              className="excursion-body"
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(body) || '<p>Опис зʼявиться незабаром.</p>' }}
+            />
           )}
 
-          {tab === 'reviews' && (
-            <section className="mt-6 space-y-4" role="tabpanel">
-              <ReviewForm
-                fixedExcursionId={excursion.id}
-                submitting={reviewMutation.isPending}
-                error={reviewMutation.error}
-                success={reviewMutation.isSuccess}
-                onSubmit={(v) => reviewMutation.mutate(v)}
-              />
-              {reviewItems.length === 0 ? (
-                <p className="text-sm text-stone-600">Поки немає відгуків. Будьте першим!</p>
-              ) : (
-                <ul className="space-y-3">
-                  {reviewItems.map((r) => (
-                    <ReviewCard
-                      key={r.id}
-                      review={r}
-                      showExcursion={false}
-                      canReply={!!me && (isGuideOwner || me.id === r.author_id)}
-                      onReplied={() => qc.invalidateQueries({ queryKey: ['reviews', 'excursion', excursion.id] })}
-                    />
-                  ))}
-                </ul>
-              )}
-            </section>
-          )}
-
-          {tab === 'details' && (
-            <section className="mt-6" role="tabpanel">
-              {hasBooking ? (
-                <BookingTermsSection
-                  className="mt-0 border-0 pt-0"
-                  included={excursion.included_items}
-                  excluded={excursion.excluded_items}
-                  notesHtml={excursion.organizational_details}
-                  meetingPoint={excursion.meeting_point}
+          {mapUrl && (
+            <section className="excursion-parus-section  p-4">
+              <h2 className="excursion-parus-section__title">Маршрут на карті</h2>
+              <div className="overflow-hidden rounded-2xl border border-border bg-sand-50 shadow-sm">
+                <iframe
+                  title="Маршрут екскурсії"
+                  src={mapUrl}
+                  className="aspect-video min-h-70 w-full border-0"
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  allowFullScreen
                 />
-              ) : (
-                <p className="text-sm text-muted">Гід ще не додав умови бронювання.</p>
-              )}
+              </div>
             </section>
           )}
+
+            <section id="reviews" className="excursion-parus-section scroll-mt-28 shadow-lg p-4">
+                <h2 className="excursion-parus-section__title">Відгуки</h2>
+                <div className="space-y-4">
+                    <ReviewForm
+                        fixedExcursionId={excursion.id}
+                        submitting={reviewMutation.isPending}
+                        error={reviewMutation.error}
+                        success={reviewMutation.isSuccess}
+                        onSubmit={(v) => reviewMutation.mutate(v)}
+                    />
+                    {reviewItems.length === 0 ? (
+                        <p className="excursion-parus-muted">Поки немає відгуків. Будьте першим!</p>
+                    ) : (
+                        <ul className="space-y-3">
+                            {reviewItems.map((r) => (
+                                <ReviewCard
+                                    key={r.id}
+                                    review={r}
+                                    showExcursion={false}
+                                    canReply={!!me && (isGuideOwner || me.id === r.author_id)}
+                                    onReplied={() => qc.invalidateQueries({ queryKey: ['reviews', 'excursion', excursion.id] })}
+                                />
+                            ))}
+                        </ul>
+                    )}
+                </div>
+            </section>
 
           {excursion.guide_slug && (
-            <section className="mt-10">
-              <h2 className="font-display mb-3 text-xl font-bold">Організатор</h2>
-              <Link to={`/guide/${excursion.guide_slug}`} className="card inline-flex items-center gap-4 hover:shadow-md">
-                <GuideAvatar
-                  avatar={excursion.guide_avatar_url}
-                  name={excursion.guide_name}
-                  className="h-14 w-14 shrink-0 rounded-full"
-                />
-                <div>
-                  <p className="font-semibold">{excursion.guide_name}</p>
-                  <p className="text-sm text-brand-700">Профіль гіда →</p>
-                </div>
-              </Link>
-            </section>
+            <ExcursionOrganizerSection
+              guideName={excursion.guide_name}
+              guideSlug={excursion.guide_slug}
+              guideAvatarUrl={excursion.guide_avatar_url}
+              guideAbout={excursion.guide_about}
+              contacts={excursion.guide_contacts}
+            />
           )}
+
+          {hasBooking && (
+            <BookingTermsSection
+              included={excursion.included_items}
+              excluded={excursion.excluded_items}
+              notesHtml={excursion.organizational_details}
+              meetingPoint={excursion.meeting_point}
+            />
+          )}
+
+          <div className="lg:hidden">
+            <ExcursionAvailabilityPanel slug={excursion.slug} excursionType={excursion.type} />
+          </div>
         </div>
 
-        <aside className="hidden h-fit lg:block lg:sticky lg:top-[105px]">
-          <div className="card space-y-4 border-brand-200 shadow-lg">
-            <ExcursionBookingPanel excursion={excursion} favMutation={favMutation} />
+        <aside className="hidden h-fit lg:block lg:sticky lg:top-26.25">
+          <div className="space-y-4">
+            <div className="card space-y-4 border-brand-200 shadow-lg">
+              <ExcursionBookingPanel excursion={excursion} favMutation={favMutation} />
+            </div>
+            <ExcursionAvailabilityPanel slug={excursion.slug} excursionType={excursion.type} />
           </div>
         </aside>
       </div>
@@ -383,14 +358,14 @@ export default function ExcursionPage() {
         className="fixed inset-x-0 bottom-0 z-40 border-t border-divider bg-page/95 px-5 py-3 backdrop-blur-sm lg:hidden"
         style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
       >
-        <div className="mx-auto flex max-w-[1460px] items-center gap-3">
+        <div className="mx-auto flex max-w-365 items-center gap-3">
           <ExcursionBookingPanel excursion={excursion} favMutation={favMutation} compact />
         </div>
       </div>
 
-      <div className="container-site pb-10 lg:pb-10">
+      <div className="container-site pb-10">
         <Link to="/search" className="text-brand-700 hover:underline">← Усі екскурсії</Link>
       </div>
-    </>
+    </div>
   )
 }

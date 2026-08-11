@@ -1,6 +1,7 @@
 import { Suspense } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { PublicLayout, AccountLayout } from '../layouts/MainLayout'
+import ScrollToTop from '../components/ScrollToTop'
 import { RoleGate } from '../components/RoleGate'
 import { GuideGate } from '../components/GuideGate'
 import GuideLayout from '../components/crm/GuideLayout'
@@ -34,6 +35,7 @@ const ModeratorPage = lazyImport(() => import('../pages/AdminPages').then((m) =>
 const DeployPage = lazyImport(() => import('../pages/DeployPage'))
 const JournalListPage = lazyImport(() => import('../pages/JournalPages').then((m) => ({ default: m.JournalListPage })))
 const JournalArticlePage = lazyImport(() => import('../pages/JournalPages').then((m) => ({ default: m.JournalArticlePage })))
+const AboutPage = lazyImport(() => import('../pages/AboutPage'))
 
 function PageFallback() {
   return (
@@ -56,7 +58,9 @@ function Lazy({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   return (
-    <Routes>
+    <>
+      <ScrollToTop />
+      <Routes>
       <Route element={<PublicLayout />}>
         <Route index element={<Lazy><HomePage /></Lazy>} />
         <Route path="search" element={<Lazy><SearchPage /></Lazy>} />
@@ -69,6 +73,7 @@ export default function App() {
         <Route path="excursion/:slug" element={<Lazy><ExcursionPage /></Lazy>} />
         <Route path="journal" element={<Lazy><JournalListPage /></Lazy>} />
         <Route path="journal/:slug" element={<Lazy><JournalArticlePage /></Lazy>} />
+        <Route path="about" element={<Lazy><AboutPage /></Lazy>} />
         <Route path="login" element={<Lazy><LoginPage /></Lazy>} />
         <Route path="register" element={<Lazy><RegisterTouristPage /></Lazy>} />
         <Route path="register/guide" element={<Lazy><RegisterGuidePage /></Lazy>} />
@@ -97,5 +102,6 @@ export default function App() {
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </>
   )
 }

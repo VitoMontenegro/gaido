@@ -53,8 +53,7 @@ export default function SiteHeader({ onLogout }: SiteHeaderProps) {
       <header className="site-header fixed inset-x-0 top-0 z-50 border-b border-divider/80 bg-page/90 backdrop-blur-md">
         <div className="container-site">
           <div className="flex h-14 items-center gap-3 md:h-[72px] md:gap-6">
-            <BrandLogo compact className="md:hidden" />
-            <BrandLogo className="hidden md:inline-flex" />
+            <BrandLogo compactOnMobile />
 
             <nav className="ml-auto hidden items-center gap-1 md:flex" aria-label="Головна навігація">
               {NAV.map((item) => (

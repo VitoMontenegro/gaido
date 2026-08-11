@@ -39,3 +39,14 @@ func TestHTML_stripsUntrustedIframe(t *testing.T) {
 		t.Fatalf("untrusted iframe kept: %q", out)
 	}
 }
+
+func TestHTML_stripsFormLabelArtifacts(t *testing.T) {
+	in := `<p><span class="block text-sm font-medium text-stone-700">Повний опис</span></p>`
+	out := HTML(in)
+	if strings.Contains(out, "text-stone-700") || strings.Contains(out, "form-field-label") {
+		t.Fatalf("label artifact kept: %q", out)
+	}
+	if !strings.Contains(out, "Повний опис") {
+		t.Fatalf("text lost: %q", out)
+	}
+}

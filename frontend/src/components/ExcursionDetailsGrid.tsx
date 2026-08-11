@@ -67,7 +67,7 @@ function DetailItem({ icon, children }: { icon: ReactNode; children: ReactNode }
   return (
     <div className="flex items-start gap-2.5 py-1.5">
       <span className="mt-0.5 shrink-0 text-stone-900">{icon}</span>
-      <p className="text-[15px] leading-snug text-stone-800">{children}</p>
+      <p className="text-base leading-snug text-stone-800">{children}</p>
     </div>
   )
 }

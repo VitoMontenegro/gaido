@@ -62,6 +62,7 @@ func NewRouter(cfg config.Config, log *slog.Logger, h *handlers.Handlers) http.H
 		api.Get("/guides/{slug}", h.GetGuide)
 
 		api.Get("/excursions", h.ListExcursions)
+		api.Get("/excursions/{slug}/dates", h.ListExcursionDatesPublic)
 		api.Get("/excursions/{slug}", h.GetExcursion)
 
 		api.Get("/articles", h.ListArticlesPublic)
@@ -109,7 +110,11 @@ func NewRouter(cfg config.Config, log *slog.Logger, h *handlers.Handlers) http.H
 			gr.Post("/account/guide/excursions/{id}/draft", h.DraftExcursion)
 			gr.Get("/account/guide/calendar", h.ListSlots)
 			gr.Post("/account/guide/calendar", h.CreateSlot)
+			gr.Post("/account/guide/calendar/by-date", h.CreateSlotByDate)
 			gr.Delete("/account/guide/calendar/{id}", h.DeleteSlot)
+			gr.Get("/account/guide/excursions/{id}/dates", h.ListMyExcursionDates)
+			gr.Post("/account/guide/excursions/{id}/dates", h.CreateExcursionDate)
+			gr.Delete("/account/guide/excursions/{id}/dates/{dateId}", h.DeleteExcursionDate)
 			gr.Post("/media", h.UploadMedia)
 		})
 

@@ -2,10 +2,23 @@ package sanitize
 
 import (
 	"net/url"
+	"regexp"
 	"strings"
 
 	"github.com/microcosm-cc/bluemonday"
 )
+
+var formLabelSpanRe = regexp.MustCompile(`(?is)<span[^>]*class="[^"]*(?:form-field-label|block text-sm font-medium text-stone-700)[^"]*"[^>]*>(.*?)</span>`)
+
+func stripEditorArtifacts(html string) string {
+	prev := ""
+	out := html
+	for out != prev {
+		prev = out
+		out = formLabelSpanRe.ReplaceAllString(out, "$1")
+	}
+	return out
+}
 
 var allowedIframeHosts = map[string]bool{
 	"www.youtube.com":        true,
@@ -27,7 +40,7 @@ var policy = func() *bluemonday.Policy {
 
 // HTML strips unsafe markup from user-generated HTML content.
 func HTML(raw string) string {
-	out := strings.TrimSpace(policy.Sanitize(raw))
+	out := strings.TrimSpace(policy.Sanitize(stripEditorArtifacts(raw)))
 	return filterIframes(out)
 }
 

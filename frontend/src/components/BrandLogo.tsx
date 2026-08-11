@@ -13,6 +13,8 @@ type Props = {
   showTagline?: boolean
   asLink?: boolean
   compact?: boolean
+  /** Компактний розмір на мобільних, повний — від md (для хедера). */
+  compactOnMobile?: boolean
 }
 
 function BrandMark({ className, dark = false }: { className?: string; dark?: boolean }) {
@@ -32,23 +34,34 @@ export default function BrandLogo({
   showTagline = false,
   asLink = true,
   compact = false,
+  compactOnMobile = false,
 }: Props) {
   const dark = variant === 'inverse' || variant === 'hero'
-  const markSize = compact
-    ? 'h-8 w-8'
-    : variant === 'hero'
-      ? 'h-10 w-10 md:h-11 md:w-11'
-      : 'h-9 w-9'
-  const nameClass = compact
-    ? 'font-display text-base font-bold normal-case tracking-tight text-ink'
-    : variant === 'hero'
-      ? 'font-display text-lg font-bold normal-case tracking-tight text-white md:text-xl'
-      : variant === 'inverse'
-        ? 'font-display text-xl font-bold normal-case tracking-tight text-white md:text-2xl'
-        : 'font-display text-xl font-bold normal-case tracking-tight text-ink md:text-2xl'
+  const markSize = compactOnMobile
+    ? 'h-8 w-8 md:h-9 md:w-9'
+    : compact
+      ? 'h-8 w-8'
+      : variant === 'hero'
+        ? 'h-10 w-10 md:h-11 md:w-11'
+        : 'h-9 w-9'
+  const nameClass = compactOnMobile
+    ? 'font-display text-base font-bold normal-case tracking-tight text-ink md:text-2xl'
+    : compact
+      ? 'font-display text-base font-bold normal-case tracking-tight text-ink'
+      : variant === 'hero'
+        ? 'font-display text-lg font-bold normal-case tracking-tight text-white md:text-xl'
+        : variant === 'inverse'
+          ? 'font-display text-xl font-bold normal-case tracking-tight text-white md:text-2xl'
+          : 'font-display text-xl font-bold normal-case tracking-tight text-ink md:text-2xl'
 
-  const content = (
-    <span className={cn('inline-flex items-center gap-2.5', className)}>
+  const rootClass = cn(
+    'inline-flex shrink-0 items-center gap-2.5',
+    asLink && 'transition hover:opacity-80',
+    className,
+  )
+
+  const body = (
+    <>
       <BrandMark className={markSize} dark={dark} />
       <span className="min-w-0">
         <span className={nameClass}>{SITE_NAME}</span>
@@ -63,14 +76,16 @@ export default function BrandLogo({
           </span>
         )}
       </span>
-    </span>
+    </>
   )
 
-  if (!asLink) return content
+  if (!asLink) {
+    return <span className={rootClass}>{body}</span>
+  }
 
   return (
-    <Link to="/" className="shrink-0 transition hover:opacity-80">
-      {content}
+    <Link to="/" className={rootClass}>
+      {body}
     </Link>
   )
 }

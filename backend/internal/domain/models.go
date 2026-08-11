@@ -35,6 +35,8 @@ type GuideProfile struct {
 	Email                  string     `json:"email"`
 	Telegram               string     `json:"telegram"`
 	Whatsapp               string     `json:"whatsapp"`
+	Viber                  string     `json:"viber"`
+	ResponseHours          string     `json:"response_hours"`
 	Status                 string     `json:"status"`
 	LastShownAt            *time.Time `json:"last_shown_at,omitempty"`
 	CreatedAt              time.Time  `json:"created_at,omitempty"`
@@ -131,6 +133,27 @@ type BillingStatusDTO struct {
 	FeaturedExcursions []FeaturedExcursionPlacement  `json:"featured_excursions"`
 }
 
+type ExcursionVideoContent struct {
+	URL            string `json:"url,omitempty"`
+	PreviewDesktop string `json:"preview_desktop,omitempty"`
+	PreviewMobile  string `json:"preview_mobile,omitempty"`
+}
+
+type ExcursionComfortItem struct {
+	Title string `json:"title"`
+	Text  string `json:"text"`
+}
+
+type ExcursionStructuredContent struct {
+	Gallery            []string                `json:"gallery,omitempty"`
+	GalleryMobileCover string                  `json:"gallery_mobile_cover,omitempty"`
+	RouteStops         []string                `json:"route_stops,omitempty"`
+	RouteDisclaimer    string                  `json:"route_disclaimer,omitempty"`
+	PhotoLocations     []string                `json:"photo_locations,omitempty"`
+	Video              *ExcursionVideoContent  `json:"video,omitempty"`
+	ComfortItems       []ExcursionComfortItem  `json:"comfort_items,omitempty"`
+}
+
 type Excursion struct {
 	ID                    int64   `json:"id"`
 	GuideID               int64   `json:"guide_id"`
@@ -153,8 +176,9 @@ type Excursion struct {
 	CoverImageURL         string   `json:"cover_image_url"`
 	BodyHTML              string   `json:"body_html"`
 	MapEmbedURL           string   `json:"map_embed_url"`
-	IncludedItems         []string `json:"included_items"`
-	ExcludedItems         []string `json:"excluded_items"`
+	IncludedItems         []string                   `json:"included_items"`
+	ExcludedItems         []string                   `json:"excluded_items"`
+	StructuredContent     ExcursionStructuredContent `json:"structured_content"`
 }
 
 type ExcursionView struct {
@@ -163,9 +187,11 @@ type ExcursionView struct {
 	CitySlug       string  `json:"city_slug,omitempty"`
 	GuideName      string  `json:"guide_name,omitempty"`
 	GuideSlug      string  `json:"guide_slug,omitempty"`
-	GuideAvatarURL string  `json:"guide_avatar_url,omitempty"`
-	RatingAvg      float64 `json:"rating_avg,omitempty"`
-	RatingCount    int     `json:"rating_count,omitempty"`
+	GuideAvatarURL string      `json:"guide_avatar_url,omitempty"`
+	GuideAbout     string      `json:"guide_about,omitempty"`
+	GuideContacts  ContactsDTO `json:"guide_contacts,omitempty"`
+	RatingAvg      float64     `json:"rating_avg,omitempty"`
+	RatingCount    int         `json:"rating_count,omitempty"`
 }
 
 type Review struct {
@@ -196,6 +222,8 @@ type ContactsDTO struct {
 	Email                  string `json:"email,omitempty"`
 	Telegram               string `json:"telegram,omitempty"`
 	Whatsapp               string `json:"whatsapp,omitempty"`
+	Viber                  string `json:"viber,omitempty"`
+	ResponseHours          string `json:"response_hours,omitempty"`
 	PreferredContactMethod string `json:"preferred_contact_method,omitempty"`
 }
 

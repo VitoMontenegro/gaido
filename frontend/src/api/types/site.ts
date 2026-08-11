@@ -18,7 +18,11 @@ export type HomeContent = {
   hero_title: string
   hero_subtitle: string
   category_tiles: HomeCategoryTile[]
+  about_title: string
+  about_text: string
   about_image_url: string
+  about_button_label: string
+  about_button_url: string
   cta: HomeCta
   stats_title: string
   stats: HomeStat[]

@@ -268,7 +268,11 @@ func defaultHomeContent() domain.HomeContent {
 			{Label: "Гіди", URL: "/guides", ImageURL: "/images/home/guides.jpg"},
 			{Label: "Журнал", URL: "/journal", ImageURL: "/images/home/journal.jpg"},
 		},
-		AboutImageURL: "/images/home/about.jpg",
+		AboutTitle:       "Про нас",
+		AboutText:        "Зв'язок з гідом без посередників.\n\nЖиві історії від місцевих.",
+		AboutImageURL:    "/images/home/about.jpg",
+		AboutButtonLabel: "Дізнатися більше",
+		AboutButtonURL:   "/about",
 		Cta: domain.HomeCta{
 			Title:          "Зʼявились питання?",
 			Text:           "Звʼяжіться з нами — відповімо протягом 60 хвилин у робочий час",
@@ -317,8 +321,34 @@ func mergeHomeContent(stored domain.HomeContent) domain.HomeContent {
 			})
 		}
 	}
+	if stored.AboutTitle == "" {
+		stored.AboutTitle = def.AboutTitle
+	}
+	if stored.AboutText == "" {
+		benefits := stored.Benefits
+		if len(benefits) == 0 {
+			benefits = def.Benefits
+		}
+		var parts []string
+		for _, b := range benefits {
+			if t := strings.TrimSpace(b.Text); t != "" {
+				parts = append(parts, t)
+			}
+		}
+		if len(parts) > 0 {
+			stored.AboutText = strings.Join(parts, "\n\n")
+		} else {
+			stored.AboutText = def.AboutText
+		}
+	}
 	if stored.AboutImageURL == "" {
 		stored.AboutImageURL = def.AboutImageURL
+	}
+	if stored.AboutButtonLabel == "" {
+		stored.AboutButtonLabel = def.AboutButtonLabel
+	}
+	if stored.AboutButtonURL == "" {
+		stored.AboutButtonURL = def.AboutButtonURL
 	}
 	if stored.Cta.Title == "" {
 		stored.Cta = def.Cta

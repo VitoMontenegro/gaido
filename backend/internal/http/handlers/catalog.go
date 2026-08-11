@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/vitomonte/experts-tourister/internal/apperrors"
@@ -131,7 +132,13 @@ func (h *Handlers) ListExcursions(w http.ResponseWriter, r *http.Request) {
 			cityID = &id
 		}
 	}
-	items, err := h.Exc.ListPublicEnriched(r.Context(), cityID, r.URL.Query().Get("q"), limit, offset)
+	var dateFilter *time.Time
+	if d := r.URL.Query().Get("date"); d != "" {
+		if t, err := parseDateQuery(d); err == nil {
+			dateFilter = t
+		}
+	}
+	items, err := h.Exc.ListPublicEnriched(r.Context(), cityID, r.URL.Query().Get("q"), dateFilter, limit, offset)
 	if err != nil {
 		response.Error(w, r, apperrors.ErrInternal)
 		return
@@ -145,6 +152,10 @@ func (h *Handlers) GetExcursion(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	e.MapEmbedURL = guidesvc.ResolveMapEmbed(e.MapEmbedURL)
+	if g, err := h.Guides.GetByID(r.Context(), e.GuideID); err == nil && g != nil {
+		e.GuideContacts = h.publicGuideDTO(r.Context(), g).Contacts
+		e.GuideAbout = g.About
+	}
 	response.JSON(w, r, 200, e)
 }
 func (h *Handlers) ListGuideExcursions(w http.ResponseWriter, r *http.Request) {

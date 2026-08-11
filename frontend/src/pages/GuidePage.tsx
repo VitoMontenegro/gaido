@@ -190,7 +190,11 @@ function ContactBlock({ guide }: { guide: PublicGuide }) {
           {guide.contacts.telegram && <p>Telegram: <span className="font-medium">{guide.contacts.telegram}</span></p>}
           {guide.contacts.phone && <p>Телефон: <span className="font-medium">{guide.contacts.phone}</span></p>}
           {guide.contacts.whatsapp && <p>WhatsApp: <span className="font-medium">{guide.contacts.whatsapp}</span></p>}
+          {guide.contacts.viber && <p>Viber: <span className="font-medium">{guide.contacts.viber}</span></p>}
           {guide.contacts.email && <p>Email: <span className="font-medium">{guide.contacts.email}</span></p>}
+          {guide.contacts.response_hours && (
+            <p className="text-stone-600">{guide.contacts.response_hours}</p>
+          )}
         </div>
       ) : (
         <p className="mt-3 text-sm text-stone-600">Контакти доступні після активації розміщення гіда.</p>

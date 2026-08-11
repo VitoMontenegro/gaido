@@ -3,7 +3,9 @@ export type Contacts = {
   phone?: string
   telegram?: string
   whatsapp?: string
+  viber?: string
   email?: string
+  response_hours?: string
   preferred_contact_method?: string
 }
 

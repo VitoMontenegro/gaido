@@ -157,6 +157,10 @@ export default function HomePage() {
   const journalArticles = articlesData?.items ?? []
   const cta = content.cta
   const aboutImage = resolveMediaUrl(content.about_image_url)
+  const aboutParagraphs = (content.about_text ?? '').split(/\n\n+/).map((p) => p.trim()).filter(Boolean)
+  const showAbout = aboutParagraphs.length > 0 || Boolean(content.about_image_url)
+  const aboutButtonLabel = content.about_button_label || 'Дізнатися більше'
+  const aboutButtonUrl = content.about_button_url || '/about'
 
   return (
     <>
@@ -204,20 +208,27 @@ export default function HomePage() {
         </section>
       )}
 
-      {content.benefits.length > 0 && (
+      {showAbout && (
         <section className="bg-surface py-14">
           <div className="container-site grid items-center gap-10 md:grid-cols-2">
             <div>
-              <p className="section-title-sm mb-4">Про нас</p>
-              <p className="text-base leading-relaxed text-muted">
-                {content.benefits[0]?.text}
-              </p>
-              {content.benefits.length > 1 && (
-                <p className="mt-4 text-base leading-relaxed text-muted">{content.benefits[1]?.text}</p>
+              <p className="section-title-sm mb-4">{content.about_title || 'Про нас'}</p>
+              {aboutParagraphs.map((paragraph, i) => (
+                <p key={i} className={`text-base leading-relaxed text-muted${i > 0 ? ' mt-4' : ''}`}>
+                  {paragraph}
+                </p>
+              ))}
+              {aboutButtonLabel && aboutButtonUrl && (
+                aboutButtonUrl.startsWith('http') ? (
+                  <a href={aboutButtonUrl} className="btn-accent mt-6">
+                    {aboutButtonLabel}
+                  </a>
+                ) : (
+                  <Link to={aboutButtonUrl} className="btn-accent mt-6">
+                    {aboutButtonLabel}
+                  </Link>
+                )
               )}
-              <Link to="/guides" className="btn-accent mt-6">
-                Дізнатися більше
-              </Link>
             </div>
             {aboutImage ? (
               <img src={aboutImage} alt="" className="aspect-4/3 w-full rounded-[28px] object-cover" loading="lazy" />

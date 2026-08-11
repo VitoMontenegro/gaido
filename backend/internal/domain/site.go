@@ -35,7 +35,11 @@ type HomeContent struct {
 	HeroTitle              string             `json:"hero_title"`
 	HeroSubtitle           string             `json:"hero_subtitle"`
 	CategoryTiles          []HomeCategoryTile `json:"category_tiles"`
+	AboutTitle             string             `json:"about_title"`
+	AboutText              string             `json:"about_text"`
 	AboutImageURL          string             `json:"about_image_url"`
+	AboutButtonLabel       string             `json:"about_button_label"`
+	AboutButtonURL         string             `json:"about_button_url"`
 	Cta                    HomeCta            `json:"cta"`
 	StatsTitle             string             `json:"stats_title"`
 	Stats                  []HomeStat         `json:"stats"`

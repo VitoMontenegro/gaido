@@ -1,3 +1,6 @@
+import type { ExcursionStructuredContent } from '../lib/excursionStructuredContent'
+import type { Contacts } from '../api/types/catalog'
+
 export type ExcursionItem = {
   id: number
   guide_id?: number
@@ -7,6 +10,7 @@ export type ExcursionItem = {
   cover_image_url?: string
   body_html?: string
   map_embed_url?: string
+  structured_content?: ExcursionStructuredContent
   type: string
   max_guests: number
   price_from: number
@@ -25,6 +29,8 @@ export type ExcursionItem = {
   guide_name?: string
   guide_slug?: string
   guide_avatar_url?: string
+  guide_about?: string
+  guide_contacts?: Contacts
   rating_avg?: number
   rating_count?: number
 }
@@ -59,6 +65,12 @@ export function excursionStatusLabel(status: string) {
 
 export function excursionTypeLabel(type: string) {
   return type === 'GROUP' ? 'Групова' : 'Індивідуальна'
+}
+
+export function excursionPriceCaption(type: string) {
+  const format = excursionTypeLabel(type).toLowerCase()
+  if (type === 'GROUP') return `з особи / формат ${format}`
+  return `за екскурсію / формат ${format}`
 }
 
 export function formatGroupSize(type: string, maxGuests: number) {

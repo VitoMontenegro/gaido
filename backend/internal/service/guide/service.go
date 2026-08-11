@@ -75,6 +75,8 @@ func (s *Service) ApplyProfileUpdate(ctx context.Context, g *domain.GuideProfile
 	g.Email = req.Email
 	g.Telegram = req.Telegram
 	g.Whatsapp = req.Whatsapp
+	g.Viber = req.Viber
+	g.ResponseHours = strings.TrimSpace(req.ResponseHours)
 	g.AvatarURL = strings.TrimSpace(req.AvatarURL)
 	if g.DisplayName != "" && (g.Status == domain.GuideStatusDraft || g.Status == domain.GuideStatusWaitingPayment) {
 		payments, _ := s.Settings.GetBool(ctx, "guide_placement_payments_enabled", false)

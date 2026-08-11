@@ -24,7 +24,7 @@ func (r *GuideRepo) CreateProfile(ctx context.Context, userID int64, guideType, 
 }
 
 const guideProfileSelect = `id, user_id, guide_type, first_name, last_name, display_name, about, website_slug,
-	rating_avg, rating_count, preferred_contact_method, phone, email, telegram, whatsapp,
+	rating_avg, rating_count, preferred_contact_method, phone, email, telegram, whatsapp, viber, response_hours,
 	status, last_shown_at, created_at, avatar_url`
 
 func (r *GuideRepo) GetByUserID(ctx context.Context, userID int64) (*domain.GuideProfile, error) {
@@ -52,7 +52,7 @@ func scanGuide(row pgx.Row) (*domain.GuideProfile, error) {
 	var g domain.GuideProfile
 	err := row.Scan(&g.ID, &g.UserID, &g.GuideType, &g.FirstName, &g.LastName, &g.DisplayName, &g.About,
 		&g.WebsiteSlug, &g.RatingAvg, &g.RatingCount, &g.PreferredContactMethod, &g.Phone, &g.Email,
-		&g.Telegram, &g.Whatsapp, &g.Status, &g.LastShownAt, &g.CreatedAt, &g.AvatarURL)
+		&g.Telegram, &g.Whatsapp, &g.Viber, &g.ResponseHours, &g.Status, &g.LastShownAt, &g.CreatedAt, &g.AvatarURL)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}
@@ -63,18 +63,18 @@ func scanGuideRow(rows pgx.Rows) (domain.GuideProfile, error) {
 	var g domain.GuideProfile
 	err := rows.Scan(&g.ID, &g.UserID, &g.GuideType, &g.FirstName, &g.LastName, &g.DisplayName, &g.About,
 		&g.WebsiteSlug, &g.RatingAvg, &g.RatingCount, &g.PreferredContactMethod, &g.Phone, &g.Email,
-		&g.Telegram, &g.Whatsapp, &g.Status, &g.LastShownAt, &g.CreatedAt, &g.AvatarURL)
+		&g.Telegram, &g.Whatsapp, &g.Viber, &g.ResponseHours, &g.Status, &g.LastShownAt, &g.CreatedAt, &g.AvatarURL)
 	return g, err
 }
 
 func (r *GuideRepo) UpdateProfile(ctx context.Context, g *domain.GuideProfile) error {
 	_, err := r.db.Pool.Exec(ctx, `
 		UPDATE guide_profiles SET guide_type=$2, first_name=$3, last_name=$4, display_name=$5, about=$6,
-			preferred_contact_method=$7, phone=$8, email=$9, telegram=$10, whatsapp=$11, status=$12,
-			avatar_url=$13, updated_at=NOW()
+			preferred_contact_method=$7, phone=$8, email=$9, telegram=$10, whatsapp=$11, viber=$12, response_hours=$13, status=$14,
+			avatar_url=$15, updated_at=NOW()
 		WHERE id=$1
 	`, g.ID, g.GuideType, g.FirstName, g.LastName, g.DisplayName, g.About, g.PreferredContactMethod,
-		g.Phone, g.Email, g.Telegram, g.Whatsapp, g.Status, g.AvatarURL)
+		g.Phone, g.Email, g.Telegram, g.Whatsapp, g.Viber, g.ResponseHours, g.Status, g.AvatarURL)
 	return err
 }
 

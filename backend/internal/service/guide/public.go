@@ -41,6 +41,8 @@ func BuildPublicGuideDTO(g *domain.GuideProfile, sub *domain.GuideSubscription, 
 			Email:                  g.Email,
 			Telegram:               g.Telegram,
 			Whatsapp:               g.Whatsapp,
+			Viber:                  g.Viber,
+			ResponseHours:          g.ResponseHours,
 			PreferredContactMethod: g.PreferredContactMethod,
 		}
 	}

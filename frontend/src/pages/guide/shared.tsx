@@ -8,6 +8,8 @@ export type GuideProfile = {
   email: string
   telegram: string
   whatsapp: string
+  viber: string
+  response_hours: string
   status: string
   type_badge?: string
   has_license: boolean

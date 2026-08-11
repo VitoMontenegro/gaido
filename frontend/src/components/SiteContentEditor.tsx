@@ -24,6 +24,10 @@ function normalizeHome(home: HomeContent): HomeContent {
     category_tiles: normalizeCategoryTiles(home.category_tiles),
     cta: home.cta?.title ? home.cta : DEFAULT_CTA,
     stats_title: home.stats_title || 'З нами подорожують мільйони',
+    about_title: home.about_title || 'Про нас',
+    about_text: home.about_text || '',
+    about_button_label: home.about_button_label || 'Дізнатися більше',
+    about_button_url: home.about_button_url || '/about',
   }
 }
 
@@ -151,13 +155,48 @@ export function SiteContentEditor() {
         ))}
       </section>
 
-      <ImageUrlField
-        label="Зображення блоку «Про нас»"
-        value={home.about_image_url}
-        cropAspect={4 / 3}
-        maxBytes={200 * 1024}
-        onChange={(about_image_url) => updateHome({ about_image_url })}
-      />
+      <section className="space-y-3 rounded-xl border border-border p-4">
+        <h3 className="font-medium text-ink">Блок «Про нас»</h3>
+        <input
+          className="input"
+          value={home.about_title}
+          onChange={(e) => updateHome({ about_title: e.target.value })}
+          placeholder="Заголовок"
+        />
+        <textarea
+          className="input min-h-28"
+          value={home.about_text}
+          onChange={(e) => updateHome({ about_text: e.target.value })}
+          placeholder="Текст (абзаци через порожній рядок)"
+        />
+        <ImageUrlField
+          label="Зображення"
+          value={home.about_image_url}
+          cropAspect={4 / 3}
+          maxBytes={200 * 1024}
+          onChange={(about_image_url) => updateHome({ about_image_url })}
+        />
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="block text-sm text-muted">
+            Кнопка — текст
+            <input
+              className="input mt-1"
+              value={home.about_button_label}
+              onChange={(e) => updateHome({ about_button_label: e.target.value })}
+              placeholder="Дізнатися більше"
+            />
+          </label>
+          <label className="block text-sm text-muted">
+            Кнопка — посилання
+            <input
+              className="input mt-1"
+              value={home.about_button_url}
+              onChange={(e) => updateHome({ about_button_url: e.target.value })}
+              placeholder="/about"
+            />
+          </label>
+        </div>
+      </section>
 
       <section className="space-y-3 rounded-xl border border-border p-4">
         <h3 className="font-medium text-ink">Блок «Зʼявились питання?»</h3>
