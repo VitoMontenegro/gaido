@@ -238,6 +238,20 @@
     height: 520px;
   }
 
+  /* Rich text content (legal pages etc.) — not nav/menu */
+  body :is(.prose :not(:where([class~='not-prose'], [class~='not-prose'] *))):where(ul) {
+    margin-bottom: calc(var(--spacing) * 4);
+    padding-top: calc(var(--spacing) * 0);
+    padding-left: calc(var(--spacing) * 3);
+    list-style-type: disc;
+    margin-top: 1.25em;
+  }
+
+  body :is(.prose :not(:where([class~='not-prose'], [class~='not-prose'] *))):where(p) {
+    margin-top: calc(var(--spacing) * 0);
+    margin-bottom: calc(var(--spacing) * 2);
+  }
+
   .excursion-body {
     @apply max-w-none text-[17px] leading-[1.7] text-stone-700;
   }

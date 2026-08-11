@@ -20,6 +20,7 @@ import (
 	excsvc "github.com/vitomonte/experts-tourister/internal/service/excursion"
 	guidesvc "github.com/vitomonte/experts-tourister/internal/service/guide"
 	reviewsvc "github.com/vitomonte/experts-tourister/internal/service/review"
+	tgsvc "github.com/vitomonte/experts-tourister/internal/service/telegram"
 )
 
 type App struct {
@@ -90,6 +91,7 @@ func New(ctx context.Context, cfg config.Config, log *slog.Logger) (*App, error)
 	h.ExcSvc = &excsvc.Service{Exc: h.Exc, Settings: h.Settings}
 	h.ReviewSvc = &reviewsvc.Service{Reviews: h.Reviews, Exc: h.Exc, Settings: h.Settings}
 	h.GuideSvc = &guidesvc.Service{Guides: h.Guides, Exc: h.Exc, Settings: h.Settings}
+	h.Telegram = tgsvc.NewService(cfg, log, db)
 
 	h.SyncCatalogFillingMode(ctx)
 

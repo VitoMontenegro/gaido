@@ -12,6 +12,7 @@ import ReviewForm from '../components/reviews/ReviewForm'
 import type { Review } from '../components/reviews/types'
 import { trackRecentView, removeRecentView } from '../hooks/useRecentViews'
 import { useHasRole, useMe } from '../hooks/useAuth'
+import { useTelegramBotURL } from '../hooks/useTelegramBotURL'
 import { getApiErrorCode } from '../api/http'
 import CatalogNotFound from '../components/CatalogNotFound'
 import { pageTitle } from '../lib/brand'
@@ -179,6 +180,8 @@ function GuideHero({ guide, excursionCount }: { guide: PublicGuide; excursionCou
 }
 
 function ContactBlock({ guide }: { guide: PublicGuide }) {
+  const telegramBotURL = useTelegramBotURL()
+
   return (
     <div className="card border-brand-200 bg-white shadow-md">
       <p className="font-display text-lg font-bold">Зв&apos;язатися з гідом</p>
@@ -191,6 +194,15 @@ function ContactBlock({ guide }: { guide: PublicGuide }) {
         </div>
       ) : (
         <p className="mt-3 text-sm text-stone-600">Контакти доступні після активації розміщення гіда.</p>
+      )}
+      {telegramBotURL && (
+        <button
+          type="button"
+          data-telegram
+          className="btn-primary mt-4 w-full sm:w-auto"
+        >
+          Написати в підтримку
+        </button>
       )}
     </div>
   )

@@ -57,3 +57,31 @@ cd backend && go run ./cmd/seed -demo
 ## Deploy (admin)
 
 `DEPLOY_ENABLED`, `DEPLOY_SCRIPT`, `GIT_*` — keep gated and private-repo only.
+
+## Telegram support bot
+
+| Variable | Notes |
+|----------|--------|
+| `TELEGRAM_ENABLED` | `true` to enable webhook + public bot URL |
+| `TELEGRAM_BOT_TOKEN` | Bot token from @BotFather (secret) |
+| `TELEGRAM_BOT_USERNAME` | Public bot username without `@` — exposed as `telegram_bot_url` in `GET /api/v1/site` |
+| `TELEGRAM_GROUP_CHAT_ID` | Supergroup ID with forum topics enabled |
+| `TELEGRAM_WEBHOOK_SECRET` | Random secret for `X-Telegram-Bot-Api-Secret-Token` header |
+
+### Register webhook (production, HTTPS required)
+
+```bash
+cd backend
+go run ./cmd/telegram-webhook -action=set
+go run ./cmd/telegram-webhook -action=info
+```
+
+Or manually:
+
+```bash
+curl "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/setWebhook" \
+  -d "url=$PUBLIC_BASE_URL/api/v1/telegram/webhook" \
+  -d "secret_token=$TELEGRAM_WEBHOOK_SECRET"
+```
+
+Frontend buttons use `data-telegram` attribute; empty value opens `telegram_bot_url` from site API.

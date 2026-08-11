@@ -13,6 +13,7 @@ import (
 	excsvc "github.com/vitomonte/experts-tourister/internal/service/excursion"
 	guidesvc "github.com/vitomonte/experts-tourister/internal/service/guide"
 	reviewsvc "github.com/vitomonte/experts-tourister/internal/service/review"
+	tgsvc "github.com/vitomonte/experts-tourister/internal/service/telegram"
 )
 
 type Handlers struct {
@@ -42,4 +43,5 @@ type Handlers struct {
 	ReviewSvc *reviewsvc.Service
 	GuideSvc  *guidesvc.Service
 	Media     *media.Storage
+	Telegram  *tgsvc.Service
 }

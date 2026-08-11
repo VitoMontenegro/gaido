@@ -6,6 +6,7 @@ import { BrowserRouter } from 'react-router-dom'
 import { ApiClientError, bootstrapAuth } from './api/http'
 import App from './app/App'
 import { handleDynamicImportRejection } from './lib/lazyImport'
+import { initTelegramButtons } from './lib/telegramButtons'
 import './styles/globals.css'
 
 window.addEventListener('unhandledrejection', (event) => {
@@ -28,6 +29,7 @@ const queryClient = new QueryClient({
 })
 
 function renderApp() {
+  initTelegramButtons()
   createRoot(document.getElementById('root')!).render(
     <StrictMode>
       <HelmetProvider>

@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { catalogApi } from '../api/client'
 import BrandLogo from './BrandLogo'
 import { SITE_NAME } from '../lib/brand'
+import { useTelegramBotURL } from '../hooks/useTelegramBotURL'
 
 export default function SiteFooter() {
   const { data } = useQuery({
@@ -12,6 +13,7 @@ export default function SiteFooter() {
   })
 
   const footer = data?.footer
+  const telegramBotURL = useTelegramBotURL()
 
   return (
     <footer className="pb-5 pt-8">
@@ -37,6 +39,16 @@ export default function SiteFooter() {
                 <a href={`mailto:${footer.email}`} className="mb-3 block text-base text-ink-soft underline transition hover:text-muted">
                   {footer.email}
                 </a>
+              )}
+
+              {telegramBotURL && (
+                <button
+                  type="button"
+                  data-telegram
+                  className="mb-3 block text-left text-base text-ink-soft underline transition hover:text-muted"
+                >
+                  Написати в Telegram
+                </button>
               )}
 
               {footer?.telegram && (

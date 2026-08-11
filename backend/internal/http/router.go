@@ -53,6 +53,7 @@ func NewRouter(cfg config.Config, log *slog.Logger, h *handlers.Handlers) http.H
 		api.Get("/map/points", h.ListMapPoints)
 
 		api.Get("/site", h.GetSite)
+		api.Post("/telegram/webhook", h.TelegramWebhook)
 
 		api.Get("/guides/top", h.ListTopGuides)
 		api.Get("/guides/{slug}/excursions", h.ListGuideExcursions)

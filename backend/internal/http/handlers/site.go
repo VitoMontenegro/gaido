@@ -62,9 +62,17 @@ func (h *Handlers) GetSite(w http.ResponseWriter, r *http.Request) {
 			FeaturedExcursions:  featuredExcursions,
 			PopularDestinations: destinations,
 		},
-		Footer: footer,
-		Legal:  legal,
+		Footer:         footer,
+		Legal:          legal,
+		TelegramBotURL: h.telegramBotURL(),
 	})
+}
+
+func (h *Handlers) telegramBotURL() string {
+	if h.Telegram == nil {
+		return ""
+	}
+	return h.Telegram.BotURL()
 }
 func (h *Handlers) ResolveFeaturedGuides(ctx context.Context, limit int) []domain.PublicGuideDTO {
 	out := make([]domain.PublicGuideDTO, 0, limit)

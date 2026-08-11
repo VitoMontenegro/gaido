@@ -31,6 +31,11 @@ type Config struct {
 	DeployAPILog        string
 	DeployAppSlug       string
 	GitBranch           string
+	TelegramEnabled     bool
+	TelegramBotToken    string
+	TelegramBotUsername string
+	TelegramGroupChatID int64
+	TelegramWebhookSecret string
 }
 
 func Load() Config {
@@ -59,6 +64,11 @@ func Load() Config {
 		DeployAPILog:        getEnv("API_LOG", ""),
 		DeployAppSlug:       getEnv("DEPLOY_APP_SLUG", "web-prod-2026"),
 		GitBranch:           getEnv("GIT_BRANCH", "main"),
+		TelegramEnabled:     getEnv("TELEGRAM_ENABLED", "false") == "true",
+		TelegramBotToken:    getEnv("TELEGRAM_BOT_TOKEN", ""),
+		TelegramBotUsername: getEnv("TELEGRAM_BOT_USERNAME", ""),
+		TelegramGroupChatID: int64(getEnvInt("TELEGRAM_GROUP_CHAT_ID", 0)),
+		TelegramWebhookSecret: getEnv("TELEGRAM_WEBHOOK_SECRET", ""),
 	}
 }
 

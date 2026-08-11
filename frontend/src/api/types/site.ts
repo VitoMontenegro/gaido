@@ -65,6 +65,7 @@ export type SitePayload = {
   }
   footer: FooterContent
   legal: LegalContent
+  telegram_bot_url?: string
 }
 
 export type SiteContentPayload = {

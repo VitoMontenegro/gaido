@@ -95,7 +95,8 @@ type SiteHomePayload struct {
 }
 
 type SitePayload struct {
-	Home   SiteHomePayload `json:"home"`
-	Footer FooterContent   `json:"footer"`
-	Legal  LegalContent    `json:"legal"`
+	Home            SiteHomePayload `json:"home"`
+	Footer          FooterContent   `json:"footer"`
+	Legal           LegalContent    `json:"legal"`
+	TelegramBotURL  string          `json:"telegram_bot_url,omitempty"`
 }
