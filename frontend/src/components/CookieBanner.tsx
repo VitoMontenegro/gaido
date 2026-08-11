@@ -40,7 +40,7 @@ export default function CookieBanner() {
             id="accept-cookies"
             onClick={() => void accept()}
             disabled={submitting}
-            className="mb-0.5 flex h-[34px] w-full min-w-[111px] shrink-0 items-center justify-center rounded-[25px] badge-teal text-[12px] font-medium text-white transition hover:badge-teal-600 disabled:opacity-60 sm:w-[111px] lg:text-sm"
+            className="mb-0.5 flex h-[34px] w-full min-w-[111px] shrink-0 items-center justify-center rounded-[25px] bg-teal text-[12px] font-medium text-white transition hover:bg-teal-dark disabled:opacity-60 sm:w-[111px] lg:text-sm"
           >
             Зрозуміло
           </button>

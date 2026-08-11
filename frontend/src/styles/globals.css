@@ -105,7 +105,7 @@
   }
 
   .btn-accent {
-    @apply inline-flex min-h-10 items-center justify-center rounded-xl badge-teal px-3 py-1 text-base font-medium text-white transition hover:badge-teal-600 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:ring-offset-2;
+    @apply inline-flex min-h-10 items-center justify-center rounded-xl bg-teal px-3 py-1 text-base font-medium text-white transition hover:bg-teal-dark focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:ring-offset-2;
     letter-spacing: -0.02em;
   }
 
@@ -547,7 +547,7 @@
   }
 
   .excursion-parus-photos__more {
-    @apply inline-flex h-11 min-w-[140px] items-center justify-center rounded-xl bg-teal px-5 text-base text-white transition hover:bg-teal-600 sm:h-12 sm:text-lg;
+    @apply inline-flex h-11 min-w-[140px] items-center justify-center rounded-xl bg-teal px-5 text-base text-white transition hover:bg-teal-dark sm:h-12 sm:text-lg;
   }
 
   .excursion-parus-comfort {
