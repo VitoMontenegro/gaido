@@ -47,7 +47,7 @@ export function LegalDocumentPage() {
     <>
       <Seo title={pageTitle(title)} path={legalPath(slug as keyof typeof LEGAL_SLUGS)} />
       <Breadcrumbs items={[{ label: title }]} />
-      <article className="container-site max-w-3xl py-10 md:py-14">
+      <article className="container-site py-10 md:py-14">
         <h1 className="font-display text-3xl font-bold normal-case tracking-normal md:text-4xl">{title}</h1>
         {isLoading ? (
           <p className="mt-6 text-muted">Завантаження…</p>
