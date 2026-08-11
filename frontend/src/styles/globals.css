@@ -243,6 +243,82 @@
     @apply overflow-hidden rounded-[28px] bg-ink text-white;
   }
 
+  .about-hero__eyebrow {
+    @apply inline-flex rounded-md bg-teal px-2 py-1 text-sm font-medium text-white;
+    letter-spacing: -0.02em;
+  }
+
+  .about-hero__title {
+    @apply mt-5 max-w-3xl font-display text-[32px] font-medium uppercase leading-[1.1] text-white sm:text-4xl md:text-5xl;
+  }
+
+  .about-hero__lead {
+    @apply mt-5 max-w-2xl text-base leading-relaxed text-white/80 md:text-lg;
+  }
+
+  .about-story {
+    @apply grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_min(420px,38%)];
+  }
+
+  .about-story__content {
+    @apply min-w-0;
+  }
+
+  .about-story__media {
+    @apply relative;
+  }
+
+  .about-story__img {
+    @apply aspect-4/3 w-full rounded-[28px] object-cover shadow-[0_12px_40px_rgba(0,0,0,0.08)];
+  }
+
+  .about-story__badge {
+    @apply absolute -bottom-4 left-4 sm:left-6;
+  }
+
+  .about-quote {
+    @apply relative px-2 md:px-8;
+  }
+
+  .about-quote__mark {
+    @apply pointer-events-none absolute -top-6 left-1/2 -translate-x-1/2 font-display text-7xl leading-none text-brand-500/25 md:text-8xl;
+  }
+
+  .about-quote__text {
+    @apply relative text-xl leading-relaxed text-ink md:text-2xl;
+    font-style: normal;
+  }
+
+  .about-audience-card {
+    @apply flex h-full flex-col rounded-[28px] border border-divider bg-surface p-5 shadow-[0_2px_10px_rgba(0,0,0,0.04)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)];
+  }
+
+  .about-audience-card__icon {
+    @apply mb-4 inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-50 text-brand-700;
+  }
+
+  .about-audience-card__title {
+    @apply font-display text-base font-medium uppercase leading-snug text-ink;
+  }
+
+  .about-audience-card__text {
+    @apply mt-2 text-sm leading-relaxed text-muted;
+  }
+
+  .about-note {
+    @apply rounded-[28px] border border-divider bg-surface p-6 md:p-8;
+    border-left-width: 4px;
+    border-left-color: var(--color-teal);
+  }
+
+  .about-note__label {
+    @apply mb-2 font-display text-sm font-medium uppercase tracking-wide text-teal;
+  }
+
+  .about-note__text {
+    @apply text-base leading-relaxed text-muted;
+  }
+
   .home-hero {
     min-height: min(78vh, 720px);
   }
