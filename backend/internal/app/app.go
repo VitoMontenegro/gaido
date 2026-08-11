@@ -80,6 +80,7 @@ func New(ctx context.Context, cfg config.Config, log *slog.Logger) (*App, error)
 		Featured: postgres.NewFeaturedPlacementRepo(db),
 		Articles: postgres.NewArticleRepo(db),
 		Admin:    postgres.NewAdminRepo(db),
+		CookieConsents: postgres.NewCookieConsentRepo(db),
 		Media:    store,
 	}
 	billingSvc := &billing.Service{

@@ -44,4 +44,5 @@ type Handlers struct {
 	GuideSvc  *guidesvc.Service
 	Media     *media.Storage
 	Telegram  *tgsvc.Service
+	CookieConsents *postgres.CookieConsentRepo
 }

@@ -168,6 +168,8 @@ export const adminApi = {
     api<{ items: { id: number; actor_id?: number; action: string; entity_type: string; entity_id?: number; created_at: string }[] }>(
       '/api/v1/admin/audit',
     ),
+  cookieConsents: () =>
+    api<{ items: import('./cookie').CookieConsentRecord[] }>('/api/v1/admin/cookie-consents'),
   plans: () =>
     api<{ items: { id: number; code: string; name: string; plan_type: string }[] }>('/api/v1/admin/plans'),
   bypassGuide: (id: number, planId: number) =>

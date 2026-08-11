@@ -247,6 +247,13 @@
     margin-top: 1.25em;
   }
 
+  body :is(.prose :not(:where([class~='not-prose'], [class~='not-prose'] *))):where(ol) {
+    margin-top: calc(var(--spacing) * 0);
+    padding-left: calc(var(--spacing) * 5);
+    list-style-type: decimal;
+    margin-bottom: 1.25em;
+  }
+
   body :is(.prose :not(:where([class~='not-prose'], [class~='not-prose'] *))):where(p) {
     margin-top: calc(var(--spacing) * 0);
     margin-bottom: calc(var(--spacing) * 2);

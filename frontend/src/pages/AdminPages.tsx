@@ -1,7 +1,7 @@
 import { Helmet } from 'react-helmet-async'
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { adminApi, api, type AdminAnalytics, type AdminPaymentRow } from '../api/client'
+import { adminApi, api, type AdminAnalytics, type AdminPaymentRow, type CookieConsentRecord } from '../api/client'
 import StatCard, { StatGrid } from '../components/crm/StatCard'
 import { useHasRole } from '../hooks/useAuth'
 import { SiteContentEditor } from '../components/SiteContentEditor'
@@ -10,7 +10,7 @@ import { AdminExcursionsList, AdminGuidesList, AdminReviewsList, AdminUsersList 
 import { ArticlesEditor } from '../components/ArticlesEditor'
 import { formatPrice } from '../components/excursionUi'
 
-type AdminTab = 'analytics' | 'users' | 'guides' | 'excursions' | 'reviews' | 'settings' | 'content' | 'journal' | 'audit'
+type AdminTab = 'analytics' | 'users' | 'guides' | 'excursions' | 'reviews' | 'settings' | 'content' | 'journal' | 'audit' | 'cookies'
 
 const TABS: { id: AdminTab; label: string }[] = [
   { id: 'analytics', label: 'Аналітика' },
@@ -22,6 +22,7 @@ const TABS: { id: AdminTab; label: string }[] = [
   { id: 'content', label: 'Контент сайту' },
   { id: 'journal', label: 'Журнал' },
   { id: 'audit', label: 'Аудит' },
+  { id: 'cookies', label: 'Cookie-згода' },
 ]
 
 export default function AdminPage() {
@@ -164,6 +165,7 @@ export default function AdminPage() {
         {tab === 'content' && <SiteContentEditor />}
         {tab === 'journal' && <ArticlesEditor apiBase="admin" />}
         {tab === 'audit' && <AdminAuditLog />}
+        {tab === 'cookies' && <AdminCookieConsents />}
       </div>
     </>
   )
@@ -245,6 +247,69 @@ function AdminAuditLog() {
         ))}
       </ul>
     </div>
+  )
+}
+
+function AdminCookieConsents() {
+  const { data, isError, error, isLoading } = useQuery({
+    queryKey: ['admin-cookie-consents'],
+    queryFn: () => adminApi.cookieConsents(),
+  })
+
+  return (
+    <div className="card">
+      <h2 className="font-display mb-2 text-xl font-bold">Згода на cookie</h2>
+      <p className="mb-4 text-sm text-muted">
+        Записи про прийняття cookie-банера: IP, браузер, мова, сторінка та інші дані клієнта.
+      </p>
+      {isLoading && <p className="text-sm text-muted">Завантаження…</p>}
+      {isError && <p className="mb-3 text-sm text-red-600">{error?.message}</p>}
+      {(data?.items ?? []).length === 0 && !isLoading ? (
+        <p className="text-sm text-muted">Поки немає записів.</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[720px] text-left text-sm">
+            <thead>
+              <tr className="border-b border-border text-xs uppercase tracking-wide text-muted-light">
+                <th className="px-2 py-2">Дата</th>
+                <th className="px-2 py-2">IP</th>
+                <th className="px-2 py-2">Браузер</th>
+                <th className="px-2 py-2">Мова</th>
+                <th className="px-2 py-2">Сторінка</th>
+                <th className="px-2 py-2">Деталі</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(data?.items ?? []).map((row) => (
+                <CookieConsentRow key={row.id} row={row} />
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function CookieConsentRow({ row }: { row: CookieConsentRecord }) {
+  const browserShort = row.user_agent.length > 80 ? `${row.user_agent.slice(0, 80)}…` : row.user_agent
+  const pageShort = row.page_url && row.page_url.length > 48 ? `${row.page_url.slice(0, 48)}…` : row.page_url
+  const info = row.browser_info
+  const details = info
+    ? `${info.platform} · ${info.timezone} · ${info.viewport.width}×${info.viewport.height}`
+    : '—'
+
+  return (
+    <tr className="border-b border-divider align-top">
+      <td className="whitespace-nowrap px-2 py-2 text-xs text-muted">
+        {new Date(row.created_at).toLocaleString('uk-UA')}
+      </td>
+      <td className="px-2 py-2 font-mono text-xs">{row.ip}</td>
+      <td className="max-w-[220px] px-2 py-2 text-xs" title={row.user_agent}>{browserShort}</td>
+      <td className="px-2 py-2 text-xs">{row.accept_language || info?.language || '—'}</td>
+      <td className="max-w-[180px] px-2 py-2 text-xs" title={row.page_url}>{pageShort || '—'}</td>
+      <td className="px-2 py-2 text-xs text-muted">{details}</td>
+    </tr>
   )
 }
 

@@ -53,6 +53,7 @@ func NewRouter(cfg config.Config, log *slog.Logger, h *handlers.Handlers) http.H
 		api.Get("/map/points", h.ListMapPoints)
 
 		api.Get("/site", h.GetSite)
+		api.With(middleware.AuthRateLimit(20, time.Minute, cfg.TrustProxy)).Post("/cookie-consent", h.AcceptCookieConsent)
 		api.Post("/telegram/webhook", h.TelegramWebhook)
 
 		api.Get("/guides/top", h.ListTopGuides)
@@ -138,6 +139,7 @@ func NewRouter(cfg config.Config, log *slog.Logger, h *handlers.Handlers) http.H
 			ar.Get("/admin/site-content", h.AdminGetSiteContent)
 			ar.Put("/admin/site-content", h.AdminSetSiteContent)
 			ar.Get("/admin/audit", h.AdminAudit)
+			ar.Get("/admin/cookie-consents", h.AdminCookieConsents)
 			ar.Get("/admin/guides", h.AdminListGuides)
 			ar.Put("/admin/guides/{id}", h.AdminUpdateGuide)
 			ar.Delete("/admin/guides/{id}", h.AdminDeleteGuide)

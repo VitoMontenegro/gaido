@@ -7,6 +7,7 @@ import { useNotifications } from '../hooks/useNotifications'
 import ErrorBoundary from '../components/ErrorBoundary'
 import SiteHeader from '../components/SiteHeader'
 import SiteFooter from '../components/SiteFooter'
+import CookieBanner from '../components/CookieBanner'
 import { useTelegramBotURL } from '../hooks/useTelegramBotURL'
 import AccountNavLink from '../components/crm/AccountNavLink'
 
@@ -30,6 +31,7 @@ export function PublicLayout() {
         </ErrorBoundary>
       </main>
       <SiteFooter />
+      <CookieBanner />
     </div>
   )
 }
