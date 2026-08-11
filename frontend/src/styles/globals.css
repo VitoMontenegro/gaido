@@ -252,6 +252,39 @@
     margin-bottom: calc(var(--spacing) * 2);
   }
 
+  body :is(.prose :not(:where([class~='not-prose'], [class~='not-prose'] *))):where(h3) {
+    margin-top: calc(var(--spacing) * 5);
+    margin-bottom: calc(var(--spacing) * 2);
+    font-size: 18px;
+    --tw-leading: 130%;
+    line-height: 130%;
+    --tw-font-weight: var(--font-weight-bold);
+    font-weight: var(--font-weight-bold);
+  }
+
+  @media (width >= 576px) {
+    body :is(.prose :not(:where([class~='not-prose'], [class~='not-prose'] *))):where(h3) {
+      font-size: 20px;
+    }
+  }
+
+  body :is(.prose :not(:where([class~='not-prose'], [class~='not-prose'] *))):where(h2) {
+    margin-top: calc(var(--spacing) * 6);
+    margin-bottom: calc(var(--spacing) * 2);
+    font-size: 20px;
+    --tw-leading: 130%;
+    line-height: 130%;
+    --tw-font-weight: var(--font-weight-bold);
+    font-weight: var(--font-weight-bold);
+  }
+
+  @media (width >= 576px) {
+    body :is(.prose :not(:where([class~='not-prose'], [class~='not-prose'] *))):where(h2) {
+      margin-bottom: 10px;
+      font-size: 28px;
+    }
+  }
+
   .excursion-body {
     @apply max-w-none text-[17px] leading-[1.7] text-stone-700;
   }
