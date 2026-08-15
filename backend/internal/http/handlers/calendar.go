@@ -8,7 +8,6 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/vitomonte/experts-tourister/internal/apperrors"
-	"github.com/vitomonte/experts-tourister/internal/domain"
 	"github.com/vitomonte/experts-tourister/internal/http/middleware"
 	"github.com/vitomonte/experts-tourister/internal/http/response"
 	"github.com/vitomonte/experts-tourister/internal/repo/postgres"
@@ -34,7 +33,7 @@ func monthRange(year int, month time.Month) (time.Time, time.Time) {
 
 func (h *Handlers) ListExcursionDatesPublic(w http.ResponseWriter, r *http.Request) {
 	e, err := h.Exc.GetViewBySlug(r.Context(), chi.URLParam(r, "slug"))
-	if err != nil || e == nil || e.Status != domain.ExcursionPublished {
+	if err != nil || !h.canViewExcursion(r.Context(), e) {
 		response.Error(w, r, apperrors.ErrNotFound)
 		return
 	}

@@ -7,8 +7,12 @@ import ExcursionForm from '../components/ExcursionForm'
 export default function CreateExcursionPage() {
   const navigate = useNavigate()
   const mutation = useMutation({
-    mutationFn: (body: Record<string, unknown>) => guideApi.createExcursion(body),
-    onSuccess: () => navigate('/account/guide/excursions'),
+    mutationFn: (body: Record<string, unknown>) =>
+      guideApi.createExcursion(body) as Promise<{ id: number; slug?: string }>,
+    onSuccess: (created) => {
+      if (created.slug) navigate(`/excursion/${created.slug}`)
+      else navigate('/account/guide/excursions')
+    },
   })
 
   return (

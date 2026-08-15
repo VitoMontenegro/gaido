@@ -15,10 +15,11 @@ type SeoProps = {
   description?: string
   path?: string
   image?: string
+  noIndex?: boolean
   jsonLd?: Record<string, unknown> | Record<string, unknown>[]
 }
 
-export function Seo({ title, description, path, image, jsonLd }: SeoProps) {
+export function Seo({ title, description, path, image, noIndex, jsonLd }: SeoProps) {
   const url = path ? absoluteUrl(path) : undefined
   const desc = (description ?? '').replace(/\s+/g, ' ').trim().slice(0, 160)
   const ogImage = image ? absoluteUrl(image) : undefined
@@ -27,6 +28,7 @@ export function Seo({ title, description, path, image, jsonLd }: SeoProps) {
   return (
     <Helmet>
       <title>{title}</title>
+      {noIndex && <meta name="robots" content="noindex, nofollow" />}
       {desc && <meta name="description" content={desc} />}
       {url && <link rel="canonical" href={url} />}
       <meta property="og:site_name" content={SITE_NAME} />

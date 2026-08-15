@@ -84,10 +84,10 @@ export default function App() {
         <Route path="/account" element={<Lazy><AccountPage /></Lazy>} />
         <Route path="/account/favorites" element={<Lazy><FavoritesPage /></Lazy>} />
         <Route path="/account/settings" element={<Lazy><SettingsPage /></Lazy>} />
+        <Route path="/account/guide/billing" element={<GuideGate><Lazy><GuideBillingPage /></Lazy></GuideGate>} />
         <Route path="/account/guide" element={<GuideGate><GuideLayout /></GuideGate>}>
           <Route index element={<Lazy><GuideOverviewPage /></Lazy>} />
           <Route path="profile" element={<Lazy><GuideProfilePage /></Lazy>} />
-          <Route path="billing" element={<Lazy><GuideBillingPage /></Lazy>} />
           <Route path="documents" element={<Lazy><GuideDocumentsPage /></Lazy>} />
           <Route path="excursions/new" element={<Lazy><CreateExcursionPage /></Lazy>} />
           <Route path="excursions/:id/edit" element={<Lazy><EditExcursionPage /></Lazy>} />

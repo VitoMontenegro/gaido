@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, guideApi } from '../../api/client'
 import type { GuideDocument, GuideProfile } from './shared'
@@ -71,25 +71,24 @@ function DocumentUploadForm({
   active?: boolean
   onUploaded: () => void
 }) {
-  const [file, setFile] = useState<File | null>(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
 
-  const upload = async () => {
-    if (!file) return
+  const uploadFile = async (next: File) => {
     setLoading(true)
     setError('')
     try {
       const fd = new FormData()
-      fd.append('file', file)
+      fd.append('file', next)
       fd.append('type', docType)
       await guideApi.uploadDocument(fd)
-      setFile(null)
       onUploaded()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Помилка завантаження')
     } finally {
       setLoading(false)
+      if (inputRef.current) inputRef.current.value = ''
     }
   }
 
@@ -117,17 +116,26 @@ function DocumentUploadForm({
 
       <div className="space-y-2">
         <input
+          ref={inputRef}
           type="file"
           accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
-          className="block w-full text-sm"
-          onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+          className="sr-only"
+          onChange={(e) => {
+            const next = e.target.files?.[0]
+            if (next) void uploadFile(next)
+          }}
         />
         <p className="text-xs text-stone-500">PDF, JPG або PNG, до 10 МБ</p>
       </div>
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 
-      <button type="button" className="btn-primary" disabled={!file || loading} onClick={upload}>
+      <button
+        type="button"
+        className="btn-primary"
+        disabled={loading}
+        onClick={() => inputRef.current?.click()}
+      >
         {loading ? 'Завантаження…' : document ? 'Замінити документ' : 'Завантажити'}
       </button>
     </div>

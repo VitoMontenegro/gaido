@@ -26,6 +26,7 @@ export function GuideExcursionsPage() {
     mutationFn: (id: number) => guideApi.deleteExcursion(id),
     onSuccess: invalidate,
   })
+  const actionError = submit.error ?? toDraft.error ?? remove.error
 
   const items = data?.items ?? []
   const moderationEnabled = data?.moderation_enabled ?? true
@@ -39,6 +40,9 @@ export function GuideExcursionsPage() {
 
       {isLoading && <div className="card text-sm text-stone-500">Завантаження…</div>}
       {isError && <div className="card text-sm text-red-600">{error?.message ?? 'Помилка завантаження'}</div>}
+      {actionError && (
+        <div className="card text-sm text-red-600">{actionError.message}</div>
+      )}
       {!isLoading && !isError && items.length === 0 && (
         <div className="card text-sm text-stone-500">Екскурсій поки немає. Створіть першу.</div>
       )}
@@ -57,9 +61,9 @@ export function GuideExcursionsPage() {
                 {e.city_name || 'Місто не вказано'} · {excursionTypeLabel(e.type)} · до {e.max_guests} ос.
               </p>
               <p className="mt-2 font-semibold text-brand-700">{formatPrice(e.price_from, e.currency)}</p>
-              {e.status === 'PUBLISHED' && (
+              {e.slug && (
                 <Link to={`/excursion/${e.slug}`} className="mt-2 inline-block text-sm text-brand-700 hover:underline">
-                  Переглянути в каталозі →
+                  {e.status === 'PUBLISHED' ? 'Переглянути в каталозі →' : 'Попередній перегляд →'}
                 </Link>
               )}
             </div>
@@ -74,7 +78,7 @@ export function GuideExcursionsPage() {
                 </button>
               )}
               {(e.status === 'PUBLISHED' || e.status === 'PENDING_MODERATION' || e.status === 'REJECTED') && (
-                <button type="button" className="btn-secondary py-1.5 text-sm" onClick={() => toDraft.mutate(e.id)}>
+                <button type="button" className="btn-secondary py-1.5 text-sm" disabled={toDraft.isPending} onClick={() => toDraft.mutate(e.id)}>
                   У чернетку
                 </button>
               )}

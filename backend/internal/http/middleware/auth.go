@@ -26,27 +26,40 @@ func RolesFromContext(ctx context.Context) []string {
 	return roles
 }
 
+func attachUser(ctx context.Context, jwt *auth.JWTService, users UserLookup, r *http.Request) context.Context {
+	h := r.Header.Get("Authorization")
+	if !strings.HasPrefix(h, "Bearer ") {
+		return ctx
+	}
+	claims, err := jwt.ParseAccessToken(strings.TrimPrefix(h, "Bearer "))
+	if err != nil {
+		return ctx
+	}
+	u, err := users.GetByID(ctx, claims.UserID)
+	if err != nil || u == nil {
+		return ctx
+	}
+	ctx = context.WithValue(ctx, UserIDKey, u.ID)
+	return context.WithValue(ctx, RolesKey, u.Roles)
+}
+
 func Auth(jwt *auth.JWTService, users UserLookup) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			h := r.Header.Get("Authorization")
-			if !strings.HasPrefix(h, "Bearer ") {
+			ctx := attachUser(r.Context(), jwt, users, r)
+			if UserIDFromContext(ctx) == 0 {
 				writeError(w, r, 401, "UNAUTHORIZED", "Authentication required")
 				return
 			}
-			claims, err := jwt.ParseAccessToken(strings.TrimPrefix(h, "Bearer "))
-			if err != nil {
-				writeError(w, r, 401, "UNAUTHORIZED", "Authentication required")
-				return
-			}
-			u, err := users.GetByID(r.Context(), claims.UserID)
-			if err != nil || u == nil {
-				writeError(w, r, 401, "UNAUTHORIZED", "Authentication required")
-				return
-			}
-			ctx := context.WithValue(r.Context(), UserIDKey, u.ID)
-			ctx = context.WithValue(ctx, RolesKey, u.Roles)
 			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
+
+func OptionalAuth(jwt *auth.JWTService, users UserLookup) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			next.ServeHTTP(w, r.WithContext(attachUser(r.Context(), jwt, users, r)))
 		})
 	}
 }

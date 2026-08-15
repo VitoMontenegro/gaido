@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/vitomonte/experts-tourister/internal/domain"
+	"github.com/vitomonte/experts-tourister/internal/http/middleware"
 	"github.com/vitomonte/experts-tourister/internal/http/response"
 	guidesvc "github.com/vitomonte/experts-tourister/internal/service/guide"
 )
@@ -56,6 +57,30 @@ func (h *Handlers) ensureArticleAuthor(ctx context.Context, article *domain.Arti
 
 func (h *Handlers) licensePresent(ctx context.Context, g *domain.GuideProfile) bool {
 	return h.GuideSvc.LicensePresent(ctx, g)
+}
+
+func (h *Handlers) canPreviewUnpublishedExcursion(ctx context.Context, guideID int64) bool {
+	uid := middleware.UserIDFromContext(ctx)
+	if uid == 0 {
+		return false
+	}
+	for _, role := range middleware.RolesFromContext(ctx) {
+		if role == domain.RoleAdmin || role == domain.RoleModerator {
+			return true
+		}
+	}
+	g, _ := h.Guides.GetByUserID(ctx, uid)
+	return g != nil && g.ID == guideID
+}
+
+func (h *Handlers) canViewExcursion(ctx context.Context, e *domain.ExcursionView) bool {
+	if e == nil {
+		return false
+	}
+	if e.Status == domain.ExcursionPublished {
+		return true
+	}
+	return h.canPreviewUnpublishedExcursion(ctx, e.GuideID)
 }
 
 func (h *Handlers) publicGuideDTO(ctx context.Context, g *domain.GuideProfile) domain.PublicGuideDTO {

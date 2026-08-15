@@ -75,9 +75,6 @@ func (s *Service) Create(ctx context.Context, guideID int64, e *domain.Excursion
 	if err := s.PrepareNew(guideID, e); err != nil {
 		return 0, err
 	}
-	if !s.ModerationEnabled(ctx) {
-		e.Status = domain.ExcursionPublished
-	}
 	return s.Exc.Create(ctx, e)
 }
 

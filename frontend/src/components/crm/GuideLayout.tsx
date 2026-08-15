@@ -6,7 +6,6 @@ const TABS = [
   { to: '/account/guide/profile', label: 'Профіль' },
   { to: '/account/guide/excursions', label: 'Екскурсії' },
   { to: '/account/guide/documents', label: 'Документи' },
-  { to: '/account/guide/billing', label: 'Білінг' },
   { to: '/account/guide/calendar', label: 'Календар' },
 ] as const
 

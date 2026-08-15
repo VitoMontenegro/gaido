@@ -12,7 +12,7 @@ export default function EditExcursionPage() {
   const [saved, setSaved] = useState(false)
   const { data, isLoading, isError } = useQuery({
     queryKey: ['my-excursion', id],
-    queryFn: () => guideApi.getExcursion(id) as Promise<ExcursionFormData & { id?: number }>,
+    queryFn: () => guideApi.getExcursion(id) as Promise<ExcursionFormData & { id?: number; slug?: string; status?: string }>,
   })
 
   if (isLoading) return <div className="card text-stone-600">Завантаження…</div>
@@ -25,7 +25,14 @@ export default function EditExcursionPage() {
       <Helmet><title>Редагування — {data.title}</title></Helmet>
       <div className="max-w-4xl space-y-6">
         <div className="card space-y-4">
-          <Link to="/account/guide/excursions" className="text-sm text-brand-700 hover:underline">← Мої екскурсії</Link>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <Link to="/account/guide/excursions" className="text-sm text-brand-700 hover:underline">← Мої екскурсії</Link>
+            {data.slug && (
+              <Link to={`/excursion/${data.slug}`} className="btn-secondary py-1.5 text-sm">
+                {data.status === 'PUBLISHED' ? 'Переглянути в каталозі' : 'Попередній перегляд'}
+              </Link>
+            )}
+          </div>
           <h1 className="font-display text-2xl font-bold">Редагування</h1>
           {saved && (
             <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-base text-emerald-800">

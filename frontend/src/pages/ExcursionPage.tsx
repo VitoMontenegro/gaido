@@ -128,7 +128,7 @@ export default function ExcursionPage() {
   })
 
   useEffect(() => {
-    if (!excursion) return
+    if (!excursion || excursion.status !== 'PUBLISHED') return
     trackRecentView({
       type: 'excursion',
       slug: excursion.slug,
@@ -160,6 +160,7 @@ export default function ExcursionPage() {
   const language = excursion.language ?? 'uk'
   const ratingAvg = excursion.rating_avg ?? 0
   const ratingCount = excursion.rating_count ?? 0
+  const isUnpublished = excursion.status !== 'PUBLISHED'
   const isGuideOwner = !!myGuide && myGuide.id === excursion.guide_id
   const body = excursion.body_html?.trim() || (excursion.description ? `<p>${excursion.description}</p>` : '')
   const mapUrl = resolveMapEmbed(excursion.map_embed_url)
@@ -176,7 +177,8 @@ export default function ExcursionPage() {
         description={excursion.description ?? ''}
         path={`/excursion/${excursion.slug}`}
         image={excursion.cover_image_url}
-        jsonLd={{
+        noIndex={isUnpublished}
+        jsonLd={isUnpublished ? undefined : {
           '@context': 'https://schema.org',
           '@type': 'TouristTrip',
           name: excursion.title,
@@ -198,6 +200,23 @@ export default function ExcursionPage() {
           { label: excursion.title },
         ]}
       />
+
+      {isUnpublished && (
+        <div className="container-site pt-4">
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+            <p className="font-medium">Попередній перегляд — сторінка не в каталозі</p>
+            <p className="mt-1">
+              Статус: {excursion.status === 'DRAFT' ? 'чернетка' : excursion.status === 'PENDING_MODERATION' ? 'на модерації' : 'не опубліковано'}.
+              {' '}Бачать лише ви як автор.
+            </p>
+            {isGuideOwner && (
+              <Link to={`/account/guide/excursions/${excursion.id}/edit`} className="mt-2 inline-block font-medium text-brand-700 hover:underline">
+                Повернутися до редагування →
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
 
       <header className="container-site pt-8">
         <h1 className="font-display text-3xl font-bold normal-case tracking-normal md:text-4xl">

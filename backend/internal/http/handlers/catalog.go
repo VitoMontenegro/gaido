@@ -147,7 +147,7 @@ func (h *Handlers) ListExcursions(w http.ResponseWriter, r *http.Request) {
 }
 func (h *Handlers) GetExcursion(w http.ResponseWriter, r *http.Request) {
 	e, err := h.Exc.GetViewBySlug(r.Context(), chi.URLParam(r, "slug"))
-	if err != nil || e == nil || e.Status != domain.ExcursionPublished {
+	if err != nil || !h.canViewExcursion(r.Context(), e) {
 		response.Error(w, r, apperrors.ErrNotFound)
 		return
 	}

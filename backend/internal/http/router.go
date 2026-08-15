@@ -61,9 +61,10 @@ func NewRouter(cfg config.Config, log *slog.Logger, h *handlers.Handlers) http.H
 		api.Get("/guides", h.ListGuides)
 		api.Get("/guides/{slug}", h.GetGuide)
 
+		optionalAuth := middleware.OptionalAuth(h.JWT, h.Users)
 		api.Get("/excursions", h.ListExcursions)
-		api.Get("/excursions/{slug}/dates", h.ListExcursionDatesPublic)
-		api.Get("/excursions/{slug}", h.GetExcursion)
+		api.With(optionalAuth).Get("/excursions/{slug}/dates", h.ListExcursionDatesPublic)
+		api.With(optionalAuth).Get("/excursions/{slug}", h.GetExcursion)
 
 		api.Get("/articles", h.ListArticlesPublic)
 		api.Get("/articles/{slug}", h.GetArticlePublic)

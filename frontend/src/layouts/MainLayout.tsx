@@ -73,7 +73,12 @@ export function AccountLayout() {
           )}
           <AccountNavLink to="/account/settings">Налаштування</AccountNavLink>
           {isGuide && (
-            <AccountNavLink to="/account/guide">Кабінет гіда</AccountNavLink>
+            <AccountNavLink to="/account/guide/billing">Білінг</AccountNavLink>
+          )}
+          {isGuide && (
+            <AccountNavLink to="/account/guide" exceptPrefixes={['/account/guide/billing']}>
+              Кабінет гіда
+            </AccountNavLink>
           )}
           {isModerator && (
             <AccountNavLink to="/moderator">Модератор</AccountNavLink>
