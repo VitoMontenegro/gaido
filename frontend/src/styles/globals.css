@@ -734,6 +734,10 @@
     @apply text-lg font-semibold leading-5 text-stone-900 transition hover:text-brand-700;
   }
 
+  .excursion-parus-organizer__rating {
+    @apply flex flex-wrap items-center gap-1.5 text-sm text-stone-600;
+  }
+
   .excursion-parus-organizer__about,
   .excursion-parus-organizer__about-mobile {
     @apply text-base leading-snug text-stone-700;

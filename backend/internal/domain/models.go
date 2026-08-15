@@ -187,11 +187,13 @@ type ExcursionView struct {
 	CitySlug       string  `json:"city_slug,omitempty"`
 	GuideName      string  `json:"guide_name,omitempty"`
 	GuideSlug      string  `json:"guide_slug,omitempty"`
-	GuideAvatarURL string      `json:"guide_avatar_url,omitempty"`
-	GuideAbout     string      `json:"guide_about,omitempty"`
-	GuideContacts  ContactsDTO `json:"guide_contacts,omitempty"`
-	RatingAvg      float64     `json:"rating_avg,omitempty"`
-	RatingCount    int         `json:"rating_count,omitempty"`
+	GuideAvatarURL   string      `json:"guide_avatar_url,omitempty"`
+	GuideAbout       string      `json:"guide_about,omitempty"`
+	GuideContacts    ContactsDTO `json:"guide_contacts,omitempty"`
+	GuideRatingAvg   float64     `json:"guide_rating_avg,omitempty"`
+	GuideRatingCount int         `json:"guide_rating_count,omitempty"`
+	RatingAvg        float64     `json:"rating_avg,omitempty"`
+	RatingCount      int         `json:"rating_count,omitempty"`
 }
 
 type Review struct {

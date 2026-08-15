@@ -155,6 +155,8 @@ func (h *Handlers) GetExcursion(w http.ResponseWriter, r *http.Request) {
 	if g, err := h.Guides.GetByID(r.Context(), e.GuideID); err == nil && g != nil {
 		e.GuideContacts = h.publicGuideDTO(r.Context(), g).Contacts
 		e.GuideAbout = g.About
+		e.GuideRatingAvg = g.RatingAvg
+		e.GuideRatingCount = g.RatingCount
 	}
 	response.JSON(w, r, 200, e)
 }

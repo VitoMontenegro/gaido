@@ -31,6 +31,8 @@ export type ExcursionItem = {
   guide_avatar_url?: string
   guide_about?: string
   guide_contacts?: Contacts
+  guide_rating_avg?: number
+  guide_rating_count?: number
   rating_avg?: number
   rating_count?: number
 }

@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import type { Contacts } from '../api/types/catalog'
 import GuideAvatar from './GuideAvatar'
+import StarRating from './reviews/StarRating'
 import { guideContactLinks, type GuideContactLink } from '../lib/guideContactLinks'
 
 type Props = {
@@ -8,6 +9,8 @@ type Props = {
   guideSlug?: string
   guideAvatarUrl?: string
   guideAbout?: string
+  guideRatingAvg?: number
+  guideRatingCount?: number
   contacts?: Contacts
 }
 
@@ -84,11 +87,26 @@ function organizerAbout(about?: string) {
   return line ?? ''
 }
 
+function OrganizerRating({ avg, count }: { avg: number; count: number }) {
+  if (count <= 0) return null
+
+  return (
+    <p className="excursion-parus-organizer__rating">
+      <StarRating value={avg} size="sm" />
+      <span>
+        {avg.toFixed(1)} · {count} відгуків
+      </span>
+    </p>
+  )
+}
+
 export default function ExcursionOrganizerSection({
   guideName,
   guideSlug,
   guideAvatarUrl,
   guideAbout,
+  guideRatingAvg,
+  guideRatingCount,
   contacts,
 }: Props) {
   if (!guideSlug || !guideName) return null
@@ -96,6 +114,8 @@ export default function ExcursionOrganizerSection({
   const links = contacts ? guideContactLinks(contacts) : []
   const profileHref = `/guide/${guideSlug}`
   const aboutLine = organizerAbout(guideAbout)
+  const ratingAvg = guideRatingAvg ?? 0
+  const ratingCount = guideRatingCount ?? 0
 
   const emptyContactsMessage =
     contacts?.visible === false
@@ -119,6 +139,7 @@ export default function ExcursionOrganizerSection({
             <Link to={profileHref} className="excursion-parus-organizer__name">
               {guideName}
             </Link>
+            <OrganizerRating avg={ratingAvg} count={ratingCount} />
             {aboutLine ? (
               <p className="excursion-parus-organizer__about">{aboutLine}</p>
             ) : (
@@ -141,6 +162,7 @@ export default function ExcursionOrganizerSection({
           <Link to={profileHref} className="excursion-parus-organizer__name-mobile">
             {guideName}
           </Link>
+          <OrganizerRating avg={ratingAvg} count={ratingCount} />
           {aboutLine ? (
             <p className="excursion-parus-organizer__about-mobile">{aboutLine}</p>
           ) : (

@@ -300,6 +300,26 @@ export default function ExcursionPage() {
             </section>
           )}
 
+            {hasBooking && (
+                <BookingTermsSection
+                    included={excursion.included_items}
+                    excluded={excursion.excluded_items}
+                    notesHtml={excursion.organizational_details}
+                    meetingPoint={excursion.meeting_point}
+                />
+            )}
+
+
+            {excursion.guide_slug && (
+                <ExcursionOrganizerSection
+                    guideName={excursion.guide_name}
+                    guideSlug={excursion.guide_slug}
+                    guideAvatarUrl={excursion.guide_avatar_url}
+                    guideAbout={excursion.guide_about}
+                    contacts={excursion.guide_contacts}
+                />
+            )}
+
           <ReviewsSection
             className="excursion-parus-section scroll-mt-28 shadow-lg p-4"
             excursionId={excursion.id}
@@ -312,26 +332,6 @@ export default function ExcursionPage() {
               ['excursion', slug],
             ]}
           />
-
-          {excursion.guide_slug && (
-            <ExcursionOrganizerSection
-              guideName={excursion.guide_name}
-              guideSlug={excursion.guide_slug}
-              guideAvatarUrl={excursion.guide_avatar_url}
-              guideAbout={excursion.guide_about}
-              contacts={excursion.guide_contacts}
-            />
-          )}
-
-          {hasBooking && (
-            <BookingTermsSection
-              included={excursion.included_items}
-              excluded={excursion.excluded_items}
-              notesHtml={excursion.organizational_details}
-              meetingPoint={excursion.meeting_point}
-            />
-          )}
-
         </div>
 
         <aside className="hidden h-fit lg:block lg:sticky lg:top-26.25">
