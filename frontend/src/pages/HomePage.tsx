@@ -1,7 +1,8 @@
 import { useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { catalogApi, articlesApi, resolveMediaUrl, type HomeCategoryTile, type PublicGuide, type ArticleListItem } from '../api/client'
+import { catalogApi, articlesApi, resolveMediaUrl, type HomeCategoryTile, type PublicGuide } from '../api/client'
+import JournalArticleCard from '../components/JournalArticleCard'
 import ExcursionCard, { excursionCardPropsFromPartial } from '../components/ExcursionCard'
 import GuideCard from '../components/GuideCard'
 import HorizontalSwiper from '../components/HorizontalSwiper'
@@ -87,25 +88,6 @@ function CategoryTile({ tile }: { tile: HomeCategoryTile }) {
     <Link to={tile.url} className="category-tile">
       {img && <img src={img} alt="" className="category-tile__img" loading="lazy" />}
       <span className="category-tile__label">{tile.label}</span>
-    </Link>
-  )
-}
-
-function JournalPreviewCard({ article }: { article: ArticleListItem }) {
-  const cover = resolveMediaUrl(article.cover_image_url)
-  return (
-    <Link to={`/journal/${article.slug}`} className="journal-card group">
-      <div className="journal-card__media">
-        {cover ? (
-          <img src={cover} alt="" className="journal-card__img" loading="lazy" />
-        ) : (
-          <div className="journal-card__placeholder" />
-        )}
-      </div>
-      <div className="journal-card__body">
-        <h3 className="journal-card__title">{article.title}</h3>
-        {article.excerpt && <p className="journal-card__excerpt line-clamp-3">{article.excerpt}</p>}
-      </div>
     </Link>
   )
 }
@@ -306,7 +288,7 @@ export default function HomePage() {
                     />
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                         {journalArticles.map((article) => (
-                            <JournalPreviewCard key={article.id} article={article} />
+                            <JournalArticleCard key={article.id} article={article} heading="h3" />
                         ))}
                     </div>
                 </div>

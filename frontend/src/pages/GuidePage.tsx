@@ -1,10 +1,11 @@
 import { useEffect } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { api, catalogApi, type PublicGuide } from '../api/client'
+import { api, articlesApi, catalogApi, type PublicGuide } from '../api/client'
 import Breadcrumbs from '../components/Breadcrumbs'
 import ExcursionCard from '../components/ExcursionCard'
 import GuideAvatar from '../components/GuideAvatar'
+import JournalArticleCard from '../components/JournalArticleCard'
 import type { ExcursionItem } from '../components/excursionUi'
 import ReviewsSection from '../components/reviews/ReviewsSection'
 import StarRating from '../components/reviews/StarRating'
@@ -33,6 +34,11 @@ export default function GuidePage() {
   const { data: excursions } = useQuery({
     queryKey: ['guide-excursions', slug],
     queryFn: () => api<{ items: ExcursionItem[] }>(`/api/v1/guides/${slug}/excursions`),
+    enabled: !!slug,
+  })
+  const { data: articlesData } = useQuery({
+    queryKey: ['guide-articles', slug],
+    queryFn: () => articlesApi.byGuide(slug, 12),
     enabled: !!slug,
   })
 
@@ -110,6 +116,25 @@ export default function GuidePage() {
             canDispute={() => isGuideOwner}
             invalidateKeys={[['reviews', 'guide', guide.id], ['guide', slug]]}
           />
+
+          {(articlesData?.items ?? []).length > 0 && (
+            <section>
+              <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+                <div>
+                  <p className="section-title-sm mb-1">Журнал</p>
+                  <h2 className="font-display text-2xl font-bold">Статті гіда</h2>
+                </div>
+                <Link to="/journal" className="link-accent text-sm normal-case">
+                  Увесь журнал →
+                </Link>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {(articlesData?.items ?? []).map((article) => (
+                  <JournalArticleCard key={article.id} article={article} heading="h3" />
+                ))}
+              </div>
+            </section>
+          )}
         </div>
 
         <aside className="h-fit lg:sticky lg:top-24">

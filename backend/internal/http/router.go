@@ -58,6 +58,7 @@ func NewRouter(cfg config.Config, log *slog.Logger, h *handlers.Handlers) http.H
 
 		api.Get("/guides/top", h.ListTopGuides)
 		api.Get("/guides/{slug}/excursions", h.ListGuideExcursions)
+		api.Get("/guides/{slug}/articles", h.ListGuideArticlesPublic)
 		api.Get("/guides", h.ListGuides)
 		api.Get("/guides/{slug}", h.GetGuide)
 
@@ -120,6 +121,7 @@ func NewRouter(cfg config.Config, log *slog.Logger, h *handlers.Handlers) http.H
 			gr.Delete("/account/guide/excursions/{id}/dates/{dateId}", h.DeleteExcursionDate)
 			gr.Post("/reviews/{id}/dispute", h.DisputeReview)
 			gr.Post("/media", h.UploadMedia)
+			h.RegisterGuideArticleRoutes(gr)
 		})
 
 		api.Group(func(mr chi.Router) {

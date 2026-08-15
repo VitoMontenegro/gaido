@@ -14,15 +14,54 @@ type ArticleRepo struct{ db *DB }
 
 func NewArticleRepo(db *DB) *ArticleRepo { return &ArticleRepo{db: db} }
 
+const articleAuthorSelect = `
+	NULLIF(TRIM(COALESCE(NULLIF(gp.display_name, ''), NULLIF(TRIM(CONCAT(u.first_name, ' ', u.last_name)), ''), u.login)), ''),
+	NULLIF(gp.avatar_url, ''),
+	CASE WHEN gp.status = 'ACTIVE' AND COALESCE(gp.website_slug, '') <> '' THEN gp.website_slug ELSE NULL END
+`
+
+const articleAuthorJoin = `
+	LEFT JOIN users u ON u.id = a.author_id
+	LEFT JOIN guide_profiles gp ON gp.user_id = a.author_id
+`
+
+func attachAuthor(a *domain.Article, display, avatar, slug *string) {
+	if a == nil {
+		return
+	}
+	a.Author = articleAuthorFromScan(display, avatar, slug)
+}
+
+func articleAuthorFromScan(display, avatar, slug *string) *domain.ArticleAuthor {
+	name := ""
+	if display != nil {
+		name = strings.TrimSpace(*display)
+	}
+	if name == "" {
+		return nil
+	}
+	out := &domain.ArticleAuthor{DisplayName: name}
+	if avatar != nil {
+		out.AvatarURL = strings.TrimSpace(*avatar)
+	}
+	if slug != nil {
+		out.GuideSlug = strings.TrimSpace(*slug)
+	}
+	return out
+}
+
 func scanArticle(row pgx.Row) (*domain.Article, error) {
 	var a domain.Article
+	var display, avatar, slug *string
 	err := row.Scan(
 		&a.ID, &a.Slug, &a.Title, &a.Excerpt, &a.BodyHTML, &a.CoverImageURL,
 		&a.Status, &a.AuthorID, &a.PublishedAt, &a.CreatedAt, &a.UpdatedAt,
+		&display, &avatar, &slug,
 	)
 	if err != nil {
 		return nil, err
 	}
+	attachAuthor(&a, display, avatar, slug)
 	return &a, nil
 }
 
@@ -34,23 +73,53 @@ func (r *ArticleRepo) ListPublished(ctx context.Context, limit, offset int) ([]d
 		offset = 0
 	}
 	rows, err := r.db.Pool.Query(ctx, `
-		SELECT id, slug, title, excerpt, cover_image_url, published_at
-		FROM articles
-		WHERE status = $1
-		ORDER BY published_at DESC NULLS LAST, id DESC
+		SELECT a.id, a.slug, a.title, a.excerpt, a.cover_image_url, a.published_at,
+		`+articleAuthorSelect+`
+		FROM articles a
+		`+articleAuthorJoin+`
+		WHERE a.status = $1
+		ORDER BY a.published_at DESC NULLS LAST, a.id DESC
 		LIMIT $2 OFFSET $3
 	`, domain.ArticlePublished, limit, offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
+	return scanArticleList(rows)
+}
 
+func (r *ArticleRepo) ListPublishedByGuideSlug(ctx context.Context, slug string, limit, offset int) ([]domain.ArticleListItem, error) {
+	if limit <= 0 || limit > 100 {
+		limit = 20
+	}
+	if offset < 0 {
+		offset = 0
+	}
+	rows, err := r.db.Pool.Query(ctx, `
+		SELECT a.id, a.slug, a.title, a.excerpt, a.cover_image_url, a.published_at,
+		`+articleAuthorSelect+`
+		FROM articles a
+		`+articleAuthorJoin+`
+		WHERE a.status = $1 AND gp.website_slug = $2 AND gp.status = $3
+		ORDER BY a.published_at DESC NULLS LAST, a.id DESC
+		LIMIT $4 OFFSET $5
+	`, domain.ArticlePublished, slug, domain.GuideStatusActive, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return scanArticleList(rows)
+}
+
+func scanArticleList(rows pgx.Rows) ([]domain.ArticleListItem, error) {
 	var out []domain.ArticleListItem
 	for rows.Next() {
 		var item domain.ArticleListItem
-		if err := rows.Scan(&item.ID, &item.Slug, &item.Title, &item.Excerpt, &item.CoverImageURL, &item.PublishedAt); err != nil {
+		var display, avatar, slug *string
+		if err := rows.Scan(&item.ID, &item.Slug, &item.Title, &item.Excerpt, &item.CoverImageURL, &item.PublishedAt, &display, &avatar, &slug); err != nil {
 			return nil, err
 		}
+		item.Author = articleAuthorFromScan(display, avatar, slug)
 		out = append(out, item)
 	}
 	return out, rows.Err()
@@ -58,9 +127,11 @@ func (r *ArticleRepo) ListPublished(ctx context.Context, limit, offset int) ([]d
 
 func (r *ArticleRepo) GetPublishedBySlug(ctx context.Context, slug string) (*domain.Article, error) {
 	row := r.db.Pool.QueryRow(ctx, `
-		SELECT id, slug, title, excerpt, body_html, cover_image_url, status, author_id, published_at, created_at, updated_at
-		FROM articles
-		WHERE slug = $1 AND status = $2
+		SELECT a.id, a.slug, a.title, a.excerpt, a.body_html, a.cover_image_url, a.status, a.author_id, a.published_at, a.created_at, a.updated_at,
+		`+articleAuthorSelect+`
+		FROM articles a
+		`+articleAuthorJoin+`
+		WHERE a.slug = $1 AND a.status = $2
 	`, slug, domain.ArticlePublished)
 	a, err := scanArticle(row)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -71,24 +142,48 @@ func (r *ArticleRepo) GetPublishedBySlug(ctx context.Context, slug string) (*dom
 
 func (r *ArticleRepo) ListAll(ctx context.Context) ([]domain.Article, error) {
 	rows, err := r.db.Pool.Query(ctx, `
-		SELECT id, slug, title, excerpt, body_html, cover_image_url, status, author_id, published_at, created_at, updated_at
-		FROM articles
-		ORDER BY COALESCE(published_at, created_at) DESC, id DESC
+		SELECT a.id, a.slug, a.title, a.excerpt, a.body_html, a.cover_image_url, a.status, a.author_id, a.published_at, a.created_at, a.updated_at,
+		`+articleAuthorSelect+`
+		FROM articles a
+		`+articleAuthorJoin+`
+		ORDER BY COALESCE(a.published_at, a.created_at) DESC, a.id DESC
 	`)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
+	return scanArticleRows(rows)
+}
 
+func (r *ArticleRepo) ListByAuthor(ctx context.Context, authorID int64) ([]domain.Article, error) {
+	rows, err := r.db.Pool.Query(ctx, `
+		SELECT a.id, a.slug, a.title, a.excerpt, a.body_html, a.cover_image_url, a.status, a.author_id, a.published_at, a.created_at, a.updated_at,
+		`+articleAuthorSelect+`
+		FROM articles a
+		`+articleAuthorJoin+`
+		WHERE a.author_id = $1
+		ORDER BY COALESCE(a.published_at, a.created_at) DESC, a.id DESC
+	`, authorID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return scanArticleRows(rows)
+}
+
+func scanArticleRows(rows pgx.Rows) ([]domain.Article, error) {
 	var out []domain.Article
 	for rows.Next() {
 		var a domain.Article
+		var display, avatar, slug *string
 		if err := rows.Scan(
 			&a.ID, &a.Slug, &a.Title, &a.Excerpt, &a.BodyHTML, &a.CoverImageURL,
 			&a.Status, &a.AuthorID, &a.PublishedAt, &a.CreatedAt, &a.UpdatedAt,
+			&display, &avatar, &slug,
 		); err != nil {
 			return nil, err
 		}
+		attachAuthor(&a, display, avatar, slug)
 		out = append(out, a)
 	}
 	return out, rows.Err()
@@ -96,8 +191,11 @@ func (r *ArticleRepo) ListAll(ctx context.Context) ([]domain.Article, error) {
 
 func (r *ArticleRepo) GetByID(ctx context.Context, id int64) (*domain.Article, error) {
 	row := r.db.Pool.QueryRow(ctx, `
-		SELECT id, slug, title, excerpt, body_html, cover_image_url, status, author_id, published_at, created_at, updated_at
-		FROM articles WHERE id = $1
+		SELECT a.id, a.slug, a.title, a.excerpt, a.body_html, a.cover_image_url, a.status, a.author_id, a.published_at, a.created_at, a.updated_at,
+		`+articleAuthorSelect+`
+		FROM articles a
+		`+articleAuthorJoin+`
+		WHERE a.id = $1
 	`, id)
 	a, err := scanArticle(row)
 	if errors.Is(err, pgx.ErrNoRows) {

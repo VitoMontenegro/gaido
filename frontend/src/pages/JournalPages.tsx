@@ -1,40 +1,12 @@
 import { Seo } from '../lib/seo'
 import { Link, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { articlesApi, resolveMediaUrl, type ArticleListItem } from '../api/client'
+import { articlesApi, resolveMediaUrl } from '../api/client'
 import Breadcrumbs from '../components/Breadcrumbs'
+import ArticleAuthorByline from '../components/ArticleAuthorByline'
+import JournalArticleCard, { formatArticleDate } from '../components/JournalArticleCard'
 import { pageTitle } from '../lib/brand'
 import { sanitizeHtml } from '../lib/html'
-
-function formatArticleDate(value?: string) {
-  if (!value) return ''
-  return new Date(value).toLocaleDateString('uk-UA', { day: 'numeric', month: 'long', year: 'numeric' })
-}
-
-function ArticleCard({ article }: { article: ArticleListItem }) {
-  const cover = resolveMediaUrl(article.cover_image_url)
-  return (
-    <Link to={`/journal/${article.slug}`} className="journal-card group">
-      <div className="journal-card__media">
-        {cover ? (
-          <img src={cover} alt="" className="journal-card__img" loading="lazy" />
-        ) : (
-          <div className="journal-card__placeholder" />
-        )}
-      </div>
-      <div className="journal-card__body">
-        {article.published_at && (
-          <time className="journal-card__date" dateTime={article.published_at}>
-            {formatArticleDate(article.published_at)}
-          </time>
-        )}
-        <h2 className="journal-card__title">{article.title}</h2>
-        {article.excerpt && <p className="journal-card__excerpt">{article.excerpt}</p>}
-        <span className="journal-card__more">Читати →</span>
-      </div>
-    </Link>
-  )
-}
 
 export function JournalListPage() {
   const { data, isLoading } = useQuery({
@@ -60,7 +32,7 @@ export function JournalListPage() {
             Корисне для мандрівників
           </h1>
           <p className="mt-3 max-w-2xl text-base text-muted">
-            Поради з вибору гіда, підготовки до подорожі та використання каталогу екскурсій.
+            Поради з вибору гіда, підготовки до подорожі та історії від місцевих експертів.
           </p>
         </div>
       </section>
@@ -73,7 +45,7 @@ export function JournalListPage() {
         ) : (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {items.map((article) => (
-              <ArticleCard key={article.id} article={article} />
+              <JournalArticleCard key={article.id} article={article} />
             ))}
           </div>
         )}
@@ -124,7 +96,7 @@ export function JournalArticlePage() {
       )}
 
       <div className="container-site py-8 md:py-10">
-        <article>
+        <article className="mx-auto max-w-3xl">
           {article.published_at && (
             <time className="text-sm text-muted" dateTime={article.published_at}>
               {formatArticleDate(article.published_at)}
@@ -136,10 +108,26 @@ export function JournalArticlePage() {
           {article.excerpt && (
             <p className="mt-4 text-lg leading-relaxed text-muted">{article.excerpt}</p>
           )}
+          {article.author && (
+            <div className="article-byline-panel mt-8">
+              <ArticleAuthorByline author={article.author} />
+            </div>
+          )}
           <div
             className="excursion-body mt-8"
             dangerouslySetInnerHTML={{ __html: sanitizeHtml(article.body_html) }}
           />
+          {article.author && (
+            <footer className="article-byline-panel mt-10">
+              <p className="article-byline-panel__label">Автор</p>
+              <ArticleAuthorByline author={article.author} />
+              {article.author.guide_slug && (
+                <Link to={`/guide/${article.author.guide_slug}`} className="article-byline-panel__cta">
+                  Профіль гіда та екскурсії →
+                </Link>
+              )}
+            </footer>
+          )}
           <div className="mt-10 border-t border-divider pt-8">
             <Link to="/journal" className="link-accent text-sm normal-case">
               ← Усі статті

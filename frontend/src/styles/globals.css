@@ -207,6 +207,10 @@
     @apply flex h-full flex-col overflow-hidden rounded-[28px] border border-divider bg-surface no-underline shadow-[0_2px_10px_rgba(0,0,0,0.04)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)];
   }
 
+  .journal-card__link {
+    @apply flex flex-1 flex-col text-inherit no-underline;
+  }
+
   .journal-card__media {
     @apply relative aspect-[16/10] overflow-hidden bg-sand-100;
   }
@@ -237,6 +241,34 @@
 
   .journal-card__more {
     @apply mt-4 text-sm font-medium text-brand-600;
+  }
+
+  .journal-card__author {
+    @apply border-t border-divider px-5 py-3;
+  }
+
+  .article-byline {
+    @apply inline-flex items-center gap-3 text-inherit no-underline transition;
+  }
+
+  .article-byline:hover {
+    @apply opacity-90;
+  }
+
+  .article-byline--compact {
+    @apply gap-2;
+  }
+
+  .article-byline-panel {
+    @apply flex flex-col gap-3 rounded-[24px] border border-divider bg-sand-50 px-5 py-4;
+  }
+
+  .article-byline-panel__label {
+    @apply text-xs font-medium uppercase tracking-wide text-muted-light;
+  }
+
+  .article-byline-panel__cta {
+    @apply text-sm font-medium text-brand-600 no-underline hover:text-brand-700;
   }
 
   .cta-panel {

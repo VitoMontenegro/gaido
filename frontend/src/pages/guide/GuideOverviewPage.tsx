@@ -84,6 +84,9 @@ export function GuideOverviewPage() {
             <Link to="/account/guide/calendar" className="rounded-xl border border-border px-3 py-3 text-sm transition hover:bg-sand-50">
               Календар
             </Link>
+            <Link to="/account/guide/articles" className="rounded-xl border border-border px-3 py-3 text-sm transition hover:bg-sand-50">
+              + Нова стаття
+            </Link>
           </div>
         </section>
       </div>

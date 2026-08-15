@@ -26,6 +26,7 @@ const GuideBillingPage = lazyImport(() => import('../pages/guide').then((m) => (
 const GuideDocumentsPage = lazyImport(() => import('../pages/guide').then((m) => ({ default: m.GuideDocumentsPage })))
 const GuideExcursionsPage = lazyImport(() => import('../pages/guide').then((m) => ({ default: m.GuideExcursionsPage })))
 const GuideCalendarPage = lazyImport(() => import('../pages/guide').then((m) => ({ default: m.GuideCalendarPage })))
+const GuideArticlesPage = lazyImport(() => import('../pages/guide').then((m) => ({ default: m.GuideArticlesPage })))
 const CityPage = lazyImport(() => import('../pages/CityMapPages').then((m) => ({ default: m.default })))
 const MapPage = lazyImport(() => import('../pages/CityMapPages').then((m) => ({ default: m.MapPage })))
 const CreateExcursionPage = lazyImport(() => import('../pages/CreateExcursionPage'))
@@ -92,6 +93,7 @@ export default function App() {
           <Route path="excursions/new" element={<Lazy><CreateExcursionPage /></Lazy>} />
           <Route path="excursions/:id/edit" element={<Lazy><EditExcursionPage /></Lazy>} />
           <Route path="excursions" element={<Lazy><GuideExcursionsPage /></Lazy>} />
+          <Route path="articles" element={<Lazy><GuideArticlesPage /></Lazy>} />
           <Route path="calendar" element={<Lazy><GuideCalendarPage /></Lazy>} />
         </Route>
         <Route path="/admin" element={<RoleGate role="ROLE_ADMIN"><Lazy><AdminPage /></Lazy></RoleGate>} />

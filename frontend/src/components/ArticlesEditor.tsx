@@ -6,7 +6,7 @@ import { ImageUrlField } from './ImageUrlField'
 const RichTextEditor = lazy(() => import('./RichTextEditor'))
 
 type Props = {
-  apiBase: 'admin' | 'moderator'
+  apiBase: 'admin' | 'moderator' | 'guide'
 }
 
 const emptyDraft = (): Partial<Article> => ({
@@ -20,7 +20,8 @@ const emptyDraft = (): Partial<Article> => ({
 
 export function ArticlesEditor({ apiBase }: Props) {
   const qc = useQueryClient()
-  const cms = apiBase === 'admin' ? articlesApi.admin : articlesApi.moderator
+  const cms =
+    apiBase === 'admin' ? articlesApi.admin : apiBase === 'moderator' ? articlesApi.moderator : articlesApi.guide
   const [items, setItems] = useState<Article[]>([])
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [draft, setDraft] = useState<Partial<Article>>(emptyDraft())
@@ -83,6 +84,7 @@ export function ArticlesEditor({ apiBase }: Props) {
         setItems((prev) => [saved, ...prev])
       }
       qc.invalidateQueries({ queryKey: ['articles'] })
+      qc.invalidateQueries({ queryKey: ['guide-articles'] })
       setMessage('Збережено')
     } catch (e) {
       setMessage(e instanceof Error ? e.message : 'Помилка збереження')
@@ -100,6 +102,7 @@ export function ArticlesEditor({ apiBase }: Props) {
       setItems((prev) => prev.filter((a) => a.id !== selectedId))
       startNew()
       qc.invalidateQueries({ queryKey: ['articles'] })
+      qc.invalidateQueries({ queryKey: ['guide-articles'] })
       setMessage('Видалено')
     } catch (e) {
       setMessage(e instanceof Error ? e.message : 'Помилка видалення')
