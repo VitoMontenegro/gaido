@@ -71,6 +71,11 @@ const (
 )
 
 const (
+	ReviewDisputeOpen     = "OPEN"
+	ReviewDisputeResolved = "RESOLVED"
+)
+
+const (
 	ArticlePublished = "PUBLISHED"
 	ArticleDraft     = "DRAFT"
 )

@@ -18,6 +18,12 @@ func (h *Handlers) GetGuideProfile(w http.ResponseWriter, r *http.Request) {
 		response.Error(w, r, apperrors.ErrNotFound)
 		return
 	}
+	if u, err := h.Users.GetByID(r.Context(), g.UserID); err == nil && u != nil {
+		fullName := domain.UserDisplayName(u.FirstName, u.LastName, u.Login)
+		if g.DisplayName == "" || g.DisplayName == u.Login {
+			g.DisplayName = fullName
+		}
+	}
 	response.JSON(w, r, 200, h.GuideAccountProfile(r.Context(), g))
 }
 func (h *Handlers) GuideAccountProfile(ctx context.Context, g *domain.GuideProfile) domain.GuideAccountProfile {

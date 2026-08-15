@@ -41,6 +41,12 @@ export type AdminReview = {
   rating: number
   text: string
   status: string
+  dispute?: {
+    id: number
+    text: string
+    status: string
+    created_at?: string
+  }
 }
 
 export type AdminSettings = {
@@ -158,6 +164,8 @@ export const adminApi = {
     api(`/api/v1/moderator/excursions/${id}/reject`, { method: 'POST' }),
   approveReview: (id: number) =>
     api(`/api/v1/moderator/reviews/${id}/approve`, { method: 'POST' }),
+  deleteReview: (id: number) =>
+    api<{ status: string }>(`/api/v1/admin/reviews/${id}`, { method: 'DELETE' }),
   createCountry: (body: { slug: string; name: string }) =>
     api<{ id: number }>('/api/v1/moderator/geo/countries', { method: 'POST', body: JSON.stringify(body) }),
   createRegion: (body: { country_id: number; slug: string; name: string }) =>

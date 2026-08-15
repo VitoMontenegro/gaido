@@ -1,15 +1,13 @@
 import { useEffect } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { api, catalogApi, type PublicGuide } from '../api/client'
-import { reviewsApi } from '../api/reviews'
 import Breadcrumbs from '../components/Breadcrumbs'
 import ExcursionCard from '../components/ExcursionCard'
 import GuideAvatar from '../components/GuideAvatar'
 import type { ExcursionItem } from '../components/excursionUi'
-import ReviewCard from '../components/reviews/ReviewCard'
-import ReviewForm from '../components/reviews/ReviewForm'
-import type { Review } from '../components/reviews/types'
+import ReviewsSection from '../components/reviews/ReviewsSection'
+import StarRating from '../components/reviews/StarRating'
 import { trackRecentView, removeRecentView } from '../hooks/useRecentViews'
 import { useHasRole, useMe } from '../hooks/useAuth'
 import { useTelegramBotURL } from '../hooks/useTelegramBotURL'
@@ -20,7 +18,6 @@ import { Seo } from '../lib/seo'
 
 export default function GuidePage() {
   const { slug = '' } = useParams()
-  const qc = useQueryClient()
   const { data: me } = useMe()
   const isGuideRole = useHasRole('ROLE_GUIDE')
   const { data: guide, isLoading, isError, error } = useQuery({
@@ -37,19 +34,6 @@ export default function GuidePage() {
     queryKey: ['guide-excursions', slug],
     queryFn: () => api<{ items: ExcursionItem[] }>(`/api/v1/guides/${slug}/excursions`),
     enabled: !!slug,
-  })
-  const { data: reviews } = useQuery({
-    queryKey: ['reviews', guide?.id],
-    queryFn: () => api<{ items: Review[] }>(`/api/v1/reviews?guide_id=${guide!.id}`),
-    enabled: !!guide?.id,
-  })
-
-  const reviewMutation = useMutation({
-    mutationFn: (body: { excursion_id: number; rating: number; text: string }) =>
-      reviewsApi.create(body),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['reviews', guide?.id] })
-    },
   })
 
   const isGuideOwner = !!guide && myGuide?.id === guide.id
@@ -119,30 +103,13 @@ export default function GuidePage() {
             )}
           </section>
 
-          <section>
-            <h2 className="font-display mb-4 text-2xl font-bold">Відгуки</h2>
-            <ReviewForm
-              excursions={excursions?.items ?? []}
-              submitting={reviewMutation.isPending}
-              error={reviewMutation.error}
-              success={reviewMutation.isSuccess}
-              onSubmit={(v) => reviewMutation.mutate(v)}
-            />
-            {(reviews?.items ?? []).length === 0 ? (
-              <p className="mt-4 text-sm text-stone-600">Поки немає відгуків. Будьте першим!</p>
-            ) : (
-              <ul className="mt-4 space-y-3">
-                {(reviews?.items ?? []).map((r) => (
-                  <ReviewCard
-                    key={r.id}
-                    review={r}
-                    canReply={!!me && (isGuideOwner || me.id === r.author_id)}
-                    onReplied={() => qc.invalidateQueries({ queryKey: ['reviews', guide.id] })}
-                  />
-                ))}
-              </ul>
-            )}
-          </section>
+          <ReviewsSection
+            guideId={guide.id}
+            excursions={excursions?.items ?? []}
+            canReply={(r) => !!me && (isGuideOwner || me.id === r.author_id)}
+            canDispute={() => isGuideOwner}
+            invalidateKeys={[['reviews', 'guide', guide.id], ['guide', slug]]}
+          />
         </div>
 
         <aside className="h-fit lg:sticky lg:top-24">
@@ -167,8 +134,9 @@ function GuideHero({ guide, excursionCount }: { guide: PublicGuide; excursionCou
           </span>
         )}
         <h1 className="font-display mt-3 text-4xl font-bold text-stone-900 md:text-5xl">{guide.display_name}</h1>
-        <p className="mt-3 text-lg text-stone-600">
-          ★ {guide.rating_avg.toFixed(1)} · {guide.rating_count} відгуків · {excursionCount} екскурсій
+        <p className="mt-3 flex flex-wrap items-center gap-2 text-lg text-stone-600">
+          <StarRating value={guide.rating_avg} size="md" />
+          <span>{guide.rating_avg.toFixed(1)} · {guide.rating_count} відгуків · {excursionCount} екскурсій</span>
         </p>
         <p className="mt-6 max-w-3xl whitespace-pre-wrap leading-relaxed text-stone-700">
           {guide.about || "Опис з'явиться незабаром."}

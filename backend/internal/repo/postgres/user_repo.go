@@ -154,6 +154,27 @@ func (r *UserRepo) FirstAdminID(ctx context.Context) (int64, error) {
 	return id, err
 }
 
+func (r *UserRepo) ListAdminIDs(ctx context.Context) ([]int64, error) {
+	rows, err := r.db.Pool.Query(ctx, `
+		SELECT id FROM users
+		WHERE deleted_at IS NULL AND status = 'ACTIVE' AND 'ROLE_ADMIN' = ANY(roles)
+		ORDER BY id
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var ids []int64
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
+}
+
 func (r *UserRepo) FirstAdminIDExcluding(ctx context.Context, excludeID int64) (int64, error) {
 	var id int64
 	err := r.db.Pool.QueryRow(ctx, `

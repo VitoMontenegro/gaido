@@ -69,6 +69,7 @@ func NewRouter(cfg config.Config, log *slog.Logger, h *handlers.Handlers) http.H
 		api.Get("/articles/{slug}", h.GetArticlePublic)
 
 		api.Get("/reviews", h.ListReviewsPublic)
+		api.Get("/reviews/photos", h.ListReviewPhotosPublic)
 
 		api.Get("/media/public/{key}", h.ServePublicMedia)
 
@@ -82,6 +83,7 @@ func NewRouter(cfg config.Config, log *slog.Logger, h *handlers.Handlers) http.H
 			pr.Get("/favorites", h.ListFavorites)
 			pr.Post("/favorites", h.ToggleFavorite)
 			pr.Post("/reviews", h.CreateReview)
+			pr.Post("/reviews/photos", h.UploadReviewPhoto)
 			pr.Post("/reviews/{id}/comments", h.CreateReviewComment)
 			pr.Get("/notifications", h.ListNotifications)
 			pr.Get("/notifications/longpoll", h.Longpoll)
@@ -115,6 +117,7 @@ func NewRouter(cfg config.Config, log *slog.Logger, h *handlers.Handlers) http.H
 			gr.Get("/account/guide/excursions/{id}/dates", h.ListMyExcursionDates)
 			gr.Post("/account/guide/excursions/{id}/dates", h.CreateExcursionDate)
 			gr.Delete("/account/guide/excursions/{id}/dates/{dateId}", h.DeleteExcursionDate)
+			gr.Post("/reviews/{id}/dispute", h.DisputeReview)
 			gr.Post("/media", h.UploadMedia)
 		})
 
@@ -153,6 +156,7 @@ func NewRouter(cfg config.Config, log *slog.Logger, h *handlers.Handlers) http.H
 			ar.Get("/admin/excursions", h.AdminListExcursions)
 			ar.Delete("/admin/excursions/{id}", h.AdminDeleteExcursion)
 			ar.Get("/admin/reviews", h.AdminListReviews)
+			ar.Delete("/admin/reviews/{id}", h.AdminDeleteReview)
 			h.RegisterAdminArticleRoutes(ar)
 			ar.Post("/payments/{id}/confirm", h.ConfirmPayment)
 			ar.Get("/admin/deploy/info", h.AdminDeployInfo)

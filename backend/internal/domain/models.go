@@ -204,7 +204,22 @@ type Review struct {
 	Rating         int             `json:"rating"`
 	Text           string          `json:"text"`
 	Status         string          `json:"status"`
+	CreatedAt      string          `json:"created_at,omitempty"`
+	Photos         []string        `json:"photos,omitempty"`
+	Dispute        *ReviewDispute  `json:"dispute,omitempty"`
 	Comments       []ReviewComment `json:"comments,omitempty"`
+}
+
+type ReviewDispute struct {
+	ID        int64  `json:"id"`
+	Text      string `json:"text"`
+	Status    string `json:"status"`
+	CreatedAt string `json:"created_at,omitempty"`
+}
+
+type ReviewPhotoItem struct {
+	PublicKey string `json:"public_key"`
+	ReviewID  int64  `json:"review_id"`
 }
 
 type ReviewComment struct {

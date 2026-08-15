@@ -30,6 +30,16 @@ func (h *Handlers) CreateNotification(ctx context.Context, userID int64, ntype, 
 	return h.Redis.Signal.Publish(ctx, "notifications:"+strconv.FormatInt(userID, 10), "1").Err()
 }
 
+func (h *Handlers) NotifyAdmins(ctx context.Context, ntype, payload string) {
+	ids, err := h.Users.ListAdminIDs(ctx)
+	if err != nil {
+		return
+	}
+	for _, id := range ids {
+		_ = h.CreateNotification(ctx, id, ntype, payload)
+	}
+}
+
 func (h *Handlers) ensureArticleAuthor(ctx context.Context, article *domain.Article) {
 	if article == nil || article.AuthorID != nil {
 		return

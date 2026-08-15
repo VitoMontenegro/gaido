@@ -96,7 +96,8 @@ func (h *Handlers) Register(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.AsGuide {
 		slug := guidesvc.Slugify(req.Login)
-		if guideID, err := h.Guides.CreateProfile(r.Context(), id, domain.GuideTypeGuide, req.Login, slug); err != nil {
+		displayName := domain.UserDisplayName(req.FirstName, req.LastName, req.Login)
+		if guideID, err := h.Guides.CreateProfile(r.Context(), id, domain.GuideTypeGuide, displayName, slug); err != nil {
 			h.Log.Warn("guide profile creation failed", "user_id", id, "error", err)
 		} else {
 			_ = h.GuideSvc.ActivateForCatalogFilling(r.Context(), guideID)

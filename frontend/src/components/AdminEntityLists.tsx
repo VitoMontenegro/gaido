@@ -308,30 +308,68 @@ export function AdminExcursionsList() {
 }
 
 export function AdminReviewsList() {
+  const qc = useQueryClient()
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['admin-reviews'],
     queryFn: () => adminApi.reviews(),
+  })
+  const remove = useMutation({
+    mutationFn: (id: number) => adminApi.deleteReview(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-reviews'] }),
   })
 
   if (isLoading) return <ListShell title="Відгуки">Завантаження…</ListShell>
   if (isError) return <ListShell title="Відгуки">{error?.message ?? 'Помилка'}</ListShell>
 
+  const items = data?.items ?? []
+  const disputedCount = items.filter((r) => r.dispute?.status === 'OPEN').length
+
   return (
-    <ListShell title="Відгуки" count={(data?.items ?? []).length}>
+    <ListShell title="Відгуки" count={items.length}>
+      {disputedCount > 0 && (
+        <p className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900">
+          {disputedCount} оскаржень потребують уваги
+        </p>
+      )}
       <ul className="divide-y divide-divider">
-        {(data?.items ?? []).map((r: AdminReview) => (
-          <li key={r.id} className="space-y-1 px-4 py-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="font-medium">{r.author_name ?? `Користувач #${r.author_id}`}</span>
-              <span className="text-amber-600">{'★'.repeat(r.rating)}</span>
-              <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusBadge(r.status)}`}>
-                {statusLabel(r.status)}
-              </span>
+        {items.map((r: AdminReview) => (
+          <li key={r.id} className="space-y-2 px-4 py-3">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-medium">{r.author_name ?? `Користувач #${r.author_id}`}</span>
+                <span className="text-amber-600">{'★'.repeat(r.rating)}</span>
+                <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusBadge(r.status)}`}>
+                  {statusLabel(r.status)}
+                </span>
+                {r.dispute?.status === 'OPEN' && (
+                  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900">
+                    Оскарження
+                  </span>
+                )}
+              </div>
+              <button
+                type="button"
+                className="text-sm text-red-600 hover:underline disabled:opacity-50"
+                disabled={remove.isPending}
+                onClick={() => {
+                  if (window.confirm('Видалити цей відгук? Дію не можна скасувати.')) {
+                    remove.mutate(r.id)
+                  }
+                }}
+              >
+                Видалити
+              </button>
             </div>
             {r.excursion_title && (
               <p className="text-sm text-stone-500">Екскурсія: {r.excursion_title}</p>
             )}
             <p className="text-sm text-stone-700">{r.text}</p>
+            {r.dispute && (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm">
+                <p className="font-medium text-amber-900">Коментар гіда</p>
+                <p className="mt-1 whitespace-pre-wrap text-amber-800">{r.dispute.text}</p>
+              </div>
+            )}
           </li>
         ))}
       </ul>

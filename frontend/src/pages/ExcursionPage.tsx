@@ -1,8 +1,7 @@
-import { useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { api } from '../api/client'
-import { reviewsApi } from '../api/reviews'
 import type { ExcursionItem } from '../components/excursionUi'
 import {
   excursionPriceCaption,
@@ -14,15 +13,18 @@ import ExcursionCover from '../components/ExcursionCover'
 import ExcursionComfortBlock from '../components/ExcursionComfortBlock'
 import ExcursionHeroGallery from '../components/ExcursionHeroGallery'
 import ExcursionDetailsGrid from '../components/ExcursionDetailsGrid'
+import {
+  ExcursionAvailabilityButton,
+  ExcursionAvailabilityDialog,
+} from '../components/ExcursionAvailabilityButton'
+import { CalendarDaysIcon } from '@heroicons/react/24/outline'
 import ExcursionPhotoLocations from '../components/ExcursionPhotoLocations'
 import ExcursionReadMore from '../components/ExcursionReadMore'
 import ExcursionRouteSection from '../components/ExcursionRouteSection'
 import ExcursionVideoBlock from '../components/ExcursionVideoBlock'
 import ExcursionOrganizerSection from '../components/ExcursionOrganizerSection'
-import ExcursionAvailabilityPanel from '../components/ExcursionAvailabilityPanel'
-import ReviewCard from '../components/reviews/ReviewCard'
-import ReviewForm from '../components/reviews/ReviewForm'
-import { renderStars, type Review } from '../components/reviews/types'
+import ReviewsSection from '../components/reviews/ReviewsSection'
+import StarRating from '../components/reviews/StarRating'
 import { trackRecentView, removeRecentView } from '../hooks/useRecentViews'
 import { useHasRole, useMe } from '../hooks/useAuth'
 import { getApiErrorCode } from '../api/http'
@@ -102,9 +104,9 @@ function ExcursionBookingPanel({
 
 export default function ExcursionPage() {
   const { slug = '' } = useParams()
-  const qc = useQueryClient()
   const { data: me } = useMe()
   const isGuideRole = useHasRole('ROLE_GUIDE')
+  const [availabilityOpen, setAvailabilityOpen] = useState(false)
 
   const { data: excursion, isLoading, isError, error } = useQuery({
     queryKey: ['excursion', slug],
@@ -115,20 +117,6 @@ export default function ExcursionPage() {
     queryKey: ['my-guide-profile'],
     queryFn: () => api<{ id: number }>('/api/v1/account/guide/profile'),
     enabled: isGuideRole,
-  })
-  const { data: reviews } = useQuery({
-    queryKey: ['reviews', 'excursion', excursion?.id],
-    queryFn: () => api<{ items: Review[] }>(`/api/v1/reviews?excursion_id=${excursion!.id}`),
-    enabled: !!excursion?.id,
-  })
-
-  const reviewMutation = useMutation({
-    mutationFn: (body: { excursion_id: number; rating: number; text: string }) =>
-      reviewsApi.create(body),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['reviews', 'excursion', excursion?.id] })
-      qc.invalidateQueries({ queryKey: ['excursion', slug] })
-    },
   })
 
   const favMutation = useMutation({
@@ -171,8 +159,7 @@ export default function ExcursionPage() {
   const transport = excursion.transport_mode ?? 'WALKING'
   const language = excursion.language ?? 'uk'
   const ratingAvg = excursion.rating_avg ?? 0
-  const reviewItems = reviews?.items ?? []
-  const ratingCount = excursion.rating_count ?? reviewItems.length
+  const ratingCount = excursion.rating_count ?? 0
   const isGuideOwner = !!myGuide && myGuide.id === excursion.guide_id
   const body = excursion.body_html?.trim() || (excursion.description ? `<p>${excursion.description}</p>` : '')
   const mapUrl = resolveMapEmbed(excursion.map_embed_url)
@@ -224,9 +211,10 @@ export default function ExcursionPage() {
       <div className="container-site grid gap-8 py-8 lg:grid-cols-[1fr_340px]">
         <div className="min-w-0 space-y-8">
           {ratingCount > 0 && (
-            <a href="#reviews" className="excursion-parus-link">
-              {renderStars(ratingAvg)} {ratingAvg.toFixed(1)} · {ratingCount} відгуків
-            </a>
+            <Link to="#reviews" className="excursion-parus-link inline-flex items-center gap-2">
+              <StarRating value={ratingAvg} size="md" />
+              <span>{ratingAvg.toFixed(1)} · {ratingCount} відгуків</span>
+            </Link>
           )}
 
           {useParusLayout && gallery.length > 0 ? (
@@ -247,7 +235,7 @@ export default function ExcursionPage() {
               />
           )}
 
-          <div className="rounded-3xl bg-white p-4 shadow-lg">
+          <div className="rounded-3xl bg-white p-4 shadow-lg sm:p-6">
             <ExcursionDetailsGrid
               type={excursion.type}
               maxGuests={excursion.max_guests}
@@ -255,6 +243,7 @@ export default function ExcursionPage() {
               transportMode={transport}
               language={language}
               childrenAllowed={excursion.children_allowed}
+              onOpenAvailability={() => setAvailabilityOpen(true)}
             />
           </div>
 
@@ -292,33 +281,18 @@ export default function ExcursionPage() {
             </section>
           )}
 
-            <section id="reviews" className="excursion-parus-section scroll-mt-28 shadow-lg p-4">
-                <h2 className="excursion-parus-section__title">Відгуки</h2>
-                <div className="space-y-4">
-                    <ReviewForm
-                        fixedExcursionId={excursion.id}
-                        submitting={reviewMutation.isPending}
-                        error={reviewMutation.error}
-                        success={reviewMutation.isSuccess}
-                        onSubmit={(v) => reviewMutation.mutate(v)}
-                    />
-                    {reviewItems.length === 0 ? (
-                        <p className="excursion-parus-muted">Поки немає відгуків. Будьте першим!</p>
-                    ) : (
-                        <ul className="space-y-3">
-                            {reviewItems.map((r) => (
-                                <ReviewCard
-                                    key={r.id}
-                                    review={r}
-                                    showExcursion={false}
-                                    canReply={!!me && (isGuideOwner || me.id === r.author_id)}
-                                    onReplied={() => qc.invalidateQueries({ queryKey: ['reviews', 'excursion', excursion.id] })}
-                                />
-                            ))}
-                        </ul>
-                    )}
-                </div>
-            </section>
+          <ReviewsSection
+            className="excursion-parus-section scroll-mt-28 shadow-lg p-4"
+            excursionId={excursion.id}
+            fixedExcursionId={excursion.id}
+            showExcursion={false}
+            canReply={(r) => !!me && (isGuideOwner || me.id === r.author_id)}
+            canDispute={() => isGuideOwner}
+            invalidateKeys={[
+              ['reviews', 'excursion', excursion.id],
+              ['excursion', slug],
+            ]}
+          />
 
           {excursion.guide_slug && (
             <ExcursionOrganizerSection
@@ -339,17 +313,14 @@ export default function ExcursionPage() {
             />
           )}
 
-          <div className="lg:hidden">
-            <ExcursionAvailabilityPanel slug={excursion.slug} excursionType={excursion.type} />
-          </div>
         </div>
 
         <aside className="hidden h-fit lg:block lg:sticky lg:top-26.25">
           <div className="space-y-4">
             <div className="card space-y-4 border-brand-200 shadow-lg">
               <ExcursionBookingPanel excursion={excursion} favMutation={favMutation} />
+              <ExcursionAvailabilityButton onClick={() => setAvailabilityOpen(true)} />
             </div>
-            <ExcursionAvailabilityPanel slug={excursion.slug} excursionType={excursion.type} />
           </div>
         </aside>
       </div>
@@ -360,12 +331,27 @@ export default function ExcursionPage() {
       >
         <div className="mx-auto flex max-w-365 items-center gap-3">
           <ExcursionBookingPanel excursion={excursion} favMutation={favMutation} compact />
+          <button
+            type="button"
+            className="btn-secondary shrink-0 px-3 py-2.5"
+            aria-label="Доступні дати"
+            onClick={() => setAvailabilityOpen(true)}
+          >
+            <CalendarDaysIcon className="h-5 w-5" aria-hidden />
+          </button>
         </div>
       </div>
 
       <div className="container-site pb-10">
         <Link to="/search" className="text-brand-700 hover:underline">← Усі екскурсії</Link>
       </div>
+
+      <ExcursionAvailabilityDialog
+        open={availabilityOpen}
+        onClose={() => setAvailabilityOpen(false)}
+        slug={excursion.slug}
+        excursionType={excursion.type}
+      />
     </div>
   )
 }

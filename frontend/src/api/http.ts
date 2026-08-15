@@ -27,6 +27,7 @@ const API_ERROR_MESSAGES: Record<string, string> = {
   EMAIL_ALREADY_EXISTS: 'Користувач з таким email вже існує',
   LOGIN_ALREADY_EXISTS: 'Такий логін уже зайнятий',
   REVIEW_ALREADY_EXISTS: 'Ви вже залишили відгук на цю екскурсію',
+  DISPUTE_ALREADY_EXISTS: 'Ви вже оскаржили цей відгук',
   RATE_LIMITED: 'Забагато спроб. Спробуйте пізніше',
 }
 

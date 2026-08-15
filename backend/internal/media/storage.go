@@ -8,7 +8,6 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
-	"image/jpeg"
 	_ "image/png"
 	"io"
 	"os"
@@ -99,7 +98,7 @@ func applyWatermark(data []byte, mime string) ([]byte, error) {
 	if !strings.HasPrefix(mime, "image/") {
 		return watermarkPDFPlaceholder(data), nil
 	}
-	img, _, err := image.Decode(bytes.NewReader(data))
+	img, err := decodeUploadImage(data, mime)
 	if err != nil {
 		return data, err
 	}
@@ -122,7 +121,7 @@ func applyWatermark(data []byte, mime string) ([]byte, error) {
 	}
 
 	var buf bytes.Buffer
-	if err := jpeg.Encode(&buf, rgba, &jpeg.Options{Quality: 88}); err != nil {
+	if err := jpegEncode(&buf, rgba, 88); err != nil {
 		return data, err
 	}
 	return buf.Bytes(), nil
