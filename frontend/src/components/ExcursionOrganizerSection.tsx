@@ -88,13 +88,11 @@ function organizerAbout(about?: string) {
 }
 
 function OrganizerRating({ avg, count }: { avg: number; count: number }) {
-  if (count <= 0) return null
-
   return (
     <p className="excursion-parus-organizer__rating">
-      <StarRating value={avg} size="sm" />
+      <StarRating value={count > 0 ? avg : 0} size="md" />
       <span>
-        {avg.toFixed(1)} · {count} відгуків
+        {count > 0 ? `${avg.toFixed(1)} · ${count} відгуків` : 'Ще немає відгуків'}
       </span>
     </p>
   )
