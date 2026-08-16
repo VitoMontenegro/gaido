@@ -1,5 +1,17 @@
 {
-  "dependencies": {
-    "@heroicons/react": "^2.2.0"
+  "name": "gaido",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build -w @gaido/portal -w @gaido/svit -w @gaido/servis -w @gaido/vezu",
+    "dev:portal": "npm run dev -w @gaido/portal",
+    "dev:svit": "npm run dev -w @gaido/svit",
+    "dev:servis": "npm run dev -w @gaido/servis",
+    "dev:vezu": "npm run dev -w @gaido/vezu",
+    "lint": "npm run lint --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present"
   }
 }

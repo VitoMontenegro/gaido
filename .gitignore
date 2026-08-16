@@ -1,10 +1,10 @@
 .env
 .env.local
-frontend/.env.local
 .local/
 .DS_Store
 backend/storage/
-frontend/node_modules/
-frontend/dist/
 .idea/
 /node_modules/
+apps/*/dist/
+**/node_modules/
+**/node_modules/.tmp/

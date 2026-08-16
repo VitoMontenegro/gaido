@@ -119,12 +119,13 @@ PG_PORT=${PG_PORT}
 REDIS_PORT=${REDIS_PORT}
 EOF
 
-  cat >"$root/frontend/.env.local" <<EOF
+  cat >"$root/.local/vite.env" <<EOF
 # Auto-synced from .local/ports.env by run-local.sh — do not commit
 FRONTEND_PORT=${FRONTEND_PORT}
 BACKEND_PORT=${BACKEND_PORT}
 HTTP_ADDR=:${BACKEND_PORT}
 VITE_PUBLIC_SITE_URL=${PUBLIC_BASE_URL}
+LOCAL_APP=${LOCAL_APP:-portal}
 EOF
 }
 

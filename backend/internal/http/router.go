@@ -50,7 +50,18 @@ func NewRouter(cfg config.Config, log *slog.Logger, h *handlers.Handlers) http.H
 		api.Get("/geo/cities", h.ListCities)
 		api.Get("/geo/cities/id/{id}", h.GetCityByID)
 		api.Get("/geo/cities/{slug}", h.GetCity)
+		api.Get("/geo/reverse", h.GeoReverse)
+		api.Get("/geo/nearby-cities", h.GeoNearbyCities)
+		api.Get("/geo/countries/{country}/regions", h.ListRegions)
 		api.Get("/map/points", h.ListMapPoints)
+
+		api.Get("/discover", h.ListDiscover)
+		api.Get("/discover/map-points", h.ListDiscoverMapPoints)
+		api.Get("/categories", h.ListServiceCategories)
+		api.Get("/categories/{slug}/services", h.ListCategoryServices)
+		api.Get("/providers/{slug}", h.GetProviderPublic)
+		api.Get("/jobs", h.ListJobs)
+		api.Get("/looking-requests", h.ListLookingRequests)
 
 		api.Get("/site", h.GetSite)
 		api.With(middleware.AuthRateLimit(20, time.Minute, cfg.TrustProxy)).Post("/cookie-consent", h.AcceptCookieConsent)
@@ -87,6 +98,8 @@ func NewRouter(cfg config.Config, log *slog.Logger, h *handlers.Handlers) http.H
 			pr.Post("/reviews", h.CreateReview)
 			pr.Post("/reviews/photos", h.UploadReviewPhoto)
 			pr.Post("/reviews/{id}/comments", h.CreateReviewComment)
+			pr.Post("/platform-reviews", h.CreatePlatformReview)
+			pr.Post("/looking-requests", h.CreateLookingRequest)
 			pr.Get("/notifications", h.ListNotifications)
 			pr.Get("/notifications/longpoll", h.Longpoll)
 			pr.Patch("/notifications/{id}/read", h.MarkNotificationRead)
@@ -122,6 +135,23 @@ func NewRouter(cfg config.Config, log *slog.Logger, h *handlers.Handlers) http.H
 			gr.Post("/reviews/{id}/dispute", h.DisputeReview)
 			gr.Post("/media", h.UploadMedia)
 			h.RegisterGuideArticleRoutes(gr)
+		})
+
+		api.Group(func(pr chi.Router) {
+			pr.Use(authMW)
+			pr.Post("/account/provider/register", h.RegisterProvider)
+			pr.Get("/account/provider", h.GetProviderAccount)
+			pr.Put("/account/provider/profile", h.UpdateProviderAccount)
+			pr.Post("/account/provider/offerings", h.UpsertProviderOffering)
+			pr.Post("/account/provider/points", h.UpsertProviderPoint)
+			pr.Post("/account/provider/offering-points", h.LinkOfferingPoint)
+			pr.Post("/account/provider/zones", h.UpsertProviderZone)
+			pr.Post("/account/provider/service-suggestions", h.CreateServiceSuggestion)
+		})
+
+		api.Group(func(pr chi.Router) {
+			pr.Use(authMW, rbacMW)
+			pr.Post("/looking-requests/{id}/respond", h.RespondLookingRequest)
 		})
 
 		api.Group(func(mr chi.Router) {
@@ -170,15 +200,35 @@ func NewRouter(cfg config.Config, log *slog.Logger, h *handlers.Handlers) http.H
 		})
 	})
 
-	fs := spaFileServer(cfg.StaticDir)
 	r.Get("/*", func(w http.ResponseWriter, req *http.Request) {
 		if strings.HasPrefix(req.URL.Path, "/api/") {
 			http.NotFound(w, req)
 			return
 		}
-		fs.ServeHTTP(w, req)
+		spaFileServer(staticDirForHost(req.Host, cfg)).ServeHTTP(w, req)
 	})
 	return r
+}
+
+func staticDirForHost(host string, cfg config.Config) string {
+	if cfg.StaticRoot == "" {
+		return cfg.StaticDir
+	}
+	sub := cfg.StaticHostMap[normalizeHost(host)]
+	if sub == "" {
+		sub = "portal"
+	}
+	return filepath.Join(cfg.StaticRoot, sub)
+}
+
+func normalizeHost(host string) string {
+	h := host
+	if i := strings.LastIndex(host, ":"); i != -1 {
+		if strings.Count(host, ":") == 1 || strings.HasPrefix(host, "[") {
+			h = host[:i]
+		}
+	}
+	return strings.ToLower(strings.TrimSuffix(strings.TrimSpace(h), "."))
 }
 
 func spaFileServer(dist string) http.Handler {

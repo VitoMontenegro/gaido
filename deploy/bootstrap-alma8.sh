@@ -80,7 +80,8 @@ if [ ! -f "$ENV_FILE" ]; then
   cat >"$ENV_FILE" <<ENV
 APP_ENV=production
 HTTP_ADDR=:8081
-CORS_ORIGINS=https://${DOMAIN},https://www.${DOMAIN}
+CORS_ORIGINS=https://${DOMAIN},https://www.${DOMAIN},https://svit.${DOMAIN}
+PUBLIC_BASE_URL=https://svit.${DOMAIN}
 
 DATABASE_URL=postgres://tourister:${DB_PASS}@127.0.0.1:5432/tourister?sslmode=disable
 REDIS_URL=redis://127.0.0.1:6379/0
@@ -111,7 +112,7 @@ fi
 cat >/etc/nginx/conf.d/gaido.conf <<NGX
 server {
     listen 80;
-    server_name ${DOMAIN} www.${DOMAIN};
+    server_name ${DOMAIN} www.${DOMAIN} svit.${DOMAIN};
 
     client_max_body_size 12m;
 

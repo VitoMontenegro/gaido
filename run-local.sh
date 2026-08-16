@@ -79,13 +79,22 @@ if [[ "${LOCAL_SKIP_FRONTEND:-0}" == "1" ]]; then
   exec tail -f "$ROOT/.local/logs/backend.log"
 fi
 
-if [[ ! -d "$ROOT/frontend/node_modules" ]]; then
-  echo "→ npm install (frontend)"
-  (cd "$ROOT/frontend" && npm install)
+if [[ ! -d "$ROOT/node_modules" ]]; then
+  echo "→ npm install (monorepo root)"
+  (cd "$ROOT" && npm install)
 fi
 
-echo "→ frontend :${FRONTEND_PORT} (foreground — Ctrl+C stops vite only; ./stop-local.sh for all)"
-cd "$ROOT/frontend"
+LOCAL_APP="${LOCAL_APP:-portal}"
+case "$LOCAL_APP" in
+  portal|svit|servis|vezu) ;;
+  *)
+    echo "→ invalid LOCAL_APP=$LOCAL_APP (use portal|svit|servis|vezu)" >&2
+    exit 1
+    ;;
+esac
+
+echo "→ frontend :${FRONTEND_PORT} app=${LOCAL_APP} (foreground — Ctrl+C stops vite only; ./stop-local.sh for all)"
+cd "$ROOT"
 export PORT="$FRONTEND_PORT"
-export BACKEND_PORT HTTP_ADDR
-exec npm run dev -- --host 127.0.0.1 --port "$FRONTEND_PORT"
+export BACKEND_PORT HTTP_ADDR LOCAL_APP
+exec npm run "dev:${LOCAL_APP}" -- --host 127.0.0.1 --port "$FRONTEND_PORT"

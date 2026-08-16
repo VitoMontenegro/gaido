@@ -65,15 +65,18 @@ set -a
 source "$ENV_FILE"
 set +a
 
-echo "→ frontend build"
-cd "$REPO/frontend"
-npm ci
-npm run build
+STATIC_ROOT="${STATIC_ROOT:-$APP_ROOT/www}"
 
-STATIC_DIR="${STATIC_DIR:-$APP_ROOT/www}"
-echo "→ publish static to $STATIC_DIR"
-mkdir -p "$STATIC_DIR"
-rsync -a --delete "$REPO/frontend/dist/" "$STATIC_DIR/"
+echo "→ frontend build (4 apps)"
+cd "$REPO"
+npm ci
+for app in portal svit servis vezu; do
+  echo "→ build @gaido/$app"
+  npm run build -w "@gaido/$app"
+  echo "→ publish $app to $STATIC_ROOT/$app"
+  mkdir -p "$STATIC_ROOT/$app"
+  rsync -a --delete "$REPO/apps/$app/dist/" "$STATIC_ROOT/$app/"
+done
 
 echo "→ backend build"
 cd "$REPO/backend"

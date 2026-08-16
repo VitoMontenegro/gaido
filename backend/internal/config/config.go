@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -25,6 +26,8 @@ type Config struct {
 	SeedDemoData        bool
 	TrustProxy          bool
 	StaticDir           string
+	StaticRoot          string
+	StaticHostMap       map[string]string
 	DeployEnabled       bool
 	DeployScript        string
 	DeployLog           string
@@ -57,7 +60,9 @@ func Load() Config {
 		MediaMaxUploadBytes: int64(getEnvInt("MEDIA_MAX_UPLOAD_MB", 10)) * 1024 * 1024,
 		SeedDemoData:        seedDemoDataEnabled(getEnv("APP_ENV", "development"), getEnv("SEED_DEMO_DATA", "")),
 		TrustProxy:          getEnv("TRUST_PROXY", "false") == "true",
-		StaticDir:           getEnv("STATIC_DIR", "../frontend/dist"),
+		StaticDir:           getEnv("STATIC_DIR", "../apps/portal/dist"),
+		StaticRoot:          getEnv("STATIC_ROOT", ""),
+		StaticHostMap:       parseHostMap(getEnv("STATIC_HOST_MAP", "")),
 		DeployEnabled:       getEnv("DEPLOY_ENABLED", "false") == "true",
 		DeployScript:        getEnv("DEPLOY_SCRIPT", ""),
 		DeployLog:           getEnv("DEPLOY_LOG", ""),
@@ -119,4 +124,35 @@ func seedDemoDataEnabled(appEnv, explicit string) bool {
 		return false
 	}
 	return explicit == "true"
+}
+
+func parseHostMap(raw string) map[string]string {
+	defaults := map[string]string{
+		"gaido.top":        "portal",
+		"www.gaido.top":    "portal",
+		"svit.gaido.top":   "svit",
+		"servis.gaido.top": "servis",
+		"vezu.gaido.top":   "vezu",
+		"localhost":        "portal",
+		"127.0.0.1":        "portal",
+	}
+	if raw == "" {
+		return defaults
+	}
+	out := make(map[string]string, len(defaults)+4)
+	for k, v := range defaults {
+		out[k] = v
+	}
+	for _, pair := range splitCSV(raw) {
+		host, sub, ok := strings.Cut(pair, "=")
+		if !ok {
+			continue
+		}
+		host = strings.ToLower(strings.TrimSpace(host))
+		sub = strings.TrimSpace(sub)
+		if host != "" && sub != "" {
+			out[host] = sub
+		}
+	}
+	return out
 }

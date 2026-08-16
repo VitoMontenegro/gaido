@@ -81,6 +81,13 @@ func (r *UserRepo) UpdateProfile(ctx context.Context, id int64, firstName, lastN
 	return err
 }
 
+func (r *UserRepo) AddRole(ctx context.Context, userID int64, role string) error {
+	_, err := r.db.Pool.Exec(ctx, `
+		UPDATE users SET roles = array_append(roles, $2), updated_at=NOW()
+		WHERE id=$1 AND NOT ($2 = ANY(roles)) AND deleted_at IS NULL`, userID, role)
+	return err
+}
+
 func (r *UserRepo) List(ctx context.Context, limit, offset int) ([]domain.User, error) {
 	rows, err := r.db.Pool.Query(ctx, `
 		SELECT `+userSelectCols+`

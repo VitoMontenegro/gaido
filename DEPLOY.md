@@ -12,7 +12,7 @@ Playbook для поднятия production-сервера, миграций и 
 | Решение | Почему |
 |---------|--------|
 | **Без Docker на prod** | Меньше RAM/CPU, дешевле VPS, проще отладка |
-| **Go бинарник + systemd** | API отдаёт `/api/*`, `/media/*` и SPA из `frontend/dist` |
+| **Go бинарник + systemd** | API отдаёт `/api/*`, `/media/*` и 4 SPA из `STATIC_ROOT/{portal,svit,servis,vezu}/` |
 | **PostgreSQL + Redis из apt** | Нативные сервисы на localhost |
 | **Nginx** | TLS (Let's Encrypt), proxy на Go :8081 |
 | **Деплой из Git** | `deploy.sh`: pull → build → migrate → restart |
@@ -26,15 +26,22 @@ Docker Compose (`docker-compose.yml`) остаётся **только для л�
 
 ```
 experts-tourister/
+├── apps/
+│   ├── portal/                  # gaido.top — stub + admin + deploy
+│   ├── svit/                    # svit.gaido.top — гіди
+│   ├── servis/                  # servis.gaido.top — discover
+│   └── vezu/                    # vezu.gaido.top — заглушка міжнар. перевезень
+├── packages/
+│   ├── shared/                  # api, hooks, ui, styles
+│   └── discover-ui/             # DiscoverPage, map (servis)
 ├── backend/
 │   ├── cmd/api/main.go          # HTTP-сервер
 │   ├── cmd/migrate/main.go      # goose migrations
 │   └── migrations/*.sql         # 30+ SQL-миграций
-├── frontend/
-│   └── src/api/client.ts        # VITE_API_URL="" → same origin в prod
+├── package.json                 # npm workspaces
 ├── .env.example
 ├── restart-local.sh             # локальный dev
-└── deploy/                      # создаёт агент (см. раздел 2)
+└── deploy/                      # deploy.sh, env.production.example
 ```
 
 Переменные окружения — см. `.env.example`. Production-отличия:
@@ -67,13 +74,24 @@ systemd: tourister-api
        ├── /api/v1/*
        ├── /healthz, /readyz
        ├── /media/public/*
-       └── /* → frontend/dist (SPA)
+       └── /* → STATIC_ROOT/{portal|svit|servis|vezu}/ (host-based SPA)
 
 PostgreSQL 16  → 127.0.0.1:5432
 Redis 7        → 127.0.0.1:6379
 
+| App | Домен | Статика |
+|-----|-------|---------|
+| portal | gaido.top, www.gaido.top | `$STATIC_ROOT/portal/` |
+| svit | svit.gaido.top | `$STATIC_ROOT/svit/` |
+| servis | servis.gaido.top | `$STATIC_ROOT/servis/` |
+| vezu | vezu.gaido.top | `$STATIC_ROOT/vezu/` |
+
+Локально: `LOCAL_APP=svit ./run-local.sh` (portal|svit|servis|vezu), порты 5173–5176.
+
+```
 /var/www/tourister/
 ├── repo/       # git clone
+├── www/        # STATIC_ROOT: portal/, svit/, servis/, vezu/
 ├── bin/        # tourister-api, tourister-migrate
 ├── storage/    # медиафайлы (бэкап обязателен!)
 ├── logs/       # api.log, deploy.log
@@ -86,13 +104,16 @@ Redis 7        → 127.0.0.1:6379
 ## Фаза 0 — переменные (заполнить до старта)
 
 ```bash
-DOMAIN=example.com
-GIT_REPO=git@github.com:USER/experts-tourister.git
+DOMAIN=gaido.top
+GIT_REPO=https://github.com/VitoMontenegro/gaido.git
 GIT_BRANCH=main
-SERVER_IP=0.0.0.0
-SSH_USER=deploy
+SERVER_IP=77.239.127.163
+SSH_USER=root
+SSH_HOST=gaido
 APP_ROOT=/var/www/tourister
 ```
+
+Локальный вход: `ssh gaido` или `./scripts/ssh-prod.sh`. Пароль/секреты — только `.local/prod.env`.
 
 ---
 
@@ -125,10 +146,13 @@ set -a
 source "$ENV_FILE"
 set +a
 
-echo "→ frontend build"
-cd "$REPO/frontend"
+echo "→ frontend build (4 apps)"
+cd "$REPO"
 npm ci
-npm run build
+for app in portal svit servis vezu; do
+  npm run build -w "@gaido/$app"
+  rsync -a --delete "$REPO/apps/$app/dist/" "$STATIC_ROOT/$app/"
+done
 
 echo "→ backend build"
 cd "$REPO/backend"
@@ -300,14 +324,14 @@ DEPLOY_APP_SLUG=web-prod-2026
 
 # Збірка та деплой
 
-Пересборка production-сайту з Git: backend, frontend, міграції БД.
+Пересборка production-сайту з Git: backend, 4 frontend apps, міграції БД.
 
 ────────────────────────────────────────
 ## Пересборка сайту для production
 
 Жмёшь кнопку — сервер:
   • git fetch + reset --hard origin/main
-  • npm ci && npm run build (frontend/dist)
+  • npm ci && build 4 apps → STATIC_ROOT/{portal,svit,servis,vezu}/
   • go build api + migrate binary
   • goose up (нові міграції на порожній/існуючій БД)
   • systemctl restart tourister-api
@@ -367,13 +391,13 @@ Backend при старті деплою записує в state (memory + оп�
 - `started_at`, `pid`, `app`
 - після завершення — `exit_code`, `finished_at`, tail лога
 
-#### Файли frontend
+#### Файли frontend (monorepo)
 
 | Файл | Назначение |
 |------|------------|
-| `frontend/src/pages/DeployPage.tsx` | сторінка `/deploy` |
-| `frontend/src/app/App.tsx` | route з `RoleGate` |
-| `frontend/src/api/client.ts` | `adminApi.deployStatus(app)`, `adminApi.startDeploy(app)` |
+| `packages/shared/src/pages/DeployPage.tsx` | сторінка `/downloads` |
+| `apps/portal/src/App.tsx` | route з `RoleGate` |
+| `packages/shared/src/api/client.ts` | `adminApi.deployStatus(app)`, `adminApi.startDeploy(app)` |
 | `AdminPages.tsx` або `MainLayout` | посилання «Деплой» для admin |
 
 Route в `App.tsx`:
@@ -682,7 +706,7 @@ git fetch + reset --hard origin/main
 | deploy 409 | уже идёт деплой, подождать |
 | deploy 503 | `DEPLOY_ENABLED=false` в `.env` |
 | CORS ошибки | `CORS_ORIGINS` должен содержать https://DOMAIN |
-| Пустой frontend | `frontend/dist` не собран → запустить deploy |
+| Пустой frontend | `$STATIC_ROOT/*` не собран → запустить deploy |
 | sudo при deploy | проверить `/etc/sudoers.d/tourister-deploy` |
 
 ---
@@ -787,7 +811,7 @@ pg_dump, pg_restore, rsync storage — НЕ использовать.
 | | Local | Production |
 |---|-------|------------|
 | PG/Redis | Docker compose :5433/:6380 | apt, :5432/:6379 |
-| Frontend | Vite :5173 + proxy | `frontend/dist` через Go |
+| Frontend | Vite :5173–5176 + proxy | `STATIC_ROOT/{app}/` через Go (host map) |
 | API | `go run ./cmd/api` | systemd binary |
 | Seed | ручной `go run ./cmd/seed -demo` | не запускать |
 | Deploy UI | `DEPLOY_ENABLED=false` | `true` |

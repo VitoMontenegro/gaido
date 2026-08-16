@@ -82,6 +82,9 @@ func New(ctx context.Context, cfg config.Config, log *slog.Logger) (*App, error)
 		Admin:    postgres.NewAdminRepo(db),
 		CookieConsents: postgres.NewCookieConsentRepo(db),
 		Media:    store,
+		Providers: postgres.NewProviderRepo(db),
+		Jobs:     postgres.NewJobRepo(db),
+		Looking:  postgres.NewLookingRepo(db),
 	}
 	billingSvc := &billing.Service{
 		DB: db, Guides: h.Guides, Subs: h.Subs, Payments: h.Payments,
@@ -133,7 +136,7 @@ func (a *App) startExpirationLoop() {
 
 // RunDemoSeed loads reference + demo data. For local/CI only — never called on API startup.
 func (a *App) RunDemoSeed(ctx context.Context) error {
-	seeder := &seed.Seeder{DB: a.db, Users: a.handlers.Users, Geo: a.handlers.Geo, Guides: a.handlers.Guides}
+	seeder := &seed.Seeder{DB: a.db, Users: a.handlers.Users, Geo: a.handlers.Geo, Guides: a.handlers.Guides, Providers: a.handlers.Providers}
 	return seeder.Run(ctx)
 }
 

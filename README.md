@@ -61,8 +61,9 @@ go run ./cmd/api
 # optional demo data (dev only, never on API startup):
 # go run ./cmd/seed -demo
 
-# Frontend (separate terminal)
-cd frontend && npm install && npm run dev
+# Frontend (monorepo, separate terminal)
+npm install
+LOCAL_APP=svit npm run dev:svit   # or dev:portal | dev:servis | dev:vezu
 ```
 
 ## Demo accounts

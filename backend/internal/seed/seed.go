@@ -11,10 +11,11 @@ import (
 )
 
 type Seeder struct {
-	DB     *postgres.DB
-	Users  *postgres.UserRepo
-	Geo    *postgres.GeoRepo
-	Guides *postgres.GuideRepo
+	DB        *postgres.DB
+	Users     *postgres.UserRepo
+	Geo       *postgres.GeoRepo
+	Guides    *postgres.GuideRepo
+	Providers *postgres.ProviderRepo
 }
 
 func (s *Seeder) RunReference(ctx context.Context) error {
@@ -24,7 +25,10 @@ func (s *Seeder) RunReference(ctx context.Context) error {
 	if _, err := s.ensurePlan(ctx); err != nil {
 		return err
 	}
-	return s.ensureCategories(ctx)
+	if err := s.ensureCategories(ctx); err != nil {
+		return err
+	}
+	return s.ensureServiceCatalog(ctx)
 }
 
 func (s *Seeder) RunDemo(ctx context.Context) error {
@@ -127,7 +131,19 @@ func (s *Seeder) RunDemo(ctx context.Context) error {
 		}
 	}
 
-	return s.ensureReviews(ctx)
+	if err := s.ensureReviews(ctx); err != nil {
+		return err
+	}
+	if err := s.ensureEuropeanGuidesDemo(ctx, planID); err != nil {
+		return err
+	}
+	if err := s.ensureFeaturedDemo(ctx); err != nil {
+		return err
+	}
+	if err := s.ensureExtraArticlesDemo(ctx); err != nil {
+		return err
+	}
+	return s.ensurePlatformDemo(ctx)
 }
 
 func (s *Seeder) Run(ctx context.Context) error {
