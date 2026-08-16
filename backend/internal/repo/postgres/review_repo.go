@@ -69,6 +69,15 @@ func (r *ReviewRepo) CountByGuide(ctx context.Context, guideID int64) (int, erro
 	return total, err
 }
 
+func (r *ReviewRepo) GuideRatingStats(ctx context.Context, guideID int64) (avg float64, count int, err error) {
+	err = r.db.Pool.QueryRow(ctx, `
+		SELECT COALESCE(AVG(rating)::float8, 0), COUNT(*)::int
+		FROM guide_reviews
+		WHERE guide_id=$1 AND status=$2
+	`, guideID, domain.ReviewPublished).Scan(&avg, &count)
+	return avg, count, err
+}
+
 func (r *ReviewRepo) CountByExcursion(ctx context.Context, excursionID int64) (int, error) {
 	var total int
 	err := r.db.Pool.QueryRow(ctx, `

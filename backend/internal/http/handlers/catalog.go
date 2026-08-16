@@ -122,7 +122,12 @@ func (h *Handlers) GetGuide(w http.ResponseWriter, r *http.Request) {
 		response.Error(w, r, apperrors.ErrNotFound)
 		return
 	}
-	response.JSON(w, r, 200, h.publicGuideDTO(r.Context(), g))
+	dto := h.publicGuideDTO(r.Context(), g)
+	if avg, count, err := h.Reviews.GuideRatingStats(r.Context(), g.ID); err == nil {
+		dto.RatingAvg = avg
+		dto.RatingCount = count
+	}
+	response.JSON(w, r, 200, dto)
 }
 func (h *Handlers) ListExcursions(w http.ResponseWriter, r *http.Request) {
 	limit, offset := paginate(r)
@@ -155,8 +160,10 @@ func (h *Handlers) GetExcursion(w http.ResponseWriter, r *http.Request) {
 	if g, err := h.Guides.GetByID(r.Context(), e.GuideID); err == nil && g != nil {
 		e.GuideContacts = h.publicGuideDTO(r.Context(), g).Contacts
 		e.GuideAbout = g.About
-		e.GuideRatingAvg = g.RatingAvg
-		e.GuideRatingCount = g.RatingCount
+	}
+	if avg, count, err := h.Reviews.GuideRatingStats(r.Context(), e.GuideID); err == nil {
+		e.GuideRatingAvg = avg
+		e.GuideRatingCount = count
 	}
 	response.JSON(w, r, 200, e)
 }

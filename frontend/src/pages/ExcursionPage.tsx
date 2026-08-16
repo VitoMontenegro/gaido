@@ -316,6 +316,8 @@ export default function ExcursionPage() {
                     guideSlug={excursion.guide_slug}
                     guideAvatarUrl={excursion.guide_avatar_url}
                     guideAbout={excursion.guide_about}
+                    guideRatingAvg={excursion.guide_rating_avg}
+                    guideRatingCount={excursion.guide_rating_count}
                     contacts={excursion.guide_contacts}
                 />
             )}
