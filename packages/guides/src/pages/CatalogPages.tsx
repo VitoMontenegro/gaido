@@ -35,8 +35,8 @@ export default function GuidesListPage() {
 
   return (
     <>
-      <Helmet><title>{pageTitle('Країни — гіди')}</title></Helmet>
-      <Breadcrumbs items={[{ label: 'Гіди', to: '/guides' }, { label: 'Країни' }]} />
+      <Helmet><title>{pageTitle('Гіди')}</title></Helmet>
+      <Breadcrumbs items={[{ label: 'Гіди' }]} />
       <div className="container-site py-5 md:py-8">
         <h1 className="section-title mb-1 text-2xl md:text-[28px]">Гіди</h1>
         <p className="mb-6 text-sm text-muted md:mb-8 md:text-base">
@@ -100,12 +100,11 @@ export function GuidesByCountryPage() {
       <Breadcrumbs
         items={[
           { label: 'Гіди', to: '/guides' },
-          { label: 'Країни', to: '/guides/countries' },
           { label: title },
         ]}
       />
       <div className="container-site py-5 md:py-8">
-        <Link to="/guides/countries" className="mb-4 inline-block text-sm text-teal hover:underline md:hidden">
+        <Link to="/guides" className="mb-4 inline-block text-sm text-teal hover:underline md:hidden">
           ← Усі країни
         </Link>
         <h1 className={cn('section-title mb-1 text-2xl md:text-[28px]', !country && 'capitalize')}>

@@ -91,7 +91,10 @@ export function svitPublicRoutes() {
   return (
     <>
       <Route index element={<Lazy><GuidesHomePage /></Lazy>} />
-      <Route path="guides" element={<Navigate to="/" replace />} />
+      <Route path="guides/countries/:countrySlug" element={<Lazy><GuidesByCountryPage /></Lazy>} />
+      <Route path="guides/countries" element={<Navigate to="/guides" replace />} />
+      <Route path="guides/:countrySlug" element={<GuideCountryLegacyRedirect />} />
+      <Route path="guides" element={<Lazy><GuidesListPage /></Lazy>} />
       <Route path="discover" element={<ExternalRedirect to={servicesUrl('/')} />} />
       <Route path="provider/:slug" element={<PortalHomeRedirect />} />
       <Route path="jobs" element={<PortalHomeRedirect />} />
@@ -102,9 +105,6 @@ export function svitPublicRoutes() {
       <Route path="search" element={<Lazy><SearchPage /></Lazy>} />
       <Route path="map" element={<MapPage />} />
       <Route path="city/:slug" element={<CityPage />} />
-      <Route path="guides/countries" element={<Lazy><GuidesListPage /></Lazy>} />
-      <Route path="guides/countries/:countrySlug" element={<Lazy><GuidesByCountryPage /></Lazy>} />
-      <Route path="guides/:countrySlug" element={<GuideCountryLegacyRedirect />} />
       <Route path="guide/:slug" element={<Lazy><GuidePage /></Lazy>} />
       <Route path="excursions" element={<Navigate to="/search" replace />} />
       <Route path="excursion/:slug" element={<Lazy><ExcursionPage /></Lazy>} />
