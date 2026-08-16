@@ -101,6 +101,38 @@ export function redirectToGuides(pathname: string, search = '', hash = ''): stri
   return `${guidesUrl(path)}${search}${hash}`
 }
 
+const PORTAL_POST_LOGIN_PATHS = ['/admin', '/moderator', '/downloads', '/deploy'] as const
+
+function isPortalPostLoginPath(path: string): boolean {
+  return PORTAL_POST_LOGIN_PATHS.some((prefix) => path === prefix || path.startsWith(`${prefix}/`) || path.startsWith(`${prefix}?`))
+}
+
+/** Куди вести після входу на gaido.top (portal). */
+export function portalPostLoginUrl(from: unknown, roles: string[]): string {
+  const fromPath =
+    typeof from === 'string' && from.startsWith('/') && !from.startsWith('//') ? from : null
+
+  if (fromPath && isPortalPostLoginPath(fromPath)) return fromPath
+
+  if (roles.includes('ROLE_ADMIN')) return '/admin'
+  if (roles.includes('ROLE_MODERATOR')) return '/moderator'
+
+  const accountPath = fromPath?.startsWith('/account')
+    ? fromPath
+    : roles.includes('ROLE_GUIDE')
+      ? '/account/guide'
+      : '/account'
+  return guidesUrl(accountPath)
+}
+
+export function followPostLoginUrl(target: string, navigate: (path: string) => void): void {
+  if (/^https?:\/\//.test(target)) {
+    window.location.assign(target)
+    return
+  }
+  navigate(target)
+}
+
 export const ALL_SITE_HOSTS = [PORTAL_HOST, GUIDES_HOST, TRANSPORT_HOST, SERVICES_HOST] as const
 
 export const CORS_ORIGINS = ALL_SITE_HOSTS.flatMap((host) =>

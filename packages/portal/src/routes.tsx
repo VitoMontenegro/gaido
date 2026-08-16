@@ -60,6 +60,7 @@ export function portalPublicRoutes() {
       <Route path="looking" element={<PortalHomeRedirect />} />
       <Route path="about" element={<PortalHomeRedirect />} />
       <Route path="login" element={<Lazy><LoginPage /></Lazy>} />
+      <Route path="account/*" element={<GuidesCanonicalRedirect />} />
       <Route path="register" element={<GuidesCanonicalRedirect />} />
       <Route path="register/guide" element={<GuidesCanonicalRedirect />} />
       <Route path="legal/:slug" element={<GuidesCanonicalRedirect />} />

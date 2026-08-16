@@ -8,9 +8,10 @@ import { validateRegisterForm, type RegisterFormData } from '@gaido/ui-primitive
 import { legalPath } from '../components/LegalContentEditor'
 import PasswordInput from '@gaido/ui-primitives/PasswordInput'
 import { pageTitle } from '@gaido/site-urls/brand'
+import { followPostLoginUrl, portalPostLoginUrl } from '@gaido/site-urls/site'
 
-function safeReturnPath(from: unknown): string {
-  return typeof from === 'string' && from.startsWith('/') && !from.startsWith('//') ? from : '/account'
+function safeReturnPath(from: unknown, roles: string[]): string {
+  return portalPostLoginUrl(from, roles)
 }
 
 const emptyRegisterForm = (): RegisterFormData => ({
@@ -75,7 +76,7 @@ function RegisterForm({ mode }: { mode: 'tourist' | 'guide' }) {
       })
       setAccessToken(res.access_token)
       await qc.invalidateQueries({ queryKey: ['me'] })
-      navigate(isGuide ? '/account/guide' : '/account')
+      followPostLoginUrl(safeReturnPath(undefined, res.roles), navigate)
     } catch (err) {
       setError(formatApiError(err))
     }
@@ -188,7 +189,7 @@ export default function LoginPage() {
       const res = await authApi.login({ login: login.trim(), password })
       setAccessToken(res.access_token)
       await qc.prefetchQuery({ queryKey: ['me'], queryFn: authApi.me })
-      navigate(safeReturnPath(from))
+      followPostLoginUrl(safeReturnPath(from, res.roles), navigate)
     } catch (err) {
       setError(formatApiError(err, {
         UNAUTHORIZED: 'Невірний логін або пароль',
