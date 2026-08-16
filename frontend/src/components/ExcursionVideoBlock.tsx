@@ -81,7 +81,7 @@ export default function ExcursionVideoBlock({ video }: Props) {
           </div>
         )}
         <span className="absolute inset-0 flex items-center justify-center bg-black/25 transition group-hover:bg-black/35">
-          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-white/95 text-2xl text-brand-700 shadow-lg">
+          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-white/95 text-2xl text-teal shadow-lg">
             ▶
           </span>
         </span>

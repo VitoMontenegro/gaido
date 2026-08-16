@@ -31,7 +31,7 @@ export default function GuideCard({
           )}
         </div>
         <div className="flex flex-1 flex-col p-2.5">
-          <p className="mt-0.5 line-clamp-2 text-sm font-medium normal-case leading-snug text-ink group-hover:text-brand-700">
+          <p className="mt-0.5 line-clamp-2 font-semibold normal-case leading-snug text-ink group-hover:text-brand-700">
             {guide.display_name}
           </p>
           {guide.type_badge && (

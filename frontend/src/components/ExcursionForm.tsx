@@ -158,7 +158,7 @@ export default function ExcursionForm({ initial, submitLabel, onSubmit, persistT
             key={id}
             type="button"
             className={`rounded-lg px-3 py-2 text-base font-medium transition ${
-              tab === id ? 'bg-white text-brand-700 shadow-sm' : 'text-stone-600 hover:text-ink'
+              tab === id ? 'bg-white text-teal shadow-sm' : 'text-stone-600 hover:text-ink'
             }`}
             onClick={() => setTab(id)}
           >

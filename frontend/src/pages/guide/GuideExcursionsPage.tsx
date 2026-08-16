@@ -60,9 +60,9 @@ export function GuideExcursionsPage() {
               <p className="mt-1 text-sm text-stone-600">
                 {e.city_name || 'Місто не вказано'} · {excursionTypeLabel(e.type)} · до {e.max_guests} ос.
               </p>
-              <p className="mt-2 font-semibold text-brand-700">{formatPrice(e.price_from, e.currency)}</p>
+              <p className="mt-2 font-semibold text-teal">{formatPrice(e.price_from, e.currency)}</p>
               {e.slug && (
-                <Link to={`/excursion/${e.slug}`} className="mt-2 inline-block text-sm text-brand-700 hover:underline">
+                <Link to={`/excursion/${e.slug}`} className="mt-2 inline-block text-sm text-teal hover:underline">
                   {e.status === 'PUBLISHED' ? 'Переглянути в каталозі →' : 'Попередній перегляд →'}
                 </Link>
               )}

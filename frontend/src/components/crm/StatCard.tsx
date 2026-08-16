@@ -8,7 +8,7 @@ type StatCardProps = {
 
 const TONES = {
   default: 'bg-sand-50 text-ink',
-  brand: 'bg-brand-50 text-brand-700',
+  brand: 'bg-brand-50 text-teal',
   teal: 'bg-teal/10 text-teal-dark',
   amber: 'bg-amber-50 text-amber-800',
   red: 'bg-red-50 text-red-700',

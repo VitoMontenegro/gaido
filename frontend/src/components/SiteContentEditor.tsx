@@ -98,7 +98,7 @@ export function SiteContentEditor() {
           <h3 className="font-medium text-ink">Плитки категорій (під hero)</h3>
           <button
             type="button"
-            className="text-sm text-brand-700 hover:underline"
+            className="text-sm text-teal hover:underline"
             onClick={() => updateHome({ category_tiles: [...home.category_tiles, { label: 'Нова', url: '/', image_url: '' }] })}
           >
             + Додати
@@ -335,7 +335,7 @@ function ListEditor<T extends Record<string, string>>({
     <section className="space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="font-medium text-ink">{title}</h3>
-        <button type="button" className="text-sm text-brand-700 hover:underline" onClick={() => onChange([...items, empty()])}>
+        <button type="button" className="text-sm text-teal hover:underline" onClick={() => onChange([...items, empty()])}>
           + Додати
         </button>
       </div>
@@ -378,7 +378,7 @@ function FooterColumnsEditor({
         <p className="text-sm font-medium text-ink">Колонки посилань</p>
         <button
           type="button"
-          className="text-sm text-brand-700 hover:underline"
+          className="text-sm text-teal hover:underline"
           onClick={() => onChange([...columns, { title: 'Нова колонка', links: [{ label: 'Посилання', url: '/' }] }])}
         >
           + Колонка
@@ -427,7 +427,7 @@ function FooterColumnsEditor({
           <div className="flex gap-3">
             <button
               type="button"
-              className="text-xs text-brand-700 hover:underline"
+              className="text-xs text-teal hover:underline"
               onClick={() => {
                 const next = [...columns]
                 next[ci] = { ...next[ci], links: [...next[ci].links, { label: 'Нове', url: '/' }] }

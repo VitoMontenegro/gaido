@@ -81,7 +81,7 @@ export default function NotificationsPanel() {
               {!n.read_at && (
                 <button
                   type="button"
-                  className="shrink-0 text-xs text-brand-700 hover:underline"
+                  className="shrink-0 text-xs text-teal hover:underline"
                   disabled={mark.isPending}
                   onClick={() => mark.mutate(n.id)}
                 >

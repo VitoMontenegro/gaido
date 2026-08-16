@@ -49,7 +49,7 @@ function ChipGroup({
                 on
                   ? tone === 'include'
                     ? 'border-teal bg-teal/10 text-teal-dark'
-                    : 'border-brand-500 bg-brand-50 text-brand-700'
+                    : 'border-brand-500 bg-brand-50 text-teal'
                   : 'border-border bg-surface text-ink hover:bg-sand-100'
               }`}
             >
@@ -67,7 +67,7 @@ function ChipGroup({
             className={`rounded-xl border px-3 py-2 text-sm transition ${
               tone === 'include'
                 ? 'border-teal bg-teal/10 text-teal-dark'
-                : 'border-brand-500 bg-brand-50 text-brand-700'
+                : 'border-brand-500 bg-brand-50 text-teal'
             }`}
           >
             {tone === 'include' ? '✓ ' : '× '}

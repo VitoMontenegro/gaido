@@ -211,7 +211,7 @@ export function AdminGuidesList({ statusFilter }: { statusFilter?: string }) {
                   Схвалити
                 </button>
               )}
-              <Link to={`/guide/${g.slug}`} className="text-sm text-brand-700 hover:underline" target="_blank">
+              <Link to={`/guide/${g.slug}`} className="text-sm text-teal hover:underline" target="_blank">
                 Відкрити
               </Link>
               <button
@@ -282,7 +282,7 @@ export function AdminExcursionsList() {
               </td>
               <td className="px-4 py-2.5 text-right">
                 <div className="flex justify-end gap-2">
-                  <Link to={`/excursion/${e.slug}`} className="text-sm text-brand-700 hover:underline" target="_blank">
+                  <Link to={`/excursion/${e.slug}`} className="text-sm text-teal hover:underline" target="_blank">
                     Відкрити
                   </Link>
                   <button

@@ -154,7 +154,7 @@ function GuideHero({ guide, excursionCount }: { guide: PublicGuide; excursionCou
     <div className="grid gap-8 lg:grid-cols-[1fr_280px] lg:items-end">
       <div>
         {guide.type_badge && (
-          <span className="inline-block rounded-full bg-white/80 px-3 py-1 text-sm font-medium text-brand-700">
+          <span className="inline-block rounded-full bg-white/80 px-3 py-1 text-sm font-medium text-teal">
             {guide.type_badge}
           </span>
         )}

@@ -14,9 +14,13 @@ type ExcursionCoverProps = {
   title?: string
   className?: string
   imgClassName?: string
+  typeLabel?: string
+  metaLine?: string
 }
 
-export default function ExcursionCover({ cover, title, className, imgClassName }: ExcursionCoverProps) {
+export default function ExcursionCover({ cover, title, className, imgClassName, typeLabel, metaLine }: ExcursionCoverProps) {
+  const showOverlay = Boolean(typeLabel || metaLine)
+
   return (
     <div className={cn('relative overflow-hidden bg-sand-100', className)}>
       <img
@@ -25,6 +29,28 @@ export default function ExcursionCover({ cover, title, className, imgClassName }
         className={cn('absolute inset-0 h-full w-full object-cover', imgClassName)}
         loading="lazy"
       />
+      {showOverlay && (
+        <>
+          <div
+            className="pointer-events-none absolute inset-x-0 top-0 z-[1] h-2/5 bg-gradient-to-b from-black/55 to-transparent"
+            aria-hidden
+          />
+          <div
+            className="pointer-events-none absolute inset-x-0 bottom-0 z-1 h-2/5 bg-linear-to-t from-black/55 to-transparent"
+            aria-hidden
+          />
+          {typeLabel && (
+            <span className="absolute left-2.5 top-2.5 z-10 text-white font-medium drop-shadow-[0_1px_3px_rgba(0,0,0,0.5)]">
+              {typeLabel}
+            </span>
+          )}
+          {metaLine && (
+            <span className="absolute bottom-2.5 right-2.5 font-medium z-10 text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.5)]">
+              {metaLine}
+            </span>
+          )}
+        </>
+      )}
     </div>
   )
 }

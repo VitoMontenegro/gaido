@@ -51,7 +51,7 @@ function ExcursionBookingPanel({
   return (
     <>
       <div className={compact ? 'min-w-0 flex-1' : undefined}>
-        <p className={`font-display font-bold text-brand-700 ${compact ? 'text-xl leading-tight' : 'text-3xl'}`}>
+        <p className={`font-display font-bold text-teal ${compact ? 'text-xl leading-tight' : 'text-3xl'}`}>
           {formatPrice(excursion.price_from, excursion.currency)}
         </p>
         <p className={`excursion-parus-muted ${compact ? 'truncate text-xs' : ''}`}>
@@ -210,7 +210,7 @@ export default function ExcursionPage() {
               {' '}Бачать лише ви як автор.
             </p>
             {isGuideOwner && (
-              <Link to={`/account/guide/excursions/${excursion.id}/edit`} className="mt-2 inline-block font-medium text-brand-700 hover:underline">
+              <Link to={`/account/guide/excursions/${excursion.id}/edit`} className="mt-2 inline-block font-medium text-teal hover:underline">
                 Повернутися до редагування →
               </Link>
             )}

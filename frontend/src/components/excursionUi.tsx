@@ -119,6 +119,26 @@ export function transportLabel(mode: string) {
   }
 }
 
+export function transportShortLabel(mode: string) {
+  switch (mode) {
+    case 'WALKING': return 'пішки'
+    case 'CAR': return 'на авто'
+    case 'TRANSPORT': return 'транспортом'
+    case 'BOAT': return 'на човні'
+    case 'MIXED': return 'пішки та транспортом'
+    default: return mode.toLowerCase()
+  }
+}
+
+export function excursionCoverMetaLine(durationMinutes?: number, transportMode?: string) {
+  const parts: string[] = []
+  const duration = formatDuration(durationMinutes ?? 180)
+  if (duration) parts.push(duration)
+  const transport = transportShortLabel(transportMode ?? 'WALKING')
+  if (transport) parts.push(transport)
+  return parts.join(' • ')
+}
+
 export { languageLabel } from '../lib/excursionLanguages'
 
 export function statusTone(status: string) {

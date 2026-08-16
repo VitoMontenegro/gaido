@@ -65,7 +65,7 @@ export default function AccountPage() {
                   {favCount > 0 ? `${favCount} збережено` : 'Поки порожньо — додавайте з карток екскурсій і гідів'}
                 </p>
               </div>
-              <Link to="/account/favorites" className="text-sm text-brand-700 hover:underline">
+              <Link to="/account/favorites" className="text-sm text-teal hover:underline">
                 Усі →
               </Link>
             </div>

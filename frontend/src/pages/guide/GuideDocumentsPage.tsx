@@ -100,7 +100,7 @@ function DocumentUploadForm({
           <p className="mt-1 text-sm text-stone-600">{description}</p>
         </div>
         {active && (
-          <span className="shrink-0 rounded-full bg-brand-50 px-2 py-1 text-xs font-medium text-brand-700">
+          <span className="shrink-0 rounded-full bg-brand-50 px-2 py-1 text-xs font-medium text-teal">
             Активний статус
           </span>
         )}

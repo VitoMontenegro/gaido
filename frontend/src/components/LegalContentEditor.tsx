@@ -34,7 +34,7 @@ export function LegalDocumentPage() {
     return (
       <div className="container-site py-12">
         <p className="text-muted">Сторінку не знайдено.</p>
-        <Link to="/" className="mt-4 inline-block text-brand-700 hover:underline">На головну</Link>
+        <Link to="/" className="mt-4 inline-block text-teal hover:underline">На головну</Link>
       </div>
     )
   }

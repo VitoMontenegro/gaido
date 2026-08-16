@@ -31,14 +31,14 @@ export function GuideOverviewPage() {
             Статус: {data.status} · Каталог: {catalogStatusText(data.catalog_status)}
           </p>
           {data.website_slug && (
-            <Link to={`/guide/${data.website_slug}`} className="mt-1 inline-block text-sm text-brand-700 hover:underline">
+            <Link to={`/guide/${data.website_slug}`} className="mt-1 inline-block text-sm text-teal hover:underline">
               Переглянути публічний профіль →
             </Link>
           )}
         </div>
         <div className="w-full sm:w-auto sm:text-right">
           <p className="text-sm text-stone-500">Заповненість профілю</p>
-          <p className="font-display text-3xl font-bold text-brand-700">{data.profile_complete}%</p>
+          <p className="font-display text-3xl font-bold text-teal">{data.profile_complete}%</p>
         </div>
       </div>
 

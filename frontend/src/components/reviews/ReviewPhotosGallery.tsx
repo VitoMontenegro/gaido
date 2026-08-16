@@ -55,7 +55,7 @@ export default function ReviewPhotosGallery({ excursionId, guideId }: Props) {
       {hasNextPage && (
         <button
           type="button"
-          className="mt-3 text-sm font-medium text-brand-700 hover:underline disabled:opacity-60"
+          className="mt-3 text-sm font-medium text-teal hover:underline disabled:opacity-60"
           disabled={isFetchingNextPage}
           onClick={() => fetchNextPage()}
         >

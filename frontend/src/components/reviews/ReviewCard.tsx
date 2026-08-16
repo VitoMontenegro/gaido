@@ -52,7 +52,7 @@ export default function ReviewCard({
           {isLong && (
             <button
               type="button"
-              className="mt-1 text-sm font-medium text-brand-700 hover:underline"
+              className="mt-1 text-sm font-medium text-teal hover:underline"
               onClick={() => setExpanded((v) => !v)}
             >
               {expanded ? 'Згорнути' : 'Читати повністю'}
@@ -106,7 +106,7 @@ export default function ReviewCard({
           {!open ? (
             <button
               type="button"
-              className="text-sm font-medium text-brand-700 hover:underline"
+              className="text-sm font-medium text-teal hover:underline"
               onClick={() => setOpen(true)}
             >
               Відповісти

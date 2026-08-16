@@ -1,12 +1,14 @@
 import { Link } from 'react-router-dom'
 import ExcursionCover from './ExcursionCover'
 import type { ExcursionItem } from './excursionUi'
-import { excursionPreviewText, excursionTypeLabel, formatExcursionRating, formatPrice } from './excursionUi'
+import { excursionCoverMetaLine, excursionPreviewText, excursionTypeLabel, formatExcursionRating, formatPrice } from './excursionUi'
 import { cn } from '../lib/cn'
 
 function ExcursionRating({ avg, count, className }: { avg?: number; count?: number; className?: string }) {
+  if ((count ?? 0) <= 0) return null
+
   return (
-    <p className={cn('text-xs text-muted-light', className)}>
+    <p className={cn('text-xs text-blue-500', className)}>
       {formatExcursionRating(avg, count)}
     </p>
   )
@@ -30,12 +32,18 @@ export default function ExcursionCard({ e, compact }: { e: ExcursionItem; compac
         to={`/excursion/${e.slug}`}
         className="group flex h-full flex-col overflow-hidden rounded-2xl bg-surface transition hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)]"
       >
-        <ExcursionCover cover={e.cover_image_url} title={e.title} className="aspect-[4/3]" />
+        <ExcursionCover
+          cover={e.cover_image_url}
+          title={e.title}
+          className="aspect-[4/3]"
+          typeLabel={excursionTypeLabel(e.type)}
+          metaLine={excursionCoverMetaLine(e.duration_minutes, e.transport_mode)}
+        />
         <div className="flex flex-1 flex-col p-2.5 md:p-3">
           {e.city_name && (
             <p className="line-clamp-1 text-xs text-muted-light">{e.city_name}</p>
           )}
-          <p className="mt-0.5 line-clamp-2 text-sm font-medium normal-case leading-snug text-ink group-hover:text-brand-700">
+          <p className="mt-0.5 line-clamp-2 font-semibold normal-case leading-snug text-ink group-hover:text-blue-600">
             {e.title}
           </p>
           <ExcursionPreviewDescription text={previewText} className="mt-1.5" />
@@ -53,7 +61,13 @@ export default function ExcursionCard({ e, compact }: { e: ExcursionItem; compac
       to={`/excursion/${e.slug}`}
       className="group card flex h-full flex-col overflow-hidden p-0 transition hover:shadow-[0_10px_30px_rgba(0,0,0,0.08)]"
     >
-      <ExcursionCover cover={e.cover_image_url} title={e.title} className="aspect-[16/10]" />
+      <ExcursionCover
+        cover={e.cover_image_url}
+        title={e.title}
+        className="aspect-[16/10]"
+        typeLabel={excursionTypeLabel(e.type)}
+        metaLine={excursionCoverMetaLine(e.duration_minutes, e.transport_mode)}
+      />
       <div className="flex flex-1 flex-col px-3 pb-4 pt-3">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
@@ -98,6 +112,8 @@ export function excursionCardPropsFromPartial(
     title: item.title,
     slug: item.slug,
     type: item.type ?? 'INDIVIDUAL',
+    duration_minutes: item.duration_minutes,
+    transport_mode: item.transport_mode,
     max_guests: item.max_guests ?? 1,
     price_from: item.price_from ?? 0,
     currency: item.currency ?? 'EUR',

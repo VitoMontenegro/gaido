@@ -26,7 +26,7 @@ export default function EditExcursionPage() {
       <div className="max-w-4xl space-y-6">
         <div className="card space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <Link to="/account/guide/excursions" className="text-sm text-brand-700 hover:underline">← Мої екскурсії</Link>
+            <Link to="/account/guide/excursions" className="text-sm text-teal hover:underline">← Мої екскурсії</Link>
             {data.slug && (
               <Link to={`/excursion/${data.slug}`} className="btn-secondary py-1.5 text-sm">
                 {data.status === 'PUBLISHED' ? 'Переглянути в каталозі' : 'Попередній перегляд'}

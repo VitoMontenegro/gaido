@@ -150,7 +150,7 @@
   }
 
   .excursion-parus-link {
-    @apply text-base font-medium text-brand-700 transition hover:underline;
+    @apply text-base font-medium text-teal transition hover:underline;
   }
 
   .nav-link {
@@ -159,7 +159,7 @@
   }
 
   .link-accent {
-    @apply text-base font-medium text-ink underline decoration-brand-500 decoration-2 underline-offset-2 transition hover:text-muted;
+    @apply text-base font-medium text-ink underline decoration-teal decoration-2 underline-offset-2 transition hover:text-muted;
   }
 
   .badge-teal {
@@ -183,8 +183,8 @@
 
   .category-tile::after {
     content: "";
-    @apply pointer-events-none absolute bottom-3 right-3 z-10 h-7 w-7 rounded-[8px] bg-white opacity-0 transition duration-200 sm:bottom-5 sm:right-5 sm:h-9 sm:w-9 sm:rounded-[10px];
-    background-image: url("data:image/svg+xml,%3Csvg width='36' height='36' viewBox='0 0 36 36' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='36' height='36' rx='10' fill='white'/%3E%3Cpath d='M11 19.2259H20.5097L16.6306 23.2592L18.2997 25L25 18L18.2997 11L16.6306 12.7408L20.5097 16.7741H11V19.2259Z' fill='%23FB7036'/%3E%3C/svg%3E");
+    @apply pointer-events-none absolute bottom-3 right-3 z-10 h-7 w-7 rounded-lg bg-white opacity-0 transition duration-200 sm:bottom-5 sm:right-5 sm:h-9 sm:w-9 sm:rounded-[10px];
+    background-image: url("data:image/svg+xml,%3Csvg width='36' height='36' viewBox='0 0 36 36' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='36' height='36' rx='10' fill='white'/%3E%3Cpath d='M11 19.2259H20.5097L16.6306 23.2592L18.2997 25L25 18L18.2997 11L16.6306 12.7408L20.5097 16.7741H11V19.2259Z' fill='%232cb2ab'/%3E%3C/svg%3E");
     background-size: contain;
     background-repeat: no-repeat;
   }
@@ -232,7 +232,7 @@
   }
 
   .journal-card__title {
-    @apply mt-2 font-display text-lg font-medium normal-case leading-snug text-ink transition group-hover:text-brand-700;
+    @apply mt-2 font-display text-lg font-medium normal-case leading-snug text-ink transition group-hover:text-blue-600;
   }
 
   .journal-card__excerpt {
@@ -240,7 +240,7 @@
   }
 
   .journal-card__more {
-    @apply mt-4 text-sm font-medium text-brand-600;
+    @apply mt-4 text-sm font-medium text-teal;
   }
 
   .journal-card__author {
@@ -326,7 +326,7 @@
   }
 
   .about-audience-card__icon {
-    @apply mb-4 inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-50 text-brand-700;
+    @apply mb-4 inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-50 text-teal;
   }
 
   .about-audience-card__title {
@@ -553,7 +553,7 @@
   }
 
   .excursion-body a {
-    @apply font-medium text-brand-700 underline underline-offset-2;
+    @apply font-medium text-teal underline underline-offset-2;
   }
 
   .excursion-body blockquote {
@@ -603,7 +603,7 @@
 
   .excursion-parus-route li::before {
     content: counter(route);
-    @apply absolute left-3 top-3 flex h-5 w-5 items-center justify-center rounded-full bg-brand-100 text-xs font-bold text-brand-700;
+    @apply absolute left-3 top-3 flex h-5 w-5 items-center justify-center rounded-full bg-brand-100 text-xs font-bold text-teal;
   }
 
   .excursion-parus-checklist {
@@ -745,7 +745,7 @@
 
   .excursion-parus-organizer__about-link,
   .excursion-parus-organizer__about-link-mobile {
-    @apply text-base text-brand-700 transition hover:underline;
+    @apply text-base text-teal transition hover:underline;
   }
 
   .excursion-parus-organizer__empty {
