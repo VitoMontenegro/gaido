@@ -1,0 +1,22 @@
+---
+description: Production SSH gaido.top — как заходить на сервер
+alwaysApply: true
+---
+
+# Production: gaido.top
+
+Прод-ВМ уже настроена. Секреты только в `.local/prod.env` (не в git).
+
+| | |
+|---|---|
+| Алиас | `ssh gaido` |
+| Скрипт | `./scripts/ssh-prod.sh` или `./scripts/ssh-prod.sh 'uptime'` |
+| IP | `77.239.127.163` |
+| Домен | `gaido.top` · `svit.gaido.top` · `vezu.gaido.top` · `servis.gaido.top` |
+| User | `root` |
+| VM | `vm265150` @ vm.it-garage.pro |
+| ОС | AlmaLinux 8.10 |
+| App | `/var/www/tourister` |
+| Static | `STATIC_ROOT=/var/www/tourister/www` → `portal/`, `svit/`, `servis/`, `vezu/` |
+
+Когда пользователь просит зайти на сервер, деплой, логи, nginx, systemd — вызывай `./scripts/ssh-prod.sh '…'` (нужен `required_permissions: ["all"]`). Не печатай `SSH_PASS` в чат и не коммить `.local/`.

@@ -8,7 +8,7 @@ import { cn } from '@gaido/ui-primitives/cn'
 const GUIDES_NAV = [
   { to: '/search', label: 'Пошук' },
   { to: '/map', label: 'Карта' },
-  { to: '/', label: 'Гіди' },
+  { to: '/guides', label: 'Гіди' },
   { to: '/journal', label: 'Журнал' },
 ] as const
 
