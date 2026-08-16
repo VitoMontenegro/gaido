@@ -20,10 +20,15 @@
     "ignoreDeprecations": "6.0",
     "baseUrl": ".",
     "paths": {
-      "@gaido/shared/*": ["../../packages/shared/src/*"],
-      "@gaido/discover-ui": ["../../packages/discover-ui/src/index.ts"],
-      "@gaido/discover-ui/*": ["../../packages/discover-ui/src/*"]
+      "@gaido/api-client/*": ["../../packages/api-client/src/*"],
+      "@gaido/ui-primitives/*": ["../../packages/ui-primitives/src/*"],
+      "@gaido/site-urls/*": ["../../packages/site-urls/src/*"],
+      "@gaido/portal-shell/*": ["../../packages/portal/src/*"],
+      "@gaido/guides/*": ["../../packages/guides/src/*"],
+      "@gaido/discover": ["../../packages/discover/src/index.ts"],
+      "@gaido/discover/*": ["../../packages/discover/src/*"],
+      "@gaido/transport/*": ["../../packages/transport/src/*"]
     }
   },
-  "include": ["src", "../../packages/shared/vite.base.ts"]
+  "include": ["src", "../../packages/guides/src", "../../packages/build-config/vite.app.ts"]
 }

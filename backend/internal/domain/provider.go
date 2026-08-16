@@ -159,6 +159,7 @@ type DiscoverMapPoint struct {
 	Label        string  `json:"label"`
 	CityName     string  `json:"city_name"`
 	ProviderName string  `json:"provider_name"`
+	ProviderSlug string  `json:"provider_slug"`
 	CategoryName string  `json:"category_name"`
 	Lat          float64 `json:"lat"`
 	Lng          float64 `json:"lng"`

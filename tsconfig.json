@@ -1,0 +1,16 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./packages/api-client" },
+    { "path": "./packages/ui-primitives" },
+    { "path": "./packages/site-urls" },
+    { "path": "./packages/guides" },
+    { "path": "./packages/discover" },
+    { "path": "./packages/portal" },
+    { "path": "./packages/transport" },
+    { "path": "./apps/portal" },
+    { "path": "./apps/svit" },
+    { "path": "./apps/servis" },
+    { "path": "./apps/vezu" }
+  ]
+}

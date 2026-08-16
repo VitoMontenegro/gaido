@@ -1,14 +1,14 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
-import { PublicLayout } from '@gaido/shared/layouts/MainLayout'
-import ScrollToTop from '@gaido/shared/components/ScrollToTop'
-import { vezuPublicRoutes } from '@gaido/shared/app/routes'
+import ScrollToTop from '@gaido/ui-primitives/ScrollToTop'
+import { TransportPublicLayout } from '@gaido/transport/layouts/TransportLayout'
+import { transportPublicRoutes } from '@gaido/transport/routes'
 
 export default function App() {
   return (
     <>
       <ScrollToTop />
       <Routes>
-        <Route element={<PublicLayout />}>{vezuPublicRoutes()}</Route>
+        <Route element={<TransportPublicLayout />}>{transportPublicRoutes()}</Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>

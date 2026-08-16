@@ -11,6 +11,7 @@
     "dev:svit": "npm run dev -w @gaido/svit -- --host 127.0.0.1 --port 5174",
     "dev:servis": "npm run dev -w @gaido/servis -- --host 127.0.0.1 --port 5175",
     "dev:vezu": "npm run dev -w @gaido/vezu -- --host 127.0.0.1 --port 5176",
+    "stop:local": "./stop-local.sh",
     "lint": "npm run lint --workspaces --if-present",
     "test": "npm run test --workspaces --if-present"
   }

@@ -1,5 +1,4 @@
-import { mountApp } from '@gaido/shared/bootstrap'
-import { LocationProvider } from '@gaido/discover-ui'
+import { mountApp } from '@gaido/discover/bootstrap'
 import App from './App'
 
-mountApp(App, { leaflet: true, locationProvider: LocationProvider })
+mountApp(App)

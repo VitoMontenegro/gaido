@@ -26,6 +26,6 @@ local_stop_pidfile "$ROOT/.local/pids/frontend.pid" "frontend"
 for port in $(local_backend_port_candidates); do
   local_kill_port "$port" backend
 done
-local_kill_port "$FRONTEND_PORT" frontend
+local_stop_dev_frontends
 
 echo "✓ stopped (infra docker compose — отдельно)"

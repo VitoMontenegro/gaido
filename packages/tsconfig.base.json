@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "target": "ES2023",
+    "lib": ["ES2023", "DOM"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "verbatimModuleSyntax": true,
+    "allowImportingTsExtensions": true,
+    "moduleDetection": "force",
+    "ignoreDeprecations": "6.0",
+    "types": ["vite/client"],
+    "allowArbitraryExtensions": true,
+    "baseUrl": ".",
+    "paths": {
+      "@gaido/api-client/*": ["api-client/src/*"],
+      "@gaido/ui-primitives/*": ["ui-primitives/src/*"],
+      "@gaido/site-urls/*": ["site-urls/src/*"],
+      "@gaido/guides/*": ["guides/src/*"],
+      "@gaido/discover": ["discover/src/index.ts"],
+      "@gaido/discover/*": ["discover/src/*"],
+      "@gaido/portal-shell/*": ["portal/src/*"],
+      "@gaido/transport/*": ["transport/src/*"]
+    }
+  }
+}

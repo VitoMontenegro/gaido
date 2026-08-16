@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="800" height="500" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="800" y2="500" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FAFAFA"/>
+      <stop offset="0.55" stop-color="#FFF5F0"/>
+      <stop offset="1" stop-color="#FFE8DC"/>
+    </linearGradient>
+    <linearGradient id="hills" x1="400" y1="280" x2="400" y2="500" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2CB2AB" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#2CB2AB" stop-opacity="0.04"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientTransform="matrix(220 0 0 180 620 120)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FB7036" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#FB7036" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="800" height="500" fill="url(#bg)"/>
+  <circle cx="620" cy="120" r="180" fill="url(#glow)"/>
+  <path d="M0 360C120 320 220 390 340 350C460 310 560 380 680 340C740 320 780 330 800 340V500H0V360Z" fill="url(#hills)"/>
+  <path d="M0 390C90 370 180 410 280 385C380 360 500 405 620 375C700 355 760 365 800 370V500H0V390Z" fill="#2CB2AB" fill-opacity="0.08"/>
+  <path d="M140 300C210 250 290 240 360 265C430 290 500 255 560 230C610 210 660 220 700 245" stroke="#FB7036" stroke-opacity="0.35" stroke-width="3" stroke-dasharray="10 14" stroke-linecap="round"/>
+  <g transform="translate(520 170)">
+    <path d="M0 0C0-33 27-60 60-60C93-60 120-33 120 0C120 45 60 95 60 95C60 95 0 45 0 0Z" fill="#FB7036"/>
+    <circle cx="60" cy="0" r="22" fill="white"/>
+    <circle cx="60" cy="0" r="10" fill="#FB7036"/>
+  </g>
+  <g stroke="#060606" stroke-opacity="0.08" stroke-width="2">
+    <path d="M96 118H704"/>
+    <path d="M96 158H620"/>
+    <path d="M96 198H540"/>
+  </g>
+  <g transform="translate(118 248)">
+    <rect width="56" height="56" rx="14" fill="white" fill-opacity="0.85"/>
+    <path d="M28 16C22 16 18 21 18 26C18 34 28 44 28 44C28 44 38 34 38 26C38 21 34 16 28 16Z" fill="#2CB2AB"/>
+    <circle cx="28" cy="26" r="4" fill="white"/>
+  </g>
+  <text x="400" y="430" text-anchor="middle" fill="#636363" font-family="Arial, sans-serif" font-size="22" letter-spacing="4">&#1045;&#1050;&#1057;&#1050;&#1059;&#1056;&#1057;&#1030;&#1071;</text>
+</svg>

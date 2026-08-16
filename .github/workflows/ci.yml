@@ -69,7 +69,7 @@ jobs:
         run: make lint-frontend
 
       - name: Frontend test
-        run: npm run test -w @gaido/shared
+        run: npm run test -w @gaido/api-client && npm run test -w @gaido/ui-primitives
 
       - name: Frontend build
         run: npm run build

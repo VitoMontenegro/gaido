@@ -501,7 +501,8 @@ func (r *ProviderRepo) DiscoverMapPoints(ctx context.Context, p DiscoverParams) 
 			points = append(points, domain.DiscoverMapPoint{
 				PointID: pt.ID, OfferingID: row.Offering.ID, ProviderID: row.Provider.ID,
 				Title: row.Offering.Title, Label: pt.Label,
-				CityName: row.CityName, ProviderName: row.Provider.DisplayName, CategoryName: row.CategoryName,
+				CityName: row.CityName, ProviderName: row.Provider.DisplayName,
+				ProviderSlug: row.Provider.WebsiteSlug, CategoryName: row.CategoryName,
 				Lat: lat, Lng: lng, Category: row.CategorySlug,
 			})
 		}
@@ -526,7 +527,8 @@ func (r *ProviderRepo) DiscoverMapPoints(ctx context.Context, p DiscoverParams) 
 				points = append(points, domain.DiscoverMapPoint{
 					OfferingID: row.Offering.ID, ProviderID: row.Provider.ID,
 					Title: row.Offering.Title, Label: label,
-					CityName: row.CityName, ProviderName: row.Provider.DisplayName, CategoryName: row.CategoryName,
+					CityName: row.CityName, ProviderName: row.Provider.DisplayName,
+					ProviderSlug: row.Provider.WebsiteSlug, CategoryName: row.CategoryName,
 					Lat: z.CenterLat, Lng: z.CenterLng, Category: row.CategorySlug,
 				})
 			}

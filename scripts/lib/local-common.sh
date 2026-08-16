@@ -86,6 +86,11 @@ local_resolve_ports() {
   PG_PORT="${PG_PORT:-5433}"
   REDIS_PORT="${REDIS_PORT:-6380}"
 
+  # Stale .local/ports.env may keep a fallback port while canonical :8091 is free again.
+  if [[ "$BACKEND_PORT" != "8091" ]] && ! local_port_busy 8091; then
+    BACKEND_PORT=8091
+  fi
+
   backend_preferred="$BACKEND_PORT"
   if local_port_busy "$backend_preferred" && ! local_is_our_backend_on_port "$backend_preferred"; then
     # shellcheck disable=SC2046
@@ -101,7 +106,7 @@ local_resolve_ports() {
     FRONTEND_PORT="$picked"
   fi
 
-  CORS_ORIGINS="${CORS_ORIGINS:-http://localhost:${FRONTEND_PORT}}"
+  CORS_ORIGINS="${CORS_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174,http://localhost:5175,http://127.0.0.1:5175,http://localhost:5176,http://127.0.0.1:5176}"
   PUBLIC_BASE_URL="${PUBLIC_BASE_URL:-http://localhost:${FRONTEND_PORT}}"
 
   export HTTP_ADDR=":${BACKEND_PORT}"
@@ -155,7 +160,19 @@ local_is_backend_process() {
 
 local_is_frontend_process() {
   local cmd="$1"
-  [[ "$cmd" == *"vite"* ]] && [[ "$cmd" == *"frontend"* || "$cmd" == *"goproject"* || "$cmd" == *"experts-tourister"* ]]
+  [[ "$cmd" == *"vite"* ]] && [[ "$cmd" == *"frontend"* || "$cmd" == *"goproject"* || "$cmd" == *"experts-tourister"* || "$cmd" == *"/apps/"* ]]
+}
+
+# Vite dev servers for monorepo apps (5173–5179 covers strictPort fallbacks).
+local_dev_frontend_ports() {
+  echo 5173 5174 5175 5176 5177 5178 5179
+}
+
+local_stop_dev_frontends() {
+  local port
+  for port in $(local_dev_frontend_ports); do
+    local_kill_port "$port" frontend
+  done
 }
 
 # Kill only processes owned by this project. Never kill foreign listeners (e.g. OrbStack on :8081).
