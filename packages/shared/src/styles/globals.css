@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+/* Monorepo: scan shared + all apps so utility classes work in Vite dev */
+@source "../../**/*.{ts,tsx}";
+@source "../../../discover-ui/src/**/*.{ts,tsx}";
+@source "../../../../apps/**/src/**/*.{ts,tsx}";
+
 /* Roboto — body text */
 @font-face {
   font-family: "Roboto";
