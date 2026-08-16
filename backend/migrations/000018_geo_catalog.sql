@@ -1,6 +1,5 @@
 -- +goose Up
 INSERT INTO countries (slug, name) VALUES
-    ('russia', 'Росія'),
     ('turkey', 'Туреччина'),
     ('italy', 'Італія'),
     ('georgia', 'Грузія'),

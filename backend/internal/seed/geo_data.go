@@ -18,36 +18,6 @@ type geoCountry struct {
 // geoCatalog — набір країн і міст як у tourister-go.
 var geoCatalog = []geoCountry{
 	{
-		slug: "russia", name: "Росія",
-		regions: []geoRegion{
-			{
-				slug: "moscow-region", name: "Московська область",
-				cities: []geoCity{
-					{"moscow", "Москва", 55.7558, 37.6173},
-					{"spb", "Санкт-Петербург", 59.9343, 30.3351},
-				},
-			},
-			{
-				slug: "south", name: "Південь Росії",
-				cities: []geoCity{
-					{"sochi", "Сочі", 43.6028, 39.7342},
-				},
-			},
-			{
-				slug: "volga", name: "Поволжжя",
-				cities: []geoCity{
-					{"kazan", "Казань", 55.7887, 49.1221},
-				},
-			},
-			{
-				slug: "karelia", name: "Карелія",
-				cities: []geoCity{
-					{"petrozavodsk", "Петрозаводськ", 61.7850, 34.3469},
-				},
-			},
-		},
-	},
-	{
 		slug: "turkey", name: "Туреччина",
 		regions: []geoRegion{
 			{

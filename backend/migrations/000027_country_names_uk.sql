@@ -1,7 +1,6 @@
 -- +goose Up
 UPDATE countries SET name = v.name, updated_at = NOW()
 FROM (VALUES
-    ('russia', 'Росія'),
     ('turkey', 'Туреччина'),
     ('italy', 'Італія'),
     ('georgia', 'Грузія'),

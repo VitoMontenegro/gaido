@@ -31,7 +31,6 @@ const POPULAR_LABELS: Record<string, string> = {
   ee: '🇪🇪 Естонія',
   hu: '🇭🇺 Угорщина',
   ro: '🇷🇴 Румунія',
-  russia: '🇷🇺 Росія',
 }
 
 type Props = {

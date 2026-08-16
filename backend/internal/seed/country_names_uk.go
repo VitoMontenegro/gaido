@@ -4,7 +4,6 @@ import "context"
 
 // countryNamesUK — українські назви країн за slug (для UI та seed).
 var countryNamesUK = map[string]string{
-	"russia": "Росія",
 	"turkey": "Туреччина",
 	"italy":  "Італія",
 	"georgia": "Грузія",
