@@ -29,6 +29,10 @@ type mledozeCountry struct {
 	} `json:"translations"`
 }
 
+var excludedCountryCodes = map[string]bool{
+	"RU": true,
+}
+
 var countrySlugOverrides = map[string]string{
 	"RU": "russia",
 	"TR": "turkey",
@@ -58,6 +62,9 @@ func (s *Seeder) ensureWorldGeo(ctx context.Context) error {
 	}
 
 	for _, item := range items {
+		if excludedCountryCodes[item.CCA2] {
+			continue
+		}
 		slug := countrySlug(item.CCA2)
 		name := countryNameUK(slug, item.Translations.Ukr.Common, item.Translations.Rus.Common, item.Name.Common)
 		if name == "" {

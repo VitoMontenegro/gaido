@@ -17,7 +17,6 @@ const POPULAR_COUNTRY_SLUGS = [
   'ee',
   'hu',
   'ro',
-  'russia',
 ] as const
 
 const POPULAR_LABELS: Record<string, string> = {
@@ -250,8 +249,6 @@ function guessCountryFromCity(citySlug: string): string {
     krakow: 'pl',
     prague: 'czechia',
     vienna: 'at',
-    moscow: 'russia',
-    spb: 'russia',
   }
   return map[citySlug] ?? ''
 }
