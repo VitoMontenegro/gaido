@@ -35,7 +35,10 @@ export default function AccountPage() {
           </p>
           <div className="mt-4 flex flex-wrap gap-3">
             {isAdmin && (
-              <Link to="/admin" className="btn-primary">Аналітика платформи</Link>
+              <>
+                <Link to="/admin" className="btn-primary">Аналітика платформи</Link>
+                <Link to="/downloads?app=web-prod-2026" className="btn-secondary">Деплой</Link>
+              </>
             )}
             {isGuide && (
               <Link to="/account/guide" className="btn-primary">Кабінет гіда</Link>

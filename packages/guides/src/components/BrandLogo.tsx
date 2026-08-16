@@ -47,7 +47,10 @@ export default function BrandLogo({
         ? 'h-10 w-10 md:h-11 md:w-11'
         : 'h-9 w-9'
   const nameClass = compactOnMobile
-    ? 'font-display text-base font-bold normal-case tracking-tight text-ink md:text-2xl'
+    ? cn(
+        'font-display text-base font-bold normal-case tracking-tight md:text-2xl',
+        dark ? 'text-white' : 'text-ink',
+      )
     : compact
       ? 'font-display text-base font-bold normal-case tracking-tight text-ink'
       : variant === 'hero'

@@ -43,11 +43,22 @@ export default function GuidesHeader({ onLogout }: GuidesHeaderProps) {
   const { data: me, isLoading } = useMe()
   const location = useLocation()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
   const authPending = isLoading && !!getAccessToken()
+  const homeOverlay = location.pathname === '/'
+  const solidHeader = !homeOverlay || scrolled
 
   useEffect(() => {
     setMenuOpen(false)
   }, [location.pathname])
+
+  useEffect(() => {
+    if (!homeOverlay) return
+    const onScroll = () => setScrolled(window.scrollY > 16)
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [homeOverlay])
 
   useEffect(() => {
     document.body.style.overflow = menuOpen ? 'hidden' : ''
@@ -58,10 +69,17 @@ export default function GuidesHeader({ onLogout }: GuidesHeaderProps) {
 
   return (
     <>
-      <header className="site-header fixed inset-x-0 top-0 z-50 border-b border-divider/80 bg-page/90 backdrop-blur-md">
+      <header
+        className={cn(
+          'site-header fixed inset-x-0 top-0 z-50 transition-[background-color,border-color,box-shadow,backdrop-filter] duration-300',
+          solidHeader
+            ? 'border-b border-divider/80 bg-page/95 shadow-sm backdrop-blur-md'
+            : 'border-b border-transparent bg-transparent',
+        )}
+      >
         <div className="container-site">
           <div className="flex h-14 items-center gap-3 md:h-[72px] md:gap-6">
-            <BrandLogo compactOnMobile homeTo="/" />
+            <BrandLogo compactOnMobile homeTo="/" variant={solidHeader ? 'default' : 'inverse'} />
             <nav className="ml-auto hidden items-center gap-1 md:flex" aria-label="Головна навігація">
               {GUIDES_NAV.map((item) => (
                 <Link
@@ -69,7 +87,13 @@ export default function GuidesHeader({ onLogout }: GuidesHeaderProps) {
                   to={item.to}
                   className={cn(
                     'rounded-xl px-3 py-2 text-sm transition',
-                    navActive(location.pathname, item.to) ? 'bg-ink text-white' : 'text-ink hover:bg-sand-100',
+                    navActive(location.pathname, item.to)
+                      ? solidHeader
+                        ? 'bg-ink text-white'
+                        : 'bg-white/15 text-white'
+                      : solidHeader
+                        ? 'text-ink hover:bg-sand-100'
+                        : 'text-white/90 hover:bg-white/10',
                   )}
                 >
                   {item.label}
@@ -78,20 +102,41 @@ export default function GuidesHeader({ onLogout }: GuidesHeaderProps) {
             </nav>
             <div className="ml-auto flex h-9 min-w-[132px] items-center justify-end gap-1.5 md:ml-0 md:min-w-[220px] md:gap-2">
               {authPending ? (
-                <div className="h-9 w-full max-w-[180px] animate-pulse rounded-xl bg-sand-100/80" aria-hidden />
+                <div
+                  className={cn(
+                    'h-9 w-full max-w-[180px] animate-pulse rounded-xl',
+                    solidHeader ? 'bg-sand-100/80' : 'bg-white/15',
+                  )}
+                  aria-hidden
+                />
               ) : me ? (
                 <>
-                  <span className="hidden text-sm text-muted lg:inline">{me.login}</span>
-                  <Link to="/account" className="btn-secondary hidden py-2 sm:inline-flex">
+                  <span className={cn('hidden text-sm lg:inline', solidHeader ? 'text-muted' : 'text-white/80')}>
+                    {me.login}
+                  </span>
+                  <Link
+                    to="/account"
+                    className={cn('hidden py-2 sm:inline-flex', solidHeader ? 'btn-secondary' : 'btn-ghost text-white hover:bg-white/10')}
+                  >
                     Кабінет
                   </Link>
-                  <button type="button" onClick={onLogout} className="btn-ghost hidden py-2 sm:inline-flex">
+                  <button
+                    type="button"
+                    onClick={onLogout}
+                    className={cn('hidden py-2 sm:inline-flex', solidHeader ? 'btn-ghost' : 'btn-ghost text-white hover:bg-white/10')}
+                  >
                     Вийти
                   </button>
                 </>
               ) : (
                 <>
-                  <Link to="/login" className="btn-ghost px-2.5 py-1.5 text-sm md:py-2">
+                  <Link
+                    to="/login"
+                    className={cn(
+                      'px-2.5 py-1.5 text-sm md:py-2',
+                      solidHeader ? 'btn-ghost' : 'btn-ghost text-white hover:bg-white/10',
+                    )}
+                  >
                     Вхід
                   </Link>
                   <Link to="/register/guide" className="btn-primary px-3 py-1.5 text-sm md:py-2">
@@ -101,7 +146,12 @@ export default function GuidesHeader({ onLogout }: GuidesHeaderProps) {
               )}
               <button
                 type="button"
-                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-surface text-ink transition hover:bg-sand-100 md:hidden"
+                className={cn(
+                  'inline-flex h-9 w-9 items-center justify-center rounded-xl border transition md:hidden',
+                  solidHeader
+                    ? 'border-border bg-surface text-ink hover:bg-sand-100'
+                    : 'border-white/25 bg-white/10 text-white hover:bg-white/20',
+                )}
                 aria-expanded={menuOpen}
                 aria-controls="mobile-nav"
                 aria-label={menuOpen ? 'Закрити меню' : 'Відкрити меню'}
@@ -113,7 +163,7 @@ export default function GuidesHeader({ onLogout }: GuidesHeaderProps) {
           </div>
         </div>
       </header>
-      <div className="site-header-spacer h-14 shrink-0 md:h-[72px]" aria-hidden />
+      {!homeOverlay && <div className="site-header-spacer h-14 shrink-0 md:h-[72px]" aria-hidden />}
       {menuOpen && (
         <div className="fixed inset-0 z-40 md:hidden" role="presentation">
           <button type="button" className="absolute inset-0 bg-ink/25 backdrop-blur-[2px]" aria-label="Закрити меню" onClick={() => setMenuOpen(false)} />

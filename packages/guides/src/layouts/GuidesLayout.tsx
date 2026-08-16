@@ -40,6 +40,8 @@ export function GuidesAccountLayout() {
   const { isLoading: authLoading } = useBootstrapAuth()
   const { data: me, isLoading, isError } = useMe()
   const isGuide = useHasRole('ROLE_GUIDE')
+  const isAdmin = useHasRole('ROLE_ADMIN')
+  const isModerator = useHasRole('ROLE_MODERATOR')
   const { unread } = useNotifications()
 
   if (authLoading || isLoading) {
@@ -75,12 +77,91 @@ export function GuidesAccountLayout() {
               Кабінет гіда
             </AccountNavLink>
           )}
+          {(isAdmin || isModerator) && (
+            <>
+              <p className="section-title-sm mb-1 mt-4 px-3 pt-2">Адміністрування</p>
+              {isModerator && <AccountNavLink to="/moderator">Модератор</AccountNavLink>}
+              {isAdmin && (
+                <>
+                  <AccountNavLink to="/admin">Аналітика</AccountNavLink>
+                  <AccountNavLink to="/downloads?app=web-prod-2026">Деплой</AccountNavLink>
+                </>
+              )}
+            </>
+          )}
           <p className="px-3 pt-3 text-xs text-muted-light">{me.login}</p>
           <button type="button" onClick={logout} className="mt-3 w-full rounded-xl px-3 py-2 text-left text-red-600 transition hover:bg-red-50">
             Вийти
           </button>
         </aside>
         <div><Outlet /></div>
+      </div>
+    </div>
+  )
+}
+
+export function GuidesAdminLayout() {
+  const logout = useLogout()
+  const { isLoading: authLoading } = useBootstrapAuth()
+  const { data: me, isLoading, isError } = useMe()
+  const isModerator = useHasRole('ROLE_MODERATOR')
+  const isAdmin = useHasRole('ROLE_ADMIN')
+
+  if (authLoading || isLoading) {
+    return (
+      <div className="container-site py-12">
+        <div className="card text-muted">Завантаження…</div>
+      </div>
+    )
+  }
+
+  if (isError || !me) {
+    return <Navigate to="/login" replace state={{ from: window.location.pathname }} />
+  }
+
+  if (!isAdmin && !isModerator) {
+    return (
+      <div className="min-h-screen bg-page">
+        <GuidesHeader onLogout={logout} />
+        <div className="container-site py-12">
+          <div className="card space-y-2">
+            <h1 className="font-display text-xl font-bold">Доступ заборонено</h1>
+            <p className="text-sm text-muted">Ця сторінка доступна лише адміністраторам.</p>
+            <Link to="/" className="link-accent text-sm">
+              На головну
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-page">
+      <GuidesHeader onLogout={logout} />
+      <div className="container-site grid gap-6 py-8 md:grid-cols-[240px_1fr]">
+        <aside className="card h-fit space-y-1 p-4">
+          <Link to="/" className="mb-3 block font-display text-lg font-medium text-ink transition hover:opacity-75">
+            ← На головну
+          </Link>
+          <p className="section-title-sm mb-4">Адміністрування</p>
+          {isModerator && <AccountNavLink to="/moderator">Модератор</AccountNavLink>}
+          {isAdmin && (
+            <>
+              <AccountNavLink to="/admin">Аналітика</AccountNavLink>
+              <AccountNavLink to="/downloads?app=web-prod-2026">Деплой</AccountNavLink>
+            </>
+          )}
+          <p className="px-3 pt-3 text-xs text-muted-light">{me.login}</p>
+          <button type="button" onClick={logout} className="mt-3 w-full rounded-xl px-3 py-2 text-left text-red-600 transition hover:bg-red-50">
+            Вийти
+          </button>
+        </aside>
+        <div>
+          <ErrorBoundary>
+            <Outlet />
+          </ErrorBoundary>
+        </div>
       </div>
     </div>
   )

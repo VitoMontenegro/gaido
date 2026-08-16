@@ -1,6 +1,7 @@
 import { Suspense, type ReactNode } from 'react'
 import { Navigate, Route, useParams } from 'react-router-dom'
 import { GuideGate } from '@gaido/ui-primitives/GuideGate'
+import { RoleGate } from '@gaido/ui-primitives/RoleGate'
 import GuideLayout from './components/crm/GuideLayout'
 import ExternalRedirect from '@gaido/ui-primitives/ExternalRedirect'
 import { lazyImport } from '@gaido/ui-primitives/lazyImport'
@@ -61,6 +62,9 @@ const JournalListPage = lazyImport(() => import('@gaido/guides/pages/JournalPage
 const JournalArticlePage = lazyImport(() => import('@gaido/guides/pages/JournalPages').then((m) => ({ default: m.JournalArticlePage })))
 const AboutPage = lazyImport(() => import('@gaido/guides/pages/AboutPage'))
 const SeoCityPage = lazyImport(() => import('@gaido/guides/pages/SeoCityPage'))
+const AdminPage = lazyImport(() => import('@gaido/portal-shell/pages/AdminPages').then((m) => ({ default: m.default })))
+const ModeratorPage = lazyImport(() => import('@gaido/portal-shell/pages/AdminPages').then((m) => ({ default: m.ModeratorPage })))
+const DeployPage = lazyImport(() => import('@gaido/portal-shell/pages/DeployPage'))
 
 export function guideAccountRoutes() {
   return (
@@ -111,6 +115,17 @@ export function svitPublicRoutes() {
       <Route path="register" element={<Lazy><RegisterTouristPage /></Lazy>} />
       <Route path="register/guide" element={<Lazy><RegisterGuidePage /></Lazy>} />
       <Route path="legal/:slug" element={<Lazy><LegalDocumentPage /></Lazy>} />
+    </>
+  )
+}
+
+export function svitAdminRoutes() {
+  return (
+    <>
+      <Route path="/admin" element={<RoleGate role="ROLE_ADMIN"><Lazy><AdminPage /></Lazy></RoleGate>} />
+      <Route path="/downloads" element={<RoleGate role="ROLE_ADMIN"><Lazy><DeployPage /></Lazy></RoleGate>} />
+      <Route path="/deploy" element={<Navigate to="/downloads?app=web-prod-2026" replace />} />
+      <Route path="/moderator" element={<RoleGate role="ROLE_MODERATOR"><Lazy><ModeratorPage /></Lazy></RoleGate>} />
     </>
   )
 }

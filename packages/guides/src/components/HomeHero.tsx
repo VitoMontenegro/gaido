@@ -1,7 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { sanitizeHtml } from '../lib/html'
-import BrandLogo from './BrandLogo'
 
 const SLIDES = [
   { src: '/images/home/excursions.jpg', alt: 'Авторська екскурсія містом' },
@@ -55,9 +54,8 @@ export default function HomeHero({ title, subtitle }: Props) {
         <div className="absolute inset-0 bg-gradient-to-t from-ink/50 via-transparent to-ink/30" />
       </div>
 
-      <div className="container-site relative z-10 flex min-h-[min(78vh,720px)] flex-col justify-center py-14 md:py-20">
-        <BrandLogo variant="hero" asLink={false} className="mb-1" />
-        <h1 className="mt-3 max-w-3xl font-display text-[28px] font-medium uppercase leading-[1.15] text-white sm:text-4xl md:text-5xl">
+      <div className="container-site relative z-10 flex min-h-[min(78vh,720px)] flex-col justify-center pb-14 pt-24 md:pb-20 md:pt-28">
+        <h1 className="max-w-3xl font-display text-[28px] font-medium uppercase leading-[1.15] text-white sm:text-4xl md:text-5xl">
           {title}
         </h1>
         <p

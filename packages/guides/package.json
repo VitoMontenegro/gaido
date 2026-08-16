@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@gaido/api-client": "*",
+    "@gaido/portal-shell": "*",
     "@gaido/site-urls": "*",
     "@gaido/ui-primitives": "*",
     "@heroicons/react": "^2.2.0",

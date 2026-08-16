@@ -5,7 +5,7 @@ export const SITE_TAGLINE = 'Для українців — від українц
 export function getSiteName(): string {
   switch (getSiteMode()) {
     case 'guides':
-      return 'Gaido Світ'
+      return 'Gaido'
     case 'transport':
       return 'Gaido Vezu'
     case 'services':
