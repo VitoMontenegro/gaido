@@ -70,7 +70,7 @@ export default function GuidesFooter() {
             {(footer?.columns ?? []).length > 0 && (
               <div className="flex min-w-0 flex-1 flex-col gap-6 md:flex-row">
                 {footer!.columns.map((col) => (
-                  <div key={col.title} className="min-w-0 flex-1">
+                  <div key={col.title} className="min-w-0 flex-1 pr-20">
                     <p className="mb-3 font-display text-lg font-medium uppercase text-ink">{col.title}</p>
                     <ul className="flex flex-wrap gap-x-4 gap-y-2">
                       {col.links.map((link) => (
