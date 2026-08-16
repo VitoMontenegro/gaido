@@ -401,9 +401,9 @@ func (r *ProviderRepo) Discover(ctx context.Context, p DiscoverParams) ([]domain
 		JOIN service_categories sc ON sc.id = o.category_id
 		LEFT JOIN services sv ON sv.id = o.service_id
 		LEFT JOIN cities ci ON ci.id = pr.primary_city_id
-		LEFT JOIN cities sp_city ON sp_city.id = sp.city_id
 		LEFT JOIN offering_points op ON op.offering_id = o.id
 		LEFT JOIN service_points sp ON sp.id = op.point_id AND sp.is_active
+		LEFT JOIN cities sp_city ON sp_city.id = sp.city_id
 		WHERE %s
 		ORDER BY o.id, distance_km ASC NULLS LAST`, distanceExpr, whereSQL)
 
