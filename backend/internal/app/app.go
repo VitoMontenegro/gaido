@@ -140,6 +140,12 @@ func (a *App) RunDemoSeed(ctx context.Context) error {
 	return seeder.Run(ctx)
 }
 
+// RunReferenceSeed loads geo, plans, categories and service catalog only.
+func (a *App) RunReferenceSeed(ctx context.Context) error {
+	seeder := &seed.Seeder{DB: a.db, Users: a.handlers.Users, Geo: a.handlers.Geo, Guides: a.handlers.Guides, Providers: a.handlers.Providers}
+	return seeder.RunReference(ctx)
+}
+
 func (a *App) Close() {
 	if a.expireCancel != nil {
 		a.expireCancel()

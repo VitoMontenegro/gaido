@@ -17,11 +17,12 @@ func main() {
 	_ = godotenv.Load(".env")
 
 	demo := flag.Bool("demo", true, "run full demo seed (users, guides, excursions)")
+	reference := flag.Bool("reference", false, "run reference seed only (geo, categories, service catalog)")
 	flag.Parse()
 
 	cfg := config.Load()
-	if cfg.AppEnv == "production" {
-		slog.Error("refusing to seed in production; use APP_ENV=development for local seed")
+	if cfg.AppEnv == "production" && *demo {
+		slog.Error("refusing demo seed in production; use -reference for catalog only")
 		os.Exit(1)
 	}
 
@@ -36,8 +37,16 @@ func main() {
 	}
 	defer application.Close()
 
+	if *reference {
+		if err := application.RunReferenceSeed(ctx); err != nil {
+			log.Error("reference seed failed", "error", err)
+			os.Exit(1)
+		}
+		log.Info("reference seed completed")
+		return
+	}
 	if !*demo {
-		log.Info("nothing to do (pass -demo=true)")
+		log.Info("nothing to do (pass -demo or -reference)")
 		return
 	}
 	if err := application.RunDemoSeed(ctx); err != nil {
