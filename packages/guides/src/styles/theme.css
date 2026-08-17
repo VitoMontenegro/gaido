@@ -786,11 +786,11 @@
   }
 
   .excursion-parus-organizer__contacts {
-    @apply grid w-full min-w-0 grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-center;
+    @apply grid w-full min-w-0 grid-cols-2 gap-2;
   }
 
   .excursion-parus-organizer__pill {
-    @apply flex h-11 min-w-0 items-center justify-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium transition hover:opacity-90 sm:flex-1 sm:gap-2 sm:px-4 sm:text-base;
+    @apply flex h-11 min-w-0 w-full items-center justify-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium transition hover:opacity-90 sm:gap-2 sm:px-4 sm:text-base;
   }
 
   .excursion-parus-organizer__pill span {
@@ -798,7 +798,7 @@
   }
 
   .excursion-parus-organizer__pill:last-child:nth-child(odd) {
-    @apply col-span-2 sm:col-span-1;
+    @apply col-span-2;
   }
 
   .excursion-parus-organizer__pill--telegram {
