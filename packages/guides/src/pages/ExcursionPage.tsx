@@ -23,7 +23,7 @@ import ExcursionReadMore from '../components/ExcursionReadMore'
 import ExcursionRouteSection from '../components/ExcursionRouteSection'
 import ExcursionVideoBlock from '../components/ExcursionVideoBlock'
 import ExcursionOrganizerSection from '../components/ExcursionOrganizerSection'
-import GuideContactSheet from '../components/GuideContactSheet'
+import GuideContactPills, { guideContactLinks } from '../components/GuideContactPills'
 import ReviewsSection from '../components/reviews/ReviewsSection'
 import StarRating from '../components/reviews/StarRating'
 import { trackRecentView, removeRecentView } from '../hooks/useRecentViews'
@@ -38,78 +38,86 @@ import {
 } from '../lib/excursionStructuredContent'
 import { pageTitle } from '@gaido/site-urls/brand'
 import { Seo } from '../lib/seo'
+import type { Contacts } from '@gaido/api-client/api/types/catalog'
 import { sanitizeHtml } from '../lib/html'
 
 function ExcursionBookingPanel({
   excursion,
   favMutation,
   compact = false,
-  onContactGuide,
+  contacts,
 }: {
   excursion: ExcursionItem
   favMutation: ReturnType<typeof useMutation<{ favorited: boolean }, Error, void>>
   compact?: boolean
-  onContactGuide?: () => void
+  contacts?: Contacts
 }) {
+  const links = contacts ? guideContactLinks(contacts) : []
+
+  const contactBlock =
+    links.length > 0 ? (
+      <GuideContactPills links={links} className={compact ? 'mt-2' : undefined} />
+    ) : contacts?.visible === false ? (
+      <p className="text-sm text-stone-600">Контакти доступні після активації розміщення гіда.</p>
+    ) : excursion.guide_slug ? (
+      <Link to={`/guide/${excursion.guide_slug}`} className="text-sm font-medium text-teal hover:underline">
+        Профіль гіда →
+      </Link>
+    ) : null
+
+  const responseHours = contacts?.response_hours ? (
+    <p className={`text-stone-600 ${compact ? 'mt-1 text-xs' : 'text-sm'}`}>{contacts.response_hours}</p>
+  ) : null
+
+  const favButton = (
+    <button
+      type="button"
+      className={compact ? 'btn-secondary shrink-0 px-3 py-2.5 text-sm' : 'btn-secondary w-full'}
+      disabled={favMutation.isPending}
+      aria-label={favMutation.data?.favorited ? 'В обраному' : 'В обране'}
+      onClick={() => favMutation.mutate()}
+    >
+      {compact ? (favMutation.data?.favorited ? '♥' : '♡') : favMutation.data?.favorited ? 'В обраному' : 'В обране'}
+    </button>
+  )
+
+  if (compact) {
+    return (
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <div className="min-w-0 flex-1">
+            <p className="font-display text-xl font-bold leading-tight text-teal">
+              {formatPrice(excursion.price_from, excursion.currency)}
+            </p>
+            <p className="excursion-parus-muted truncate text-xs">{excursionPriceCaption(excursion.type)}</p>
+          </div>
+          {favButton}
+        </div>
+        {contactBlock}
+        {responseHours}
+      </div>
+    )
+  }
+
   return (
     <>
-      <div className={compact ? 'min-w-0 flex-1' : undefined}>
-        <p className={`font-display font-bold text-teal ${compact ? 'text-xl leading-tight' : 'text-3xl'}`}>
+      <div>
+        <p className="font-display text-3xl font-bold text-teal">
           {formatPrice(excursion.price_from, excursion.currency)}
         </p>
-        <p className={`excursion-parus-muted ${compact ? 'truncate text-xs' : ''}`}>
-          {excursionPriceCaption(excursion.type)}
-        </p>
+        <p className="excursion-parus-muted">{excursionPriceCaption(excursion.type)}</p>
       </div>
-      <div className={compact ? 'flex shrink-0 items-center gap-2' : 'space-y-4'}>
-        {excursion.guide_slug && (
-          compact && onContactGuide ? (
-            <button
-              type="button"
-              className="btn-primary px-4 py-2.5 text-sm whitespace-nowrap"
-              onClick={onContactGuide}
-            >
-              Написати гіду
-            </button>
-          ) : (
-            <Link
-              to={`/guide/${excursion.guide_slug}`}
-              className={`btn-primary text-center ${compact ? 'px-4 py-2.5 text-sm whitespace-nowrap' : 'flex w-full'}`}
-            >
-              Написати гіду
-            </Link>
-          )
+      <div className="space-y-4">
+        {contactBlock}
+        {responseHours}
+        {favButton}
+        {favMutation.isError && (
+          <p className="text-xs text-red-600">Увійдіть, щоб додати до обраного</p>
         )}
-        {!compact && (
-          <>
-            <button
-              type="button"
-              className="btn-secondary w-full"
-              disabled={favMutation.isPending}
-              onClick={() => favMutation.mutate()}
-            >
-              {favMutation.data?.favorited ? 'В обраному' : 'В обране'}
-            </button>
-            {favMutation.isError && (
-              <p className="text-xs text-red-600">Увійдіть, щоб додати до обраного</p>
-            )}
-            <div className="border-t border-stone-100 pt-3 excursion-parus-text">
-              <p className="font-medium text-stone-800">Як це працює</p>
-              <p className="mt-1">Звʼяжіться з гідом напряму — бронювання та оплата поза платформою.</p>
-            </div>
-          </>
-        )}
-        {compact && (
-          <button
-            type="button"
-            className="btn-secondary px-3 py-2.5 text-sm"
-            disabled={favMutation.isPending}
-            aria-label={favMutation.data?.favorited ? 'В обраному' : 'В обране'}
-            onClick={() => favMutation.mutate()}
-          >
-            {favMutation.data?.favorited ? '♥' : '♡'}
-          </button>
-        )}
+        <div className="border-t border-stone-100 pt-3 excursion-parus-text">
+          <p className="font-medium text-stone-800">Як це працює</p>
+          <p className="mt-1">Звʼяжіться з гідом напряму — бронювання та оплата поза платформою.</p>
+        </div>
       </div>
     </>
   )
@@ -120,7 +128,6 @@ export default function ExcursionPage() {
   const { data: me } = useMe()
   const isGuideRole = useHasRole('ROLE_GUIDE')
   const [availabilityOpen, setAvailabilityOpen] = useState(false)
-  const [contactOpen, setContactOpen] = useState(false)
 
   const { data: excursion, isLoading, isError, error } = useQuery({
     queryKey: ['excursion', slug],
@@ -353,7 +360,11 @@ export default function ExcursionPage() {
         <aside className="hidden h-fit lg:block lg:sticky lg:top-26.25">
           <div className="space-y-4">
             <div className="card space-y-4 border-brand-200 shadow-lg">
-              <ExcursionBookingPanel excursion={excursion} favMutation={favMutation} />
+              <ExcursionBookingPanel
+                excursion={excursion}
+                favMutation={favMutation}
+                contacts={excursion.guide_contacts}
+              />
               <ExcursionAvailabilityButton onClick={() => setAvailabilityOpen(true)} />
             </div>
           </div>
@@ -365,7 +376,12 @@ export default function ExcursionPage() {
         style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
       >
         <div className="mx-auto flex max-w-365 items-center gap-3">
-          <ExcursionBookingPanel excursion={excursion} favMutation={favMutation} compact onContactGuide={() => setContactOpen(true)} />
+          <ExcursionBookingPanel
+            excursion={excursion}
+            favMutation={favMutation}
+            contacts={excursion.guide_contacts}
+            compact
+          />
           <button
             type="button"
             className="btn-secondary shrink-0 px-3 py-2.5"
@@ -386,18 +402,6 @@ export default function ExcursionPage() {
         onClose={() => setAvailabilityOpen(false)}
         slug={excursion.slug}
         excursionType={excursion.type}
-      />
-
-      <GuideContactSheet
-        open={contactOpen}
-        onClose={() => setContactOpen(false)}
-        guideName={excursion.guide_name}
-        guideSlug={excursion.guide_slug}
-        guideAvatarUrl={excursion.guide_avatar_url}
-        guideAbout={excursion.guide_about}
-        guideRatingAvg={excursion.guide_rating_avg}
-        guideRatingCount={excursion.guide_rating_count}
-        contacts={excursion.guide_contacts}
       />
     </div>
   )

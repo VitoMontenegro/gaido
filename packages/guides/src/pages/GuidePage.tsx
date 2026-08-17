@@ -5,6 +5,7 @@ import { api, articlesApi, catalogApi, type PublicGuide } from '@gaido/api-clien
 import Breadcrumbs from '../components/Breadcrumbs'
 import ExcursionCard from '../components/ExcursionCard'
 import GuideAvatar from '../components/GuideAvatar'
+import GuideContactPills, { guideContactLinks } from '../components/GuideContactPills'
 import JournalArticleCard from '../components/JournalArticleCard'
 import type { ExcursionItem } from '../components/excursionUi'
 import ReviewsSection from '../components/reviews/ReviewsSection'
@@ -174,23 +175,24 @@ function GuideHero({ guide, excursionCount }: { guide: PublicGuide; excursionCou
 
 function ContactBlock({ guide }: { guide: PublicGuide }) {
   const telegramBotURL = useTelegramBotURL()
+  const links = guideContactLinks(guide.contacts)
 
   return (
     <div className="card border-brand-200 bg-white shadow-md">
       <p className="font-display text-lg font-bold">Зв&apos;язатися з гідом</p>
-      {guide.contacts.visible ? (
-        <div className="mt-4 space-y-2 text-sm">
-          {guide.contacts.telegram && <p>Telegram: <span className="font-medium">{guide.contacts.telegram}</span></p>}
-          {guide.contacts.phone && <p>Телефон: <span className="font-medium">{guide.contacts.phone}</span></p>}
-          {guide.contacts.whatsapp && <p>WhatsApp: <span className="font-medium">{guide.contacts.whatsapp}</span></p>}
-          {guide.contacts.viber && <p>Viber: <span className="font-medium">{guide.contacts.viber}</span></p>}
-          {guide.contacts.email && <p>Email: <span className="font-medium">{guide.contacts.email}</span></p>}
+      {links.length > 0 ? (
+        <div className="mt-4 space-y-3">
+          <GuideContactPills links={links} />
           {guide.contacts.response_hours && (
-            <p className="text-stone-600">{guide.contacts.response_hours}</p>
+            <p className="text-sm text-stone-600">{guide.contacts.response_hours}</p>
           )}
         </div>
       ) : (
-        <p className="mt-3 text-sm text-stone-600">Контакти доступні після активації розміщення гіда.</p>
+        <p className="mt-3 text-sm text-stone-600">
+          {guide.contacts.visible
+            ? 'Гід поки не додав контакти для звʼязку.'
+            : 'Контакти доступні після активації розміщення гіда.'}
+        </p>
       )}
       {telegramBotURL && (
         <button
