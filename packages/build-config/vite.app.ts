@@ -105,6 +105,15 @@ export function createAppViteConfig({
       config.optimizeDeps = { include: ['leaflet'] }
     }
 
+    config.build = {
+      rolldownOptions: {
+        output: {
+          // TinyMCE skins/plugins register via global tinymce — keep module order stable.
+          strictExecutionOrder: true,
+        },
+      },
+    }
+
     return config
   })
 }

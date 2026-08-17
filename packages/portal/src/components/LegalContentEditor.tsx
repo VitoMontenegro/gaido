@@ -1,4 +1,5 @@
-import { lazy, Suspense } from 'react'
+import { Suspense } from 'react'
+import { lazyRichTextEditor } from '@gaido/ui-primitives/lazyRichTextEditor'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
 import { catalogApi } from '@gaido/api-client/api/catalog'
@@ -8,7 +9,7 @@ import { sanitizeHtml } from '../lib/html'
 import { Seo } from '../lib/seo'
 import type { LegalContent } from '@gaido/api-client/api/types/site'
 
-const RichTextEditor = lazy(() => import('./RichTextEditor'))
+const RichTextEditor = lazyRichTextEditor(() => import('./RichTextEditor'))
 
 type LegalKey = keyof LegalContent
 

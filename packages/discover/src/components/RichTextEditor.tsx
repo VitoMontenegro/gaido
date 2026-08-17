@@ -1,22 +1,6 @@
 import { Editor } from '@tinymce/tinymce-react'
-import tinymce from 'tinymce/tinymce'
-import 'tinymce/icons/default'
-import 'tinymce/themes/silver'
-import 'tinymce/models/dom'
-import 'tinymce/plugins/lists'
-import 'tinymce/plugins/link'
-import 'tinymce/plugins/image'
-import 'tinymce/plugins/media'
-import 'tinymce/plugins/table'
-import 'tinymce/plugins/code'
-import 'tinymce/plugins/autolink'
-import 'tinymce/skins/ui/oxide/skin.js'
-import 'tinymce/skins/content/default/content.js'
 import { adminApi, resolveMediaUrl } from '@gaido/api-client/api/client'
 import { processImageFile } from '../lib/imageProcess'
-
-// Keep tinymce referenced so Vite doesn't tree-shake the import.
-void tinymce
 
 type Props = {
   value: string
@@ -37,6 +21,8 @@ export default function RichTextEditor({ value, onChange, disabled }: Props) {
         plugins: 'lists link image media table code autolink',
         toolbar:
           'undo redo | blocks | bold italic underline | alignleft aligncenter alignright | bullist numlist | link image media table | code',
+        skin_url: 'default',
+        content_css: 'default',
         branding: false,
         promotion: false,
         convert_urls: false,

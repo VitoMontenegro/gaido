@@ -1,9 +1,10 @@
-import { lazy, Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
+import { lazyRichTextEditor } from '@gaido/ui-primitives/lazyRichTextEditor'
 import { useQueryClient } from '@tanstack/react-query'
 import { articlesApi, type Article } from '@gaido/api-client/api/client'
 import { ImageUrlField } from './ImageUrlField'
 
-const RichTextEditor = lazy(() => import('./RichTextEditor'))
+const RichTextEditor = lazyRichTextEditor(() => import('./RichTextEditor'))
 
 type Props = {
   apiBase: 'admin' | 'moderator' | 'guide'

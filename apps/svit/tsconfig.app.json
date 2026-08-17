@@ -30,5 +30,5 @@
       "@gaido/transport/*": ["../../packages/transport/src/*"]
     }
   },
-  "include": ["src", "../../packages/guides/src", "../../packages/build-config/vite.app.ts"]
+  "include": ["src", "../../packages/guides/src", "../../packages/ui-primitives/src", "../../packages/build-config/vite.app.ts"]
 }

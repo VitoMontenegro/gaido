@@ -1,4 +1,5 @@
-import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react'
+import { Suspense, useEffect, useState, type ReactNode } from 'react'
+import { lazyRichTextEditor } from '@gaido/ui-primitives/lazyRichTextEditor'
 import { normalizeItems } from '../lib/bookingTerms'
 import { resolveMapEmbed } from '../lib/mapEmbed'
 import BookingTermsEditor from './BookingTermsEditor'
@@ -17,7 +18,7 @@ import { ImageUrlField } from './ImageUrlField'
 import ExcursionDatesEditor from './ExcursionDatesEditor'
 import { durationInputToMinutes, minutesToDurationInput } from '../lib/duration'
 
-const RichTextEditor = lazy(() => import('./RichTextEditor'))
+const RichTextEditor = lazyRichTextEditor(() => import('./RichTextEditor'))
 
 export type ExcursionFormData = {
   title: string
