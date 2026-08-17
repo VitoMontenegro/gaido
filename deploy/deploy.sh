@@ -9,6 +9,13 @@ STATUS_FILE="${DEPLOY_STATUS_FILE:-$APP_ROOT/logs/deploy.status.json}"
 GIT_BRANCH="${GIT_BRANCH:-main}"
 GIT_REPO="${GIT_REPO:-https://github.com/VitoMontenegro/gaido.git}"
 APP_SLUG="${DEPLOY_APP_SLUG:-web-prod-2026}"
+DEPLOY_USER="${DEPLOY_USER:-deploy}"
+
+# Manual runs as root leave root-owned node_modules/www and break npm ci for deploy user.
+if [ "$(id -un)" = "root" ]; then
+  chown -R "$DEPLOY_USER:$DEPLOY_USER" "$APP_ROOT"
+  exec sudo -u "$DEPLOY_USER" -E bash "$0" "$@"
+fi
 
 write_status() {
   local status="$1"
