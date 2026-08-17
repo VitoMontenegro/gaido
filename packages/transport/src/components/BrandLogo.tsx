@@ -3,8 +3,8 @@ import { SITE_NAME, SITE_TAGLINE } from '@gaido/site-urls/brand'
 import { cn } from '@gaido/ui-primitives/cn'
 
 const LOGO = {
-  light: '/images/white_logo.png',
-  dark: '/images/black_logo.png',
+  light: '/images/black_logo.png',
+  dark: '/images/white_logo.png',
 } as const
 
 type Props = {
