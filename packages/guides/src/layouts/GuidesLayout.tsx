@@ -1,6 +1,4 @@
 import { Link, Outlet, Navigate } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
-import { catalogApi } from '@gaido/api-client/api/client'
 import { useBootstrapAuth, useHasRole, useMe } from '@gaido/api-client/hooks/useAuth'
 import { useLogout } from '@gaido/api-client/hooks/useLogout'
 import { useNotifications } from '@gaido/api-client/hooks/useNotifications'
@@ -14,12 +12,6 @@ import AccountNavLink from '../components/crm/AccountNavLink'
 export function GuidesPublicLayout() {
   const logout = useLogout()
   useTelegramBotURL()
-
-  useQuery({
-    queryKey: ['site'],
-    queryFn: () => catalogApi.site(),
-    staleTime: 60_000,
-  })
 
   return (
     <div className="flex min-h-screen flex-col bg-page">
@@ -64,19 +56,15 @@ export function GuidesAccountLayout() {
             ← На головну
           </Link>
           <p className="section-title-sm mb-4">Кабінет</p>
-          <AccountNavLink to="/account" end>
-            Огляд{unread > 0 ? ` (${unread})` : ''}
-          </AccountNavLink>
-          <AccountNavLink to="/account/favorites">Обране</AccountNavLink>
+          {isGuide && (
+            <>
+              <AccountNavLink to="/account/guide" exceptPrefixes={['/account/guide/billing']}>
+                Кабінет гіда{unread > 0 ? ` (${unread})` : ''}
+              </AccountNavLink>
+              <AccountNavLink to="/account/guide/billing">Білінг</AccountNavLink>
+            </>
+          )}
           <AccountNavLink to="/account/settings">Налаштування</AccountNavLink>
-          {isGuide && (
-            <AccountNavLink to="/account/guide/billing">Білінг</AccountNavLink>
-          )}
-          {isGuide && (
-            <AccountNavLink to="/account/guide" exceptPrefixes={['/account/guide/billing']}>
-              Кабінет гіда
-            </AccountNavLink>
-          )}
           {(isAdmin || isModerator) && (
             <>
               <p className="section-title-sm mb-1 mt-4 px-3 pt-2">Адміністрування</p>

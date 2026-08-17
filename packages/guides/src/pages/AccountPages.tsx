@@ -1,5 +1,5 @@
 import { Helmet } from 'react-helmet-async'
-import { Link } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { authApi, api, type FavoriteItem, userDisplayName } from '@gaido/api-client/api/client'
@@ -13,16 +13,12 @@ export default function AccountPage() {
   const { data: me } = useMe()
   const isGuide = useHasRole('ROLE_GUIDE')
   const isAdmin = useHasRole('ROLE_ADMIN')
+
+  if (isGuide) {
+    return <Navigate to="/account/guide" replace />
+  }
+
   const name = me ? userDisplayName(me) : 'гість'
-
-  const { data: favorites } = useQuery({
-    queryKey: ['favorites'],
-    queryFn: () => api<{ items: FavoriteItem[] }>('/api/v1/favorites'),
-    enabled: !isAdmin,
-  })
-
-  const favItems = favorites?.items ?? []
-  const favCount = favItems.length
 
   return (
     <>
@@ -30,9 +26,7 @@ export default function AccountPage() {
       <div className="space-y-5">
         <div className="card">
           <h1 className="font-display text-2xl font-bold">Привіт, {name}!</h1>
-          <p className="mt-2 text-stone-600">
-            Тут ваші особисті дані, обране та доступ до робочих розділів.
-          </p>
+          <p className="mt-2 text-stone-600">Особисті дані та доступ до робочих розділів.</p>
           <div className="mt-4 flex flex-wrap gap-3">
             {isAdmin && (
               <>
@@ -40,11 +34,8 @@ export default function AccountPage() {
                 <Link to="/downloads?app=web-prod-2026" className="btn-secondary">Деплой</Link>
               </>
             )}
-            {isGuide && (
-              <Link to="/account/guide" className="btn-primary">Кабінет гіда</Link>
-            )}
             <Link to="/account/settings" className="btn-secondary">Налаштування профілю</Link>
-            {!isGuide && !isAdmin && (
+            {!isAdmin && (
               <>
                 <Link to="/register" className="btn-accent text-sm">
                   Реєстрація
@@ -58,29 +49,6 @@ export default function AccountPage() {
         </div>
 
         <NotificationsPanel />
-
-        {!isAdmin && (
-          <section className="card space-y-3">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <h2 className="font-display text-lg font-bold">Обране</h2>
-                <p className="mt-1 text-sm text-stone-500">
-                  {favCount > 0 ? `${favCount} збережено` : 'Поки порожньо — додавайте з карток екскурсій і гідів'}
-                </p>
-              </div>
-              <Link to="/account/favorites" className="text-sm text-teal hover:underline">
-                Усі →
-              </Link>
-            </div>
-            {favCount > 0 && (
-              <div className="grid gap-3 sm:grid-cols-2">
-                {favItems.slice(0, 4).map((f) => (
-                  <FavoritePreview key={`${f.target_type}-${f.target_id}`} item={f} />
-                ))}
-              </div>
-            )}
-          </section>
-        )}
       </div>
     </>
   )
@@ -88,39 +56,6 @@ export default function AccountPage() {
 
 async function fetchFavorites() {
   return api<{ items: FavoriteItem[] }>('/api/v1/favorites')
-}
-
-function FavoritePreview({ item }: { item: FavoriteItem }) {
-  if (item.target_type === 'EXCURSION' && item.slug) {
-    return (
-      <ExcursionCard
-        compact
-        e={excursionCardPropsFromPartial({
-          slug: item.slug,
-          title: item.title ?? 'Екскурсія',
-          city_name: item.city_name,
-          description: item.description,
-          price_from: item.price_from,
-          currency: item.currency,
-          cover_image_url: item.cover_image_url,
-          rating_avg: item.rating_avg,
-          rating_count: item.rating_count,
-        })}
-      />
-    )
-  }
-  if (item.target_type === 'GUIDE' && item.slug) {
-    return (
-      <Link to={`/guide/${item.slug}`} className="flex items-center gap-3 rounded-xl bg-sand-50 p-3 transition hover:bg-sand-100">
-        <GuideAvatar avatar={item.avatar_url} name={item.title} className="h-10 w-10 rounded-xl" />
-        <div>
-          <p className="text-xs text-stone-500">Гід</p>
-          <p className="font-medium">{item.title}</p>
-        </div>
-      </Link>
-    )
-  }
-  return null
 }
 
 export function FavoritesPage() {

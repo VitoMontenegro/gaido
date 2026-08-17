@@ -74,6 +74,13 @@ set +a
 
 STATIC_ROOT="${STATIC_ROOT:-$APP_ROOT/www}"
 
+# Manual copies / Mac rsyncs can leave www owned by another uid — deploy user cannot rsync --delete.
+if [ ! -O "$STATIC_ROOT" ] 2>/dev/null || find "$STATIC_ROOT" -mindepth 1 -maxdepth 2 ! -writable 2>/dev/null | grep -q .; then
+  echo "→ fix ownership $STATIC_ROOT"
+  sudo chown -R "$(id -un):$(id -gn)" "$STATIC_ROOT"
+fi
+mkdir -p "$STATIC_ROOT"
+
 echo "→ frontend build (4 apps)"
 cd "$REPO"
 npm ci
@@ -82,7 +89,10 @@ for app in portal svit servis vezu; do
   npm run build -w "@gaido/$app"
   echo "→ publish $app to $STATIC_ROOT/$app"
   mkdir -p "$STATIC_ROOT/$app"
-  rsync -a --delete "$REPO/apps/$app/dist/" "$STATIC_ROOT/$app/"
+  rsync -a --delete \
+    --exclude '._*' \
+    --exclude '.DS_Store' \
+    "$REPO/apps/$app/dist/" "$STATIC_ROOT/$app/"
 done
 
 echo "→ backend build"

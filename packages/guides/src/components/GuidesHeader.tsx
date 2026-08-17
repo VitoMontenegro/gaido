@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { getAccessToken } from '@gaido/api-client/api/http'
-import { useMe } from '@gaido/api-client/hooks/useAuth'
+import { useMe, useHasRole } from '@gaido/api-client/hooks/useAuth'
 import BrandLogo from './BrandLogo'
 import { cn } from '@gaido/ui-primitives/cn'
 
@@ -45,6 +45,8 @@ export default function GuidesHeader({ onLogout }: GuidesHeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const authPending = isLoading && !!getAccessToken()
+  const isGuide = useHasRole('ROLE_GUIDE')
+  const accountHref = isGuide ? '/account/guide' : '/account'
   const homeOverlay = location.pathname === '/'
   const solidHeader = !homeOverlay || scrolled
 
@@ -115,7 +117,7 @@ export default function GuidesHeader({ onLogout }: GuidesHeaderProps) {
                     {me.login}
                   </span>
                   <Link
-                    to="/account"
+                    to={accountHref}
                     className={cn('hidden py-2 sm:inline-flex', solidHeader ? 'btn-secondary' : 'btn-ghost text-white hover:bg-white/10')}
                   >
                     Кабінет

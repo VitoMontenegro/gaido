@@ -14,6 +14,10 @@ export default function GuidesFooter() {
 
   const footer = data?.footer
   const telegramBotURL = useTelegramBotURL()
+  const telegramHref =
+    telegramBotURL ||
+    (footer?.telegram ? `https://t.me/${footer.telegram.replace(/^@/, '')}` : '')
+  const botUsername = telegramHref.replace(/^https:\/\/t\.me\//, '')
 
   return (
     <footer className="pb-5 pt-8">
@@ -41,24 +45,14 @@ export default function GuidesFooter() {
                 </a>
               )}
 
-              {telegramBotURL && (
-                <button
-                  type="button"
-                  data-telegram
-                  className="mb-3 block text-left text-base text-ink-soft underline transition hover:text-muted"
-                >
-                  Написати в Telegram
-                </button>
-              )}
-
-              {footer?.telegram && (
+              {telegramHref && (
                 <a
-                  href={`https://t.me/${footer.telegram.replace(/^@/, '')}`}
+                  href={telegramHref}
                   target="_blank"
                   rel="noreferrer"
                   className="mb-3 block text-base text-ink-soft underline transition hover:text-muted"
                 >
-                  Telegram {footer.telegram}
+                  Telegram {botUsername}
                 </a>
               )}
 

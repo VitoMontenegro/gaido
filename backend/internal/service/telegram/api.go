@@ -30,6 +30,7 @@ type Message struct {
 	MessageID       int64  `json:"message_id"`
 	MessageThreadID int64  `json:"message_thread_id,omitempty"`
 	Text            string `json:"text,omitempty"`
+	Caption         string `json:"caption,omitempty"`
 	Chat            Chat   `json:"chat"`
 	From            *User  `json:"from,omitempty"`
 	ReplyToMessage  *Message `json:"reply_to_message,omitempty"`
@@ -52,6 +53,7 @@ type Chat struct {
 
 type User struct {
 	ID        int64  `json:"id"`
+	IsBot     bool   `json:"is_bot,omitempty"`
 	Username  string `json:"username,omitempty"`
 	FirstName string `json:"first_name,omitempty"`
 }

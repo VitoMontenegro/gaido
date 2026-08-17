@@ -43,7 +43,7 @@ func (s *Service) Enabled() bool {
 }
 
 func (s *Service) BotURL() string {
-	if !s.enabled || s.cfg.TelegramBotUsername == "" {
+	if !s.cfg.TelegramEnabled || s.cfg.TelegramBotUsername == "" {
 		return ""
 	}
 	return "https://t.me/" + strings.TrimPrefix(s.cfg.TelegramBotUsername, "@")
@@ -65,7 +65,10 @@ func (s *Service) ProcessUpdate(ctx context.Context, update Update) error {
 		if msg.Chat.ID != groupID {
 			return nil
 		}
-		if msg.ReplyToMessage != nil {
+		if msg.From != nil && msg.From.IsBot {
+			return nil
+		}
+		if msg.ReplyToMessage != nil || msg.MessageThreadID > 0 {
 			return s.handleManagerReply(ctx, msg)
 		}
 		return nil
@@ -118,6 +121,11 @@ func (s *Service) handleClientMessage(ctx context.Context, msg *Message) error {
 		}
 
 		if forwardedID > 0 {
+			if usedThread != nil && *usedThread > 0 {
+				if err := s.repo.SetClientThread(ctx, tx, userID, usedThread); err != nil {
+					return err
+				}
+			}
 			return s.repo.UpdateForwardedMessageID(ctx, tx, linkID, forwardedID, usedThread)
 		}
 		return nil
@@ -195,7 +203,11 @@ func (s *Service) forwardToGroup(ctx context.Context, tx pgx.Tx, msg *Message, t
 	if err != nil {
 		return 0, nil, err
 	}
-	return fwd.MessageID, nil, nil
+	var used *int64
+	if fwd.MessageThreadID > 0 {
+		used = &fwd.MessageThreadID
+	}
+	return fwd.MessageID, used, nil
 }
 
 func (s *Service) fallbackToGeneral(ctx context.Context, msg *Message, label string) (int64, *int64, error) {
@@ -211,45 +223,37 @@ func (s *Service) fallbackToGeneral(ctx context.Context, msg *Message, label str
 	if err != nil {
 		return 0, nil, err
 	}
-	return fwd.MessageID, nil, nil
+	var used *int64
+	if fwd.MessageThreadID > 0 {
+		used = &fwd.MessageThreadID
+	}
+	return fwd.MessageID, used, nil
 }
 
 func (s *Service) handleManagerReply(ctx context.Context, msg *Message) error {
 	replyTo := msg.ReplyToMessage
-	if replyTo == nil {
-		return nil
-	}
-
-	hasText := strings.TrimSpace(msg.Text) != ""
+	text := messageText(msg)
+	hasText := text != ""
 	hasMedia := msg.HasMedia()
 
 	if !hasText && !hasMedia {
-		if replyTo.IsForwarded() {
+		if replyTo != nil && replyTo.IsForwarded() {
 			return s.forwardReplyToClient(ctx, replyTo, msg)
 		}
 		return nil
 	}
 
-	var client *Client
-	var err error
-
-	if replyTo.MessageID > 0 {
-		client, err = s.repo.GetClientByForwardedMessage(ctx, replyTo.MessageID)
-		if err != nil && err != pgx.ErrNoRows {
-			return err
-		}
+	client, err := s.resolveManagerReplyClient(ctx, msg)
+	if err != nil {
+		return err
 	}
-
-	if client == nil && msg.MessageThreadID > 0 {
-		client, err = s.repo.GetClientByThreadID(ctx, msg.MessageThreadID)
-		if err != nil && err != pgx.ErrNoRows {
-			return err
-		}
-	}
-
 	if client == nil {
+		replyID := int64(0)
+		if replyTo != nil {
+			replyID = replyTo.MessageID
+		}
 		s.log.Warn("telegram manager reply: client not found",
-			"reply_to", replyTo.MessageID, "thread_id", msg.MessageThreadID)
+			"reply_to", replyID, "thread_id", msg.MessageThreadID)
 		return nil
 	}
 
@@ -262,11 +266,55 @@ func (s *Service) handleManagerReply(ctx context.Context, msg *Message) error {
 		}
 	}
 	if hasText {
-		if _, err := s.api.SendMessage(ctx, clientID, msg.Text, nil); err != nil {
+		if _, err := s.api.SendMessage(ctx, clientID, text, nil); err != nil {
+			s.log.Warn("telegram send to client failed", "client_id", clientID, "error", err)
 			return err
 		}
 	}
 	return nil
+}
+
+func (s *Service) resolveManagerReplyClient(ctx context.Context, msg *Message) (*Client, error) {
+	if msg.MessageThreadID > 0 {
+		client, err := s.repo.GetClientByThreadID(ctx, msg.MessageThreadID)
+		if err != nil && err != pgx.ErrNoRows {
+			return nil, err
+		}
+		if client != nil {
+			return client, nil
+		}
+	}
+
+	replyTo := msg.ReplyToMessage
+	if replyTo == nil {
+		return nil, nil
+	}
+
+	if replyTo.MessageID > 0 {
+		client, err := s.repo.GetClientByForwardedMessage(ctx, replyTo.MessageID)
+		if err != nil && err != pgx.ErrNoRows {
+			return nil, err
+		}
+		if client != nil {
+			return client, nil
+		}
+	}
+
+	if replyTo.IsForwarded() && replyTo.MessageID > 0 {
+		return s.repo.GetClientByForwardedMessage(ctx, replyTo.MessageID)
+	}
+
+	return nil, nil
+}
+
+func messageText(msg *Message) string {
+	if msg == nil {
+		return ""
+	}
+	if t := strings.TrimSpace(msg.Text); t != "" {
+		return t
+	}
+	return strings.TrimSpace(msg.Caption)
 }
 
 func (s *Service) forwardReplyToClient(ctx context.Context, original, reply *Message) error {

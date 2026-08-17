@@ -121,6 +121,22 @@ func (r *Repo) GetClientByThreadID(ctx context.Context, threadID int64) (*Client
 		FROM telegram_clients
 		WHERE thread_id = $1
 	`, threadID)
+	client, err := scanClient(row)
+	if err == nil {
+		return client, nil
+	}
+	if err != pgx.ErrNoRows {
+		return nil, err
+	}
+
+	row = r.db.Pool.QueryRow(ctx, `
+		SELECT c.telegram_user_id, c.username, c.first_name, c.thread_id, c.created_at, c.updated_at
+		FROM telegram_message_links l
+		JOIN telegram_clients c ON c.telegram_user_id = l.telegram_user_id
+		WHERE l.thread_id = $1
+		ORDER BY l.id DESC
+		LIMIT 1
+	`, threadID)
 	return scanClient(row)
 }
 

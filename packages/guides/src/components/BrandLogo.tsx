@@ -21,7 +21,7 @@ type Props = {
 function BrandMark({ className, dark = false }: { className?: string; dark?: boolean }) {
   return (
     <img
-      src={dark ? LOGO.dark : LOGO.light}
+      src={dark ? LOGO.light : LOGO.dark}
       alt=""
       className={cn('shrink-0 object-contain', className)}
       aria-hidden

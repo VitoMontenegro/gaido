@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { guideApi } from '@gaido/api-client/api/client'
 import StatCard, { StatGrid } from '../../components/crm/StatCard'
 import GuideAvatar from '../../components/GuideAvatar'
+import NotificationsPanel from '../../components/NotificationsPanel'
 import { catalogStatusText, formatDate } from './shared'
 
 export function GuideOverviewPage() {
@@ -23,6 +24,8 @@ export function GuideOverviewPage() {
 
   return (
     <div className="space-y-5">
+      <NotificationsPanel />
+
       <div className="card flex flex-wrap items-center gap-4">
         <GuideAvatar avatar={data.avatar_url} name={data.display_name} className="h-16 w-16 rounded-2xl" />
         <div className="min-w-0 flex-1">
