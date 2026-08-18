@@ -11,12 +11,20 @@ export type ProcessImageOptions = {
   filename?: string
 }
 
+export type CropImageSource = {
+  url: string
+  revoke: () => void
+}
+
 const DEFAULT_MAX_BYTES = 150 * 1024
 const DEFAULT_MAX_DIMENSION = 1200
+/** Max side for crop preview — avoids decoding 12MP+ photos in memory. */
+const CROP_PREVIEW_MAX_DIMENSION = 2048
 
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image()
+    img.decoding = 'async'
     img.onload = () => resolve(img)
     img.onerror = () => reject(new Error('Не вдалося завантажити зображення'))
     img.src = src
@@ -55,21 +63,58 @@ export function isLikelyImageFile(file: File): boolean {
   return /\.(jpe?g|png|webp|gif|heic|heif|avif)$/i.test(file.name)
 }
 
+/** Object URL for crop UI; downscales huge photos to avoid OOM on mobile. */
+export async function createCropImageSource(
+  file: File,
+  maxDimension = CROP_PREVIEW_MAX_DIMENSION,
+): Promise<CropImageSource> {
+  const objectUrl = URL.createObjectURL(file)
+  let image: HTMLImageElement | null = null
+  try {
+    image = await loadImage(objectUrl)
+    const longest = Math.max(image.naturalWidth, image.naturalHeight)
+    if (longest <= maxDimension) {
+      return { url: objectUrl, revoke: () => URL.revokeObjectURL(objectUrl) }
+    }
+
+    const ratio = maxDimension / longest
+    const w = Math.max(1, Math.round(image.naturalWidth * ratio))
+    const h = Math.max(1, Math.round(image.naturalHeight * ratio))
+    const canvas = document.createElement('canvas')
+    canvas.width = w
+    canvas.height = h
+    const ctx = canvas.getContext('2d')
+    if (!ctx) throw new Error('Canvas недоступний')
+    ctx.drawImage(image, 0, 0, w, h)
+    image.src = ''
+    image = null
+    URL.revokeObjectURL(objectUrl)
+
+    const blob = await canvasToBlob(canvas, 'image/jpeg', 0.92)
+    if (!blob) throw new Error('Не вдалося підготувати зображення')
+    const url = URL.createObjectURL(blob)
+    return { url, revoke: () => URL.revokeObjectURL(url) }
+  } catch (err) {
+    URL.revokeObjectURL(objectUrl)
+    throw err
+  }
+}
+
 async function encodeCanvas(canvas: HTMLCanvasElement, opts: ProcessImageOptions): Promise<ProcessedImage> {
   const maxBytes = opts.maxBytes ?? DEFAULT_MAX_BYTES
   const picked = pickMime(opts.format)
   let quality = 0.9
   let scale = 1
   const baseName = opts.filename ?? 'photo'
+  const out = document.createElement('canvas')
+  const ctx = out.getContext('2d')
+  if (!ctx) throw new Error('Canvas недоступний')
 
   for (let attempt = 0; attempt < 16; attempt++) {
     const w = Math.max(1, Math.round(canvas.width * scale))
     const h = Math.max(1, Math.round(canvas.height * scale))
-    const out = document.createElement('canvas')
     out.width = w
     out.height = h
-    const ctx = out.getContext('2d')
-    if (!ctx) throw new Error('Canvas недоступний')
     ctx.drawImage(canvas, 0, 0, w, h)
 
     const blob = await canvasToBlob(out, picked.mime, quality)
@@ -87,7 +132,10 @@ async function encodeCanvas(canvas: HTMLCanvasElement, opts: ProcessImageOptions
     }
   }
 
-  const blob = await canvasToBlob(canvas, picked.mime, 0.55)
+  out.width = canvas.width
+  out.height = canvas.height
+  ctx.drawImage(canvas, 0, 0)
+  const blob = await canvasToBlob(out, picked.mime, 0.55)
   if (!blob) throw new Error('Не вдалося стиснути зображення')
   return processedFromBlob(blob, baseName, picked)
 }
@@ -125,31 +173,38 @@ export async function processCroppedImage(
     width,
     height,
   )
+  image.src = ''
 
   return encodeCanvas(canvas, opts)
 }
 
 export async function processImageFile(file: File, opts: ProcessImageOptions = {}): Promise<ProcessedImage> {
-  const dataUrl = await readFileAsDataUrl(file)
-  const image = await loadImage(dataUrl)
-  const maxDimension = opts.maxDimension ?? DEFAULT_MAX_DIMENSION
-  let { width, height } = image
-  const longest = Math.max(width, height)
-  if (longest > maxDimension) {
-    const ratio = maxDimension / longest
-    width = Math.round(width * ratio)
-    height = Math.round(height * ratio)
+  const src = URL.createObjectURL(file)
+  try {
+    const image = await loadImage(src)
+    const maxDimension = opts.maxDimension ?? DEFAULT_MAX_DIMENSION
+    let { width, height } = image
+    const longest = Math.max(width, height)
+    if (longest > maxDimension) {
+      const ratio = maxDimension / longest
+      width = Math.round(width * ratio)
+      height = Math.round(height * ratio)
+    }
+    const canvas = document.createElement('canvas')
+    canvas.width = width
+    canvas.height = height
+    const ctx = canvas.getContext('2d')
+    if (!ctx) throw new Error('Canvas недоступний')
+    ctx.drawImage(image, 0, 0, width, height)
+    image.src = ''
+    const base = (opts.filename ?? (file.name.replace(/\.[^.]+$/, '') || 'photo')).slice(0, 40)
+    return encodeCanvas(canvas, { ...opts, filename: base })
+  } finally {
+    URL.revokeObjectURL(src)
   }
-  const canvas = document.createElement('canvas')
-  canvas.width = width
-  canvas.height = height
-  const ctx = canvas.getContext('2d')
-  if (!ctx) throw new Error('Canvas недоступний')
-  ctx.drawImage(image, 0, 0, width, height)
-  const base = (opts.filename ?? (file.name.replace(/\.[^.]+$/, '') || 'photo')).slice(0, 40)
-  return encodeCanvas(canvas, { ...opts, filename: base })
 }
 
+/** @deprecated Use createCropImageSource — data URLs blow up memory on phone photos. */
 export async function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()

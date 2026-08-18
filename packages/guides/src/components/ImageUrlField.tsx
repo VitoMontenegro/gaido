@@ -1,6 +1,13 @@
 import { useRef, useState } from 'react'
 import { adminApi, formatApiError, resolveMediaUrl } from '@gaido/api-client/api/client'
-import { formatBytes, isLikelyImageFile, readFileAsDataUrl, type ProcessedImage, type RasterFormat } from '../lib/imageProcess'
+import {
+  createCropImageSource,
+  formatBytes,
+  isLikelyImageFile,
+  type CropImageSource,
+  type ProcessedImage,
+  type RasterFormat,
+} from '../lib/imageProcess'
 import { ImageCropModal } from './ImageCropModal'
 
 export type ImageUrlFieldProps = {
@@ -26,11 +33,19 @@ export function ImageUrlField({
   outputFormat = 'webp',
 }: ImageUrlFieldProps) {
   const inputRef = useRef<HTMLInputElement>(null)
+  const cropRef = useRef<CropImageSource | null>(null)
   const [uploading, setUploading] = useState(false)
+  const [preparing, setPreparing] = useState(false)
   const [error, setError] = useState('')
-  const [cropSrc, setCropSrc] = useState<string | null>(null)
+  const [currentCrop, setCurrentCrop] = useState<CropImageSource | null>(null)
   const [lastSize, setLastSize] = useState<number | null>(null)
   const preview = value ? resolveMediaUrl(value) : ''
+
+  const revokeCrop = () => {
+    cropRef.current?.revoke()
+    cropRef.current = null
+    setCurrentCrop(null)
+  }
 
   const upload = async (file: ProcessedImage) => {
     setUploading(true)
@@ -52,11 +67,16 @@ export function ImageUrlField({
       return
     }
     setError('')
+    setPreparing(true)
     try {
-      const dataUrl = await readFileAsDataUrl(file)
-      setCropSrc(dataUrl)
+      revokeCrop()
+      const source = await createCropImageSource(file)
+      cropRef.current = source
+      setCurrentCrop(source)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Помилка читання файлу')
+    } finally {
+      setPreparing(false)
     }
   }
 
@@ -81,10 +101,10 @@ export function ImageUrlField({
           <button
             type="button"
             className="btn-secondary py-2 text-sm"
-            disabled={uploading}
+            disabled={uploading || preparing}
             onClick={() => inputRef.current?.click()}
           >
-            {uploading ? 'Завантаження…' : 'Завантажити та обрізати'}
+            {uploading ? 'Завантаження…' : preparing ? 'Підготовка…' : 'Завантажити та обрізати'}
           </button>
           {value && (
             <button type="button" className="text-sm text-muted hover:text-ink" onClick={() => { onChange(''); setLastSize(null) }}>
@@ -112,16 +132,16 @@ export function ImageUrlField({
         {error && <p className="text-xs text-red-600">{error}</p>}
       </div>
 
-      {cropSrc && (
+      {currentCrop && (
         <ImageCropModal
-          imageSrc={cropSrc}
+          imageSrc={currentCrop.url}
           aspect={cropAspect}
           outputFormat={outputFormat}
           maxBytes={maxBytes}
           title="Обрізка фото"
-          onCancel={() => setCropSrc(null)}
+          onCancel={revokeCrop}
           onComplete={(file) => {
-            setCropSrc(null)
+            revokeCrop()
             void upload(file)
           }}
         />

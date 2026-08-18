@@ -1,6 +1,12 @@
 import { useRef, useState } from 'react'
 import { adminApi, formatApiError, resolveMediaUrl } from '@gaido/api-client/api/client'
-import { isLikelyImageFile, readFileAsDataUrl, type ProcessedImage, type RasterFormat } from '../lib/imageProcess'
+import {
+  createCropImageSource,
+  isLikelyImageFile,
+  type CropImageSource,
+  type ProcessedImage,
+  type RasterFormat,
+} from '../lib/imageProcess'
 import { ImageCropModal } from './ImageCropModal'
 
 type Props = {
@@ -25,11 +31,28 @@ export default function GalleryField({
   const inputRef = useRef<HTMLInputElement>(null)
   const valueRef = useRef(value)
   valueRef.current = value
+  const cropRef = useRef<CropImageSource | null>(null)
+  const pendingRef = useRef<File[]>([])
 
   const [uploading, setUploading] = useState(false)
+  const [preparing, setPreparing] = useState(false)
   const [error, setError] = useState('')
-  const [cropQueue, setCropQueue] = useState<string[]>([])
+  const [pendingFiles, setPendingFiles] = useState<File[]>([])
+  const [currentCrop, setCurrentCrop] = useState<CropImageSource | null>(null)
   const [cropDone, setCropDone] = useState(0)
+
+  const revokeCrop = () => {
+    cropRef.current?.revoke()
+    cropRef.current = null
+    setCurrentCrop(null)
+  }
+
+  const clearCropSession = () => {
+    revokeCrop()
+    pendingRef.current = []
+    setPendingFiles([])
+    setCropDone(0)
+  }
 
   const appendKey = (publicKey: string) => {
     const next = [...valueRef.current, publicKey]
@@ -56,6 +79,28 @@ export default function GalleryField({
     }
   }
 
+  const showNextCrop = async (files: File[]) => {
+    if (files.length === 0) {
+      revokeCrop()
+      return
+    }
+    const [next, ...rest] = files
+    pendingRef.current = rest
+    setPendingFiles(rest)
+    setPreparing(true)
+    try {
+      revokeCrop()
+      const source = await createCropImageSource(next)
+      cropRef.current = source
+      setCurrentCrop(source)
+    } catch (e) {
+      clearCropSession()
+      setError(e instanceof Error ? e.message : 'Помилка читання файлу')
+    } finally {
+      setPreparing(false)
+    }
+  }
+
   const onFilesSelected = async (fileList: FileList | null) => {
     if (!fileList?.length) return
 
@@ -68,13 +113,8 @@ export default function GalleryField({
     setError('')
 
     if (cropAspect) {
-      try {
-        const dataUrls = await Promise.all(files.map((file) => readFileAsDataUrl(file)))
-        setCropDone(0)
-        setCropQueue(dataUrls)
-      } catch (e) {
-        setError(e instanceof Error ? e.message : 'Помилка читання файлу')
-      }
+      setCropDone(0)
+      await showNextCrop(files)
       return
     }
 
@@ -90,11 +130,9 @@ export default function GalleryField({
     onChange(next)
   }
 
-  const cropTotal = cropDone + cropQueue.length
+  const cropTotal = cropDone + (currentCrop ? 1 : 0) + pendingFiles.length
   const cropTitle =
-    cropQueue.length > 1
-      ? `Обрізка фото ${cropDone + 1} з ${cropTotal}`
-      : 'Обрізка фото'
+    cropTotal > 1 ? `Обрізка фото ${cropDone + 1} з ${cropTotal}` : 'Обрізка фото'
 
   return (
     <div className="space-y-2">
@@ -103,10 +141,10 @@ export default function GalleryField({
         <button
           type="button"
           className="excursion-parus-link disabled:opacity-50"
-          disabled={uploading || cropQueue.length > 0}
+          disabled={uploading || preparing || currentCrop != null}
           onClick={() => inputRef.current?.click()}
         >
-          {uploading ? 'Завантаження…' : '+ Додати зображення'}
+          {uploading ? 'Завантаження…' : preparing ? 'Підготовка…' : '+ Додати зображення'}
         </button>
       </div>
       {hint && <p className="form-field-hint">{hint}</p>}
@@ -167,17 +205,14 @@ export default function GalleryField({
         }}
       />
 
-      {cropQueue[0] && (
+      {currentCrop && (
         <ImageCropModal
-          imageSrc={cropQueue[0]}
+          imageSrc={currentCrop.url}
           aspect={cropAspect}
           outputFormat={outputFormat}
           maxBytes={maxBytes}
           title={cropTitle}
-          onCancel={() => {
-            setCropQueue([])
-            setCropDone(0)
-          }}
+          onCancel={clearCropSession}
           onComplete={(file) => {
             void (async () => {
               setUploading(true)
@@ -185,11 +220,11 @@ export default function GalleryField({
               try {
                 await uploadFile(file)
                 setCropDone((n) => n + 1)
-                setCropQueue((queue) => queue.slice(1))
+                revokeCrop()
+                await showNextCrop(pendingRef.current)
               } catch (e) {
                 setError(formatApiError(e))
-                setCropQueue([])
-                setCropDone(0)
+                clearCropSession()
               } finally {
                 setUploading(false)
               }
