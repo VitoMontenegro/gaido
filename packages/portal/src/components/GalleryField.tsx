@@ -37,7 +37,7 @@ export default function GalleryField({
     onChange(next)
   }
 
-  const uploadFile = async (file: ProcessedImage) => {
+  const uploadFile = async (file: ProcessedImage | File) => {
     const { public_key } = await adminApi.uploadMedia(file)
     appendKey(public_key)
   }
