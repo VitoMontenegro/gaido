@@ -35,7 +35,7 @@ func capitalizeWord(s string) string {
 	return string(runes)
 }
 
-// NeedsUkrainianName — латиниця без кирилиці (типові англомовні назви з seed).
+// NeedsUkrainianName — латиниця без кирилиці або російська орфографія.
 func NeedsUkrainianName(name string) bool {
 	hasLatin, hasCyrillic := false, false
 	for _, r := range name {
@@ -46,7 +46,27 @@ func NeedsUkrainianName(name string) bool {
 			hasLatin = true
 		}
 	}
-	return hasLatin && !hasCyrillic
+	if hasLatin && !hasCyrillic {
+		return true
+	}
+	return LooksRussian(name)
+}
+
+// LooksRussian — російські літери / типові закінчення, яких немає в українській.
+func LooksRussian(name string) bool {
+	for _, r := range name {
+		switch r {
+		case 'ы', 'э', 'ё', 'ъ', 'Ы', 'Э', 'Ё', 'Ъ':
+			return true
+		}
+	}
+	lower := strings.ToLower(name)
+	for _, s := range []string{"эй", "ия", "ские ", "ская ", "ский "} {
+		if strings.Contains(lower, s) {
+			return true
+		}
+	}
+	return false
 }
 
 // HasCyrillic — чи є в назві кирилиця (ознака української/слов'янської назви з OSM).

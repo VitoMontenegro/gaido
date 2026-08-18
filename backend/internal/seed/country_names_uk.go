@@ -6,78 +6,42 @@ import (
 	"strings"
 )
 
-// countryNamesUK — перевизначення українських назв країн (пріоритет над mledoze).
+// countryNamesUK — продуктові назви (пріоритет над ISO/CLDR).
 var countryNamesUK = map[string]string{
-	"turkey":  "Туреччина",
-	"italy":   "Італія",
-	"georgia": "Грузія",
-	"spain":   "Іспанія",
-	"me":      "Чорногорія",
-	"hr":      "Хорватія",
-	"gr":      "Греція",
-	"fr":      "Франція",
-	"ae":      "ОАЕ",
-	"th":      "Таїланд",
-	"vn":      "В'єтнам",
-	"eg":      "Єгипет",
-	"am":      "Вірменія",
-	"az":      "Азербайджан",
-	"kz":      "Казахстан",
-	"uz":      "Узбекистан",
-	"ua":      "Україна",
-	"pl":      "Польща",
-	"de":      "Німеччина",
-	"cz":      "Чехія",
-	"at":      "Австрія",
-	"hu":      "Угорщина",
-	"sk":      "Словаччина",
-	"ro":      "Румунія",
-	"bg":      "Болгарія",
-	"rs":      "Сербія",
-	"lt":      "Литва",
-	"lv":      "Латвія",
-	"ee":      "Естонія",
-	"md":      "Молдова",
-	"pt":      "Португалія",
-	"nl":      "Нідерланди",
-	"be":      "Бельгія",
-	"ch":      "Швейцарія",
-	"gb":      "Велика Британія",
-	"ie":      "Ірландія",
-	"se":      "Швеція",
-	"no":      "Норвегія",
-	"dk":      "Данія",
-	"fi":      "Фінляндія",
-	"cy":      "Кіпр",
-	"si":      "Словенія",
-	"mk":      "Північна Македонія",
-	"al":      "Албанія",
-	"ba":      "Боснія і Герцеговина",
+	"united-states": "Сполучені Штати Америки",
+	"uae":           "ОАЕ",
+	"vn":            "В'єтнам",
+	"hk":            "Гонконг",
+	"mo":            "Макао",
+	"xk":            "Косово",
+	"ae":            "ОАЕ",
 }
 
-func countryNameUK(slug, ukrTrans, rusTrans string) string {
+func countryNameUK(slug, cca2, ukrTrans string) string {
 	if n, ok := countryNamesUK[slug]; ok {
 		return n
 	}
-	if ukrTrans != "" {
-		return ukrTrans
+	if n := isoCountryNameUK(cca2); n != "" {
+		return n
 	}
-	return rusToUkrApprox(rusTrans)
+	return strings.TrimSpace(ukrTrans)
 }
 
-// rusToUkrApprox — наближена заміна рос. назви, якщо в mledoze немає ukr.
-func rusToUkrApprox(name string) string {
-	name = strings.TrimSpace(name)
-	if name == "" {
-		return ""
+func isoCountryNameUK(cca2 string) string {
+	if isoCountryNamesUK == nil {
+		isoCountryNamesUK = loadISOCountryNamesUK()
 	}
-	replacer := strings.NewReplacer(
-		"ия", "ія", "Ия", "Ія", "ИЯ", "ІЯ",
-		"ы", "и", "Ы", "И",
-		"э", "е", "Э", "Е",
-		"ё", "йо", "Ё", "Йо",
-	)
-	return replacer.Replace(name)
+	return isoCountryNamesUK[strings.ToUpper(strings.TrimSpace(cca2))]
+}
+
+var isoCountryNamesUK map[string]string
+
+func loadISOCountryNamesUK() map[string]string {
+	out := map[string]string{}
+	if err := json.Unmarshal(countriesUKJSON, &out); err != nil {
+		panic("seed: countries_uk.json: " + err.Error())
+	}
+	return out
 }
 
 func (s *Seeder) syncCountryNamesUK(ctx context.Context) error {
@@ -90,7 +54,7 @@ func (s *Seeder) syncCountryNamesUK(ctx context.Context) error {
 			continue
 		}
 		slug := countrySlug(item.CCA2)
-		name := countryNameUK(slug, item.Translations.Ukr.Common, item.Translations.Rus.Common)
+		name := countryNameUK(slug, item.CCA2, item.Translations.Ukr.Common)
 		if name == "" {
 			continue
 		}

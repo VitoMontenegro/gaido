@@ -12,6 +12,9 @@ import (
 //go:embed data/countries.json
 var mledozeCountriesJSON []byte
 
+//go:embed data/countries_uk.json
+var countriesUKJSON []byte
+
 type mledozeCountry struct {
 	CCA2         string   `json:"cca2"`
 	Capital      []string `json:"capital"`
@@ -66,7 +69,7 @@ func (s *Seeder) ensureWorldGeo(ctx context.Context) error {
 			continue
 		}
 		slug := countrySlug(item.CCA2)
-		name := countryNameUK(slug, item.Translations.Ukr.Common, item.Translations.Rus.Common)
+		name := countryNameUK(slug, item.CCA2, item.Translations.Ukr.Common)
 		if name == "" {
 			continue
 		}
