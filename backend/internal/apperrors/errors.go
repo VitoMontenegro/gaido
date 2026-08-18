@@ -28,4 +28,5 @@ var (
 	ErrInternal        = New("INTERNAL_ERROR", "Internal server error", 500)
 	ErrSubscriptionReq = New("GUIDE_SUBSCRIPTION_REQUIRED", "Guide subscription is required", 403)
 	ErrRateLimited     = New("RATE_LIMITED", "Too many requests, try again later", 429)
+	ErrCityNotGeocoded = New("CITY_NOT_FOUND", "Місто не знайдено на карті. Перевірте правопис назви.", 400)
 )

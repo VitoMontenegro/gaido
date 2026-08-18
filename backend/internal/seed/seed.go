@@ -19,7 +19,7 @@ type Seeder struct {
 }
 
 func (s *Seeder) RunReference(ctx context.Context) error {
-	if _, _, err := s.ensureGeo(ctx); err != nil {
+	if _, _, err := s.ensureGeo(ctx, true); err != nil {
 		return err
 	}
 	if _, err := s.ensurePlan(ctx); err != nil {
@@ -57,7 +57,7 @@ func (s *Seeder) RunDemo(ctx context.Context) error {
 		return err
 	}
 
-	moscowID, spbID, err := s.ensureGeo(ctx)
+	moscowID, spbID, err := s.ensureGeo(ctx, false)
 	if err != nil {
 		return err
 	}
@@ -209,7 +209,7 @@ func (s *Seeder) ensureUser(ctx context.Context, login, email, pass, firstName, 
 	return err
 }
 
-func (s *Seeder) ensureGeo(ctx context.Context) (moscowID, spbID int64, err error) {
+func (s *Seeder) ensureGeo(ctx context.Context, withNominatim bool) (moscowID, spbID int64, err error) {
 	for _, country := range geoCatalog {
 		countryID, e := s.Geo.EnsureCountry(ctx, country.slug, country.name)
 		if e != nil {
@@ -241,6 +241,9 @@ func (s *Seeder) ensureGeo(ctx context.Context) (moscowID, spbID int64, err erro
 		return 0, 0, e
 	}
 	if e := s.syncCountryNamesUK(ctx); e != nil {
+		return 0, 0, e
+	}
+	if e := s.syncCityNamesUK(ctx, withNominatim); e != nil {
 		return 0, 0, e
 	}
 	if moscowID == 0 {

@@ -22,7 +22,7 @@ export default function CreateExcursionPage() {
         <h1 className="font-display text-2xl font-bold">Нова екскурсія</h1>
         <ExcursionForm
           persistTabKey="new"
-          submitLabel="Створити"
+          submitLabel="Зберегти"
           onSubmit={async (data) => { await mutation.mutateAsync(data) }}
         />
       </div>

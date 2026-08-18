@@ -29,6 +29,7 @@ const API_ERROR_MESSAGES: Record<string, string> = {
   REVIEW_ALREADY_EXISTS: 'Ви вже залишили відгук на цю екскурсію',
   DISPUTE_ALREADY_EXISTS: 'Ви вже оскаржили цей відгук',
   RATE_LIMITED: 'Забагато спроб. Спробуйте пізніше',
+  CITY_NOT_FOUND: 'Місто не знайдено на карті. Перевірте правопис назви.',
 }
 
 export type ApiErrorHints = Partial<Record<string, string>>

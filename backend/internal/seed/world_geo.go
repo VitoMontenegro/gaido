@@ -66,7 +66,7 @@ func (s *Seeder) ensureWorldGeo(ctx context.Context) error {
 			continue
 		}
 		slug := countrySlug(item.CCA2)
-		name := countryNameUK(slug, item.Translations.Ukr.Common, item.Translations.Rus.Common, item.Name.Common)
+		name := countryNameUK(slug, item.Translations.Ukr.Common, item.Translations.Rus.Common)
 		if name == "" {
 			continue
 		}

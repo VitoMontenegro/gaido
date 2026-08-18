@@ -330,8 +330,52 @@ func TestSmoke_touristCannotAccessGuideAPI(t *testing.T) {
 		"country_slug": "ua",
 		"name":         "HackCity",
 	}, touristToken, nil)
-	if createCity.code != http.StatusForbidden && createCity.code != http.StatusNotFound {
-		t.Fatalf("expected 403/404 for removed geo create, got %d %s", createCity.code, createCity.body)
+	if createCity.code != http.StatusForbidden {
+		t.Fatalf("expected 403 for tourist on guide geo create, got %d %s", createCity.code, createCity.body)
+	}
+}
+
+func TestSmoke_guideCreateGeoCity(t *testing.T) {
+	a := newSeededTestApp(t)
+	guideToken, _ := registerUser(t, a, uniqueLogin("geo_"), true)
+
+	badRes := smokeRequest(t, a, http.MethodPost, "/api/v1/account/guide/geo/cities", map[string]any{
+		"country_slug": "me",
+		"name":         "Калашин",
+	}, guideToken, nil)
+	if badRes.code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for misspelled city, got %d %s", badRes.code, badRes.body)
+	}
+
+	createRes := smokeRequest(t, a, http.MethodPost, "/api/v1/account/guide/geo/cities", map[string]any{
+		"country_slug": "me",
+		"name":         "колашин",
+	}, guideToken, nil)
+	if createRes.code != http.StatusCreated && createRes.code != http.StatusOK {
+		t.Fatalf("create city: %d %s", createRes.code, createRes.body)
+	}
+	created := decodeJSON[struct {
+		ID      int64  `json:"id"`
+		Name    string `json:"name"`
+		Created bool   `json:"created"`
+	}](t, createRes.body)
+	if created.ID <= 0 || created.Name != "Колашин" {
+		t.Fatalf("unexpected create response: %+v", created)
+	}
+
+	dupRes := smokeRequest(t, a, http.MethodPost, "/api/v1/account/guide/geo/cities", map[string]any{
+		"country_slug": "me",
+		"name":         "Колашин",
+	}, guideToken, nil)
+	if dupRes.code != http.StatusOK {
+		t.Fatalf("duplicate city: %d %s", dupRes.code, dupRes.body)
+	}
+	dup := decodeJSON[struct {
+		ID      int64 `json:"id"`
+		Created bool  `json:"created"`
+	}](t, dupRes.body)
+	if dup.ID != created.ID || dup.Created {
+		t.Fatalf("expected existing city id=%d created=false, got %+v", created.ID, dup)
 	}
 }
 

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { catalogApi } from '@gaido/api-client/api/client'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { api, catalogApi, formatApiError } from '@gaido/api-client/api/client'
 
 type Props = {
   value?: number
@@ -9,7 +9,11 @@ type Props = {
 }
 
 export default function CityPicker({ value = 0, onChange, required }: Props) {
+  const qc = useQueryClient()
   const [countrySlug, setCountrySlug] = useState('')
+  const [customName, setCustomName] = useState('')
+  const [showCustom, setShowCustom] = useState(false)
+  const [duplicateHint, setDuplicateHint] = useState('')
 
   const { data: countries } = useQuery({
     queryKey: ['countries'],
@@ -34,6 +38,25 @@ export default function CityPicker({ value = 0, onChange, required }: Props) {
     }
   }, [value, selectedCity?.country_slug, selectedCity?.id])
 
+  const createCity = useMutation({
+    mutationFn: (body: { country_slug: string; name: string }) =>
+      api<{ id: number; name: string; created?: boolean }>('/api/v1/account/guide/geo/cities', {
+        method: 'POST',
+        body: JSON.stringify(body),
+      }),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ['cities', countrySlug] })
+      onChange(data.id)
+      setCustomName('')
+      setShowCustom(false)
+      if (data.created === false) {
+        setDuplicateHint(`Місто «${data.name}» уже є в каталозі — обрано.`)
+      } else {
+        setDuplicateHint('')
+      }
+    },
+  })
+
   return (
     <div className="space-y-3">
       <div className="grid gap-3 sm:grid-cols-2">
@@ -43,6 +66,9 @@ export default function CityPicker({ value = 0, onChange, required }: Props) {
           onChange={(e) => {
             setCountrySlug(e.target.value)
             onChange(0)
+            setShowCustom(false)
+            setCustomName('')
+            setDuplicateHint('')
           }}
           required={required && value <= 0}
         >
@@ -55,9 +81,9 @@ export default function CityPicker({ value = 0, onChange, required }: Props) {
         <select
           className="input w-full"
           value={value > 0 ? value : ''}
-          disabled={!countrySlug}
+          disabled={!countrySlug || showCustom}
           onChange={(e) => onChange(Number(e.target.value))}
-          required={required && value <= 0}
+          required={required && !showCustom && value <= 0}
         >
           <option value="" disabled>Місто</option>
           {(cities?.items ?? []).map((c) => (
@@ -65,10 +91,55 @@ export default function CityPicker({ value = 0, onChange, required }: Props) {
           ))}
         </select>
       </div>
+
       {countrySlug && (
-        <p className="text-xs text-muted">
-          Немає потрібного міста — зверніться до модератора, щоб додати його в каталог.
-        </p>
+        <div className="space-y-2">
+          {!showCustom ? (
+            <button
+              type="button"
+              className="text-sm text-brand-700 hover:underline"
+              onClick={() => setShowCustom(true)}
+            >
+              Немає потрібного міста? Додати своє
+            </button>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              <input
+                className="input min-w-0 flex-1"
+                placeholder="Назва міста"
+                value={customName}
+                onChange={(e) => {
+                  setCustomName(e.target.value)
+                  setDuplicateHint('')
+                }}
+              />
+              <button
+                type="button"
+                className="btn-secondary shrink-0"
+                disabled={!customName.trim() || createCity.isPending}
+                onClick={() => createCity.mutate({ country_slug: countrySlug, name: customName.trim() })}
+              >
+                {createCity.isPending ? '…' : 'Додати'}
+              </button>
+              <button
+                type="button"
+                className="text-sm text-stone-500 hover:underline"
+                onClick={() => {
+                  setShowCustom(false)
+                  setCustomName('')
+                }}
+              >
+                Скасувати
+              </button>
+            </div>
+          )}
+          {duplicateHint && (
+            <p className="text-sm text-amber-800">{duplicateHint}</p>
+          )}
+          {createCity.isError && (
+            <p className="text-sm text-red-600">{formatApiError(createCity.error)}</p>
+          )}
+        </div>
       )}
     </div>
   )

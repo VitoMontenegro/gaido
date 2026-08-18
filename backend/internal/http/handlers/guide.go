@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/vitomonte/experts-tourister/internal/apperrors"
 	"github.com/vitomonte/experts-tourister/internal/domain"
@@ -146,6 +147,57 @@ func (h *Handlers) AddGuideCity(w http.ResponseWriter, r *http.Request) {
 	}
 	response.JSON(w, r, 200, map[string]string{"status": "ok"})
 }
+
+func (h *Handlers) CreateGuideGeoCity(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		CountrySlug string   `json:"country_slug"`
+		Name        string   `json:"name"`
+		Latitude    *float64 `json:"latitude"`
+		Longitude   *float64 `json:"longitude"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Error(w, r, apperrors.ErrValidation)
+		return
+	}
+	req.Name = strings.TrimSpace(req.Name)
+	if req.CountrySlug == "" || req.Name == "" {
+		response.Error(w, r, apperrors.ErrValidation)
+		return
+	}
+	country, err := h.Geo.GetCountryBySlug(r.Context(), req.CountrySlug)
+	if err != nil || country == nil {
+		response.Error(w, r, apperrors.ErrNotFound)
+		return
+	}
+	regionID, err := h.Geo.EnsureRegion(r.Context(), country.ID, "main", country.Name)
+	if err != nil {
+		response.Error(w, r, apperrors.ErrInternal)
+		return
+	}
+	lat, lng, displayName, err := h.resolveCityGeocode(r.Context(), req.Name, req.CountrySlug, 0, 0)
+	if err != nil {
+		response.Error(w, r, err)
+		return
+	}
+	cityID, created, err := h.Geo.ResolveOrCreateCity(
+		r.Context(), country.ID, regionID, guidesvc.CitySlug(displayName), displayName, lat, lng,
+	)
+	if err != nil {
+		response.Error(w, r, apperrors.ErrInternal)
+		return
+	}
+	h.ensureCityCoords(r.Context(), cityID, lat, lng)
+	h.ensureCityName(r.Context(), cityID, displayName)
+	status := http.StatusCreated
+	if !created {
+		status = http.StatusOK
+	}
+	response.JSON(w, r, status, map[string]any{
+		"id": cityID, "name": displayName, "created": created,
+		"latitude": lat, "longitude": lng,
+	})
+}
+
 func (h *Handlers) GuideDashboard(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	uid := middleware.UserIDFromContext(ctx)

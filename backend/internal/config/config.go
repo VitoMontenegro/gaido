@@ -39,6 +39,7 @@ type Config struct {
 	TelegramBotUsername string
 	TelegramGroupChatID int64
 	TelegramWebhookSecret string
+	GeocodeUserAgent      string
 }
 
 func Load() Config {
@@ -74,6 +75,7 @@ func Load() Config {
 		TelegramBotUsername: getEnv("TELEGRAM_BOT_USERNAME", ""),
 		TelegramGroupChatID: int64(getEnvInt("TELEGRAM_GROUP_CHAT_ID", 0)),
 		TelegramWebhookSecret: getEnv("TELEGRAM_WEBHOOK_SECRET", ""),
+		GeocodeUserAgent:      getEnv("GEOCODE_USER_AGENT", "GaidoTop (+https://gaido.top)"),
 	}
 }
 

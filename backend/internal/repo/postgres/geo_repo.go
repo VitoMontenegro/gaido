@@ -55,6 +55,15 @@ type MapPoint struct {
 	Lng         float64 `json:"lng"`
 }
 
+type CityNameSyncRow struct {
+	ID          int64
+	Name        string
+	Slug        string
+	CountrySlug string
+	Latitude    float64
+	Longitude   float64
+}
+
 func (r *GeoRepo) GetCountryBySlug(ctx context.Context, slug string) (*Country, error) {
 	row := r.db.Pool.QueryRow(ctx, `SELECT id, slug, name, is_active FROM countries WHERE slug=$1 AND is_active=true`, slug)
 	var c Country
@@ -162,6 +171,8 @@ func (r *GeoRepo) ListCitiesByCountry(ctx context.Context, countrySlug string) (
 		FROM cities c
 		JOIN countries co ON co.id = c.country_id
 		WHERE co.slug=$1 AND c.is_active=true AND co.is_active=true
+		AND c.latitude IS NOT NULL AND c.longitude IS NOT NULL
+		  AND c.latitude <> 0 AND c.longitude <> 0
 		ORDER BY c.name
 	`, countrySlug)
 	if err != nil {
@@ -208,6 +219,29 @@ func (r *GeoRepo) ListMapPoints(ctx context.Context) ([]MapPoint, error) {
 	return out, rows.Err()
 }
 
+func (r *GeoRepo) ListCitiesForNameSync(ctx context.Context) ([]CityNameSyncRow, error) {
+	rows, err := r.db.Pool.Query(ctx, `
+		SELECT c.id, c.name, c.slug, co.slug, COALESCE(c.latitude, 0), COALESCE(c.longitude, 0)
+		FROM cities c
+		JOIN countries co ON co.id = c.country_id
+		WHERE c.is_active = true AND co.is_active = true
+		ORDER BY c.id
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []CityNameSyncRow
+	for rows.Next() {
+		var row CityNameSyncRow
+		if err := rows.Scan(&row.ID, &row.Name, &row.Slug, &row.CountrySlug, &row.Latitude, &row.Longitude); err != nil {
+			return nil, err
+		}
+		out = append(out, row)
+	}
+	return out, rows.Err()
+}
+
 func (r *GeoRepo) CreateCountry(ctx context.Context, slug, name string) (int64, error) {
 	var id int64
 	err := r.db.Pool.QueryRow(ctx, `INSERT INTO countries (slug, name) VALUES ($1,$2) RETURNING id`, slug, name).Scan(&id)
@@ -224,6 +258,26 @@ func (r *GeoRepo) CreateCity(ctx context.Context, countryID, regionID int64, slu
 	var id int64
 	err := r.db.Pool.QueryRow(ctx, `INSERT INTO cities (country_id, region_id, slug, name, latitude, longitude) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id`, countryID, regionID, slug, name, lat, lng).Scan(&id)
 	return id, err
+}
+
+func (r *GeoRepo) UpdateCityCoords(ctx context.Context, cityID int64, lat, lng float64) error {
+	if lat == 0 && lng == 0 {
+		return nil
+	}
+	_, err := r.db.Pool.Exec(ctx, `
+		UPDATE cities SET latitude=$2, longitude=$3, updated_at=NOW()
+		WHERE id=$1 AND (latitude IS NULL OR longitude IS NULL OR latitude=0 OR longitude=0)
+	`, cityID, lat, lng)
+	return err
+}
+
+func (r *GeoRepo) UpdateCityName(ctx context.Context, cityID int64, name string) error {
+	name = strings.TrimSpace(name)
+	if cityID <= 0 || name == "" {
+		return nil
+	}
+	_, err := r.db.Pool.Exec(ctx, `UPDATE cities SET name=$2, updated_at=NOW() WHERE id=$1`, cityID, name)
+	return err
 }
 
 func (r *GeoRepo) EnsureCountry(ctx context.Context, slug, name string) (int64, error) {
