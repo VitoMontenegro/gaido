@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react'
 import Cropper, { type Area } from 'react-easy-crop'
-import { formatBytes, processCroppedImage, type ProcessImageOptions, type RasterFormat } from '../lib/imageProcess'
+import { formatBytes, processCroppedImage, type ProcessedImage, type ProcessImageOptions, type RasterFormat } from '../lib/imageProcess'
 
 type ImageCropModalProps = {
   imageSrc: string
@@ -9,7 +9,7 @@ type ImageCropModalProps = {
   outputFormat?: RasterFormat
   maxBytes?: number
   onCancel: () => void
-  onComplete: (file: File) => void
+  onComplete: (file: ProcessedImage) => void
 }
 
 export function ImageCropModal({

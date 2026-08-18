@@ -1,4 +1,5 @@
 import { api } from './http'
+import { buildUploadForm, type UploadFile } from './upload'
 import type { ReviewListResponse, ReviewPhotoListResponse } from './types/reviews'
 
 const PAGE_SIZE = 10
@@ -22,11 +23,8 @@ export const reviewsApi = {
     return api<ReviewPhotoListResponse>(`/api/v1/reviews/photos?${q}`)
   },
 
-  uploadPhoto: (file: File) => {
-    const fd = new FormData()
-    fd.append('file', file)
-    return api<{ public_key: string }>('/api/v1/reviews/photos', { method: 'POST', body: fd })
-  },
+  uploadPhoto: (file: File | UploadFile) =>
+    api<{ public_key: string }>('/api/v1/reviews/photos', { method: 'POST', body: buildUploadForm(file) }),
 
   create: (body: { excursion_id: number; rating: number; text: string; photos?: string[] }) =>
     api('/api/v1/reviews', { method: 'POST', body: JSON.stringify(body) }),

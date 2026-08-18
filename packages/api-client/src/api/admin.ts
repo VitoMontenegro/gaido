@@ -1,4 +1,5 @@
 import { api } from './http'
+import { buildUploadForm, type UploadFile } from './upload'
 import type { SiteContentPayload } from './types/site'
 
 export type AdminGuide = {
@@ -132,11 +133,8 @@ export const adminApi = {
       method: 'PUT',
       body: JSON.stringify(body),
     }),
-  uploadMedia: (file: File) => {
-    const fd = new FormData()
-    fd.append('file', file)
-    return api<{ public_key: string }>('/api/v1/media', { method: 'POST', body: fd })
-  },
+  uploadMedia: (file: File | UploadFile) =>
+    api<{ public_key: string }>('/api/v1/media', { method: 'POST', body: buildUploadForm(file) }),
   guides: (params?: { status?: string }) => {
     const q = params?.status ? `?status=${encodeURIComponent(params.status)}` : ''
     return api<{ items: AdminGuide[] }>(`/api/v1/admin/guides${q}`)

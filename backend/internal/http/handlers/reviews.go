@@ -112,7 +112,8 @@ func (h *Handlers) UploadReviewPhoto(w http.ResponseWriter, r *http.Request) {
 	mime := hdr.Header.Get("Content-Type")
 	_, pub, _, err := h.Media.SaveUpload(file, mime, h.Cfg.MediaMaxUploadBytes)
 	if err != nil {
-		response.Error(w, r, apperrors.ErrValidation)
+		h.Log.Warn("media upload rejected", "err", err, "declared_mime", mime, "request_id", middleware.GetRequestID(r.Context()))
+		response.Error(w, r, mediaUploadError(err))
 		return
 	}
 	response.JSON(w, r, 201, map[string]string{"public_key": pub})

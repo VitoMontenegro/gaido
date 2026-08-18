@@ -3,29 +3,18 @@ package media
 import (
 	"bytes"
 	"fmt"
-	"strings"
 )
 
-// DetectMIME validates file content against declared MIME using magic bytes.
-func DetectMIME(data []byte, declared string) (string, error) {
-	declared = strings.ToLower(strings.TrimSpace(declared))
-	if declared == "" {
-		return "", fmt.Errorf("missing content type")
-	}
-	if _, ok := allowedMIMEs[declared]; !ok {
-		return "", fmt.Errorf("unsupported mime type")
-	}
-
+// DetectMIME returns the MIME from magic bytes.
+// Declared Content-Type is ignored when it disagrees: iOS Safari canvas
+// often labels JPEG/PNG as image/webp.
+func DetectMIME(data []byte, _ string) (string, error) {
 	detected := sniffMIME(data)
 	if detected == "" {
 		return "", fmt.Errorf("unknown file type")
 	}
-	if detected != declared {
-		// Allow image/jpg alias
-		if !(declared == "image/jpg" && detected == "image/jpeg") {
-			return "", fmt.Errorf("content type mismatch")
-		}
-		detected = declared
+	if _, ok := allowedMIMEs[detected]; !ok {
+		return "", fmt.Errorf("unsupported mime type")
 	}
 	return detected, nil
 }

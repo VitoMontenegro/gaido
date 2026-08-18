@@ -46,6 +46,26 @@ func TestAllowedMIME(t *testing.T) {
 	}
 }
 
+func TestSaveUpload_acceptsJPEGLabeledAsWebP(t *testing.T) {
+	dir := t.TempDir()
+	s, err := NewStorage(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	jpeg := []byte{0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 'J', 'F', 'I', 'F'}
+	jpeg = append(jpeg, make([]byte, 32)...)
+	priv, pub, size, err := s.SaveUpload(strings.NewReader(string(jpeg)), "image/webp", 1024)
+	if err != nil {
+		t.Fatalf("SaveUpload jpeg as webp: %v", err)
+	}
+	if size != int64(len(jpeg)) || priv == "" || pub == "" {
+		t.Fatalf("unexpected save result priv=%q pub=%q size=%d", priv, pub, size)
+	}
+	if !strings.HasSuffix(priv, ".jpg") || !strings.HasSuffix(pub, ".jpg") {
+		t.Fatalf("expected .jpg keys, got %q %q", priv, pub)
+	}
+}
+
 func TestSaveUpload_rejectsOversize(t *testing.T) {
 	dir := t.TempDir()
 	s, err := NewStorage(dir)

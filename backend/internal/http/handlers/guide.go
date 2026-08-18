@@ -78,7 +78,8 @@ func (h *Handlers) UploadDocument(w http.ResponseWriter, r *http.Request) {
 	mime := hdr.Header.Get("Content-Type")
 	priv, pub, size, err := h.Media.SaveUpload(file, mime, h.Cfg.MediaMaxUploadBytes)
 	if err != nil {
-		response.Error(w, r, apperrors.ErrValidation)
+		h.Log.Warn("media upload rejected", "err", err, "declared_mime", mime, "request_id", middleware.GetRequestID(r.Context()))
+		response.Error(w, r, mediaUploadError(err))
 		return
 	}
 	_ = pub

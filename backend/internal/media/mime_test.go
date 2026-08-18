@@ -14,11 +14,21 @@ func TestDetectMIME_validJPEG(t *testing.T) {
 	}
 }
 
-func TestDetectMIME_rejectsMismatch(t *testing.T) {
+func TestDetectMIME_usesSniffWhenDeclaredLies(t *testing.T) {
 	png := []byte{0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 0}
-	_, err := DetectMIME(png, "image/jpeg")
-	if err == nil {
-		t.Fatal("expected mismatch error")
+	mime, err := DetectMIME(png, "image/webp")
+	if err != nil || mime != "image/png" {
+		t.Fatalf("DetectMIME png as webp: %q, %v", mime, err)
+	}
+
+	jpeg := []byte{0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 'J', 'F', 'I', 'F'}
+	mime, err = DetectMIME(jpeg, "")
+	if err != nil || mime != "image/jpeg" {
+		t.Fatalf("DetectMIME jpeg empty declared: %q, %v", mime, err)
+	}
+	mime, err = DetectMIME(jpeg, "application/octet-stream")
+	if err != nil || mime != "image/jpeg" {
+		t.Fatalf("DetectMIME jpeg octet-stream: %q, %v", mime, err)
 	}
 }
 

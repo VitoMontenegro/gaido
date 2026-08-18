@@ -1,6 +1,8 @@
 import type { Area } from 'react-easy-crop'
+import type { UploadFile } from '@gaido/api-client/api/upload'
 
 export type RasterFormat = 'webp' | 'jpeg'
+export type ProcessedImage = UploadFile
 
 export type ProcessImageOptions = {
   format?: RasterFormat
@@ -34,12 +36,26 @@ function supportsWebP(): boolean {
 
 function pickMime(format: RasterFormat | undefined): { mime: string; ext: string; format: RasterFormat } {
   if (format === 'jpeg') return { mime: 'image/jpeg', ext: 'jpg', format: 'jpeg' }
-  if (format === 'webp') return { mime: 'image/webp', ext: 'webp', format: 'webp' }
+  if (format === 'webp' && supportsWebP()) return { mime: 'image/webp', ext: 'webp', format: 'webp' }
+  if (format === 'webp') return { mime: 'image/jpeg', ext: 'jpg', format: 'jpeg' }
   if (supportsWebP()) return { mime: 'image/webp', ext: 'webp', format: 'webp' }
   return { mime: 'image/jpeg', ext: 'jpg', format: 'jpeg' }
 }
 
-async function encodeCanvas(canvas: HTMLCanvasElement, opts: ProcessImageOptions): Promise<File> {
+function processedFromBlob(blob: Blob, baseName: string, fallback: { mime: string; ext: string }): ProcessedImage {
+  const raw = (blob.type || fallback.mime).toLowerCase()
+  const mime = raw === 'image/jpg' ? 'image/jpeg' : raw
+  const ext =
+    mime === 'image/jpeg' ? 'jpg' : mime === 'image/png' ? 'png' : mime === 'image/webp' ? 'webp' : fallback.ext
+  return { blob, filename: `${baseName}.${ext}` }
+}
+
+export function isLikelyImageFile(file: File): boolean {
+  if (!file.type || file.type.startsWith('image/')) return true
+  return /\.(jpe?g|png|webp|gif|heic|heif|avif)$/i.test(file.name)
+}
+
+async function encodeCanvas(canvas: HTMLCanvasElement, opts: ProcessImageOptions): Promise<ProcessedImage> {
   const maxBytes = opts.maxBytes ?? DEFAULT_MAX_BYTES
   const picked = pickMime(opts.format)
   let quality = 0.9
@@ -60,7 +76,7 @@ async function encodeCanvas(canvas: HTMLCanvasElement, opts: ProcessImageOptions
     if (!blob) throw new Error('Не вдалося закодувати зображення')
 
     if (blob.size <= maxBytes || (quality <= 0.55 && scale <= 0.6)) {
-      return new File([blob], `${baseName}.${picked.ext}`, { type: picked.mime })
+      return processedFromBlob(blob, baseName, picked)
     }
 
     if (quality > 0.58) {
@@ -73,14 +89,14 @@ async function encodeCanvas(canvas: HTMLCanvasElement, opts: ProcessImageOptions
 
   const blob = await canvasToBlob(canvas, picked.mime, 0.55)
   if (!blob) throw new Error('Не вдалося стиснути зображення')
-  return new File([blob], `${baseName}.${picked.ext}`, { type: picked.mime })
+  return processedFromBlob(blob, baseName, picked)
 }
 
 export async function processCroppedImage(
   imageSrc: string,
   crop: Area,
   opts: ProcessImageOptions = {},
-): Promise<File> {
+): Promise<ProcessedImage> {
   const image = await loadImage(imageSrc)
   const maxDimension = opts.maxDimension ?? DEFAULT_MAX_DIMENSION
 
@@ -113,7 +129,7 @@ export async function processCroppedImage(
   return encodeCanvas(canvas, opts)
 }
 
-export async function processImageFile(file: File, opts: ProcessImageOptions = {}): Promise<File> {
+export async function processImageFile(file: File, opts: ProcessImageOptions = {}): Promise<ProcessedImage> {
   const dataUrl = await readFileAsDataUrl(file)
   const image = await loadImage(dataUrl)
   const maxDimension = opts.maxDimension ?? DEFAULT_MAX_DIMENSION

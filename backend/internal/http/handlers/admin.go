@@ -228,19 +228,22 @@ func (h *Handlers) DeleteSlot(w http.ResponseWriter, r *http.Request) {
 }
 func (h *Handlers) UploadMedia(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseMultipartForm(h.Cfg.MediaMaxUploadBytes); err != nil {
-		response.Error(w, r, apperrors.ErrValidation)
+		h.Log.Warn("media upload rejected", "err", err, "stage", "parse_multipart", "request_id", middleware.GetRequestID(r.Context()))
+		response.Error(w, r, apperrors.New("VALIDATION_ERROR", "upload failed", 400))
 		return
 	}
 	file, hdr, err := r.FormFile("file")
 	if err != nil {
-		response.Error(w, r, apperrors.ErrValidation)
+		h.Log.Warn("media upload rejected", "err", err, "stage", "form_file", "request_id", middleware.GetRequestID(r.Context()))
+		response.Error(w, r, apperrors.New("VALIDATION_ERROR", "upload failed", 400))
 		return
 	}
 	defer file.Close()
 	mime := hdr.Header.Get("Content-Type")
 	_, pub, _, err := h.Media.SaveUpload(file, mime, h.Cfg.MediaMaxUploadBytes)
 	if err != nil {
-		response.Error(w, r, apperrors.ErrValidation)
+		h.Log.Warn("media upload rejected", "err", err, "declared_mime", mime, "request_id", middleware.GetRequestID(r.Context()))
+		response.Error(w, r, mediaUploadError(err))
 		return
 	}
 	response.JSON(w, r, 201, map[string]string{"public_key": pub})

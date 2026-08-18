@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
-import { adminApi, resolveMediaUrl } from '@gaido/api-client/api/client'
-import { readFileAsDataUrl, type RasterFormat } from '../lib/imageProcess'
+import { adminApi, formatApiError, resolveMediaUrl } from '@gaido/api-client/api/client'
+import { isLikelyImageFile, readFileAsDataUrl, type ProcessedImage, type RasterFormat } from '../lib/imageProcess'
 import { ImageCropModal } from './ImageCropModal'
 
 type Props = {
@@ -37,7 +37,7 @@ export default function GalleryField({
     onChange(next)
   }
 
-  const uploadFile = async (file: File) => {
+  const uploadFile = async (file: ProcessedImage) => {
     const { public_key } = await adminApi.uploadMedia(file)
     appendKey(public_key)
   }
@@ -50,7 +50,7 @@ export default function GalleryField({
         await uploadFile(file)
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Помилка завантаження')
+      setError(formatApiError(e))
     } finally {
       setUploading(false)
     }
@@ -59,7 +59,7 @@ export default function GalleryField({
   const onFilesSelected = async (fileList: FileList | null) => {
     if (!fileList?.length) return
 
-    const files = Array.from(fileList).filter((file) => file.type.startsWith('image/'))
+    const files = Array.from(fileList).filter(isLikelyImageFile)
     if (files.length === 0) {
       setError('Потрібен файл зображення')
       return
@@ -187,7 +187,7 @@ export default function GalleryField({
                 setCropDone((n) => n + 1)
                 setCropQueue((queue) => queue.slice(1))
               } catch (e) {
-                setError(e instanceof Error ? e.message : 'Помилка завантаження')
+                setError(formatApiError(e))
                 setCropQueue([])
                 setCropDone(0)
               } finally {

@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
-import { adminApi, resolveMediaUrl } from '@gaido/api-client/api/client'
-import { formatBytes, readFileAsDataUrl, type RasterFormat } from '../lib/imageProcess'
+import { adminApi, formatApiError, resolveMediaUrl } from '@gaido/api-client/api/client'
+import { formatBytes, isLikelyImageFile, readFileAsDataUrl, type ProcessedImage, type RasterFormat } from '../lib/imageProcess'
 import { ImageCropModal } from './ImageCropModal'
 
 export type ImageUrlFieldProps = {
@@ -32,22 +32,22 @@ export function ImageUrlField({
   const [lastSize, setLastSize] = useState<number | null>(null)
   const preview = value ? resolveMediaUrl(value) : ''
 
-  const upload = async (file: File) => {
+  const upload = async (file: ProcessedImage) => {
     setUploading(true)
     setError('')
     try {
       const { public_key } = await adminApi.uploadMedia(file)
       onChange(public_key)
-      setLastSize(file.size)
+      setLastSize(file.blob.size)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Помилка завантаження')
+      setError(formatApiError(e))
     } finally {
       setUploading(false)
     }
   }
 
   const onFileSelected = async (file: File) => {
-    if (!file.type.startsWith('image/')) {
+    if (!isLikelyImageFile(file)) {
       setError('Оберіть файл зображення')
       return
     }

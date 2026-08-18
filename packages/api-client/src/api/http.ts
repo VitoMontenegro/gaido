@@ -46,6 +46,9 @@ const VALIDATION_MESSAGE_UA: Record<string, string> = {
   'privacy policy must be accepted': 'Потрібна згода з політикою конфіденційності',
   'site rules must be accepted': 'Потрібна згода з правилами сайту',
   'placement rules must be accepted': 'Потрібна згода з правилами розміщення',
+  'upload failed': 'Не вдалося завантажити файл',
+  'unsupported image format': 'Формат зображення не підтримується',
+  'file too large': 'Файл занадто великий',
 }
 
 export function formatApiError(error: unknown, hints?: string | ApiErrorHints): string {
