@@ -1,4 +1,5 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
+import { Bars2Icon } from '@heroicons/react/24/outline'
 import { adminApi, formatApiError, resolveMediaUrl } from '@gaido/api-client/api/client'
 import {
   createCropImageSource,
@@ -9,6 +10,8 @@ import {
 } from '../lib/imageProcess'
 import { ImageCropModal } from './ImageCropModal'
 
+const DRAG_THRESHOLD_PX = 8
+
 type Props = {
   label: string
   value: string[]
@@ -17,6 +20,40 @@ type Props = {
   cropAspect?: number
   maxBytes?: number
   outputFormat?: RasterFormat
+}
+
+type DragState = {
+  fromIndex: number
+  pointerId: number
+  startX: number
+  startY: number
+  active: boolean
+  ghostRect: { width: number; height: number }
+  ghostX: number
+  ghostY: number
+  ghostUrl: string
+  dropIndex: number
+}
+
+const initialDragState = (): DragState => ({
+  fromIndex: -1,
+  pointerId: -1,
+  startX: 0,
+  startY: 0,
+  active: false,
+  ghostRect: { width: 0, height: 0 },
+  ghostX: 0,
+  ghostY: 0,
+  ghostUrl: '',
+  dropIndex: -1,
+})
+
+function findDropIndex(clientX: number, clientY: number): number {
+  const el = document.elementFromPoint(clientX, clientY)
+  const item = el?.closest('[data-gallery-index]')
+  if (!item) return -1
+  const index = Number(item.getAttribute('data-gallery-index'))
+  return Number.isFinite(index) ? index : -1
 }
 
 export default function GalleryField({
@@ -33,6 +70,7 @@ export default function GalleryField({
   valueRef.current = value
   const cropRef = useRef<CropImageSource | null>(null)
   const pendingRef = useRef<File[]>([])
+  const dragRef = useRef<DragState>(initialDragState())
 
   const [uploading, setUploading] = useState(false)
   const [preparing, setPreparing] = useState(false)
@@ -40,6 +78,10 @@ export default function GalleryField({
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
   const [currentCrop, setCurrentCrop] = useState<CropImageSource | null>(null)
   const [cropDone, setCropDone] = useState(0)
+  const [dragging, setDragging] = useState(false)
+  const [dragFromIndex, setDragFromIndex] = useState(-1)
+  const [dropIndex, setDropIndex] = useState(-1)
+  const [ghost, setGhost] = useState<{ x: number; y: number; width: number; height: number; url: string } | null>(null)
 
   const revokeCrop = () => {
     cropRef.current?.revoke()
@@ -122,12 +164,107 @@ export default function GalleryField({
   }
 
   const move = (from: number, to: number) => {
-    if (to < 0 || to >= value.length) return
-    const next = [...value]
+    if (from === to || to < 0 || to >= valueRef.current.length) return
+    const next = [...valueRef.current]
     const [item] = next.splice(from, 1)
     next.splice(to, 0, item)
     valueRef.current = next
     onChange(next)
+  }
+
+  const removeAt = (index: number) => {
+    const next = valueRef.current.filter((_, j) => j !== index)
+    valueRef.current = next
+    onChange(next)
+  }
+
+  const resetDrag = () => {
+    dragRef.current = initialDragState()
+    setDragging(false)
+    setDragFromIndex(-1)
+    setDropIndex(-1)
+    setGhost(null)
+  }
+
+  const finishDrag = (pointerId: number) => {
+    const drag = dragRef.current
+    if (drag.pointerId !== pointerId) return
+
+    if (drag.active && drag.fromIndex >= 0 && drag.dropIndex >= 0) {
+      move(drag.fromIndex, drag.dropIndex)
+    }
+    resetDrag()
+  }
+
+  const updateDrag = (e: PointerEvent) => {
+    const drag = dragRef.current
+    if (drag.pointerId !== e.pointerId || drag.fromIndex < 0) return
+
+    const dx = e.clientX - drag.startX
+    const dy = e.clientY - drag.startY
+
+    if (!drag.active) {
+      if (Math.hypot(dx, dy) < DRAG_THRESHOLD_PX) return
+      drag.active = true
+      setDragging(true)
+      setDragFromIndex(drag.fromIndex)
+      setDropIndex(drag.fromIndex)
+      setGhost({
+        x: e.clientX,
+        y: e.clientY,
+        width: drag.ghostRect.width,
+        height: drag.ghostRect.height,
+        url: drag.ghostUrl,
+      })
+    }
+
+    e.preventDefault()
+    drag.ghostX = e.clientX
+    drag.ghostY = e.clientY
+    const nextDrop = findDropIndex(e.clientX, e.clientY)
+    drag.dropIndex = nextDrop >= 0 ? nextDrop : drag.dropIndex
+    setGhost({
+      x: e.clientX,
+      y: e.clientY,
+      width: drag.ghostRect.width,
+      height: drag.ghostRect.height,
+      url: drag.ghostUrl,
+    })
+    setDropIndex(drag.dropIndex)
+  }
+
+  useEffect(() => {
+    const onPointerMove = (e: PointerEvent) => updateDrag(e)
+    const onPointerUp = (e: PointerEvent) => finishDrag(e.pointerId)
+    const onPointerCancel = (e: PointerEvent) => finishDrag(e.pointerId)
+
+    document.addEventListener('pointermove', onPointerMove, { passive: false })
+    document.addEventListener('pointerup', onPointerUp)
+    document.addEventListener('pointercancel', onPointerCancel)
+
+    return () => {
+      document.removeEventListener('pointermove', onPointerMove)
+      document.removeEventListener('pointerup', onPointerUp)
+      document.removeEventListener('pointercancel', onPointerCancel)
+    }
+  }, [])
+
+  const onTilePointerDown = (index: number, url: string, e: ReactPointerEvent<HTMLLIElement>) => {
+    if (e.button !== 0 && e.pointerType === 'mouse') return
+
+    const rect = e.currentTarget.getBoundingClientRect()
+    dragRef.current = {
+      fromIndex: index,
+      pointerId: e.pointerId,
+      startX: e.clientX,
+      startY: e.clientY,
+      active: false,
+      ghostRect: { width: rect.width, height: rect.height },
+      ghostX: e.clientX,
+      ghostY: e.clientY,
+      ghostUrl: url,
+      dropIndex: index,
+    }
   }
 
   const cropTotal = cropDone + (currentCrop ? 1 : 0) + pendingFiles.length
@@ -149,48 +286,59 @@ export default function GalleryField({
       </div>
       {hint && <p className="form-field-hint">{hint}</p>}
       <p className="form-field-hint">Можна обрати кілька файлів одразу.</p>
+      {value.length > 1 && (
+        <p className="form-field-hint">Перетягніть фото, щоб змінити порядок.</p>
+      )}
       {error && <p className="text-base text-red-600">{error}</p>}
 
       {value.length > 0 && (
-        <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+        <ul className={`grid grid-cols-3 gap-2 sm:grid-cols-4 ${dragging ? 'select-none' : ''}`}>
           {value.map((url, i) => (
-            <li key={`${url}-${i}`} className="group relative aspect-[4/3] overflow-hidden rounded-lg border border-border bg-stone-100">
-              <img src={resolveMediaUrl(url)} alt="" className="h-full w-full object-cover" />
-              <div className="absolute inset-x-0 bottom-0 flex justify-between gap-0.5 bg-black/50 p-1 opacity-0 transition group-hover:opacity-100">
-                <button
-                  type="button"
-                  className="rounded bg-white/90 px-1.5 py-0.5 text-xs"
-                  disabled={i === 0}
-                  onClick={() => move(i, i - 1)}
-                  aria-label="Вліво"
-                >
-                  ←
-                </button>
-                <button
-                  type="button"
-                  className="rounded bg-white/90 px-1.5 py-0.5 text-xs text-red-700"
-                  onClick={() => {
-                    const next = value.filter((_, j) => j !== i)
-                    valueRef.current = next
-                    onChange(next)
-                  }}
-                  aria-label="Видалити"
-                >
-                  ×
-                </button>
-                <button
-                  type="button"
-                  className="rounded bg-white/90 px-1.5 py-0.5 text-xs"
-                  disabled={i === value.length - 1}
-                  onClick={() => move(i, i + 1)}
-                  aria-label="Вправо"
-                >
-                  →
-                </button>
+            <li
+              key={url}
+              data-gallery-index={i}
+              className={`relative aspect-[4/3] overflow-hidden rounded-lg border border-border bg-stone-100 ${
+                value.length > 1 ? 'touch-none' : ''
+              } ${dragging ? 'cursor-grabbing' : value.length > 1 ? 'cursor-grab' : ''} ${
+                dragFromIndex === i ? 'pointer-events-none opacity-40' : ''
+              } ${dragging && dropIndex === i && dragFromIndex !== i ? 'ring-2 ring-sky-400' : ''}`}
+              onPointerDown={(e) => onTilePointerDown(i, url, e)}
+            >
+              <img
+                src={resolveMediaUrl(url)}
+                alt=""
+                draggable={false}
+                className="pointer-events-none h-full w-full object-cover"
+              />
+              <button
+                type="button"
+                className="absolute right-0.5 top-0.5 z-10 rounded-full bg-black/60 px-1.5 text-xs text-white"
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={() => removeAt(i)}
+                aria-label="Видалити"
+              >
+                ×
+              </button>
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center bg-black/40 py-0.5">
+                <Bars2Icon className="h-4 w-4 text-white/90" aria-hidden />
               </div>
             </li>
           ))}
         </ul>
+      )}
+
+      {ghost && (
+        <div
+          className="pointer-events-none fixed z-50 overflow-hidden rounded-lg border-2 border-sky-400 shadow-lg"
+          style={{
+            width: ghost.width,
+            height: ghost.height,
+            left: ghost.x - ghost.width / 2,
+            top: ghost.y - ghost.height / 2,
+          }}
+        >
+          <img src={resolveMediaUrl(ghost.url)} alt="" className="h-full w-full object-cover" draggable={false} />
+        </div>
       )}
 
       <input

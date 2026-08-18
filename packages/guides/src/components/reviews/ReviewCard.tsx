@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { resolveMediaUrl } from '@gaido/api-client/api/client'
-import ImageLightbox from './ImageLightbox'
+import { openImageGallery } from '../../lib/fancybox'
 import ReviewDisputeForm from './ReviewDisputeForm'
 import ReviewReplyForm from './ReviewReplyForm'
 import StarRating from './StarRating'
@@ -23,7 +23,6 @@ export default function ReviewCard({
 }) {
   const [open, setOpen] = useState(false)
   const [disputeOpen, setDisputeOpen] = useState(false)
-  const [lightbox, setLightbox] = useState<number | null>(null)
   const [expanded, setExpanded] = useState(false)
 
   const photoUrls = (review.photos ?? []).map(resolveMediaUrl).filter(Boolean)
@@ -70,7 +69,7 @@ export default function ReviewCard({
               key={`${review.id}-${i}`}
               type="button"
               className="h-16 w-16 overflow-hidden rounded-lg border border-stone-200 sm:h-20 sm:w-20"
-              onClick={() => setLightbox(i)}
+              onClick={() => openImageGallery(photoUrls, i)}
             >
               <img src={src} alt="" className="h-full w-full object-cover" loading="lazy" />
             </button>
@@ -139,15 +138,6 @@ export default function ReviewCard({
             />
           )}
         </div>
-      )}
-
-      {lightbox !== null && (
-        <ImageLightbox
-          urls={photoUrls}
-          index={lightbox}
-          onClose={() => setLightbox(null)}
-          onChange={setLightbox}
-        />
       )}
     </li>
   )

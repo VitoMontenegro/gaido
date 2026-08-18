@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { resolveMediaUrl } from '@gaido/api-client/api/client'
 import { cn } from '@gaido/ui-primitives/cn'
+import { openImageGallery } from '../lib/fancybox'
 import { EXCURSION_DEFAULT_COVER } from './ExcursionCover'
 
 type Props = {
@@ -359,129 +360,40 @@ function DesktopGallery({
 }
 
 export default function ExcursionHeroGallery({ images, mobileCover, title }: Props) {
-  const [lightbox, setLightbox] = useState<number | null>(null)
   const urls = images.map(resolveMediaUrl).filter(Boolean)
-
-  useEffect(() => {
-    if (lightbox === null) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setLightbox(null)
-      if (e.key === 'ArrowRight') setLightbox((i) => (i === null ? null : Math.min(i + 1, urls.length - 1)))
-      if (e.key === 'ArrowLeft') setLightbox((i) => (i === null ? null : Math.max(i - 1, 0)))
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [lightbox, urls.length])
 
   if (urls.length === 0) return null
 
   const fallback = EXCURSION_DEFAULT_COVER
-  const openLightbox = (index: number) => setLightbox(index)
+  const openLightbox = (index: number) => openImageGallery(urls, index)
 
   return (
-    <>
-      <section className="excursion-parus-hero">
-        {urls.length === 1 ? (
-          <button
-            type="button"
-            className={cn('relative block w-full overflow-hidden', TILE_ROUND)}
-            onClick={() => openLightbox(0)}
-          >
-            <GalleryImage
-              src={urls[0]}
-              fallbackSrc={fallback}
-              alt={title}
-              className="aspect-606/404 w-full object-cover md:aspect-606/404"
-            />
-          </button>
-        ) : (
-          <>
-            <MobileHero
-              urls={urls}
-              mobileCover={mobileCover}
-              title={title}
-              fallback={fallback}
-              onOpen={openLightbox}
-            />
-            <DesktopGallery urls={urls} title={title} fallback={fallback} onOpen={openLightbox} />
-          </>
-        )}
-      </section>
-
-      {lightbox !== null && (
-        <Lightbox
-          urls={urls}
-          index={lightbox}
-          fallback={fallback}
-          onClose={() => setLightbox(null)}
-          onChange={setLightbox}
-        />
-      )}
-    </>
-  )
-}
-
-function Lightbox({
-  urls,
-  index,
-  fallback,
-  onClose,
-  onChange,
-}: {
-  urls: string[]
-  index: number
-  fallback: string
-  onClose: () => void
-  onChange: (i: number) => void
-}) {
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Галерея"
-      onClick={onClose}
-    >
-      <button
-        type="button"
-        className="absolute right-4 top-4 rounded-full bg-white/10 px-3 py-1 text-white hover:bg-white/20"
-        onClick={onClose}
-      >
-        Закрити
-      </button>
-      {index > 0 && (
+    <section className="excursion-parus-hero">
+      {urls.length === 1 ? (
         <button
           type="button"
-          className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-white/10 px-3 py-2 text-white"
-          onClick={(e) => {
-            e.stopPropagation()
-            onChange(index - 1)
-          }}
+          className={cn('relative block w-full overflow-hidden', TILE_ROUND)}
+          onClick={() => openLightbox(0)}
         >
-          ←
+          <GalleryImage
+            src={urls[0]}
+            fallbackSrc={fallback}
+            alt={title}
+            className="aspect-606/404 w-full object-cover md:aspect-606/404"
+          />
         </button>
+      ) : (
+        <>
+          <MobileHero
+            urls={urls}
+            mobileCover={mobileCover}
+            title={title}
+            fallback={fallback}
+            onOpen={openLightbox}
+          />
+          <DesktopGallery urls={urls} title={title} fallback={fallback} onOpen={openLightbox} />
+        </>
       )}
-      <GalleryImage
-        src={urls[index]}
-        fallbackSrc={fallback}
-        alt=""
-        className="max-h-[90vh] max-w-full rounded-lg object-contain"
-      />
-      {index < urls.length - 1 && (
-        <button
-          type="button"
-          className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-white/10 px-3 py-2 text-white"
-          onClick={(e) => {
-            e.stopPropagation()
-            onChange(index + 1)
-          }}
-        >
-          →
-        </button>
-      )}
-      <p className="absolute bottom-4 text-base text-white/80">
-        {index + 1} / {urls.length}
-      </p>
-    </div>
+    </section>
   )
 }

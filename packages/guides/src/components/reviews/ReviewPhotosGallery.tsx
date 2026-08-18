@@ -1,8 +1,7 @@
-import { useState } from 'react'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { resolveMediaUrl } from '@gaido/api-client/api/client'
 import { reviewsApi, REVIEWS_PAGE_SIZE } from '@gaido/api-client/api/reviews'
-import ImageLightbox from './ImageLightbox'
+import { openImageGallery } from '../../lib/fancybox'
 
 type Props = {
   excursionId?: number
@@ -10,8 +9,6 @@ type Props = {
 }
 
 export default function ReviewPhotosGallery({ excursionId, guideId }: Props) {
-  const [lightbox, setLightbox] = useState<number | null>(null)
-
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } = useInfiniteQuery({
     queryKey: ['review-photos', excursionId ? 'excursion' : 'guide', excursionId ?? guideId],
     queryFn: ({ pageParam = 0 }) =>
@@ -46,7 +43,7 @@ export default function ReviewPhotosGallery({ excursionId, guideId }: Props) {
             key={`${items[i]?.public_key}-${i}`}
             type="button"
             className="h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-stone-200 bg-stone-100 transition hover:opacity-90 sm:h-24 sm:w-24"
-            onClick={() => setLightbox(i)}
+            onClick={() => openImageGallery(urls, i)}
           >
             <img src={src} alt="" className="h-full w-full object-cover" loading="lazy" />
           </button>
@@ -65,14 +62,6 @@ export default function ReviewPhotosGallery({ excursionId, guideId }: Props) {
               ? `Показати ще ${Math.min(remaining, REVIEWS_PAGE_SIZE)} фото`
               : 'Показати ще'}
         </button>
-      )}
-      {lightbox !== null && (
-        <ImageLightbox
-          urls={urls}
-          index={lightbox}
-          onClose={() => setLightbox(null)}
-          onChange={setLightbox}
-        />
       )}
     </div>
   )

@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { resolveMediaUrl } from '@gaido/api-client/api/client'
+import { openVideo } from '../lib/fancybox'
 import type { ExcursionVideoContent } from '../lib/excursionStructuredContent'
-import { autoVideoPosterUrl, toVideoEmbedUrl, youtubePosterUrl, youtubeVideoId } from '../lib/videoEmbed'
+import { autoVideoPosterUrl, youtubePosterUrl, youtubeVideoId } from '../lib/videoEmbed'
 
 function VideoPoster({
   src,
@@ -32,10 +33,8 @@ type Props = {
 }
 
 export default function ExcursionVideoBlock({ video }: Props) {
-  const [open, setOpen] = useState(false)
   if (!video?.url?.trim()) return null
 
-  const embed = toVideoEmbedUrl(video.url)
   const ytId = youtubeVideoId(video.url)
   const autoPoster = autoVideoPosterUrl(video.url)
 
@@ -56,7 +55,7 @@ export default function ExcursionVideoBlock({ video }: Props) {
       <button
         type="button"
         className="excursion-parus-video group relative block w-full overflow-hidden rounded-2xl"
-        onClick={() => setOpen(true)}
+        onClick={() => openVideo(video.url)}
       >
         {hasPoster ? (
           <>
@@ -86,31 +85,6 @@ export default function ExcursionVideoBlock({ video }: Props) {
           </span>
         </span>
       </button>
-
-      {open && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
-          role="dialog"
-          aria-modal="true"
-          onClick={() => setOpen(false)}
-        >
-          <button
-            type="button"
-            className="absolute right-4 top-4 rounded-full bg-white/10 px-3 py-1 text-base text-white"
-            onClick={() => setOpen(false)}
-          >
-            Закрити
-          </button>
-          <iframe
-            title="Відео екскурсії"
-            src={embed}
-            className="aspect-video w-full max-w-4xl rounded-xl border-0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-            onClick={(e) => e.stopPropagation()}
-          />
-        </div>
-      )}
     </section>
   )
 }
