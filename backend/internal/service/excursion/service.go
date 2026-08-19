@@ -2,7 +2,6 @@ package excursion
 
 import (
 	"context"
-	"strings"
 
 	"github.com/vitomonte/experts-tourister/internal/apperrors"
 	"github.com/vitomonte/experts-tourister/internal/domain"
@@ -58,9 +57,6 @@ func (s *Service) PrepareNew(guideID int64, e *domain.Excursion) error {
 	}
 	e.GuideID = guideID
 	e.Status = domain.ExcursionDraft
-	if strings.TrimSpace(e.Slug) == "" {
-		e.Slug = guidesvc.Slugify(e.Title)
-	}
 	sanitizeExcursionHTML(e)
 	return nil
 }

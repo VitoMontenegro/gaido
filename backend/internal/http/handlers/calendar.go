@@ -32,7 +32,7 @@ func monthRange(year int, month time.Month) (time.Time, time.Time) {
 }
 
 func (h *Handlers) ListExcursionDatesPublic(w http.ResponseWriter, r *http.Request) {
-	e, err := h.Exc.GetViewBySlug(r.Context(), chi.URLParam(r, "slug"))
+	e, err := h.getExcursionViewByRef(r.Context(), chi.URLParam(r, "slug"))
 	if err != nil || !h.canViewExcursion(r.Context(), e) {
 		response.Error(w, r, apperrors.ErrNotFound)
 		return

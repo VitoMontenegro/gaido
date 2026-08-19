@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -155,16 +156,36 @@ func scanExcursionViewFields(v *domain.ExcursionView, row pgx.Row, withGuide, wi
 }
 
 func (r *ExcursionRepo) Create(ctx context.Context, e *domain.Excursion) (int64, error) {
+	tx, err := r.db.Pool.Begin(ctx)
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Rollback(ctx)
+
+	placeholder := fmt.Sprintf("_%d", time.Now().UnixNano())
 	var id int64
-	err := r.db.Pool.QueryRow(ctx, `
+	err = tx.QueryRow(ctx, `
 		INSERT INTO excursions (guide_id, city_id, category_id, title, slug, description, type, max_guests, price_from, currency, status,
 			duration_minutes, transport_mode, children_allowed, language, organizational_details, meeting_point,
 			cover_image_url, body_html, map_embed_url, included_items, excluded_items, structured_content)
 		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21::jsonb,$22::jsonb,$23::jsonb) RETURNING id
-	`, e.GuideID, e.CityID, e.CategoryID, e.Title, e.Slug, e.Description, e.Type, e.MaxGuests, e.PriceFrom, e.Currency, e.Status,
+	`, e.GuideID, e.CityID, e.CategoryID, e.Title, placeholder, e.Description, e.Type, e.MaxGuests, e.PriceFrom, e.Currency, e.Status,
 		e.DurationMinutes, e.TransportMode, e.ChildrenAllowed, e.Language, e.OrganizationalDetails, e.MeetingPoint,
 		e.CoverImageURL, e.BodyHTML, e.MapEmbedURL, string(marshalStringSlice(e.IncludedItems)), string(marshalStringSlice(e.ExcludedItems)), string(marshalStructuredContent(e.StructuredContent))).Scan(&id)
-	return id, err
+	if err != nil {
+		return 0, err
+	}
+
+	slug := strconv.FormatInt(id, 10)
+	if _, err = tx.Exec(ctx, `UPDATE excursions SET slug=$1, updated_at=NOW() WHERE id=$2`, slug, id); err != nil {
+		return 0, err
+	}
+	if err = tx.Commit(ctx); err != nil {
+		return 0, err
+	}
+	e.ID = id
+	e.Slug = slug
+	return id, nil
 }
 
 func (r *ExcursionRepo) GetBySlug(ctx context.Context, slug string) (*domain.Excursion, error) {

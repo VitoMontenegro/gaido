@@ -10,8 +10,8 @@ export default function CreateExcursionPage() {
     mutationFn: (body: Record<string, unknown>) =>
       guideApi.createExcursion(body) as Promise<{ id: number; slug?: string }>,
     onSuccess: (created) => {
-      if (created.slug) navigate(`/excursion/${created.slug}`)
-      else navigate('/account/guide/excursions')
+      const ref = created.slug || String(created.id)
+      navigate(`/excursion/${ref}`)
     },
   })
 

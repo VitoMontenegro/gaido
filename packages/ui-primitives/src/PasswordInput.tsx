@@ -43,7 +43,7 @@ export default function PasswordInput({ value, onChange, placeholder, autoComple
       />
       <button
         type="button"
-        className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-muted transition hover:text-ink"
+        className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-muted transition hover:text-ink top-1/2 transform -translate-y-1/2"
         aria-label={visible ? 'Приховати пароль' : 'Показати пароль'}
         onClick={() => setVisible((v) => !v)}
       >
