@@ -50,3 +50,30 @@ func TestHTML_stripsFormLabelArtifacts(t *testing.T) {
 		t.Fatalf("text lost: %q", out)
 	}
 }
+
+func TestText_keepsApostrophe(t *testing.T) {
+	in := "суб'єктивна оцінка"
+	out := Text(in)
+	if out != in {
+		t.Fatalf("apostrophe altered: got %q", out)
+	}
+}
+
+func TestText_decodesStoredEntities(t *testing.T) {
+	in := "суб&#39;єктивна"
+	out := Text(in)
+	if out != "суб'єктивна" {
+		t.Fatalf("entities not decoded: got %q", out)
+	}
+}
+
+func TestText_stripsScript(t *testing.T) {
+	in := `hello<script>alert(1)</script>world`
+	out := Text(in)
+	if strings.Contains(strings.ToLower(out), "script") {
+		t.Fatalf("script not stripped: %q", out)
+	}
+	if out != "helloworld" {
+		t.Fatalf("unexpected output: %q", out)
+	}
+}

@@ -1,6 +1,7 @@
 package sanitize
 
 import (
+	"html"
 	"net/url"
 	"regexp"
 	"strings"
@@ -37,6 +38,13 @@ var policy = func() *bluemonday.Policy {
 	p.AllowAttrs("class").Globally()
 	return p
 }()
+
+// Text sanitizes plain user text: strips HTML tags and normalizes entities to UTF-8.
+func Text(raw string) string {
+	s := strings.TrimSpace(stripEditorArtifacts(raw))
+	s = bluemonday.StrictPolicy().Sanitize(s)
+	return html.UnescapeString(s)
+}
 
 // HTML strips unsafe markup from user-generated HTML content.
 func HTML(raw string) string {

@@ -69,7 +69,7 @@ func (s *Service) ApplyProfileUpdate(ctx context.Context, g *domain.GuideProfile
 	g.FirstName = req.FirstName
 	g.LastName = req.LastName
 	g.DisplayName = req.DisplayName
-	g.About = sanitize.HTML(req.About)
+	g.About = sanitize.Text(req.About)
 	g.PreferredContactMethod = req.PreferredContactMethod
 	g.Phone = req.Phone
 	g.Email = req.Email

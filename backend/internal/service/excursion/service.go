@@ -62,7 +62,7 @@ func (s *Service) PrepareNew(guideID int64, e *domain.Excursion) error {
 }
 
 func sanitizeExcursionHTML(e *domain.Excursion) {
-	e.Description = sanitize.HTML(e.Description)
+	e.Description = sanitize.Text(e.Description)
 	e.BodyHTML = sanitize.HTML(e.BodyHTML)
 	e.OrganizationalDetails = sanitize.HTML(e.OrganizationalDetails)
 }

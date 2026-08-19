@@ -8,6 +8,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/vitomonte/experts-tourister/internal/domain"
+	"github.com/vitomonte/experts-tourister/internal/sanitize"
 )
 
 type GuideRepo struct{ db *DB }
@@ -56,6 +57,9 @@ func scanGuide(row pgx.Row) (*domain.GuideProfile, error) {
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}
+	if err == nil {
+		g.About = sanitize.Text(g.About)
+	}
 	return &g, err
 }
 
@@ -64,6 +68,9 @@ func scanGuideRow(rows pgx.Rows) (domain.GuideProfile, error) {
 	err := rows.Scan(&g.ID, &g.UserID, &g.GuideType, &g.FirstName, &g.LastName, &g.DisplayName, &g.About,
 		&g.WebsiteSlug, &g.RatingAvg, &g.RatingCount, &g.PreferredContactMethod, &g.Phone, &g.Email,
 		&g.Telegram, &g.Whatsapp, &g.Viber, &g.ResponseHours, &g.Status, &g.LastShownAt, &g.CreatedAt, &g.AvatarURL)
+	if err == nil {
+		g.About = sanitize.Text(g.About)
+	}
 	return g, err
 }
 

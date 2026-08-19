@@ -11,6 +11,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/vitomonte/experts-tourister/internal/domain"
+	"github.com/vitomonte/experts-tourister/internal/sanitize"
 )
 
 type ExcursionRepo struct{ db *DB }
@@ -109,7 +110,12 @@ func scanExcursionFields(e *domain.Excursion, row pgx.Row) error {
 	e.IncludedItems = unmarshalStringSlice(includedRaw)
 	e.ExcludedItems = unmarshalStringSlice(excludedRaw)
 	e.StructuredContent = unmarshalStructuredContent(structuredRaw)
+	normalizeExcursionPlainText(e)
 	return nil
+}
+
+func normalizeExcursionPlainText(e *domain.Excursion) {
+	e.Description = sanitize.Text(e.Description)
 }
 
 func scanExcursionViewFields(v *domain.ExcursionView, row pgx.Row, withGuide, withRating bool) error {
@@ -152,6 +158,7 @@ func scanExcursionViewFields(v *domain.ExcursionView, row pgx.Row, withGuide, wi
 	v.IncludedItems = unmarshalStringSlice(includedRaw)
 	v.ExcludedItems = unmarshalStringSlice(excludedRaw)
 	v.StructuredContent = unmarshalStructuredContent(structuredRaw)
+	normalizeExcursionPlainText(&v.Excursion)
 	return nil
 }
 
