@@ -7,7 +7,7 @@ export const catalogApi = {
     const q = params ? '?' + new URLSearchParams(params).toString() : ''
     return api<{ items: PublicGuide[] }>(`/api/v1/guides${q}`)
   },
-  topGuides: (limit = 8) =>
+  topGuides: (limit = 10) =>
     api<{ items: PublicGuide[] }>(`/api/v1/guides/top?limit=${limit}`),
   guide: (slug: string) => api<PublicGuide>(`/api/v1/guides/${slug}`),
   excursions: (params?: Record<string, string>) => {

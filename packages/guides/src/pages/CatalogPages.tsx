@@ -30,7 +30,7 @@ export default function GuidesListPage() {
   })
   const { data: topGuides } = useQuery({
     queryKey: ['guides-top'],
-    queryFn: () => catalogApi.topGuides(8),
+    queryFn: () => catalogApi.topGuides(10),
   })
 
   return (

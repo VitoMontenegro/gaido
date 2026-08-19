@@ -47,7 +47,7 @@ func (h *Handlers) ListGuides(w http.ResponseWriter, r *http.Request) {
 func (h *Handlers) ListTopGuides(w http.ResponseWriter, r *http.Request) {
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
 	if limit <= 0 || limit > 20 {
-		limit = 8
+		limit = 10
 	}
 	out := h.ResolveTopGuides(r.Context(), limit)
 	response.JSON(w, r, 200, map[string]any{"items": out})
