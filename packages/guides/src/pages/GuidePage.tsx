@@ -89,7 +89,7 @@ export default function GuidePage() {
         ]}
       />
 
-      <div className="bg-gradient-to-b from-brand-50/80 to-sand-50 pb-12">
+      <div className="bg-linear-to-b from-brand-50/80 to-sand-50 pb-12">
         <div className="container-site py-10">
           <GuideHero guide={guide} excursionCount={(excursions?.items ?? []).length} />
         </div>
@@ -152,7 +152,7 @@ export default function GuidePage() {
 
 function GuideHero({ guide, excursionCount }: { guide: PublicGuide; excursionCount: number }) {
   return (
-    <div className="grid gap-8 lg:grid-cols-[1fr_280px] lg:items-end">
+    <div className="grid gap-8 lg:grid-cols-[1fr_280px] lg:items-start">
       <div>
         {guide.type_badge && (
           <span className="inline-block rounded-full bg-white/80 px-3 py-1 text-sm font-medium text-teal">
