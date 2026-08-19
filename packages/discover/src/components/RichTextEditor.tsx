@@ -44,7 +44,7 @@ export default function RichTextEditor({ value, onChange, disabled }: Props) {
           return resolveMediaUrl(public_key)
         },
         content_style:
-          'body { font-family: Roboto, Arial, sans-serif; font-size: 16px; line-height: 1.7; color: #44403c; max-width: 720px; }' +
+          'body { font-family: "MTS Extended", Arial, sans-serif; font-size: 16px; line-height: 1.7; color: #44403c; max-width: 720px; }' +
           ' p { margin: 0 0 1.1em; }' +
           ' img { max-width: 100% !important; width: 100% !important; height: auto !important; border-radius: 14px; }' +
           ' table { width: 100% !important; border: 0 !important; border-collapse: separate !important; border-spacing: 0 !important; table-layout: fixed; margin: 1.25em 0; }' +

@@ -289,6 +289,41 @@ func (r *GuideRepo) AddDocument(ctx context.Context, guideID int64, docType, key
 	return err
 }
 
+func (r *GuideRepo) GetDocumentByID(ctx context.Context, id int64) (*domain.GuideDocument, error) {
+	var d domain.GuideDocument
+	err := r.db.Pool.QueryRow(ctx, `
+		SELECT id, guide_id, type, storage_key, mime_type, size, checksum
+		FROM guide_documents WHERE id=$1`, id).Scan(
+		&d.ID, &d.GuideID, &d.Type, &d.StorageKey, &d.MimeType, &d.Size, &d.Checksum,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &d, nil
+}
+
+func (r *GuideRepo) ListAllDocuments(ctx context.Context) ([]domain.GuideDocument, error) {
+	rows, err := r.db.Pool.Query(ctx, `
+		SELECT id, guide_id, type, storage_key, mime_type, size, checksum
+		FROM guide_documents ORDER BY guide_id, type`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []domain.GuideDocument
+	for rows.Next() {
+		var d domain.GuideDocument
+		if err := rows.Scan(&d.ID, &d.GuideID, &d.Type, &d.StorageKey, &d.MimeType, &d.Size, &d.Checksum); err != nil {
+			return nil, err
+		}
+		out = append(out, d)
+	}
+	return out, rows.Err()
+}
+
 func (r *GuideRepo) ListDocuments(ctx context.Context, guideID int64) ([]domain.GuideDocument, error) {
 	rows, err := r.db.Pool.Query(ctx, `SELECT id, guide_id, type, storage_key, mime_type, size, checksum FROM guide_documents WHERE guide_id=$1`, guideID)
 	if err != nil {

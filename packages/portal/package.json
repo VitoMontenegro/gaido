@@ -10,6 +10,7 @@
     "lint": "oxlint src"
   },
   "dependencies": {
+    "@fancyapps/ui": "^6.1.14",
     "@gaido/api-client": "*",
     "@gaido/site-urls": "*",
     "@gaido/ui-primitives": "*",

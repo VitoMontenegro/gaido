@@ -183,6 +183,7 @@ func NewRouter(cfg config.Config, log *slog.Logger, h *handlers.Handlers) http.H
 			ar.Get("/admin/audit", h.AdminAudit)
 			ar.Get("/admin/cookie-consents", h.AdminCookieConsents)
 			ar.Get("/admin/guides", h.AdminListGuides)
+			ar.Get("/admin/guides/documents/{id}", h.AdminServeGuideDocument)
 			ar.Put("/admin/guides/{id}", h.AdminUpdateGuide)
 			ar.Delete("/admin/guides/{id}", h.AdminDeleteGuide)
 			ar.Post("/admin/guides/{id}/bypass", h.AdminBypass)

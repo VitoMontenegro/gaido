@@ -5,37 +5,7 @@
 @source "../../ui-primitives/src/**/*.{ts,tsx}";
 @source "../../../apps/vezu/src/**/*.{ts,tsx}";
 
-/* Roboto — body text */
-@font-face {
-  font-family: "Roboto";
-  src: url("/fonts/Roboto-Light.woff2") format("woff2"), url("/fonts/Roboto-Light.woff") format("woff");
-  font-weight: 300;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: "Roboto";
-  src: url("/fonts/Roboto-Regular.woff2") format("woff2"), url("/fonts/Roboto-Regular.woff") format("woff");
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: "Roboto";
-  src: url("/fonts/Roboto-Medium.woff2") format("woff2"), url("/fonts/Roboto-Medium.woff") format("woff");
-  font-weight: 500;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: "Roboto";
-  src: url("/fonts/Roboto-Bold.woff2") format("woff2"), url("/fonts/Roboto-Bold.woff") format("woff");
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
-
-/* MTS Extended — headings */
+/* MTS Extended */
 @font-face {
   font-family: "MTS Extended";
   src: url("/fonts/MTSExtended-Medium.woff2") format("woff2"), url("/fonts/MTSExtended-Medium.woff") format("woff");
@@ -52,7 +22,7 @@
 }
 
 @theme {
-  --font-sans: "Roboto", Arial, sans-serif;
+  --font-sans: "MTS Extended", Arial, sans-serif;
   --font-display: "MTS Extended", Arial, sans-serif;
 
   --color-ink: #060606;

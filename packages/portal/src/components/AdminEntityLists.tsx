@@ -1,9 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { adminApi, userDisplayName, type AdminExcursion, type AdminReview, type AdminUser } from '@gaido/api-client/api/client'
+import { adminApi, userDisplayName, type AdminExcursion, type AdminGuide, type AdminReview, type AdminUser } from '@gaido/api-client/api/client'
 import { useMe } from '@gaido/api-client/hooks/useAuth'
 import { formatPrice } from './excursionUi'
 import GuideAvatar from './GuideAvatar'
+import { AdminGuideDocuments } from './AdminGuideDocuments'
+import { guideTypeBadgeLabel } from '../lib/fancybox'
 
 function statusBadge(status: string) {
   const map: Record<string, string> = {
@@ -33,6 +35,16 @@ function statusLabel(status: string) {
     EXPIRED: 'Закінчився',
   }
   return map[status] ?? status
+}
+
+function guideTypeBadgeClass(guide: AdminGuide) {
+  if (guide.guide_type === 'COMPANION' || guide.catalog_status === 'companion') {
+    return 'bg-violet-50 text-violet-700'
+  }
+  if (guide.guide_type === 'ENTERTAINER') {
+    return 'bg-sky-50 text-sky-700'
+  }
+  return 'bg-teal/10 text-teal'
 }
 
 function guideNeedsApproval(status: string) {
@@ -186,46 +198,54 @@ export function AdminGuidesList({ statusFilter }: { statusFilter?: string }) {
     <ListShell title={title} count={(data?.items ?? []).length}>
       <ul className="divide-y divide-divider">
         {(data?.items ?? []).map((g) => (
-          <li key={g.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
-            <GuideAvatar avatar={g.avatar_url} name={g.display_name} className="h-10 w-10 shrink-0 rounded-xl" />
-            <div className="min-w-0 flex-1">
-              <p className="font-medium">{g.display_name}</p>
-              <p className="text-sm text-stone-500">/{g.slug}</p>
-            </div>
-            <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusBadge(g.status)}`}>
-              {statusLabel(g.status)}
-            </span>
-            <div className="flex items-center gap-2">
-              {guideNeedsApproval(g.status) && (
+          <li key={g.id} className="px-4 py-3">
+            <div className="flex flex-wrap items-center gap-3">
+              <GuideAvatar avatar={g.avatar_url} name={g.display_name} className="h-10 w-10 shrink-0 rounded-xl" />
+              <div className="min-w-0 flex-1">
+                <p className="font-medium">{g.display_name}</p>
+                <p className="text-sm text-stone-500">/{g.slug}</p>
+              </div>
+              <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${guideTypeBadgeClass(g)}`}>
+                {guideTypeBadgeLabel(g)}
+              </span>
+              <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusBadge(g.status)}`}>
+                {statusLabel(g.status)}
+              </span>
+              <div className="flex items-center gap-2">
+                {guideNeedsApproval(g.status) && (
+                  <button
+                    type="button"
+                    className="rounded-lg border border-emerald-200 px-2 py-1 text-xs text-emerald-800 hover:bg-emerald-50 disabled:opacity-50"
+                    disabled={approve.isPending || !placementPlanId}
+                    title={placementPlanId ? undefined : 'Немає тарифного плану'}
+                    onClick={() => {
+                      if (window.confirm(`Схвалити гіда «${g.display_name}»? Профіль стане ACTIVE.`)) {
+                        approve.mutate(g.id)
+                      }
+                    }}
+                  >
+                    Схвалити
+                  </button>
+                )}
+                <Link to={`/guide/${g.slug}`} className="text-sm text-teal hover:underline" target="_blank">
+                  Відкрити
+                </Link>
                 <button
                   type="button"
-                  className="rounded-lg border border-emerald-200 px-2 py-1 text-xs text-emerald-800 hover:bg-emerald-50 disabled:opacity-50"
-                  disabled={approve.isPending || !placementPlanId}
-                  title={placementPlanId ? undefined : 'Немає тарифного плану'}
+                  className="rounded-lg border border-red-200 px-2 py-1 text-xs text-red-700 hover:bg-red-50 disabled:opacity-50"
+                  disabled={remove.isPending}
                   onClick={() => {
-                    if (window.confirm(`Схвалити гіда «${g.display_name}»? Профіль стане ACTIVE.`)) {
-                      approve.mutate(g.id)
+                    if (window.confirm(`Видалити гіда «${g.display_name}»? Профіль, екскурсії та відгуки будуть видалені.`)) {
+                      remove.mutate(g.id)
                     }
                   }}
                 >
-                  Схвалити
+                  Видалити
                 </button>
-              )}
-              <Link to={`/guide/${g.slug}`} className="text-sm text-teal hover:underline" target="_blank">
-                Відкрити
-              </Link>
-              <button
-                type="button"
-                className="rounded-lg border border-red-200 px-2 py-1 text-xs text-red-700 hover:bg-red-50 disabled:opacity-50"
-                disabled={remove.isPending}
-                onClick={() => {
-                  if (window.confirm(`Видалити гіда «${g.display_name}»? Профіль, екскурсії та відгуки будуть видалені.`)) {
-                    remove.mutate(g.id)
-                  }
-                }}
-              >
-                Видалити
-              </button>
+              </div>
+            </div>
+            <div className="mt-3 pl-[52px]">
+              <AdminGuideDocuments documents={g.documents ?? []} />
             </div>
           </li>
         ))}

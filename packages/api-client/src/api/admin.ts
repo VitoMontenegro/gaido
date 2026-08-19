@@ -1,6 +1,13 @@
-import { api } from './http'
+import { api, apiBlob } from './http'
 import { buildUploadForm, type UploadFile } from './upload'
 import type { SiteContentPayload } from './types/site'
+
+export type AdminGuideDocument = {
+  id: number
+  type: string
+  mime_type: string
+  size: number
+}
 
 export type AdminGuide = {
   id: number
@@ -8,6 +15,10 @@ export type AdminGuide = {
   slug: string
   status: string
   avatar_url: string
+  guide_type: string
+  type_badge?: string
+  catalog_status: string
+  documents: AdminGuideDocument[]
 }
 
 export type AdminUser = {
@@ -139,6 +150,7 @@ export const adminApi = {
     const q = params?.status ? `?status=${encodeURIComponent(params.status)}` : ''
     return api<{ items: AdminGuide[] }>(`/api/v1/admin/guides${q}`)
   },
+  fetchGuideDocument: (id: number) => apiBlob(`/api/v1/admin/guides/documents/${id}`),
   updateGuide: (id: number, body: { avatar_url: string }) =>
     api<AdminGuide>(`/api/v1/admin/guides/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
   deleteGuide: (id: number) =>

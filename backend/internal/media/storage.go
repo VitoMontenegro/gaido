@@ -84,6 +84,14 @@ func (s *Storage) SaveUpload(r io.Reader, mime string, maxBytes int64) (privateK
 }
 
 func (s *Storage) PublicPath(key string) string {
+	return s.safeFilePath("public", key)
+}
+
+func (s *Storage) PrivatePath(key string) string {
+	return s.safeFilePath("private", key)
+}
+
+func (s *Storage) safeFilePath(dir, key string) string {
 	if key == "" || strings.Contains(key, "..") || strings.ContainsAny(key, `/\`) {
 		return ""
 	}
@@ -91,7 +99,7 @@ func (s *Storage) PublicPath(key string) string {
 	if safe == "." || safe == ".." {
 		return ""
 	}
-	return filepath.Join(s.BasePath, "public", safe)
+	return filepath.Join(s.BasePath, dir, safe)
 }
 
 func applyWatermark(data []byte, mime string) ([]byte, error) {

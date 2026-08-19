@@ -159,6 +159,34 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   return res.json() as Promise<T>
 }
 
+export async function apiBlob(path: string): Promise<{ blob: Blob; contentType: string }> {
+  const headers = new Headers()
+  if (accessToken) headers.set('Authorization', `Bearer ${accessToken}`)
+
+  const doFetch = () =>
+    fetch(`${API_BASE}${path}`, {
+      headers,
+      credentials: 'include',
+    })
+
+  let res = await doFetch()
+
+  if (res.status === 401 && !path.includes('/auth/refresh') && !path.includes('/auth/login') && !path.includes('/auth/register')) {
+    const refreshed = await refreshAccessToken()
+    if (refreshed) {
+      if (accessToken) headers.set('Authorization', `Bearer ${accessToken}`)
+      else headers.delete('Authorization')
+      res = await doFetch()
+    }
+  }
+
+  if (!res.ok) throw await parseApiError(res)
+  return {
+    blob: await res.blob(),
+    contentType: res.headers.get('Content-Type') ?? 'application/octet-stream',
+  }
+}
+
 /** Повний URL зображення: зовнішній URL, шлях або public_key з медіа-сховища */
 export function resolveMediaUrl(url: string): string {
   if (!url) return ''
