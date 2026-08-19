@@ -125,7 +125,7 @@ export function GuidesAdminLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-page">
+    <div className="admin-ui min-h-screen bg-page">
       <GuidesHeader onLogout={logout} />
       <div className="container-site grid gap-6 py-8 md:grid-cols-[240px_1fr]">
         <aside className="card h-fit space-y-1 p-4">

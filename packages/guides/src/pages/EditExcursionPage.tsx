@@ -8,7 +8,6 @@ import ExcursionForm, { type ExcursionFormData } from '../components/ExcursionFo
 export default function EditExcursionPage() {
   const { id = '' } = useParams()
   const qc = useQueryClient()
-  const [saved, setSaved] = useState(false)
   const [published, setPublished] = useState(false)
 
   const { data, isLoading, isError } = useQuery({
@@ -27,7 +26,6 @@ export default function EditExcursionPage() {
       await qc.invalidateQueries({ queryKey: ['my-excursion', id] })
       await qc.invalidateQueries({ queryKey: ['my-excursions'] })
       setPublished(true)
-      setSaved(false)
     },
   })
 
@@ -88,11 +86,6 @@ export default function EditExcursionPage() {
             </div>
           </div>
           <h1 className="font-display text-2xl font-bold">Редагування</h1>
-          {saved && (
-            <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-base text-emerald-800">
-              Зміни збережено
-            </p>
-          )}
           {published && (
             <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-base text-emerald-800">
               {moderationEnabled
@@ -109,6 +102,7 @@ export default function EditExcursionPage() {
             persistTabKey={id}
             initial={data}
             submitLabel="Зберегти"
+            successMessage="Зміни збережено"
             datesEditor={{
               excursionId,
               excursionType: data.type ?? 'INDIVIDUAL',
@@ -131,7 +125,6 @@ export default function EditExcursionPage() {
               await guideApi.updateExcursion(excursionId, body)
               await qc.invalidateQueries({ queryKey: ['my-excursion', id] })
               await qc.invalidateQueries({ queryKey: ['my-excursions'] })
-              setSaved(true)
               setPublished(false)
             }}
           />

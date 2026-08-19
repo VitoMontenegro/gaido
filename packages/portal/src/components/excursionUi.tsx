@@ -90,13 +90,23 @@ function guestsWord(n: number) {
 
 export function formatDuration(minutes: number) {
   if (minutes <= 0) return ''
-  const hours = minutes / 60
+  const days = Math.floor(minutes / (24 * 60))
+  const totalHours = minutes / 60
+
+  if (days > 0 || totalHours >= 24) {
+    const d = Math.ceil(minutes / (24 * 60))
+    const mod10 = d % 10
+    const mod100 = d % 100
+    const word = mod10 === 1 && mod100 !== 11 ? 'день' : mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20) ? 'дні' : 'днів'
+    return `${d} ${word}`
+  }
+
   if (minutes % 60 === 0) {
     const h = minutes / 60
     return `${h} ${hoursWord(h)}`
   }
-  const label = Number.isInteger(hours) ? String(hours) : hours.toFixed(1).replace('.', ',')
-  return `${label} ${hoursWord(Math.ceil(hours))}`
+  const label = Number.isInteger(totalHours) ? String(totalHours) : totalHours.toFixed(1).replace('.', ',')
+  return `${label} ${hoursWord(Math.ceil(totalHours))}`
 }
 
 function hoursWord(h: number) {

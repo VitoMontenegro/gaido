@@ -5,7 +5,7 @@
 @source "../../ui-primitives/src/**/*.{ts,tsx}";
 @source "../../../apps/svit/src/**/*.{ts,tsx}";
 
-/* MTS Extended */
+/* MTS Extended — only for .admin-ui */
 @font-face {
   font-family: "MTS Extended";
   src: url("/fonts/MTSExtended-Medium.woff2") format("woff2"), url("/fonts/MTSExtended-Medium.woff") format("woff");
@@ -22,8 +22,8 @@
 }
 
 @theme {
-  --font-sans: "MTS Extended", Arial, sans-serif;
-  --font-display: "MTS Extended", Arial, sans-serif;
+  --font-sans: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-display: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 
   --color-ink: #060606;
   --color-ink-soft: #020202;
@@ -48,6 +48,11 @@
 }
 
 @layer base {
+  .admin-ui {
+    --font-sans: "MTS Extended", Arial, sans-serif;
+    --font-display: "MTS Extended", Arial, sans-serif;
+  }
+
   body {
     @apply bg-page text-ink font-sans antialiased;
     font-size: 16px;

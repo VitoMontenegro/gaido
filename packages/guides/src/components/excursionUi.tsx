@@ -88,27 +88,23 @@ function guestsWord(n: number) {
   return 'осіб'
 }
 
-export function formatDuration(minutes: number) {
-  if (minutes <= 0) return ''
-  const hours = minutes / 60
-  if (minutes % 60 === 0) {
-    const h = minutes / 60
-    return `${h} ${hoursWord(h)}`
-  }
-  const label = Number.isInteger(hours) ? String(hours) : hours.toFixed(1).replace('.', ',')
-  return `${label} ${hoursWord(Math.ceil(hours))}`
-}
+import {
+  durationInputToMinutes,
+  durationPartsToMinutes,
+  formatDuration,
+  formatDurationClock,
+  minutesToDurationInput,
+  minutesToDurationParts,
+} from '../lib/duration'
 
-function hoursWord(h: number) {
-  const n = Math.round(h)
-  const mod10 = n % 10
-  const mod100 = n % 100
-  if (mod10 === 1 && mod100 !== 11) return 'година'
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return 'години'
-  return 'годин'
+export {
+  durationInputToMinutes,
+  durationPartsToMinutes,
+  formatDuration,
+  formatDurationClock,
+  minutesToDurationInput,
+  minutesToDurationParts,
 }
-
-export { minutesToDurationInput, durationInputToMinutes, formatDurationClock } from '../lib/duration'
 
 export function transportLabel(mode: string) {
   switch (mode) {

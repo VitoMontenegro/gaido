@@ -9,7 +9,7 @@ import {
   UserGroupIcon,
 } from '@heroicons/react/24/outline'
 import {
-  formatDurationClock,
+  formatDuration,
   formatGroupSize,
   languageLabel,
   transportLabel,
@@ -80,7 +80,7 @@ export default function ExcursionDetailsGrid({
       />
       <DetailItem
         icon={<ClockIcon className={iconClass} aria-hidden />}
-        title={formatDurationClock(durationMinutes) || '—'}
+        title={formatDuration(durationMinutes) || '—'}
         description={
           <>
             <span className="block text-stone-500">Тривалість</span>

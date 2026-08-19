@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useState, type ReactNode } from 'react'
+import { Suspense, useEffect, useRef, useState, type ReactNode } from 'react'
 import { lazyRichTextEditor } from '@gaido/ui-primitives/lazyRichTextEditor'
 import { normalizeItems } from '../lib/bookingTerms'
 import { resolveMapEmbed } from '../lib/mapEmbed'
@@ -16,7 +16,7 @@ import {
 import { stripEditorArtifacts } from '../lib/html'
 import { ImageUrlField } from './ImageUrlField'
 import ExcursionDatesEditor from './ExcursionDatesEditor'
-import { durationInputToMinutes, minutesToDurationInput } from '../lib/duration'
+import { durationPartsToMinutes, minutesToDurationParts } from '../lib/duration'
 
 const RichTextEditor = lazyRichTextEditor(() => import('./RichTextEditor'))
 
@@ -58,6 +58,7 @@ const TABS: { id: TabId; label: string }[] = [
 type Props = {
   initial?: Partial<ExcursionFormData>
   submitLabel: string
+  successMessage?: string
   onSubmit: (data: ExcursionFormData) => Promise<void>
   /** Зберігає активну вкладку між збереженнями (id екскурсії або "new"). */
   persistTabKey?: string
@@ -91,7 +92,60 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
   )
 }
 
-export default function ExcursionForm({ initial, submitLabel, onSubmit, persistTabKey, datesEditor, footerExtra }: Props) {
+function clampDurationPart(raw: string, max?: number): number {
+  const digits = raw.replace(/\D/g, '')
+  if (!digits) return 0
+  let n = parseInt(digits, 10)
+  if (!Number.isFinite(n)) return 0
+  n = Math.max(0, n)
+  return max != null ? Math.min(max, n) : n
+}
+
+function DurationPartInput({
+  label,
+  name,
+  value,
+  onChange,
+  max,
+}: {
+  label: string
+  name: string
+  value: number
+  onChange: (n: number) => void
+  max?: number
+}) {
+  const [text, setText] = useState(() => (value === 0 ? '' : String(value)))
+
+  useEffect(() => {
+    setText(value === 0 ? '' : String(value))
+  }, [value])
+
+  return (
+    <label className="space-y-1">
+      <span className="form-field-hint block">{label}</span>
+      <input
+        name={name}
+        type="text"
+        inputMode="numeric"
+        autoComplete="off"
+        className="input w-20"
+        value={text}
+        onChange={(e) => {
+          const digits = e.target.value.replace(/\D/g, '')
+          setText(digits)
+          onChange(clampDurationPart(digits, max))
+        }}
+        onBlur={() => {
+          const n = clampDurationPart(text, max)
+          onChange(n)
+          setText(n === 0 ? '' : String(n))
+        }}
+      />
+    </label>
+  )
+}
+
+export default function ExcursionForm({ initial, submitLabel, successMessage = 'Збережено', onSubmit, persistTabKey, datesEditor, footerExtra }: Props) {
   const [tab, setTab] = useState<TabId>(() => readStoredTab(persistTabKey))
 
   useEffect(() => {
@@ -108,7 +162,10 @@ export default function ExcursionForm({ initial, submitLabel, onSubmit, persistT
   const [type, setType] = useState(initial?.type ?? 'INDIVIDUAL')
   const [maxGuests, setMaxGuests] = useState(initial?.max_guests ?? 4)
   const [priceFrom, setPriceFrom] = useState(initial?.price_from ?? 0)
-  const [durationInput, setDurationInput] = useState(() => minutesToDurationInput(initial?.duration_minutes ?? 180))
+  const initialDuration = minutesToDurationParts(initial?.duration_minutes ?? 180)
+  const [durationDays, setDurationDays] = useState(initialDuration.days)
+  const [durationHours, setDurationHours] = useState(initialDuration.hours)
+  const [durationMinutes, setDurationMinutes] = useState(initialDuration.minutes)
   const [transportMode, setTransportMode] = useState(initial?.transport_mode ?? 'WALKING')
   const [language, setLanguage] = useState(initial?.language ?? DEFAULT_EXCURSION_LANGUAGE)
   const [childrenAllowed, setChildrenAllowed] = useState(initial?.children_allowed ?? true)
@@ -123,6 +180,16 @@ export default function ExcursionForm({ initial, submitLabel, onSubmit, persistT
   const [included, setIncluded] = useState(() => normalizeItems(initial?.included_items))
   const [excluded, setExcluded] = useState(() => normalizeItems(initial?.excluded_items))
   const [submitting, setSubmitting] = useState(false)
+  const [saveFeedback, setSaveFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const feedbackRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!saveFeedback) return
+    feedbackRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    if (saveFeedback.type !== 'success') return
+    const timer = window.setTimeout(() => setSaveFeedback(null), 5000)
+    return () => window.clearTimeout(timer)
+  }, [saveFeedback])
 
   const updateStructured = (patch: Partial<ExcursionStructuredContent>) => {
     setStructured((prev) => normalizeStructuredContent({ ...prev, ...patch }))
@@ -134,6 +201,7 @@ export default function ExcursionForm({ initial, submitLabel, onSubmit, persistT
       onSubmit={async (e) => {
         e.preventDefault()
         setSubmitting(true)
+        setSaveFeedback(null)
         try {
           const synced = syncCoverFromGallery(cover, structured)
           await onSubmit({
@@ -144,7 +212,7 @@ export default function ExcursionForm({ initial, submitLabel, onSubmit, persistT
             max_guests: Math.max(1, Number.isFinite(maxGuests) ? maxGuests : 1),
             price_from: Number.isFinite(priceFrom) ? priceFrom : 0,
             currency: 'EUR',
-            duration_minutes: Math.max(15, durationInputToMinutes(durationInput) || 180),
+            duration_minutes: Math.max(1, durationPartsToMinutes({ days: durationDays, hours: durationHours, minutes: durationMinutes }) || 180),
             transport_mode: transportMode,
             children_allowed: childrenAllowed,
             language,
@@ -156,6 +224,12 @@ export default function ExcursionForm({ initial, submitLabel, onSubmit, persistT
             body_html: stripEditorArtifacts(bodyHtml || `<p>${description}</p>`),
             map_embed_url: resolveMapEmbed(mapEmbedUrl) ?? '',
             structured_content: sanitizeStructuredContentForSave(synced.content),
+          })
+          setSaveFeedback({ type: 'success', text: successMessage })
+        } catch (err) {
+          setSaveFeedback({
+            type: 'error',
+            text: err instanceof Error ? err.message : 'Не вдалося зберегти',
           })
         } finally {
           setSubmitting(false)
@@ -200,16 +274,12 @@ export default function ExcursionForm({ initial, submitLabel, onSubmit, persistT
           <Field label="Ціна від, €">
             <input name="price_from" type="number" min={0} step="1" className="input w-full" value={priceFrom} onChange={(e) => setPriceFrom(Number(e.target.value))} required />
           </Field>
-          <Field label="Тривалість" hint="Формат год:хв — наприклад 03:00 = 3 години">
-            <input
-              name="duration"
-              type="time"
-              step={900}
-              className="input w-full max-w-[10rem]"
-              value={durationInput}
-              onChange={(e) => setDurationInput(e.target.value)}
-              required
-            />
+          <Field label="Тривалість">
+            <div className="flex flex-wrap items-end gap-3">
+              <DurationPartInput label="Днів" name="duration_days" value={durationDays} onChange={setDurationDays} />
+              <DurationPartInput label="Годин" name="duration_hours" value={durationHours} onChange={setDurationHours} max={23} />
+              <DurationPartInput label="Хвилин" name="duration_minutes" value={durationMinutes} onChange={setDurationMinutes} max={59} />
+            </div>
           </Field>
           <Field label="Спосіб пересування">
             <select name="transport_mode" className="input w-full" value={transportMode} onChange={(e) => setTransportMode(e.target.value)}>
@@ -394,7 +464,7 @@ export default function ExcursionForm({ initial, submitLabel, onSubmit, persistT
 
       {tab === 'program' && (
         <Field label="Повний опис" hint="Розкривається по кнопці «Читати повністю»">
-          <Suspense fallback={<div className="input min-h-[420px] form-field-hint">Завантаження редактора…</div>}>
+          <Suspense fallback={<div className="input min-h-105 form-field-hint">Завантаження редактора…</div>}>
             <RichTextEditor value={bodyHtml} onChange={setBodyHtml} disabled={submitting} />
           </Suspense>
         </Field>
@@ -408,11 +478,25 @@ export default function ExcursionForm({ initial, submitLabel, onSubmit, persistT
           onExcludedChange={setExcluded}
           disabled={submitting}
           notes={
-            <Suspense fallback={<div className="input min-h-[220px] form-field-hint">Завантаження редактора…</div>}>
+            <Suspense fallback={<div className="input min-h-55 form-field-hint">Завантаження редактора…</div>}>
               <RichTextEditor value={bookingHtml} onChange={setBookingHtml} disabled={submitting} />
             </Suspense>
           }
         />
+      )}
+
+      {saveFeedback && (
+        <div
+          ref={feedbackRef}
+          role="status"
+          className={`rounded-xl border px-4 py-3 text-base ${
+            saveFeedback.type === 'success'
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+              : 'border-red-200 bg-red-50 text-red-700'
+          }`}
+        >
+          {saveFeedback.text}
+        </div>
       )}
 
       <div className="flex flex-wrap gap-3">

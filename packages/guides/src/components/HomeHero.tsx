@@ -42,7 +42,7 @@ export default function HomeHero({ title, subtitle }: Props) {
             key={slide.src}
             src={slide.src}
             alt=""
-            className={`home-hero__slide absolute inset-0 h-full w-full object-cover transition-opacity duration-[1400ms] ease-out ${
+            className={`home-hero__slide absolute inset-0 h-full w-full object-cover transition-opacity duration-1400 ease-out ${
               i === active ? 'opacity-100' : 'opacity-0'
             }`}
             loading={i === 0 ? 'eager' : 'lazy'}
@@ -50,8 +50,8 @@ export default function HomeHero({ title, subtitle }: Props) {
             decoding={i === 0 ? 'sync' : 'async'}
           />
         ))}
-        <div className="absolute inset-0 bg-gradient-to-r from-ink/80 via-ink/55 to-ink/25" />
-        <div className="absolute inset-0 bg-gradient-to-t from-ink/50 via-transparent to-ink/30" />
+        <div className="absolute inset-0 bg-linear-to-r from-ink/80 via-ink/55 to-ink/25" />
+        <div className="absolute inset-0 bg-linear-to-t from-ink/50 via-transparent to-ink/30" />
       </div>
 
       <div className="container-site relative z-10 flex min-h-[min(78vh,720px)] flex-col justify-center pb-14 pt-24 md:pb-20 md:pt-28">
@@ -59,7 +59,7 @@ export default function HomeHero({ title, subtitle }: Props) {
           {title}
         </h1>
         <p
-          className="mt-4 max-w-xl text-base leading-relaxed text-white/80 md:text-lg"
+          className="mt-4 text-base leading-relaxed text-white/80 md:text-lg"
           dangerouslySetInnerHTML={{ __html: sanitizeHtml(subtitle) }}
         />
 
