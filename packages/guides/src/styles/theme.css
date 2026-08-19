@@ -760,7 +760,7 @@
   }
 
   .excursion-parus-organizer__pill {
-    @apply flex h-11 min-w-0 w-full items-center justify-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium transition hover:opacity-90 sm:gap-2 sm:px-4 sm:text-base;
+    @apply flex h-11 min-w-0 w-full items-center justify-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium transition hover:opacity-90 sm:gap-2 sm:px-4 sm:text-[14px];
   }
 
   .excursion-parus-organizer__pill span {
