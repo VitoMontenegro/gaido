@@ -194,7 +194,7 @@ function ContactBlock({ guide }: { guide: PublicGuide }) {
             : 'Контакти доступні після активації розміщення гіда.'}
         </p>
       )}
-      {telegramBotURL && (
+      {/*{telegramBotURL && (
         <button
           type="button"
           data-telegram
@@ -202,7 +202,7 @@ function ContactBlock({ guide }: { guide: PublicGuide }) {
         >
           Написати в підтримку
         </button>
-      )}
+      )}*/}
     </div>
   )
 }
