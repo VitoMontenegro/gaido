@@ -5,9 +5,25 @@
 @source "../../ui-primitives/src/**/*.{ts,tsx}";
 @source "../../../apps/servis/src/**/*.{ts,tsx}";
 
+/* MTS Extended — заголовки (font-display) */
+@font-face {
+  font-family: "MTS Extended";
+  src: url("/fonts/MTSExtended-Medium.woff2") format("woff2"), url("/fonts/MTSExtended-Medium.woff") format("woff");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "MTS Extended";
+  src: url("/fonts/MTSExtended-Bold.woff2") format("woff2"), url("/fonts/MTSExtended-Bold.woff") format("woff");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 @theme {
   --font-sans: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-  --font-display: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-display: "MTS Extended", Arial, sans-serif;
 
   --color-ink: #060606;
   --color-ink-soft: #020202;
