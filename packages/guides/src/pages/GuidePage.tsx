@@ -12,7 +12,7 @@ import ReviewsSection from '../components/reviews/ReviewsSection'
 import StarRating from '../components/reviews/StarRating'
 import { trackRecentView, removeRecentView } from '../hooks/useRecentViews'
 import { useHasRole, useMe } from '@gaido/api-client/hooks/useAuth'
-import { useTelegramBotURL } from '../hooks/useTelegramBotURL'
+// import { useTelegramBotURL } from '../hooks/useTelegramBotURL'
 import { getApiErrorCode } from '@gaido/api-client/api/http'
 import CatalogNotFound from '../components/CatalogNotFound'
 import { pageTitle } from '@gaido/site-urls/brand'
@@ -174,7 +174,7 @@ function GuideHero({ guide, excursionCount }: { guide: PublicGuide; excursionCou
 }
 
 function ContactBlock({ guide }: { guide: PublicGuide }) {
-  const telegramBotURL = useTelegramBotURL()
+  // const telegramBotURL = useTelegramBotURL()
   const links = guideContactLinks(guide.contacts)
 
   return (
@@ -194,15 +194,15 @@ function ContactBlock({ guide }: { guide: PublicGuide }) {
             : 'Контакти доступні після активації розміщення гіда.'}
         </p>
       )}
-      {/*{telegramBotURL && (
-        <button
-          type="button"
-          data-telegram
-          className="btn-primary mt-4 w-full sm:w-auto"
-        >
-          Написати в підтримку
-        </button>
-      )}*/}
+      {/*{telegramBotURL && (*/}
+      {/*  <button*/}
+      {/*    type="button"*/}
+      {/*    data-telegram*/}
+      {/*    className="btn-primary mt-4 w-full sm:w-auto"*/}
+      {/*  >*/}
+      {/*    Написати в підтримку*/}
+      {/*  </button>*/}
+      {/*)}*/}
     </div>
   )
 }
