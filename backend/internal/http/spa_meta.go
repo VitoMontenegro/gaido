@@ -22,6 +22,7 @@ type PageMeta struct {
 	Canonical   string
 	OgImage     string
 	NoIndex     bool
+	JsonLd      []string
 }
 
 type spaSocialProfile struct {
@@ -109,6 +110,14 @@ func pageMetaHeadHTML(profile spaSocialProfile, meta *PageMeta) string {
 	}
 	if noIndex {
 		lines = append(lines, `<meta name="robots" content="noindex, nofollow" />`)
+	}
+	if meta != nil {
+		for _, raw := range meta.JsonLd {
+			if raw == "" {
+				continue
+			}
+			lines = append(lines, `<script type="application/ld+json">`+raw+`</script>`)
+		}
 	}
 	return "    " + strings.Join(lines, "\n    ") + "\n"
 }

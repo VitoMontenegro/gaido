@@ -24,6 +24,7 @@ type SpaPageMeta struct {
 	Canonical   string
 	OgImage     string
 	NoIndex     bool
+	JsonLd      []string
 }
 
 func pageTitleSuffix(name string) string {
@@ -140,6 +141,7 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 			Description: desc,
 			Canonical:   base + "/excursion/" + e.Slug,
 			OgImage:     img,
+			JsonLd:      h.excursionDetailJsonLd(ctx, e, base),
 		}
 
 	case "guide":

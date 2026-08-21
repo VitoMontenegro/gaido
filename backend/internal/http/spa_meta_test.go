@@ -42,6 +42,22 @@ func TestPatchIndexHTML_pageMeta(t *testing.T) {
 	}
 }
 
+func TestPatchIndexHTML_jsonLd(t *testing.T) {
+	html := `<!doctype html><html><head><title>Gaido</title></head><body></body></html>`
+	meta := &PageMeta{
+		Title: "Test — Gaido",
+		JsonLd: []string{
+			`{"@context":"https://schema.org","@type":"Product","name":"Test"}`,
+		},
+	}
+	got := patchIndexHTML(html, "svit.gaido.top", meta)
+	if !strings.Contains(got, `<script type="application/ld+json">`) {
+		t.Fatalf("expected json-ld script in %q", got)
+	}
+	if !strings.Contains(got, `"@type":"Product"`) {
+		t.Fatalf("expected Product schema in %q", got)
+	}
+}
 func TestPatchIndexHTML_noIndex(t *testing.T) {
 	html := `<!doctype html><html><head><title>Gaido</title></head><body></body></html>`
 	got := patchIndexHTML(html, "svit.gaido.top", &PageMeta{NoIndex: true, Title: "Login — Gaido"})

@@ -267,6 +267,7 @@ func serveSpaIndexWithMeta(w http.ResponseWriter, r *http.Request, indexPath str
 				Canonical:   resolved.Canonical,
 				OgImage:     resolved.OgImage,
 				NoIndex:     resolved.NoIndex,
+				JsonLd:      resolved.JsonLd,
 			}
 		}
 	}
