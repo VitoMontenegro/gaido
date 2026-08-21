@@ -201,6 +201,41 @@ export default function GuidesHeader({ onLogout }: GuidesHeaderProps) {
                 </li>
               ))}
             </ul>
+            <div className="mt-4 space-y-1 border-t border-divider pt-4">
+              {authPending ? (
+                <div className="h-11 animate-pulse rounded-xl bg-sand-100/80" aria-hidden />
+              ) : me ? (
+                <>
+                  <Link
+                    to={accountHref}
+                    className="flex min-h-11 items-center gap-3 rounded-xl px-3 text-base font-medium text-ink transition hover:bg-sand-100"
+                  >
+                    <UserAvatar avatar={profileAvatar} name={profileName} className="h-8 w-8 shrink-0" />
+                    <span>Особистий кабінет</span>
+                  </Link>
+                  <p className="px-3 text-xs text-muted-light">{me.login}</p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMenuOpen(false)
+                      void onLogout()
+                    }}
+                    className="flex min-h-11 w-full items-center rounded-xl px-3 text-base font-medium text-red-600 transition hover:bg-red-50"
+                  >
+                    Вийти
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link to="/login" className="flex min-h-11 items-center rounded-xl px-3 text-base font-medium text-ink transition hover:bg-sand-100">
+                    Вхід
+                  </Link>
+                  <Link to="/register/guide" className="flex min-h-11 items-center rounded-xl px-3 text-base font-medium text-ink transition hover:bg-sand-100">
+                    Стати гідом
+                  </Link>
+                </>
+              )}
+            </div>
           </nav>
         </div>
       )}

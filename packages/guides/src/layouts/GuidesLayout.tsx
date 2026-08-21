@@ -50,6 +50,7 @@ export function GuidesAccountLayout() {
 
   return (
     <div className="min-h-screen bg-page">
+      <GuidesHeader onLogout={logout} />
       <div className="container-site grid gap-6 py-8 md:grid-cols-[240px_1fr]">
         <aside className="card h-fit space-y-1 p-4">
           <Link to="/" className="mb-3 block font-display text-lg font-medium text-ink transition hover:opacity-75">
