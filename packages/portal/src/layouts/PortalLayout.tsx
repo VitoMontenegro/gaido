@@ -63,7 +63,6 @@ export function PortalAdminLayout() {
           <Link to="/" className="mb-3 block font-display text-lg font-medium text-ink transition hover:opacity-75">
             ← На головну
           </Link>
-          <p className="section-title-sm mb-4">Адміністрування</p>
           {isModerator && (
             <AccountNavLink to="/moderator">Модератор</AccountNavLink>
           )}
