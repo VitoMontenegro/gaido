@@ -2,6 +2,9 @@ import { getSiteMode, GUIDES_HOST, SERVICES_HOST, TRANSPORT_HOST } from './site'
 
 export const SITE_TAGLINE = 'Для українців — від українців'
 
+/** Public media key for default Open Graph / Twitter preview image */
+export const DEFAULT_OG_IMAGE_KEY = 'd2b27d81f09874a08b4dc3293fe67f2e.webp'
+
 export function getSiteName(): string {
   switch (getSiteMode()) {
     case 'guides':

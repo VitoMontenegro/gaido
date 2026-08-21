@@ -2,7 +2,9 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { existsSync, readFileSync } from 'fs'
 import { resolve } from 'path'
-import { defineConfig, loadEnv, type UserConfig } from 'vite'
+import { defineConfig, loadEnv, type Plugin, type UserConfig } from 'vite'
+
+const DEFAULT_OG_IMAGE_KEY = 'd2b27d81f09874a08b4dc3293fe67f2e.webp'
 
 export type SiteMode = 'portal' | 'guides' | 'transport' | 'services'
 
@@ -37,6 +39,23 @@ function loadLocalPorts(root: string): Record<string, string> {
   return out
 }
 
+function socialMetaHtmlPlugin(siteOrigin: string): Plugin {
+  const origin = siteOrigin.replace(/\/$/, '')
+  const ogImage = `${origin}/api/v1/media/public/${DEFAULT_OG_IMAGE_KEY}`
+  const tags = [
+    `<meta property="og:image" content="${ogImage}" />`,
+    `<meta name="twitter:card" content="summary_large_image" />`,
+    `<meta name="twitter:image" content="${ogImage}" />`,
+  ].join('\n    ')
+
+  return {
+    name: 'gaido-social-meta',
+    transformIndexHtml(html) {
+      return html.replace('</head>', `    ${tags}\n  </head>`)
+    },
+  }
+}
+
 export function createAppViteConfig({
   appDir,
   defaultPort,
@@ -68,6 +87,10 @@ export function createAppViteConfig({
     const frontendPort = Number(
       process.env.FRONTEND_PORT || process.env.PORT || env.FRONTEND_PORT || defaultPort,
     )
+    const siteOrigin =
+      env.VITE_PUBLIC_SITE_URL ||
+      localPorts.PUBLIC_BASE_URL ||
+      `http://localhost:${frontendPort}`
 
     const aliases: Record<string, string> = {
       '@gaido/api-client': resolve(root, 'packages/api-client/src'),
@@ -80,7 +103,7 @@ export function createAppViteConfig({
     }
 
     const config: UserConfig = {
-      plugins: [react(), tailwindcss()],
+      plugins: [react(), tailwindcss(), socialMetaHtmlPlugin(siteOrigin)],
       envDir: root,
       publicDir,
       define: {

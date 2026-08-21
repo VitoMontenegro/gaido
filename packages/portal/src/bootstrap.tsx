@@ -6,6 +6,7 @@ import { BrowserRouter } from 'react-router-dom'
 import { ApiClientError, bootstrapAuth } from '@gaido/api-client/api/http'
 import { handleDynamicImportRejection } from '@gaido/ui-primitives/lazyImport'
 import { initTelegramButtons } from './lib/telegramButtons'
+import { DefaultSocialMeta } from './lib/seo'
 import './styles/theme.css'
 
 const queryClient = new QueryClient({
@@ -35,6 +36,7 @@ export function mountApp(App: ComponentType) {
         <HelmetProvider>
           <QueryClientProvider client={queryClient}>
             <BrowserRouter>
+              <DefaultSocialMeta />
               <App />
             </BrowserRouter>
           </QueryClientProvider>

@@ -1,8 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
+import { userDisplayName } from '@gaido/api-client/api/auth'
+import { guideApi } from '@gaido/api-client/api/client'
 import { getAccessToken } from '@gaido/api-client/api/http'
 import { useMe, useHasRole } from '@gaido/api-client/hooks/useAuth'
 import BrandLogo from './BrandLogo'
+import UserAvatar from './UserAvatar'
 import { cn } from '@gaido/ui-primitives/cn'
 
 const GUIDES_NAV = [
@@ -47,6 +51,14 @@ export default function GuidesHeader({ onLogout }: GuidesHeaderProps) {
   const authPending = isLoading && !!getAccessToken()
   const isGuide = useHasRole('ROLE_GUIDE')
   const accountHref = isGuide ? '/account/guide' : '/account'
+  const { data: guideDashboard } = useQuery({
+    queryKey: ['guide-dashboard'],
+    queryFn: () => guideApi.dashboard(),
+    enabled: !!me && isGuide,
+    staleTime: 5 * 60 * 1000,
+  })
+  const profileName = me ? (isGuide && guideDashboard?.display_name) || userDisplayName(me) : ''
+  const profileAvatar = isGuide ? guideDashboard?.avatar_url : undefined
   const homeOverlay = location.pathname === '/'
   const solidHeader = !homeOverlay || scrolled
 
@@ -113,6 +125,16 @@ export default function GuidesHeader({ onLogout }: GuidesHeaderProps) {
                 />
               ) : me ? (
                 <>
+                  <Link
+                    to={accountHref}
+                    className={cn(
+                      'inline-flex shrink-0 sm:hidden',
+                      !solidHeader && 'ring-1 ring-white/30 rounded-full',
+                    )}
+                    aria-label="Особистий кабінет"
+                  >
+                    <UserAvatar avatar={profileAvatar} name={profileName} className="h-9 w-9" />
+                  </Link>
                   <span className={cn('hidden text-sm lg:inline', solidHeader ? 'text-muted' : 'text-white/80')}>
                     {me.login}
                   </span>
