@@ -22,7 +22,7 @@ export default function GuideAvatar({ avatar, name, className, imgClassName }: G
       <img
         src={guideAvatarSrc(avatar)}
         alt={name ? `Фото: ${name}` : ''}
-        className={cn('h-full w-full object-contain', imgClassName)}
+        className={cn('h-full w-full object-cover', imgClassName)}
         loading="lazy"
       />
     </div>
