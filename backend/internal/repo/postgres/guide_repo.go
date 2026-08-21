@@ -159,9 +159,6 @@ func (r *GuideRepo) ListPublic(ctx context.Context, cityID, countryID *int64, gu
 			UNION
 			SELECT gc.guide_id FROM guide_cities gc
 			WHERE gc.city_id=$%d AND gc.is_active=true
-			AND NOT EXISTS (
-				SELECT 1 FROM excursions e WHERE e.guide_id=gc.guide_id AND e.status='PUBLISHED'
-			)
 		)`, n, n)
 		args = append(args, *cityID)
 		n++
@@ -175,19 +172,16 @@ func (r *GuideRepo) ListPublic(ctx context.Context, cityID, countryID *int64, gu
 			SELECT gc.guide_id FROM guide_cities gc
 			JOIN cities c ON c.id=gc.city_id AND c.is_active=true
 			WHERE gc.is_active=true AND c.country_id=$%d
-			AND NOT EXISTS (
-				SELECT 1 FROM excursions e WHERE e.guide_id=gc.guide_id AND e.status='PUBLISHED'
-			)
+			UNION
+			SELECT gco.guide_id FROM guide_countries gco
+			WHERE gco.is_active=true AND gco.country_id=$%d
 			UNION
 			SELECT gp.id FROM guide_profiles gp
 			WHERE gp.country_id=$%d AND gp.status=$1
 			AND NOT EXISTS (
-				SELECT 1 FROM excursions e WHERE e.guide_id=gp.id AND e.status='PUBLISHED'
+				SELECT 1 FROM guide_countries gco WHERE gco.guide_id=gp.id AND gco.is_active=true
 			)
-			AND NOT EXISTS (
-				SELECT 1 FROM guide_cities gc WHERE gc.guide_id=gp.id AND gc.is_active=true
-			)
-		)`, n, n, n)
+		)`, n, n, n, n)
 		args = append(args, *countryID)
 		n++
 	}
@@ -475,5 +469,78 @@ func (r *GuideRepo) ReplaceCities(ctx context.Context, guideID int64, cityIDs []
 			return err
 		}
 	}
+	return tx.Commit(ctx)
+}
+
+func (r *GuideRepo) ListCountries(ctx context.Context, guideID int64) ([]domain.GuideCountryBrief, error) {
+	rows, err := r.db.Pool.Query(ctx, `
+		SELECT co.id, co.slug, co.name, gc.is_primary
+		FROM guide_countries gc
+		JOIN countries co ON co.id = gc.country_id AND co.is_active = true
+		WHERE gc.guide_id = $1 AND gc.is_active = true
+		ORDER BY gc.is_primary DESC, co.name
+	`, guideID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []domain.GuideCountryBrief
+	for rows.Next() {
+		var c domain.GuideCountryBrief
+		if err := rows.Scan(&c.ID, &c.Slug, &c.Name, &c.IsPrimary); err != nil {
+			return nil, err
+		}
+		out = append(out, c)
+	}
+	return out, rows.Err()
+}
+
+func (r *GuideRepo) ReplaceCountries(ctx context.Context, guideID int64, countryIDs []int64, primaryID int64) error {
+	tx, err := r.db.Pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	if len(countryIDs) == 0 {
+		if _, err := tx.Exec(ctx, `UPDATE guide_countries SET is_active=false WHERE guide_id=$1`, guideID); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(ctx, `UPDATE guide_profiles SET country_id=NULL WHERE id=$1`, guideID); err != nil {
+			return err
+		}
+		return tx.Commit(ctx)
+	}
+
+	if _, err := tx.Exec(ctx, `
+		UPDATE guide_countries SET is_active=false
+		WHERE guide_id=$1 AND NOT (country_id = ANY($2))
+	`, guideID, countryIDs); err != nil {
+		return err
+	}
+
+	if _, err := tx.Exec(ctx, `UPDATE guide_countries SET is_primary=false WHERE guide_id=$1`, guideID); err != nil {
+		return err
+	}
+
+	effectivePrimary := primaryID
+	if effectivePrimary <= 0 && len(countryIDs) > 0 {
+		effectivePrimary = countryIDs[0]
+	}
+
+	for _, countryID := range countryIDs {
+		primary := countryID == effectivePrimary
+		if _, err := tx.Exec(ctx, `
+			INSERT INTO guide_countries (guide_id, country_id, is_primary) VALUES ($1,$2,$3)
+			ON CONFLICT (guide_id, country_id) DO UPDATE SET is_active=true, is_primary=EXCLUDED.is_primary
+		`, guideID, countryID, primary); err != nil {
+			return err
+		}
+	}
+
+	if _, err := tx.Exec(ctx, `UPDATE guide_profiles SET country_id=$2 WHERE id=$1`, guideID, effectivePrimary); err != nil {
+		return err
+	}
+
 	return tx.Commit(ctx)
 }

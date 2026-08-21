@@ -103,10 +103,7 @@ func (r *GeoRepo) ListCountries(ctx context.Context) ([]Country, error) {
 
 func (r *GeoRepo) ListCountriesWithGuideCount(ctx context.Context) ([]CountryWithGuideCount, error) {
 	rows, err := r.db.Pool.Query(ctx, `
-		WITH guides_with_published AS (
-			SELECT DISTINCT guide_id FROM excursions WHERE status = 'PUBLISHED'
-		),
-		guide_effective_countries AS (
+		WITH guide_effective_countries AS (
 			SELECT DISTINCT c.country_id, e.guide_id
 			FROM excursions e
 			JOIN cities c ON c.id = e.city_id AND c.is_active = true
@@ -118,20 +115,18 @@ func (r *GeoRepo) ListCountriesWithGuideCount(ctx context.Context) ([]CountryWit
 			JOIN cities c ON c.id = gc.city_id AND c.is_active = true
 			JOIN guide_profiles gp ON gp.id = gc.guide_id AND gp.status = $1
 			WHERE gc.is_active = true
-			AND NOT EXISTS (
-				SELECT 1 FROM guides_with_published gwp WHERE gwp.guide_id = gc.guide_id
-			)
+			UNION
+			SELECT gco.country_id, gco.guide_id
+			FROM guide_countries gco
+			JOIN guide_profiles gp ON gp.id = gco.guide_id AND gp.status = $1
+			WHERE gco.is_active = true
 			UNION
 			SELECT gp.country_id, gp.id
 			FROM guide_profiles gp
 			WHERE gp.status = $1
 			AND gp.country_id IS NOT NULL
 			AND NOT EXISTS (
-				SELECT 1 FROM guides_with_published gwp WHERE gwp.guide_id = gp.id
-			)
-			AND NOT EXISTS (
-				SELECT 1 FROM guide_cities gc
-				WHERE gc.guide_id = gp.id AND gc.is_active = true
+				SELECT 1 FROM guide_countries gco WHERE gco.guide_id = gp.id AND gco.is_active = true
 			)
 		)
 		SELECT co.id, co.slug, co.name, COUNT(DISTINCT gec.guide_id)::int

@@ -5,7 +5,7 @@ import { api, guideApi } from '@gaido/api-client/api/client'
 import GuideAvatar from '../../components/GuideAvatar'
 import GuideGeoSection from '../../components/guide/GuideGeoSection'
 import { ImageUrlField } from '../../components/ImageUrlField'
-import type { GuideCity, GuideProfile } from './shared'
+import type { GuideCity, GuideCountry, GuideProfile } from './shared'
 import { CatalogStatusBanner } from './shared'
 
 export function GuideProfilePage() {
@@ -24,8 +24,20 @@ function profilePayload(f: Partial<GuideProfile>) {
     whatsapp: f.whatsapp ?? '',
     viber: f.viber ?? '',
     response_hours: f.response_hours ?? '',
-    country_id: f.country_id ?? null,
   }
+}
+
+function resolveCountries(data?: GuideProfile): GuideCountry[] {
+  if (data?.countries?.length) return data.countries
+  if (data?.country_id && data.country_slug && data.country_name) {
+    return [{
+      id: data.country_id,
+      slug: data.country_slug,
+      name: data.country_name,
+      is_primary: true,
+    }]
+  }
+  return []
 }
 
 function GuideProfileForm() {
@@ -35,25 +47,29 @@ function GuideProfileForm() {
     queryFn: () => api<GuideProfile>('/api/v1/account/guide/profile'),
   })
   const [form, setForm] = useState<Partial<GuideProfile>>({})
+  const [geoCountries, setGeoCountries] = useState<GuideCountry[] | null>(null)
   const [geoCities, setGeoCities] = useState<GuideCity[] | null>(null)
   const patch = (next: Partial<GuideProfile>) => setForm((prev) => ({ ...prev, ...next }))
 
   const mutation = useMutation({
     mutationFn: async (body: Partial<GuideProfile>) => {
       await guideApi.updateProfile(profilePayload(body))
-      const allCities = geoCities ?? body.cities ?? data?.cities ?? []
-      const countrySlug = body.country_slug ?? data?.country_slug
-      const cities = countrySlug
-        ? allCities.filter((c) => c.country_slug === countrySlug)
-        : allCities
-      const primary = cities.find((c) => c.is_primary)?.id ?? cities[0]?.id
+      const countries = geoCountries ?? resolveCountries(data)
+      const cities = geoCities ?? body.cities ?? data?.cities ?? []
+      const primaryCountry = countries.find((c) => c.is_primary)?.id ?? countries[0]?.id
+      const primaryCity = cities.find((c) => c.is_primary)?.id ?? cities[0]?.id
+      await guideApi.setCountries({
+        country_ids: countries.map((c) => c.id),
+        primary_country_id: primaryCountry,
+      })
       await guideApi.setCities({
         city_ids: cities.map((c) => c.id),
-        primary_city_id: primary,
+        primary_city_id: primaryCity,
       })
     },
     onSuccess: () => {
       setForm({})
+      setGeoCountries(null)
       setGeoCities(null)
       qc.invalidateQueries({ queryKey: ['guide-profile'] })
       qc.invalidateQueries({ queryKey: ['countries-with-guides'] })
@@ -61,6 +77,7 @@ function GuideProfileForm() {
   })
 
   const f = { ...data, ...form }
+  const countries = geoCountries ?? resolveCountries(data)
   const cities = geoCities ?? f.cities ?? []
   const isCompanion = f.guide_type === 'COMPANION'
 
@@ -109,16 +126,9 @@ function GuideProfileForm() {
         onChange={(e) => patch({ about: e.target.value })}
       />
       <GuideGeoSection
-        countryId={f.country_id}
-        countrySlug={f.country_slug}
+        countries={countries}
         cities={cities}
-        onCountryChange={(countryId, countrySlug) => {
-          patch({ country_id: countryId, country_slug: countrySlug })
-          const current = geoCities ?? f.cities ?? []
-          setGeoCities(
-            countrySlug ? current.filter((c) => c.country_slug === countrySlug) : [],
-          )
-        }}
+        onCountriesChange={setGeoCountries}
         onCitiesChange={setGeoCities}
       />
       <div className="space-y-3 rounded-xl border border-border bg-sand-50/80 p-4">
@@ -171,7 +181,7 @@ function GuideProfileForm() {
         type="button"
         className="btn-primary"
         disabled={mutation.isPending || !data}
-        onClick={() => mutation.mutate({ ...f, cities })}
+        onClick={() => mutation.mutate({ ...f, cities, countries })}
       >
         {mutation.isPending ? 'Збереження…' : 'Зберегти'}
       </button>

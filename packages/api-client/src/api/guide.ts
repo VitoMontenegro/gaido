@@ -9,6 +9,13 @@ export type GuideCity = {
   is_primary: boolean
 }
 
+export type GuideCountry = {
+  id: number
+  slug: string
+  name: string
+  is_primary: boolean
+}
+
 export const guideApi = {
   dashboard: () => api<GuideDashboard>('/api/v1/account/guide/dashboard'),
   updateProfile: (body: Record<string, unknown>) =>
@@ -17,6 +24,8 @@ export const guideApi = {
     api('/api/v1/account/guide/cities', { method: 'POST', body: JSON.stringify(body) }),
   setCities: (body: { city_ids: number[]; primary_city_id?: number }) =>
     api<{ items: GuideCity[] }>('/api/v1/account/guide/cities', { method: 'PUT', body: JSON.stringify(body) }),
+  setCountries: (body: { country_ids: number[]; primary_country_id?: number }) =>
+    api<{ items: GuideCountry[] }>('/api/v1/account/guide/countries', { method: 'PUT', body: JSON.stringify(body) }),
   removeCity: (cityId: number) =>
     api(`/api/v1/account/guide/cities/${cityId}`, { method: 'DELETE' }),
   uploadDocument: (formData: FormData) =>

@@ -21,6 +21,8 @@ type GuideRepository interface {
 	ListCities(ctx context.Context, guideID int64) ([]domain.GuideCityBrief, error)
 	RemoveCity(ctx context.Context, guideID, cityID int64) error
 	ReplaceCities(ctx context.Context, guideID int64, cityIDs []int64, primaryID int64) error
+	ListCountries(ctx context.Context, guideID int64) ([]domain.GuideCountryBrief, error)
+	ReplaceCountries(ctx context.Context, guideID int64, countryIDs []int64, primaryID int64) error
 }
 
 type ExcursionPublisher interface {

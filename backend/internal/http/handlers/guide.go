@@ -31,7 +31,26 @@ func (h *Handlers) GetGuideProfile(w http.ResponseWriter, r *http.Request) {
 }
 func (h *Handlers) buildGuideAccountProfile(ctx context.Context, g *domain.GuideProfile) domain.GuideAccountProfile {
 	profile := guidesvc.BuildGuideAccountProfile(g, h.HasUploadedLicense(ctx, g))
-	if g.CountryID != nil && *g.CountryID > 0 {
+	countries, err := h.Guides.ListCountries(ctx, g.ID)
+	if err == nil {
+		profile.Countries = countries
+	}
+	if profile.Countries == nil {
+		profile.Countries = []domain.GuideCountryBrief{}
+	}
+	if len(profile.Countries) > 0 {
+		for _, c := range profile.Countries {
+			if c.IsPrimary {
+				profile.CountrySlug = c.Slug
+				profile.CountryName = c.Name
+				break
+			}
+		}
+		if profile.CountrySlug == "" {
+			profile.CountrySlug = profile.Countries[0].Slug
+			profile.CountryName = profile.Countries[0].Name
+		}
+	} else if g.CountryID != nil && *g.CountryID > 0 {
 		if country, err := h.Geo.GetCountryByID(ctx, *g.CountryID); err == nil && country != nil {
 			profile.CountrySlug = country.Slug
 			profile.CountryName = country.Name
@@ -199,10 +218,6 @@ func (h *Handlers) SetGuideCities(w http.ResponseWriter, r *http.Request) {
 			response.Error(w, r, apperrors.ErrValidation)
 			return
 		}
-		if g.CountryID != nil && *g.CountryID > 0 && city.CountryID != *g.CountryID {
-			response.Error(w, r, apperrors.ErrValidation)
-			return
-		}
 	}
 	if req.PrimaryCityID > 0 {
 		found := false
@@ -226,6 +241,55 @@ func (h *Handlers) SetGuideCities(w http.ResponseWriter, r *http.Request) {
 		cities = []domain.GuideCityBrief{}
 	}
 	response.JSON(w, r, 200, map[string]any{"items": cities})
+}
+
+func (h *Handlers) SetGuideCountries(w http.ResponseWriter, r *http.Request) {
+	g, err := h.Guides.GetByUserID(r.Context(), middleware.UserIDFromContext(r.Context()))
+	if err != nil || g == nil {
+		response.Error(w, r, apperrors.ErrNotFound)
+		return
+	}
+	var req struct {
+		CountryIDs       []int64 `json:"country_ids"`
+		PrimaryCountryID int64   `json:"primary_country_id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Error(w, r, apperrors.ErrValidation)
+		return
+	}
+	for _, countryID := range req.CountryIDs {
+		if countryID <= 0 {
+			response.Error(w, r, apperrors.ErrValidation)
+			return
+		}
+		country, err := h.Geo.GetCountryByID(r.Context(), countryID)
+		if err != nil || country == nil {
+			response.Error(w, r, apperrors.ErrValidation)
+			return
+		}
+	}
+	if req.PrimaryCountryID > 0 {
+		found := false
+		for _, id := range req.CountryIDs {
+			if id == req.PrimaryCountryID {
+				found = true
+				break
+			}
+		}
+		if !found {
+			response.Error(w, r, apperrors.ErrValidation)
+			return
+		}
+	}
+	if err := h.Guides.ReplaceCountries(r.Context(), g.ID, req.CountryIDs, req.PrimaryCountryID); err != nil {
+		response.Error(w, r, apperrors.ErrInternal)
+		return
+	}
+	countries, _ := h.Guides.ListCountries(r.Context(), g.ID)
+	if countries == nil {
+		countries = []domain.GuideCountryBrief{}
+	}
+	response.JSON(w, r, 200, map[string]any{"items": countries})
 }
 
 func (h *Handlers) RemoveGuideCity(w http.ResponseWriter, r *http.Request) {

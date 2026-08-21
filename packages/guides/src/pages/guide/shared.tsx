@@ -17,7 +17,15 @@ export type GuideProfile = {
   country_id?: number | null
   country_slug?: string
   country_name?: string
+  countries?: GuideCountry[]
   cities?: GuideCity[]
+}
+
+export type GuideCountry = {
+  id: number
+  slug: string
+  name: string
+  is_primary: boolean
 }
 
 export type GuideCity = {

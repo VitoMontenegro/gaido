@@ -51,14 +51,22 @@ type GuideCityBrief struct {
 	IsPrimary   bool   `json:"is_primary"`
 }
 
+type GuideCountryBrief struct {
+	ID        int64  `json:"id"`
+	Slug      string `json:"slug"`
+	Name      string `json:"name"`
+	IsPrimary bool   `json:"is_primary"`
+}
+
 type GuideAccountProfile struct {
 	GuideProfile
-	TypeBadge     *string          `json:"type_badge,omitempty"`
-	HasLicense    bool             `json:"has_license"`
-	CatalogStatus string           `json:"catalog_status"`
-	CountrySlug   string           `json:"country_slug,omitempty"`
-	CountryName   string           `json:"country_name,omitempty"`
-	Cities        []GuideCityBrief `json:"cities,omitempty"`
+	TypeBadge     *string             `json:"type_badge,omitempty"`
+	HasLicense    bool                `json:"has_license"`
+	CatalogStatus string              `json:"catalog_status"`
+	CountrySlug   string              `json:"country_slug,omitempty"`
+	CountryName   string              `json:"country_name,omitempty"`
+	Countries     []GuideCountryBrief `json:"countries,omitempty"`
+	Cities        []GuideCityBrief    `json:"cities,omitempty"`
 }
 
 type GuideDocumentModerationItem struct {

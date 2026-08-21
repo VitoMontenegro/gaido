@@ -115,6 +115,7 @@ func NewRouter(cfg config.Config, log *slog.Logger, h *handlers.Handlers) http.H
 			gr.Post("/account/guide/cities", h.AddGuideCity)
 			gr.Put("/account/guide/cities", h.SetGuideCities)
 			gr.Delete("/account/guide/cities/{cityId}", h.RemoveGuideCity)
+			gr.Put("/account/guide/countries", h.SetGuideCountries)
 			gr.Post("/account/guide/geo/cities", h.CreateGuideGeoCity)
 			gr.Get("/account/guide/billing/plans", h.ListPlans)
 			gr.Get("/account/guide/billing/status", h.GetBillingStatus)
