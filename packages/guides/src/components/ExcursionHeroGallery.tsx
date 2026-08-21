@@ -80,7 +80,7 @@ function HeroTile({
           fallbackSrc={fallback}
           alt={alt}
           className={cn(
-            'h-full w-full object-contain',
+            'h-full w-full object-cover',
             overlayCount != null && 'absolute inset-0',
           )}
         />
