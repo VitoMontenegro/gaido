@@ -80,6 +80,27 @@ type LegalContent struct {
 	PlacementRules LegalPage `json:"placement_rules"`
 }
 
+type AboutAudienceItem struct {
+	Title       string `json:"title"`
+	Description string `json:"description"`
+}
+
+// AboutPageContent is the public /about page copy (editable in admin).
+type AboutPageContent struct {
+	HeroEyebrow   string              `json:"hero_eyebrow"`
+	HeroTitle     string              `json:"hero_title"`
+	HeroLead      string              `json:"hero_lead"`
+	Story         []string            `json:"story"`
+	Belief        string              `json:"belief"`
+	AudienceTitle string              `json:"audience_title"`
+	AudienceLead  string              `json:"audience_lead"`
+	Audience      []AboutAudienceItem `json:"audience"`
+	Disclaimer    string              `json:"disclaimer"`
+	Mission       string              `json:"mission"`
+	Tagline       string              `json:"tagline"`
+	Closing       string              `json:"closing"`
+}
+
 type DestinationCity struct {
 	Slug string `json:"slug"`
 	Name string `json:"name"`
@@ -99,8 +120,9 @@ type SiteHomePayload struct {
 }
 
 type SitePayload struct {
-	Home            SiteHomePayload `json:"home"`
-	Footer          FooterContent   `json:"footer"`
-	Legal           LegalContent    `json:"legal"`
-	TelegramBotURL  string          `json:"telegram_bot_url,omitempty"`
+	Home           SiteHomePayload  `json:"home"`
+	Footer         FooterContent    `json:"footer"`
+	Legal          LegalContent     `json:"legal"`
+	About          AboutPageContent `json:"about"`
+	TelegramBotURL string           `json:"telegram_bot_url,omitempty"`
 }

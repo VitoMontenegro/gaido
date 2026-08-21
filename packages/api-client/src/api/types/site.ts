@@ -53,6 +53,26 @@ export type LegalContent = {
   placement_rules: LegalPage
 }
 
+export type AboutAudienceItem = {
+  title: string
+  description: string
+}
+
+export type AboutPageContent = {
+  hero_eyebrow: string
+  hero_title: string
+  hero_lead: string
+  story: string[]
+  belief: string
+  audience_title: string
+  audience_lead: string
+  audience: AboutAudienceItem[]
+  disclaimer: string
+  mission: string
+  tagline: string
+  closing: string
+}
+
 export type DestinationCity = { slug: string; name: string }
 export type DestinationGroup = {
   country_slug: string
@@ -69,6 +89,7 @@ export type SitePayload = {
   }
   footer: FooterContent
   legal: LegalContent
+  about: AboutPageContent
   telegram_bot_url?: string
 }
 
@@ -76,4 +97,5 @@ export type SiteContentPayload = {
   home: HomeContent
   footer: FooterContent
   legal: LegalContent
+  about: AboutPageContent
 }

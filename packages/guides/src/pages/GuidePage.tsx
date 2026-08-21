@@ -189,7 +189,7 @@ function GuideHero({ guide, excursionCount }: { guide: PublicGuide; excursionCou
           <span>{guide.rating_avg.toFixed(1)} · {guide.rating_count} відгуків · {excursionCount} екскурсій</span>
         </p>
         <p className="mt-6 max-w-3xl whitespace-pre-wrap leading-relaxed text-stone-700">
-          {guide.about || "Опис з'явиться незабаром."}
+          {guide.about || 'Опис профілю поки не заповнено.'}
         </p>
       </div>
     </div>

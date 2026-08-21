@@ -295,7 +295,7 @@ export default function ExcursionPage() {
           ) : (
             <div
               className="excursion-body"
-              dangerouslySetInnerHTML={{ __html: sanitizeHtml(body) || '<p>Опис зʼявиться незабаром.</p>' }}
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(body) || '<p>Опис екскурсії поки не заповнено.</p>' }}
             />
           )}
 

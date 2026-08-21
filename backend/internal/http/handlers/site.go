@@ -45,11 +45,59 @@ func mergeLegalContent(stored domain.LegalContent) domain.LegalContent {
 	}
 	return stored
 }
+func (h *Handlers) LoadAboutContent(ctx context.Context) domain.AboutPageContent {
+	var c domain.AboutPageContent
+	if err := h.Settings.GetJSON(ctx, keyAboutContent, &c); err != nil {
+		return defaultAboutContent()
+	}
+	return mergeAboutContent(c)
+}
+func mergeAboutContent(stored domain.AboutPageContent) domain.AboutPageContent {
+	def := defaultAboutContent()
+	if stored.HeroEyebrow == "" {
+		stored.HeroEyebrow = def.HeroEyebrow
+	}
+	if stored.HeroTitle == "" {
+		stored.HeroTitle = def.HeroTitle
+	}
+	if stored.HeroLead == "" {
+		stored.HeroLead = def.HeroLead
+	}
+	if len(stored.Story) == 0 {
+		stored.Story = def.Story
+	}
+	if stored.Belief == "" {
+		stored.Belief = def.Belief
+	}
+	if stored.AudienceTitle == "" {
+		stored.AudienceTitle = def.AudienceTitle
+	}
+	if stored.AudienceLead == "" {
+		stored.AudienceLead = def.AudienceLead
+	}
+	if len(stored.Audience) == 0 {
+		stored.Audience = def.Audience
+	}
+	if stored.Disclaimer == "" {
+		stored.Disclaimer = def.Disclaimer
+	}
+	if stored.Mission == "" {
+		stored.Mission = def.Mission
+	}
+	if stored.Tagline == "" {
+		stored.Tagline = def.Tagline
+	}
+	if stored.Closing == "" {
+		stored.Closing = def.Closing
+	}
+	return stored
+}
 func (h *Handlers) GetSite(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	content := h.LoadHomeContent(ctx)
 	footer := h.LoadFooterContent(ctx)
 	legal := h.LoadLegalContent(ctx)
+	about := h.LoadAboutContent(ctx)
 
 	featuredGuides := h.ResolveFeaturedGuides(ctx, 4)
 	featuredExcursions := h.ResolveFeaturedExcursions(ctx, 6)
@@ -64,6 +112,7 @@ func (h *Handlers) GetSite(w http.ResponseWriter, r *http.Request) {
 		},
 		Footer:         footer,
 		Legal:          legal,
+		About:          about,
 		TelegramBotURL: h.telegramBotURL(),
 	})
 }
@@ -190,13 +239,15 @@ func (h *Handlers) AdminGetSiteContent(w http.ResponseWriter, r *http.Request) {
 		"home":   h.LoadHomeContent(r.Context()),
 		"footer": h.LoadFooterContent(r.Context()),
 		"legal":  h.LoadLegalContent(r.Context()),
+		"about":  h.LoadAboutContent(r.Context()),
 	})
 }
 func (h *Handlers) AdminSetSiteContent(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		Home   domain.HomeContent   `json:"home"`
-		Footer domain.FooterContent `json:"footer"`
-		Legal  domain.LegalContent  `json:"legal"`
+		Home   domain.HomeContent      `json:"home"`
+		Footer domain.FooterContent    `json:"footer"`
+		Legal  domain.LegalContent     `json:"legal"`
+		About  domain.AboutPageContent `json:"about"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		response.Error(w, r, apperrors.ErrValidation)
@@ -212,6 +263,10 @@ func (h *Handlers) AdminSetSiteContent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := h.Settings.SetJSON(ctx, keyLegalContent, req.Legal); err != nil {
+		response.Error(w, r, apperrors.ErrInternal)
+		return
+	}
+	if err := h.Settings.SetJSON(ctx, keyAboutContent, mergeAboutContent(req.About)); err != nil {
 		response.Error(w, r, apperrors.ErrInternal)
 		return
 	}

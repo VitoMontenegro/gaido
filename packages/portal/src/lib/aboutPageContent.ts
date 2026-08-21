@@ -1,8 +1,5 @@
-import type { AboutAudienceItem, AboutPageContent } from '@gaido/api-client/api/types/site'
+import type { AboutPageContent } from '@gaido/api-client/api/types/site'
 
-export type AboutAudience = AboutAudienceItem
-
-/** Default /about copy (same structure as admin). Overridden by site.about from API. */
 export const DEFAULT_ABOUT_PAGE: AboutPageContent = {
   hero_eyebrow: 'Про Gaido',
   hero_title: 'Будь своїм серед своїх',

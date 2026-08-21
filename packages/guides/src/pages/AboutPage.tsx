@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { catalogApi, resolveMediaUrl } from '@gaido/api-client/api/client'
 import Breadcrumbs from '../components/Breadcrumbs'
 import { pageTitle, SITE_TAGLINE } from '@gaido/site-urls/brand'
-import { ABOUT_PAGE } from '../lib/aboutPageContent'
+import { normalizeAboutContent } from '../lib/aboutPageContent'
 import { Seo } from '../lib/seo'
 
 const AUDIENCE_ICONS = [
@@ -39,16 +39,17 @@ export default function AboutPage() {
     staleTime: 60_000,
   })
 
+  const about = normalizeAboutContent(site?.about)
   const image = resolveMediaUrl(site?.home.content.about_image_url ?? '')
 
   return (
     <>
       <Seo
-        title={pageTitle(ABOUT_PAGE.heroEyebrow)}
-        description={ABOUT_PAGE.heroLead}
+        title={pageTitle(about.hero_eyebrow)}
+        description={about.hero_lead}
         path="/about"
       />
-      <Breadcrumbs items={[{ label: ABOUT_PAGE.heroEyebrow }]} />
+      <Breadcrumbs items={[{ label: about.hero_eyebrow }]} />
 
       <section className="about-hero relative isolate overflow-hidden bg-ink text-white">
         {image && (
@@ -59,9 +60,9 @@ export default function AboutPage() {
           </>
         )}
         <div className="container-site relative z-10 py-16 md:py-24">
-          <p className="about-hero__eyebrow">{ABOUT_PAGE.heroEyebrow}</p>
-          <h1 className="about-hero__title">{ABOUT_PAGE.heroTitle}</h1>
-          <p className="about-hero__lead">{ABOUT_PAGE.heroLead}</p>
+          <p className="about-hero__eyebrow">{about.hero_eyebrow}</p>
+          <h1 className="about-hero__title">{about.hero_title}</h1>
+          <p className="about-hero__lead">{about.hero_lead}</p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link to="/search" className="btn-accent min-h-11 px-6">
               Знайти екскурсію
@@ -82,8 +83,8 @@ export default function AboutPage() {
             <div className="about-story__content">
               <h2 className="section-title-sm mb-6">Наша місія</h2>
               <div className="space-y-5">
-                {ABOUT_PAGE.story.map((paragraph) => (
-                  <p key={paragraph.slice(0, 32)} className="text-base leading-relaxed text-muted">
+                {about.story.map((paragraph, i) => (
+                  <p key={i} className="text-base leading-relaxed text-muted">
                     {paragraph}
                   </p>
                 ))}
@@ -105,7 +106,7 @@ export default function AboutPage() {
         <div className="container-site max-w-4xl text-center">
           <div className="about-quote mx-auto">
             <span className="about-quote__mark" aria-hidden>“</span>
-            <blockquote className="about-quote__text">{ABOUT_PAGE.belief}</blockquote>
+            <blockquote className="about-quote__text">{about.belief}</blockquote>
           </div>
         </div>
       </section>
@@ -113,13 +114,13 @@ export default function AboutPage() {
       <section className="bg-surface py-14 md:py-20">
         <div className="container-site">
           <div className="mb-10 max-w-2xl">
-            <h2 className="section-title">{ABOUT_PAGE.audienceTitle}</h2>
-            <p className="mt-3 text-base leading-relaxed text-muted">{ABOUT_PAGE.audienceLead}</p>
+            <h2 className="section-title">{about.audience_title}</h2>
+            <p className="mt-3 text-base leading-relaxed text-muted">{about.audience_lead}</p>
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {ABOUT_PAGE.audience.map((item, i) => (
+            {about.audience.map((item, i) => (
               <article key={item.title} className="about-audience-card">
-                <div className="about-audience-card__icon">{AUDIENCE_ICONS[i]}</div>
+                <div className="about-audience-card__icon">{AUDIENCE_ICONS[i % AUDIENCE_ICONS.length]}</div>
                 <h3 className="about-audience-card__title">{item.title}</h3>
                 <p className="about-audience-card__text">{item.description}</p>
               </article>
@@ -132,9 +133,9 @@ export default function AboutPage() {
         <div className="container-site max-w-3xl space-y-6">
           <div className="about-note">
             <p className="about-note__label">Важливо</p>
-            <p className="about-note__text">{ABOUT_PAGE.disclaimer}</p>
+            <p className="about-note__text">{about.disclaimer}</p>
           </div>
-          <p className="text-base leading-relaxed text-muted">{ABOUT_PAGE.mission}</p>
+          <p className="text-base leading-relaxed text-muted">{about.mission}</p>
         </div>
       </section>
 
@@ -142,9 +143,9 @@ export default function AboutPage() {
         <div className="cta-panel grid gap-8 p-8 text-center md:p-12 lg:p-14">
           <div className="mx-auto max-w-2xl">
             <p className="font-display text-2xl font-medium uppercase leading-snug text-white sm:text-3xl">
-              {ABOUT_PAGE.tagline}
+              {about.tagline}
             </p>
-            <p className="mt-4 text-lg leading-relaxed text-white/75">{ABOUT_PAGE.closing}</p>
+            <p className="mt-4 text-lg leading-relaxed text-white/75">{about.closing}</p>
           </div>
           <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link to="/search" className="btn-accent min-w-45 justify-center px-6">

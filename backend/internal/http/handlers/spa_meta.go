@@ -111,12 +111,21 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 			JsonLd:      h.simpleBreadcrumbJsonLd(base, "Журнал", "/journal"),
 		}
 	case path == "/about":
+		about := h.LoadAboutContent(ctx)
+		title := about.HeroEyebrow
+		if title == "" {
+			title = "Про Gaido"
+		}
+		desc := about.HeroLead
+		if desc == "" {
+			desc = "Каталог українських гідів та авторських екскурсій для українців за кордоном"
+		}
 		return &SpaPageMeta{
-			Title:       pageTitleSuffix("Про Gaido"),
-			Description: "Інформаційна платформа для українців за кордоном — гіди, екскурсії та сервіси",
+			Title:       pageTitleSuffix(title),
+			Description: desc,
 			Canonical:   base + "/about",
 			OgImage:     defaultImage,
-			JsonLd:      h.simpleBreadcrumbJsonLd(base, "Про Gaido", "/about"),
+			JsonLd:      h.simpleBreadcrumbJsonLd(base, title, "/about"),
 		}
 	case path == "/favorites":
 		return &SpaPageMeta{

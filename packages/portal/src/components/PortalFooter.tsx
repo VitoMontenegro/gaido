@@ -1,6 +1,6 @@
 import BrandLogo from './BrandLogo'
 import { SITE_TAGLINE } from '@gaido/site-urls/brand'
-import { guidesUrl, servicesUrl, transportUrl } from '@gaido/site-urls/site'
+import { guidesUrl } from '@gaido/site-urls/site'
 
 export default function PortalFooter() {
   return (
@@ -16,11 +16,8 @@ export default function PortalFooter() {
               <a href={guidesUrl('/')} className="link-accent">
                 Gaido Світ — гіди
               </a>
-              <a href={servicesUrl('/')} className="link-accent">
-                Gaido Servis
-              </a>
-              <a href={transportUrl('/')} className="link-accent">
-                Gaido Vezu
+              <a href={guidesUrl('/about')} className="link-accent">
+                Про Gaido
               </a>
             </nav>
           </div>

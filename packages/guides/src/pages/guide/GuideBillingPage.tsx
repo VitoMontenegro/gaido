@@ -38,7 +38,7 @@ export function GuideBillingPage() {
       await billingApi.confirm(res.payment_id, planId)
       qc.invalidateQueries({ queryKey: ['billing-status'] })
       qc.invalidateQueries({ queryKey: ['site'] })
-      alert('Оплату підтверджено (stub). Розміщення активовано.')
+      alert('Оплату підтверджено. Розміщення активовано.')
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Помилка оплати')
     } finally {
@@ -163,7 +163,7 @@ function PlanButtons({
             disabled={disabled || busy === p.id}
             onClick={() => onPay(p.id)}
           >
-            {busy === p.id ? 'Оплата…' : 'Оплатити (stub)'}
+            {busy === p.id ? 'Оплата…' : 'Оплатити'}
           </button>
         </div>
       ))}

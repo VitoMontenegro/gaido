@@ -1,12 +1,25 @@
 import { useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { adminApi, type FooterContent, type HomeContent, type HomeCta, type LegalContent } from '@gaido/api-client/api/client'
+import {
+  adminApi,
+  type AboutPageContent,
+  type FooterContent,
+  type HomeContent,
+  type HomeCta,
+  type LegalContent,
+} from '@gaido/api-client/api/client'
 import { ImageUrlField } from './ImageUrlField'
 import { LegalPageEditor } from './LegalContentEditor'
+import { normalizeAboutContent } from '../lib/aboutPageContent'
 import { normalizeCategoryTiles } from '../lib/categoryTiles'
 import { normalizeLegalContent } from '../lib/legalContent'
 
-type SiteContentPayload = { home: HomeContent; footer: FooterContent; legal: LegalContent }
+type SiteContentPayload = {
+  home: HomeContent
+  footer: FooterContent
+  legal: LegalContent
+  about: AboutPageContent
+}
 
 const DEFAULT_CTA: HomeCta = {
   title: 'Зʼявились питання?',
@@ -42,6 +55,7 @@ export function SiteContentEditor() {
       ...data,
       home: normalizeHome(data.home),
       legal: normalizeLegalContent(data.legal),
+      about: normalizeAboutContent(data.about),
     })).catch(() => setMessage('Не вдалося завантажити контент сайту'))
   }, [])
 
@@ -55,6 +69,7 @@ export function SiteContentEditor() {
         ...saved,
         home: normalizeHome(saved.home),
         legal: normalizeLegalContent(saved.legal),
+        about: normalizeAboutContent(saved.about),
       })
       qc.invalidateQueries({ queryKey: ['site'] })
       setMessage('Збережено')
@@ -72,10 +87,12 @@ export function SiteContentEditor() {
   const home = draft.home
   const footer = draft.footer
   const legal = draft.legal
+  const about = draft.about
 
   const updateHome = (patch: Partial<HomeContent>) => setDraft({ ...draft, home: { ...home, ...patch } })
   const updateFooter = (patch: Partial<FooterContent>) => setDraft({ ...draft, footer: { ...footer, ...patch } })
   const updateLegal = (patch: Partial<LegalContent>) => setDraft({ ...draft, legal: { ...legal, ...patch } })
+  const updateAbout = (patch: Partial<AboutPageContent>) => setDraft({ ...draft, about: { ...about, ...patch } })
   const updateCta = (patch: Partial<HomeCta>) => updateHome({ cta: { ...home.cta, ...patch } })
 
   return (
@@ -304,6 +321,111 @@ export function SiteContentEditor() {
           page={legal.placement_rules}
           onChange={(placement_rules) => updateLegal({ placement_rules })}
         />
+      </section>
+
+      <section className="space-y-4 border-t border-divider pt-6">
+        <div>
+          <h2 className="section-title-sm">Сторінка /about</h2>
+          <p className="mt-1 text-sm text-muted">
+            Структура секцій збережена: hero → історія → цитата → аудиторія → disclaimer → CTA. Публічний URL: /about на svit.
+          </p>
+        </div>
+        <div className="space-y-3">
+          <h3 className="font-medium text-ink">Hero</h3>
+          <input className="input" value={about.hero_eyebrow} onChange={(e) => updateAbout({ hero_eyebrow: e.target.value })} placeholder="Eyebrow (Про Gaido)" />
+          <input className="input" value={about.hero_title} onChange={(e) => updateAbout({ hero_title: e.target.value })} placeholder="Заголовок" />
+          <textarea className="input min-h-20" value={about.hero_lead} onChange={(e) => updateAbout({ hero_lead: e.target.value })} placeholder="Лід / meta description" />
+        </div>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="font-medium text-ink">Історія / місія (абзаци)</h3>
+            <button
+              type="button"
+              className="text-sm text-teal hover:underline"
+              onClick={() => updateAbout({ story: [...about.story, ''] })}
+            >
+              + Абзац
+            </button>
+          </div>
+          {about.story.map((paragraph, i) => (
+            <div key={i} className="space-y-2 rounded-xl border border-border p-3">
+              <textarea
+                className="input min-h-24"
+                value={paragraph}
+                onChange={(e) => {
+                  const story = [...about.story]
+                  story[i] = e.target.value
+                  updateAbout({ story })
+                }}
+                placeholder={`Абзац ${i + 1}`}
+              />
+              <button
+                type="button"
+                className="text-xs text-red-600 hover:underline"
+                onClick={() => updateAbout({ story: about.story.filter((_, j) => j !== i) })}
+              >
+                Видалити
+              </button>
+            </div>
+          ))}
+        </div>
+        <div className="space-y-3">
+          <h3 className="font-medium text-ink">Цитата (belief)</h3>
+          <textarea className="input min-h-20" value={about.belief} onChange={(e) => updateAbout({ belief: e.target.value })} />
+        </div>
+        <div className="space-y-3">
+          <h3 className="font-medium text-ink">Аудиторія</h3>
+          <input className="input" value={about.audience_title} onChange={(e) => updateAbout({ audience_title: e.target.value })} placeholder="Заголовок блоку" />
+          <textarea className="input min-h-16" value={about.audience_lead} onChange={(e) => updateAbout({ audience_lead: e.target.value })} placeholder="Підзаголовок" />
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted">Картки</p>
+            <button
+              type="button"
+              className="text-sm text-teal hover:underline"
+              onClick={() => updateAbout({ audience: [...about.audience, { title: '', description: '' }] })}
+            >
+              + Картка
+            </button>
+          </div>
+          {about.audience.map((item, i) => (
+            <div key={i} className="space-y-2 rounded-xl border border-border p-3">
+              <input
+                className="input"
+                value={item.title}
+                onChange={(e) => {
+                  const audience = [...about.audience]
+                  audience[i] = { ...audience[i], title: e.target.value }
+                  updateAbout({ audience })
+                }}
+                placeholder="Заголовок картки"
+              />
+              <textarea
+                className="input min-h-16"
+                value={item.description}
+                onChange={(e) => {
+                  const audience = [...about.audience]
+                  audience[i] = { ...audience[i], description: e.target.value }
+                  updateAbout({ audience })
+                }}
+                placeholder="Опис"
+              />
+              <button
+                type="button"
+                className="text-xs text-red-600 hover:underline"
+                onClick={() => updateAbout({ audience: about.audience.filter((_, j) => j !== i) })}
+              >
+                Видалити
+              </button>
+            </div>
+          ))}
+        </div>
+        <div className="space-y-3">
+          <h3 className="font-medium text-ink">Disclaimer / місія / CTA</h3>
+          <textarea className="input min-h-20" value={about.disclaimer} onChange={(e) => updateAbout({ disclaimer: e.target.value })} placeholder="Важливо (disclaimer)" />
+          <textarea className="input min-h-16" value={about.mission} onChange={(e) => updateAbout({ mission: e.target.value })} placeholder="Місія (під disclaimer)" />
+          <input className="input" value={about.tagline} onChange={(e) => updateAbout({ tagline: e.target.value })} placeholder="Tagline в CTA" />
+          <input className="input" value={about.closing} onChange={(e) => updateAbout({ closing: e.target.value })} placeholder="Закриття під tagline" />
+        </div>
       </section>
 
       <div className="flex items-center gap-3">
