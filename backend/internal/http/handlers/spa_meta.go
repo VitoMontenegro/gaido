@@ -65,12 +65,26 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 	defaultImage := base + "/api/v1/media/public/d2b27d81f09874a08b4dc3293fe67f2e.webp"
 
 	switch {
+	case path == "/":
+		content := h.LoadHomeContent(ctx)
+		desc := truncateDesc(content.HeroSubtitle, 160)
+		if desc == "" {
+			desc = "Гіди та екскурсії для українців за кордоном"
+		}
+		return &SpaPageMeta{
+			Title:       pageTitleSuffix("Гіди та екскурсії"),
+			Description: desc,
+			Canonical:   base + "/",
+			OgImage:     defaultImage,
+			JsonLd:      h.homePageJsonLd(ctx, base, content),
+		}
 	case path == "/search":
 		return &SpaPageMeta{
 			Title:       pageTitleSuffix("Пошук"),
 			Description: "Знайдіть екскурсію за містом, темою, назвою або датою",
 			Canonical:   base + "/search",
 			OgImage:     defaultImage,
+			JsonLd:      h.searchPageJsonLd(base),
 		}
 	case path == "/map":
 		return &SpaPageMeta{
@@ -78,6 +92,7 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 			Description: "Міста з опублікованими екскурсіями — оберіть на карті або в списку",
 			Canonical:   base + "/map",
 			OgImage:     defaultImage,
+			JsonLd:      h.simpleBreadcrumbJsonLd(base, "Карта", "/map"),
 		}
 	case path == "/guides":
 		return &SpaPageMeta{
@@ -85,6 +100,7 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 			Description: "Оберіть країну — побачите місцевих експертів із авторськими маршрутами",
 			Canonical:   base + "/guides",
 			OgImage:     defaultImage,
+			JsonLd:      h.guidesListPageJsonLd(ctx, base),
 		}
 	case path == "/journal":
 		return &SpaPageMeta{
@@ -92,6 +108,7 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 			Description: "Статті про подорожі, міста та екскурсії для українців за кордоном",
 			Canonical:   base + "/journal",
 			OgImage:     defaultImage,
+			JsonLd:      h.simpleBreadcrumbJsonLd(base, "Журнал", "/journal"),
 		}
 	case path == "/about":
 		return &SpaPageMeta{
@@ -99,6 +116,7 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 			Description: "Інформаційна платформа для українців за кордоном — гіди, екскурсії та сервіси",
 			Canonical:   base + "/about",
 			OgImage:     defaultImage,
+			JsonLd:      h.simpleBreadcrumbJsonLd(base, "Про Gaido", "/about"),
 		}
 	case path == "/favorites":
 		return &SpaPageMeta{
@@ -165,6 +183,7 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 			Description: desc,
 			Canonical:   base + "/guide/" + g.WebsiteSlug,
 			OgImage:     img,
+			JsonLd:      h.guidePageJsonLd(ctx, g, base),
 		}
 
 	case "countries":
@@ -180,6 +199,7 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 			Description: truncateDesc(fmt.Sprintf("Екскурсії в %s — ціни, гіди, авторські маршрути для українців", c.Name), 160),
 			Canonical:   base + "/countries/" + c.Slug,
 			OgImage:     defaultImage,
+			JsonLd:      h.countryPageJsonLd(ctx, c, base),
 		}
 
 	case "city":
@@ -195,6 +215,7 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 			Description: truncateDesc(fmt.Sprintf("Гіди та авторські екскурсії в %s — бронювання напряму з гідом", city.Name), 160),
 			Canonical:   base + "/city/" + city.Slug,
 			OgImage:     defaultImage,
+			JsonLd:      h.cityPageJsonLd(ctx, city, base),
 		}
 
 	case "guides":
@@ -208,6 +229,7 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 				Description: truncateDesc(fmt.Sprintf("Місцеві гіди в %s — авторські маршрути українською", c.Name), 160),
 				Canonical:   base + "/guides/countries/" + c.Slug,
 				OgImage:     defaultImage,
+				JsonLd:      h.guidesCountryPageJsonLd(ctx, c, base),
 			}
 		}
 
@@ -232,6 +254,7 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 			Description: desc,
 			Canonical:   base + "/journal/" + a.Slug,
 			OgImage:     img,
+			JsonLd:      h.journalArticleJsonLd(a, base),
 		}
 
 	case "ukrainians-in":
