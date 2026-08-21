@@ -31,9 +31,9 @@ export default function GuideCard({
           )}
         </div>
         <div className="flex flex-1 flex-col p-2.5">
-          <p className="mt-0.5 line-clamp-2 font-semibold normal-case leading-snug text-ink group-hover:text-brand-700">
+          <h3 className="mt-0.5 line-clamp-2 font-semibold normal-case leading-snug text-ink group-hover:text-teal">
             {guide.display_name}
-          </p>
+          </h3>
           {guide.type_badge && (
             <span className="mt-1 inline-flex w-fit rounded-md bg-teal/10 px-1.5 py-0.5 text-[10px] font-medium text-teal-dark">
               {guide.type_badge}

@@ -72,9 +72,9 @@ export default function ExcursionCard({ e, compact }: { e: ExcursionItem; compac
             )}
             <ExcursionRatingRow avg={e.rating_avg} count={e.rating_count} />
           </div>
-          <p className="mt-1.5 line-clamp-2 font-semibold normal-case leading-snug text-ink group-hover:text-brand-700">
+          <h3 className="mt-1.5 line-clamp-2 font-semibold normal-case leading-snug text-ink group-hover:text-teal">
             {e.title}
-          </p>
+          </h3>
           <ExcursionPreviewDescription text={previewText} className="mt-1.5" />
           <div className="mt-auto flex items-end justify-between gap-2 pt-2.5">
             <div>
