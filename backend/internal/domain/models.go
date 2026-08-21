@@ -183,10 +183,12 @@ type Excursion struct {
 
 type ExcursionView struct {
 	Excursion
-	CityName       string  `json:"city_name,omitempty"`
-	CitySlug       string  `json:"city_slug,omitempty"`
-	GuideName      string  `json:"guide_name,omitempty"`
-	GuideSlug      string  `json:"guide_slug,omitempty"`
+	CityName         string      `json:"city_name,omitempty"`
+	CitySlug         string      `json:"city_slug,omitempty"`
+	CountryName      string      `json:"country_name,omitempty"`
+	CountrySlug      string      `json:"country_slug,omitempty"`
+	GuideName        string      `json:"guide_name,omitempty"`
+	GuideSlug        string      `json:"guide_slug,omitempty"`
 	GuideAvatarURL   string      `json:"guide_avatar_url,omitempty"`
 	GuideAbout       string      `json:"guide_about,omitempty"`
 	GuideContacts    ContactsDTO `json:"guide_contacts,omitempty"`

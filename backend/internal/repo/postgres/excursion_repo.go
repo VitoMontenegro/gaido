@@ -30,7 +30,11 @@ const excursionReviewRatingCols = `,
 COALESCE((SELECT AVG(r.rating)::float8 FROM guide_reviews r WHERE r.excursion_id=e.id AND r.status='PUBLISHED'), 0),
 COALESCE((SELECT COUNT(*)::int FROM guide_reviews r WHERE r.excursion_id=e.id AND r.status='PUBLISHED'), 0)`
 
-const excursionCityCols = `COALESCE(c.name, '') AS city_name, COALESCE(c.slug, '') AS city_slug`
+const excursionCityCols = `COALESCE(c.name, '') AS city_name, COALESCE(c.slug, '') AS city_slug,
+	COALESCE(co.name, '') AS country_name, COALESCE(co.slug, '') AS country_slug`
+
+const excursionCityJoins = `LEFT JOIN cities c ON c.id = e.city_id
+		LEFT JOIN countries co ON co.id = c.country_id`
 
 func marshalStringSlice(v []string) []byte {
 	if v == nil {
@@ -127,14 +131,14 @@ func scanExcursionViewFields(v *domain.ExcursionView, row pgx.Row, withGuide, wi
 				&v.ID, &v.GuideID, &v.CityID, &v.CategoryID, &v.Title, &v.Slug, &v.Description, &v.Type, &v.MaxGuests, &v.PriceFrom, &v.Currency, &v.Status,
 				&v.DurationMinutes, &v.TransportMode, &v.ChildrenAllowed, &v.Language, &v.OrganizationalDetails, &v.MeetingPoint,
 				&v.CoverImageURL, &v.BodyHTML, &v.MapEmbedURL, &includedRaw, &excludedRaw, &structuredRaw,
-				&v.CityName, &v.CitySlug, &v.GuideName, &v.GuideSlug, &v.GuideAvatarURL, &v.RatingAvg, &v.RatingCount,
+				&v.CityName, &v.CitySlug, &v.CountryName, &v.CountrySlug, &v.GuideName, &v.GuideSlug, &v.GuideAvatarURL, &v.RatingAvg, &v.RatingCount,
 			)
 		} else {
 			err = row.Scan(
 				&v.ID, &v.GuideID, &v.CityID, &v.CategoryID, &v.Title, &v.Slug, &v.Description, &v.Type, &v.MaxGuests, &v.PriceFrom, &v.Currency, &v.Status,
 				&v.DurationMinutes, &v.TransportMode, &v.ChildrenAllowed, &v.Language, &v.OrganizationalDetails, &v.MeetingPoint,
 				&v.CoverImageURL, &v.BodyHTML, &v.MapEmbedURL, &includedRaw, &excludedRaw, &structuredRaw,
-				&v.CityName, &v.CitySlug, &v.GuideName, &v.GuideSlug, &v.GuideAvatarURL,
+				&v.CityName, &v.CitySlug, &v.CountryName, &v.CountrySlug, &v.GuideName, &v.GuideSlug, &v.GuideAvatarURL,
 			)
 		}
 	} else if withRating {
@@ -142,14 +146,14 @@ func scanExcursionViewFields(v *domain.ExcursionView, row pgx.Row, withGuide, wi
 			&v.ID, &v.GuideID, &v.CityID, &v.CategoryID, &v.Title, &v.Slug, &v.Description, &v.Type, &v.MaxGuests, &v.PriceFrom, &v.Currency, &v.Status,
 			&v.DurationMinutes, &v.TransportMode, &v.ChildrenAllowed, &v.Language, &v.OrganizationalDetails, &v.MeetingPoint,
 			&v.CoverImageURL, &v.BodyHTML, &v.MapEmbedURL, &includedRaw, &excludedRaw, &structuredRaw,
-			&v.CityName, &v.CitySlug, &v.RatingAvg, &v.RatingCount,
+			&v.CityName, &v.CitySlug, &v.CountryName, &v.CountrySlug, &v.RatingAvg, &v.RatingCount,
 		)
 	} else {
 		err = row.Scan(
 			&v.ID, &v.GuideID, &v.CityID, &v.CategoryID, &v.Title, &v.Slug, &v.Description, &v.Type, &v.MaxGuests, &v.PriceFrom, &v.Currency, &v.Status,
 			&v.DurationMinutes, &v.TransportMode, &v.ChildrenAllowed, &v.Language, &v.OrganizationalDetails, &v.MeetingPoint,
 			&v.CoverImageURL, &v.BodyHTML, &v.MapEmbedURL, &includedRaw, &excludedRaw, &structuredRaw,
-			&v.CityName, &v.CitySlug,
+			&v.CityName, &v.CitySlug, &v.CountryName, &v.CountrySlug,
 		)
 	}
 	if err != nil {
@@ -362,7 +366,7 @@ func (r *ExcursionRepo) ListByGuideEnriched(ctx context.Context, guideID int64) 
 		SELECT `+excursionSelectColsAliased+`,
 			`+excursionCityCols+`
 		FROM excursions e
-		LEFT JOIN cities c ON c.id = e.city_id
+		` + excursionCityJoins + `
 		WHERE e.guide_id=$1
 		ORDER BY e.id DESC
 	`, guideID)
@@ -378,7 +382,7 @@ func (r *ExcursionRepo) ListPublishedByGuide(ctx context.Context, guideID int64)
 		SELECT `+excursionSelectColsAliased+`,
 			`+excursionCityCols+excursionReviewRatingCols+`
 		FROM excursions e
-		LEFT JOIN cities c ON c.id = e.city_id
+		` + excursionCityJoins + `
 		WHERE e.guide_id=$1 AND e.status=$2
 		ORDER BY e.id DESC
 	`, guideID, domain.ExcursionPublished)
@@ -398,27 +402,18 @@ func (r *ExcursionRepo) GetViewBySlug(ctx context.Context, slug string) (*domain
 			COALESCE((SELECT AVG(r.rating)::float8 FROM guide_reviews r WHERE r.excursion_id=e.id AND r.status=$2), 0),
 			COALESCE((SELECT COUNT(*)::int FROM guide_reviews r WHERE r.excursion_id=e.id AND r.status=$2), 0)
 		FROM excursions e
-		LEFT JOIN cities c ON c.id = e.city_id
+		`+excursionCityJoins+`
 		JOIN guide_profiles g ON g.id = e.guide_id
 		WHERE e.slug=$1
 	`, slug, domain.ReviewPublished)
 	var v domain.ExcursionView
-	var includedRaw, excludedRaw, structuredRaw []byte
-	err := row.Scan(
-		&v.ID, &v.GuideID, &v.CityID, &v.CategoryID, &v.Title, &v.Slug, &v.Description, &v.Type, &v.MaxGuests, &v.PriceFrom, &v.Currency, &v.Status,
-		&v.DurationMinutes, &v.TransportMode, &v.ChildrenAllowed, &v.Language, &v.OrganizationalDetails, &v.MeetingPoint,
-		&v.CoverImageURL, &v.BodyHTML, &v.MapEmbedURL, &includedRaw, &excludedRaw, &structuredRaw,
-		&v.CityName, &v.CitySlug, &v.GuideName, &v.GuideSlug, &v.GuideAvatarURL, &v.RatingAvg, &v.RatingCount,
-	)
+	err := scanExcursionViewFields(&v, row, true, true)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
 		return nil, err
 	}
-	v.IncludedItems = unmarshalStringSlice(includedRaw)
-	v.ExcludedItems = unmarshalStringSlice(excludedRaw)
-	v.StructuredContent = unmarshalStructuredContent(structuredRaw)
 	return &v, nil
 }
 
@@ -430,7 +425,7 @@ func (r *ExcursionRepo) GetViewByID(ctx context.Context, id int64) (*domain.Excu
 			g.website_slug,
 			COALESCE(g.avatar_url, '')`+excursionReviewRatingCols+`
 		FROM excursions e
-		LEFT JOIN cities c ON c.id = e.city_id
+		` + excursionCityJoins + `
 		JOIN guide_profiles g ON g.id = e.guide_id
 		WHERE e.id=$1 AND e.status=$2 AND g.status=$3
 	`, id, domain.ExcursionPublished, domain.GuideStatusActive)
@@ -455,7 +450,7 @@ func scanExcursionViews(rows pgx.Rows, withRating bool) ([]domain.ExcursionView,
 	return out, rows.Err()
 }
 
-func (r *ExcursionRepo) ListPublicEnriched(ctx context.Context, cityID *int64, q string, date *time.Time, limit, offset int) ([]domain.ExcursionView, error) {
+func (r *ExcursionRepo) ListPublicEnriched(ctx context.Context, cityID *int64, countrySlug, q string, date *time.Time, limit, offset int) ([]domain.ExcursionView, error) {
 	sql := `SELECT ` + excursionSelectColsAliased + `,
 			` + excursionCityCols + `,
 			g.display_name,
@@ -463,13 +458,18 @@ func (r *ExcursionRepo) ListPublicEnriched(ctx context.Context, cityID *int64, q
 			COALESCE(g.avatar_url, '')` + excursionReviewRatingCols + `
 		FROM excursions e
 		JOIN guide_profiles g ON g.id=e.guide_id
-		LEFT JOIN cities c ON c.id = e.city_id
+		` + excursionCityJoins + `
 		WHERE e.status=$1 AND g.status=$2`
 	args := []any{domain.ExcursionPublished, domain.GuideStatusActive}
 	n := 3
 	if cityID != nil {
 		sql += fmt.Sprintf(` AND e.city_id=$%d`, n)
 		args = append(args, *cityID)
+		n++
+	}
+	if slug := strings.TrimSpace(countrySlug); slug != "" {
+		sql += fmt.Sprintf(` AND co.slug=$%d`, n)
+		args = append(args, slug)
 		n++
 	}
 	if strings.TrimSpace(q) != "" {
@@ -517,7 +517,7 @@ func (r *ExcursionRepo) ListPublicEnrichedRandom(ctx context.Context, limit int,
 			COALESCE(g.avatar_url, '')` + excursionReviewRatingCols + `
 		FROM excursions e
 		JOIN guide_profiles g ON g.id=e.guide_id
-		LEFT JOIN cities c ON c.id = e.city_id
+		` + excursionCityJoins + `
 		WHERE e.status=$1 AND g.status=$2`
 	args := []any{domain.ExcursionPublished, domain.GuideStatusActive}
 	n := 3

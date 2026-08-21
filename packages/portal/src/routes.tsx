@@ -51,6 +51,8 @@ export function portalPublicRoutes() {
       <Route path="excursion/:slug" element={<GuidesCanonicalRedirect />} />
       <Route path="excursions" element={<GuidesCanonicalRedirect />} />
       <Route path="city/:slug" element={<GuidesCanonicalRedirect />} />
+      <Route path="countries" element={<GuidesCanonicalRedirect />} />
+      <Route path="countries/*" element={<GuidesCanonicalRedirect />} />
       <Route path="ukrainians-in/:citySlug" element={<GuidesCanonicalRedirect />} />
       <Route path="discover" element={<ExternalRedirect to={servicesUrl('/')} />} />
       <Route path="provider/:slug" element={<ServicesProviderRedirect />} />

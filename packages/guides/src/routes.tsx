@@ -62,6 +62,7 @@ const JournalListPage = lazyImport(() => import('@gaido/guides/pages/JournalPage
 const JournalArticlePage = lazyImport(() => import('@gaido/guides/pages/JournalPages').then((m) => ({ default: m.JournalArticlePage })))
 const AboutPage = lazyImport(() => import('@gaido/guides/pages/AboutPage'))
 const SeoCityPage = lazyImport(() => import('@gaido/guides/pages/SeoCityPage'))
+const CountryExcursionsPage = lazyImport(() => import('@gaido/guides/pages/CountryExcursionsPage'))
 const AdminPage = lazyImport(() => import('@gaido/portal-shell/pages/AdminPages').then((m) => ({ default: m.default })))
 const ModeratorPage = lazyImport(() => import('@gaido/portal-shell/pages/AdminPages').then((m) => ({ default: m.ModeratorPage })))
 const DeployPage = lazyImport(() => import('@gaido/portal-shell/pages/DeployPage'))
@@ -105,6 +106,8 @@ export function svitPublicRoutes() {
       <Route path="search" element={<Lazy><SearchPage /></Lazy>} />
       <Route path="map" element={<MapPage />} />
       <Route path="city/:slug" element={<CityPage />} />
+      <Route path="countries/:countrySlug" element={<Lazy><CountryExcursionsPage /></Lazy>} />
+      <Route path="countries" element={<Navigate to="/search" replace />} />
       <Route path="guide/:slug" element={<Lazy><GuidePage /></Lazy>} />
       <Route path="excursions" element={<Navigate to="/search" replace />} />
       <Route path="excursion/:slug" element={<Lazy><ExcursionPage /></Lazy>} />

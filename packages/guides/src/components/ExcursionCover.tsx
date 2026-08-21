@@ -40,12 +40,12 @@ export default function ExcursionCover({ cover, title, className, imgClassName, 
             aria-hidden
           />
           {typeLabel && (
-            <span className="absolute left-2.5 top-2.5 z-10 text-white text-sm drop-shadow-[0_1px_3px_rgba(0,0,0,0.5)]">
+            <span className="absolute left-2.5 top-2.5 z-10 text-sm text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.5)]">
               {typeLabel}
             </span>
           )}
           {metaLine && (
-            <span className="absolute bottom-2.5 right-2.5 text-sm z-10 text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.5)]">
+            <span className="absolute bottom-2.5 right-2.5 z-10 rounded-full bg-ink/55 px-2.5 py-1 text-xs text-white backdrop-blur-[2px]">
               {metaLine}
             </span>
           )}

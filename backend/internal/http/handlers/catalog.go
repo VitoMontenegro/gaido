@@ -143,7 +143,7 @@ func (h *Handlers) ListExcursions(w http.ResponseWriter, r *http.Request) {
 			dateFilter = t
 		}
 	}
-	items, err := h.Exc.ListPublicEnriched(r.Context(), cityID, r.URL.Query().Get("q"), dateFilter, limit, offset)
+	items, err := h.Exc.ListPublicEnriched(r.Context(), cityID, r.URL.Query().Get("country_slug"), r.URL.Query().Get("q"), dateFilter, limit, offset)
 	if err != nil {
 		response.Error(w, r, apperrors.ErrInternal)
 		return

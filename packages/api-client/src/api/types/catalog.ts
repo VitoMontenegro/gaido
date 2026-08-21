@@ -36,8 +36,13 @@ export type Excursion = {
   currency: string
   status: string
   city_name?: string
+  city_slug?: string
+  country_name?: string
+  country_slug?: string
   guide_name?: string
   guide_slug?: string
+  rating_avg?: number
+  rating_count?: number
 }
 
 export type Country = { id: number; slug: string; name: string }

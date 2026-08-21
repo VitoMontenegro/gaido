@@ -738,7 +738,7 @@
   }
 
   .excursion-parus-organizer__photo {
-    @apply aspect-square max-h-[80px] w-auto overflow-hidden rounded-3xl sm:max-h-[220px];
+    @apply size-20 shrink-0 overflow-hidden rounded-3xl sm:size-[220px];
   }
 
   .excursion-parus-organizer__heading {

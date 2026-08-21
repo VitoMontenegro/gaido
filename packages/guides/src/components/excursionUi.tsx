@@ -26,6 +26,8 @@ export type ExcursionItem = {
   excluded_items?: string[]
   city_name?: string
   city_slug?: string
+  country_name?: string
+  country_slug?: string
   guide_name?: string
   guide_slug?: string
   guide_avatar_url?: string
@@ -53,6 +55,20 @@ export function formatExcursionRating(avg?: number, count?: number) {
     return `★ ${(avg ?? 0).toFixed(1)} · ${reviews}`
   }
   return '★ —'
+}
+
+export function formatReviewCount(count?: number) {
+  const n = count ?? 0
+  if (n <= 0) return ''
+  const mod10 = n % 10
+  const mod100 = n % 100
+  if (mod10 === 1 && mod100 !== 11) return `${n} відгук`
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return `${n} відгуки`
+  return `${n} відгуків`
+}
+
+export function excursionLocationLine(e: Pick<ExcursionItem, 'country_name' | 'city_name'>) {
+  return [e.country_name, e.city_name].filter(Boolean).join(' · ')
 }
 
 export function excursionStatusLabel(status: string) {

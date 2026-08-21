@@ -152,7 +152,12 @@ export default function GuidePage() {
 
 function GuideHero({ guide, excursionCount }: { guide: PublicGuide; excursionCount: number }) {
   return (
-    <div className="grid gap-8 lg:grid-cols-[1fr_280px] lg:items-start">
+    <div className="grid gap-6 lg:grid-cols-[1fr_280px] lg:items-start lg:gap-8">
+      <GuideAvatar
+        avatar={guide.avatar_url}
+        name={guide.display_name}
+        className="aspect-square w-36 rounded-3xl shadow-lg sm:w-48 lg:order-last lg:w-full"
+      />
       <div>
         {guide.type_badge && (
           <span className="inline-block rounded-full bg-white/80 px-3 py-1 text-sm font-medium text-teal">
@@ -168,7 +173,6 @@ function GuideHero({ guide, excursionCount }: { guide: PublicGuide; excursionCou
           {guide.about || "Опис з'явиться незабаром."}
         </p>
       </div>
-      <GuideAvatar avatar={guide.avatar_url} name={guide.display_name} className="hidden aspect-square rounded-3xl shadow-lg lg:block" />
     </div>
   )
 }

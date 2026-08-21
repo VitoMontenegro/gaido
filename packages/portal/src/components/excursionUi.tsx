@@ -26,6 +26,8 @@ export type ExcursionItem = {
   excluded_items?: string[]
   city_name?: string
   city_slug?: string
+  country_name?: string
+  country_slug?: string
   guide_name?: string
   guide_slug?: string
   guide_avatar_url?: string
