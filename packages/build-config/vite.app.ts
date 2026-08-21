@@ -6,6 +6,20 @@ import { defineConfig, loadEnv, type Plugin, type UserConfig } from 'vite'
 
 const DEFAULT_OG_IMAGE_KEY = 'd2b27d81f09874a08b4dc3293fe67f2e.webp'
 
+const PRODUCTION_ORIGINS: Record<SiteMode, string> = {
+  portal: 'https://gaido.top',
+  guides: 'https://svit.gaido.top',
+  transport: 'https://vezu.gaido.top',
+  services: 'https://servis.gaido.top',
+}
+
+const SITE_SOCIAL: Record<SiteMode, { title: string; description: string }> = {
+  portal: { title: 'Gaido', description: 'Для українців — від українців' },
+  guides: { title: 'Gaido', description: 'Гіди та екскурсії для українців за кордоном' },
+  transport: { title: 'Gaido Vezu', description: 'Транспорт для українців за кордоном' },
+  services: { title: 'Gaido Servis', description: 'Послуги для українців за кордоном' },
+}
+
 export type SiteMode = 'portal' | 'guides' | 'transport' | 'services'
 
 export type VerticalPackage = 'portal' | 'guides' | 'discover' | 'transport'
@@ -39,12 +53,21 @@ function loadLocalPorts(root: string): Record<string, string> {
   return out
 }
 
-function socialMetaHtmlPlugin(siteOrigin: string): Plugin {
+function socialMetaHtmlPlugin(siteOrigin: string, siteMode: SiteMode): Plugin {
   const origin = siteOrigin.replace(/\/$/, '')
   const ogImage = `${origin}/api/v1/media/public/${DEFAULT_OG_IMAGE_KEY}`
+  const { title, description } = SITE_SOCIAL[siteMode]
   const tags = [
+    `<meta property="og:type" content="website" />`,
+    `<meta property="og:site_name" content="${title}" />`,
+    `<meta property="og:title" content="${title}" />`,
+    `<meta property="og:description" content="${description}" />`,
+    `<meta property="og:url" content="${origin}/" />`,
     `<meta property="og:image" content="${ogImage}" />`,
+    `<meta name="description" content="${description}" />`,
     `<meta name="twitter:card" content="summary_large_image" />`,
+    `<meta name="twitter:title" content="${title}" />`,
+    `<meta name="twitter:description" content="${description}" />`,
     `<meta name="twitter:image" content="${ogImage}" />`,
   ].join('\n    ')
 
@@ -87,10 +110,13 @@ export function createAppViteConfig({
     const frontendPort = Number(
       process.env.FRONTEND_PORT || process.env.PORT || env.FRONTEND_PORT || defaultPort,
     )
-    const siteOrigin =
+    const siteOrigin = (
+      process.env.VITE_PUBLIC_SITE_URL ||
       env.VITE_PUBLIC_SITE_URL ||
+      (mode === 'production' ? PRODUCTION_ORIGINS[siteMode] : '') ||
       localPorts.PUBLIC_BASE_URL ||
       `http://localhost:${frontendPort}`
+    ).replace(/\/$/, '')
 
     const aliases: Record<string, string> = {
       '@gaido/api-client': resolve(root, 'packages/api-client/src'),
@@ -103,11 +129,12 @@ export function createAppViteConfig({
     }
 
     const config: UserConfig = {
-      plugins: [react(), tailwindcss(), socialMetaHtmlPlugin(siteOrigin)],
+      plugins: [react(), tailwindcss(), socialMetaHtmlPlugin(siteOrigin, siteMode)],
       envDir: root,
       publicDir,
       define: {
         'import.meta.env.VITE_SITE_MODE': JSON.stringify(siteMode),
+        'import.meta.env.VITE_PUBLIC_SITE_URL': JSON.stringify(siteOrigin),
       },
       resolve: {
         alias: aliases,

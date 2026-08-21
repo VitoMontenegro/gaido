@@ -241,14 +241,12 @@ func spaFileServer(dist string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		rel := strings.TrimPrefix(r.URL.Path, "/")
 		if rel == "" {
-			setSpaCacheHeaders(w, "", true)
-			http.ServeFile(w, r, index)
+			serveSpaIndex(w, r, index)
 			return
 		}
 		path := filepath.Join(dist, filepath.Clean("/"+rel))
 		if info, err := os.Stat(path); err != nil || info.IsDir() {
-			setSpaCacheHeaders(w, "", true)
-			http.ServeFile(w, r, index)
+			serveSpaIndex(w, r, index)
 			return
 		}
 		setSpaCacheHeaders(w, rel, false)
