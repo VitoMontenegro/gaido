@@ -1,3 +1,4 @@
+-- +goose Up
 CREATE TABLE guide_countries (
     id BIGSERIAL PRIMARY KEY,
     guide_id BIGINT NOT NULL REFERENCES guide_profiles(id) ON DELETE CASCADE,
@@ -24,3 +25,8 @@ FROM guide_cities gc
 JOIN cities c ON c.id = gc.city_id
 WHERE gc.is_active = true
 ON CONFLICT (guide_id, country_id) DO NOTHING;
+
+-- +goose Down
+DROP INDEX IF EXISTS idx_guide_countries_country_id;
+DROP INDEX IF EXISTS idx_guide_countries_guide_id;
+DROP TABLE IF EXISTS guide_countries;
