@@ -1,11 +1,19 @@
-import { Helmet } from 'react-helmet-async'
 import { Link, useParams } from 'react-router-dom'
+import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { catalogApi } from '@gaido/api-client/api/client'
 import Breadcrumbs from '../components/Breadcrumbs'
 import ExcursionCard, { ExcursionCardGrid } from '../components/ExcursionCard'
+import SeoFaqSection from '../components/SeoFaqSection'
 import type { ExcursionItem } from '../components/excursionUi'
-import { pageTitle } from '@gaido/site-urls/brand'
+import { buildExcursionListingJsonLd, buildPlaceJsonLd } from '../lib/excursionListingSchema'
+import { Seo } from '../lib/seo'
+import {
+  buildFaqPageJsonLd,
+  countryExcursionFaq,
+  seoCountryExcursionsDescription,
+  seoCountryExcursionsTitle,
+} from '../lib/seoTemplates'
 import { cn } from '@gaido/ui-primitives/cn'
 
 function excursionWord(n: number) {
@@ -32,13 +40,31 @@ export default function CountryExcursionsPage() {
 
   const title = country?.name ?? countrySlug
   const items = excursions?.items ?? []
+  const faqItems = countryExcursionFaq(title)
+  const seoDescription = seoCountryExcursionsDescription(title, items.length)
+
+  const jsonLd = useMemo(() => {
+    const schemas = buildExcursionListingJsonLd(items, {
+      name: `Екскурсії в ${title}`,
+      description: seoDescription,
+    })
+    schemas.push(buildPlaceJsonLd({ name: title, path: `/countries/${countrySlug}` }))
+    schemas.push(buildFaqPageJsonLd(faqItems))
+    return schemas
+  }, [items, title, countrySlug, seoDescription, faqItems])
 
   return (
     <>
-      <Helmet><title>{pageTitle(title)}</title></Helmet>
+      <Seo
+        title={seoCountryExcursionsTitle(title)}
+        description={seoDescription}
+        path={`/countries/${countrySlug}`}
+        jsonLd={jsonLd.length > 0 ? jsonLd : undefined}
+      />
       <Breadcrumbs
+        currentPath={`/countries/${countrySlug}`}
         items={[
-          { label: 'Пошук', to: '/search' },
+          { label: 'Екскурсії', to: '/search' },
           { label: title },
         ]}
       />
@@ -47,7 +73,7 @@ export default function CountryExcursionsPage() {
           ← Усі екскурсії
         </Link>
         <h1 className={cn('section-title mb-1 text-2xl md:text-[28px]', !country && 'capitalize')}>
-          {title}
+          Екскурсії в {title}
         </h1>
         <p className="mb-4 text-sm text-muted md:mb-6 md:text-base">
           {isLoading
@@ -56,6 +82,13 @@ export default function CountryExcursionsPage() {
               ? `${items.length} ${excursionWord(items.length)}`
               : 'Екскурсії за країною'}
         </p>
+
+        {!isLoading && items.length > 0 && (
+          <p className="mb-6 max-w-3xl text-sm leading-relaxed text-muted md:text-base">
+            Оберіть авторську екскурсію в {title} від місцевих гідів українською або англійською.
+            Порівняйте ціни, перегляньте маршрути та напишіть гіду напряму для бронювання дати.
+          </p>
+        )}
 
         {isLoading ? (
           <p className="text-sm text-muted">Завантаження…</p>
@@ -68,6 +101,8 @@ export default function CountryExcursionsPage() {
             ))}
           </ExcursionCardGrid>
         )}
+
+        {!isLoading && items.length > 0 && <SeoFaqSection items={faqItems} />}
       </div>
     </>
   )

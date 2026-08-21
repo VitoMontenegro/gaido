@@ -11,6 +11,8 @@ import CountryNameLink from '../components/CountryNameLink'
 import ApiErrorBanner from '../components/ApiErrorBanner'
 import { pageTitle } from '@gaido/site-urls/brand'
 import { Seo } from '../lib/seo'
+import { buildExcursionListingJsonLd } from '../lib/excursionListingSchema'
+import { buildFaqPageJsonLd, buildWebSiteJsonLd } from '../lib/seoTemplates'
 import { normalizeCategoryTiles } from '../lib/categoryTiles'
 import type { ExcursionItem } from '../components/excursionUi'
 import { useRecentViews, validateRecentViews, type RecentView } from '../hooks/useRecentViews'
@@ -144,6 +146,15 @@ export default function GuidesHomePage() {
   const content = site.home.content
   const featuredGuides = site.home.featured_guides ?? []
   const featuredExcursions = (site.home.featured_excursions ?? []) as ExcursionItem[]
+  const homeFaq = content.faq.map((item) => ({ question: item.question, answer: item.answer }))
+  const homeJsonLd = [
+    buildWebSiteJsonLd(),
+    ...buildExcursionListingJsonLd(featuredExcursions, {
+      name: 'Нові маршрути Gaido',
+      description: content.hero_subtitle,
+    }),
+    ...(homeFaq.length > 0 ? [buildFaqPageJsonLd(homeFaq)] : []),
+  ].filter(Boolean) as Record<string, unknown>[]
   const destinations = site.home.popular_destinations ?? []
   const categoryTiles = normalizeCategoryTiles(content.category_tiles)
   const journalArticles = articlesData?.items ?? []
@@ -156,7 +167,12 @@ export default function GuidesHomePage() {
 
   return (
     <>
-      <Seo title={pageTitle('Гіди та екскурсії')} description={content.hero_subtitle} path="/" />
+      <Seo
+        title={pageTitle('Гіди та екскурсії')}
+        description={content.hero_subtitle}
+        path="/"
+        jsonLd={homeJsonLd.length > 0 ? homeJsonLd : undefined}
+      />
 
       <HomeHero title={content.hero_title} subtitle={content.hero_subtitle} />
 

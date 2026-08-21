@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { Helmet } from 'react-helmet-async'
 import { Link, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, guideApi } from '@gaido/api-client/api/client'
 import ExcursionForm, { type ExcursionFormData } from '../components/ExcursionForm'
+import { Seo } from '../lib/seo'
+import { pageTitle } from '@gaido/site-urls/brand'
 
 export default function EditExcursionPage() {
   const { id = '' } = useParams()
@@ -50,7 +51,7 @@ export default function EditExcursionPage() {
 
   return (
     <>
-      <Helmet><title>Редагування — {data.title}</title></Helmet>
+      <Seo title={pageTitle(`Редагування — ${data.title}`)} noIndex />
       <div className="max-w-4xl space-y-6">
         <div className="card space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">

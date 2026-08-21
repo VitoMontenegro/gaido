@@ -3,26 +3,26 @@ package domain
 import "time"
 
 type AdminAnalytics struct {
-	ActiveGuides              int
-	PublishedExcursions       int
-	PublishedReviews          int
-	TotalUsers                int
-	TotalGuides               int
-	PendingExcursions         int
-	DraftExcursions           int
-	PendingReviews            int
-	TotalFavorites            int
-	PaymentsTotal             int
-	PaymentsPaid              int
-	PaymentsPending           int
-	ActiveSubscriptions       int
-	FeaturedGuides            int
-	FeaturedExcursions        int
-	CitiesCount               int
-	CountriesCount            int
-	RevenueTotal              float64
-	RevenueMonth              float64
-	RecentPayments            []AdminPaymentRow
+	ActiveGuides        int
+	PublishedExcursions int
+	PublishedReviews    int
+	TotalUsers          int
+	TotalGuides         int
+	PendingExcursions   int
+	DraftExcursions     int
+	PendingReviews      int
+	TotalFavorites      int
+	PaymentsTotal       int
+	PaymentsPaid        int
+	PaymentsPending     int
+	ActiveSubscriptions int
+	FeaturedGuides      int
+	FeaturedExcursions  int
+	CitiesCount         int
+	CountriesCount      int
+	RevenueTotal        float64
+	RevenueMonth        float64
+	RecentPayments      []AdminPaymentRow
 }
 
 type AdminPaymentRow struct {
@@ -42,6 +42,11 @@ type GuideDashboardStats struct {
 	UpcomingSlots       int
 }
 
+type FavoriteRef struct {
+	TargetType string
+	TargetID   int64
+}
+
 type FavoriteEnriched struct {
 	TargetType    string
 	TargetID      int64
@@ -55,6 +60,15 @@ type FavoriteEnriched struct {
 	RatingAvg     float64
 	RatingCount   int
 	AvatarURL     string
+}
+
+func ValidFavoriteType(t string) bool {
+	switch t {
+	case FavoriteExcursion, FavoriteGuide, FavoriteProvider:
+		return true
+	default:
+		return false
+	}
 }
 
 type AuditLogEntry struct {

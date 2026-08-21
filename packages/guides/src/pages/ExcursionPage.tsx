@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { api } from '@gaido/api-client/api/client'
 import type { ExcursionItem } from '../components/excursionUi'
 import {
@@ -30,25 +30,25 @@ import { trackRecentView, removeRecentView } from '../hooks/useRecentViews'
 import { useHasRole, useMe } from '@gaido/api-client/hooks/useAuth'
 import { getApiErrorCode } from '@gaido/api-client/api/http'
 import CatalogNotFound from '../components/CatalogNotFound'
+import FavoriteButton from '../components/FavoriteButton'
 import { resolveMapEmbed } from '../lib/mapEmbed'
 import {
   hasStructuredContent,
   isValidMediaRef,
   normalizeStructuredContent,
 } from '../lib/excursionStructuredContent'
-import { pageTitle } from '@gaido/site-urls/brand'
+import { buildExcursionEventJsonLd } from '../lib/excursionEventSchema'
+import { seoExcursionTitle } from '../lib/seoTemplates'
 import { Seo } from '../lib/seo'
 import type { Contacts } from '@gaido/api-client/api/types/catalog'
 import { sanitizeHtml } from '../lib/html'
 
 function ExcursionBookingPanel({
   excursion,
-  favMutation,
   compact = false,
   contacts,
 }: {
   excursion: ExcursionItem
-  favMutation: ReturnType<typeof useMutation<{ favorited: boolean }, Error, void>>
   compact?: boolean
   contacts?: Contacts
 }) {
@@ -70,15 +70,11 @@ function ExcursionBookingPanel({
   ) : null
 
   const favButton = (
-    <button
-      type="button"
-      className={compact ? 'btn-secondary shrink-0 px-3 py-2.5 text-sm' : 'btn-secondary w-full'}
-      disabled={favMutation.isPending}
-      aria-label={favMutation.data?.favorited ? 'В обраному' : 'В обране'}
-      onClick={() => favMutation.mutate()}
-    >
-      {compact ? (favMutation.data?.favorited ? '♥' : '♡') : favMutation.data?.favorited ? 'В обраному' : 'В обране'}
-    </button>
+    <FavoriteButton
+      targetType="EXCURSION"
+      targetId={excursion.id}
+      variant={compact ? 'compact' : 'button'}
+    />
   )
 
   if (compact) {
@@ -111,9 +107,6 @@ function ExcursionBookingPanel({
         {contactBlock}
         {responseHours}
         {favButton}
-        {favMutation.isError && (
-          <p className="text-xs text-red-600">Увійдіть, щоб додати до обраного</p>
-        )}
         <div className="border-t border-stone-100 pt-3 excursion-parus-text">
           <p className="font-medium text-stone-800">Як це працює</p>
           <p className="mt-1">Звʼяжіться з гідом напряму — бронювання та оплата поза платформою.</p>
@@ -140,12 +133,13 @@ export default function ExcursionPage() {
     enabled: isGuideRole,
   })
 
-  const favMutation = useMutation({
-    mutationFn: () =>
-      api<{ favorited: boolean }>('/api/v1/favorites', {
-        method: 'POST',
-        body: JSON.stringify({ target_type: 'EXCURSION', target_id: excursion!.id }),
-      }),
+  const { data: datesData } = useQuery({
+    queryKey: ['excursion-dates-public', slug, 'schema'],
+    queryFn: () =>
+      api<{ items: { starts_at: string; ends_at: string }[] }>(
+        `/api/v1/excursions/${slug}/dates?months=6`,
+      ),
+    enabled: !!slug && !!excursion && excursion.status === 'PUBLISHED',
   })
 
   useEffect(() => {
@@ -191,36 +185,44 @@ export default function ExcursionPage() {
     !!excursion.organizational_details?.trim() ||
     !!excursion.meeting_point?.trim()
 
+  const upcomingDates = datesData?.items ?? []
+  const eventJsonLd = isUnpublished
+    ? []
+    : upcomingDates.length > 0
+      ? upcomingDates
+          .slice(0, 10)
+          .map((d) =>
+            buildExcursionEventJsonLd(excursion, { startsAt: d.starts_at, endsAt: d.ends_at }),
+          )
+          .filter((item): item is Record<string, unknown> => item !== null)
+      : ([buildExcursionEventJsonLd(excursion)].filter(Boolean) as Record<string, unknown>[])
+
+  const breadcrumbItems = [
+    { label: 'Екскурсії', to: '/search' },
+    ...(excursion.country_name && excursion.country_slug
+      ? [{ label: excursion.country_name, to: `/countries/${excursion.country_slug}` }]
+      : []),
+    ...(excursion.city_name
+      ? [{
+          label: excursion.city_name,
+          ...(excursion.city_slug ? { to: `/city/${excursion.city_slug}` } : {}),
+        }]
+      : []),
+    { label: excursion.title },
+  ]
+
   return (
     <div className="excursion-parus pb-28 lg:pb-10">
       <Seo
-        title={pageTitle(excursion.title)}
+        title={seoExcursionTitle(excursion.title, excursion.city_name, excursion.price_from, excursion.currency)}
         description={excursion.description ?? ''}
         path={`/excursion/${excursion.slug}`}
         image={excursion.cover_image_url}
         noIndex={isUnpublished}
-        jsonLd={isUnpublished ? undefined : {
-          '@context': 'https://schema.org',
-          '@type': 'TouristTrip',
-          name: excursion.title,
-          description: excursion.description,
-          image: excursion.cover_image_url,
-          url: `/excursion/${excursion.slug}`,
-        }}
+        jsonLd={eventJsonLd.length > 0 ? eventJsonLd : undefined}
       />
 
-      <Breadcrumbs
-        items={[
-          { label: 'Екскурсії', to: '/search' },
-          ...(excursion.city_name
-            ? [{
-                label: excursion.city_name,
-                ...(excursion.city_slug ? { to: `/city/${excursion.city_slug}` } : {}),
-              }]
-            : []),
-          { label: excursion.title },
-        ]}
-      />
+      <Breadcrumbs items={breadcrumbItems} currentPath={`/excursion/${excursion.slug}`} />
 
       {isUnpublished && (
         <div className="container-site pt-4">
@@ -362,7 +364,6 @@ export default function ExcursionPage() {
             <div className="card space-y-4 border-brand-200 shadow-lg">
               <ExcursionBookingPanel
                 excursion={excursion}
-                favMutation={favMutation}
                 contacts={excursion.guide_contacts}
               />
               <ExcursionAvailabilityButton onClick={() => setAvailabilityOpen(true)} />
@@ -378,7 +379,6 @@ export default function ExcursionPage() {
         <div className="mx-auto flex max-w-365 items-center gap-3">
           <ExcursionBookingPanel
             excursion={excursion}
-            favMutation={favMutation}
             contacts={excursion.guide_contacts}
             compact
           />

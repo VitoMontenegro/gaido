@@ -26,6 +26,7 @@ export default function SeoCityPage() {
         title={pageTitle(`Українці в ${city?.name ?? citySlug}`)}
         description={`Українські послуги та ресурси в ${city?.name ?? citySlug} та поруч.`}
         path={`/ukrainians-in/${citySlug}`}
+        noIndex
       />
       <div className="container-site py-12 text-muted">Перенаправлення…</div>
     </>

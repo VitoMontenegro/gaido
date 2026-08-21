@@ -33,20 +33,24 @@ export function LegalDocumentPage() {
 
   if (!key) {
     return (
-      <div className="container-site py-12">
-        <p className="text-muted">Сторінку не знайдено.</p>
-        <Link to="/" className="mt-4 inline-block text-teal hover:underline">На головну</Link>
-      </div>
+      <>
+        <Seo title={pageTitle('Сторінку не знайдено')} noIndex />
+        <div className="container-site py-12">
+          <p className="text-muted">Сторінку не знайдено.</p>
+          <Link to="/" className="mt-4 inline-block text-teal hover:underline">На головну</Link>
+        </div>
+      </>
     )
   }
 
   const doc = data?.legal?.[key]
   const title = doc?.title || 'Документ'
   const body = doc?.body_html?.trim()
+  const description = `${title} — правила та політика платформи Gaido`
 
   return (
     <>
-      <Seo title={pageTitle(title)} path={legalPath(slug as keyof typeof LEGAL_SLUGS)} />
+      <Seo title={pageTitle(title)} description={description} path={legalPath(slug as keyof typeof LEGAL_SLUGS)} />
       <Breadcrumbs items={[{ label: title }]} />
       <article className="container-site py-10 md:py-14">
         <h1 className="font-display text-3xl font-bold normal-case tracking-normal md:text-4xl">{title}</h1>

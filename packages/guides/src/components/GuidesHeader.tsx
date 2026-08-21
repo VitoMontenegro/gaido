@@ -8,6 +8,9 @@ import { useMe, useHasRole } from '@gaido/api-client/hooks/useAuth'
 import BrandLogo from './BrandLogo'
 import UserAvatar from './UserAvatar'
 import { cn } from '@gaido/ui-primitives/cn'
+import { HeartIcon as HeartOutline } from '@heroicons/react/24/outline'
+import { HeartIcon as HeartSolid } from '@heroicons/react/24/solid'
+import { useFavorites, useSyncGuestFavorites } from '../hooks/useFavorites'
 
 const GUIDES_NAV = [
   { to: '/search', label: 'Пошук' },
@@ -48,6 +51,8 @@ export default function GuidesHeader({ onLogout }: GuidesHeaderProps) {
   const location = useLocation()
   const [menuOpen, setMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  useSyncGuestFavorites()
+  const { count } = useFavorites()
   const authPending = isLoading && !!getAccessToken()
   const isGuide = useHasRole('ROLE_GUIDE')
   const accountHref = isGuide ? '/account/guide' : '/account'
@@ -92,7 +97,7 @@ export default function GuidesHeader({ onLogout }: GuidesHeaderProps) {
         )}
       >
         <div className="container-site">
-          <div className="flex h-14 items-center gap-3 md:h-[72px] md:gap-6">
+          <div className="flex h-14 items-center gap-3 md:h-18 md:gap-6">
             <BrandLogo compactOnMobile homeTo="/" variant={solidHeader ? 'default' : 'inverse'} />
             <nav className="ml-auto hidden items-center gap-1 md:flex" aria-label="Головна навігація">
               {GUIDES_NAV.map((item) => (
@@ -103,22 +108,43 @@ export default function GuidesHeader({ onLogout }: GuidesHeaderProps) {
                     'rounded-xl px-3 py-2 text-sm transition',
                     navActive(location.pathname, item.to)
                       ? solidHeader
-                        ? 'bg-ink text-white'
+                        ? 'bg-teal text-white'
                         : 'bg-white/15 text-white'
                       : solidHeader
                         ? 'text-ink hover:bg-sand-100'
-                        : 'text-white/90 hover:bg-white/10',
+                        : 'text-white/90 hover:bg-teal/10',
                   )}
                 >
                   {item.label}
                 </Link>
               ))}
             </nav>
-            <div className="ml-auto flex h-9 min-w-[132px] items-center justify-end gap-1.5 md:ml-0 md:min-w-[220px] md:gap-2">
+            <div className="ml-auto flex h-9 min-w-33 items-center justify-end gap-1.5 md:ml-0 md:min-w-55 md:gap-2">
+              <Link
+                to="/favorites"
+                className={cn(
+                  'relative inline-flex h-9 w-9 items-center justify-center rounded-xl transition',
+                  navActive(location.pathname, '/favorites')
+                    ? solidHeader
+                      ? 'bg-ink text-white'
+                      : 'bg-white/15 text-white'
+                    : solidHeader
+                      ? 'text-ink hover:bg-sand-100'
+                      : 'text-white/90 hover:bg-white/10',
+                )}
+                aria-label={count > 0 ? `Обране, ${count}` : 'Обране'}
+              >
+                {count > 0 ? <HeartSolid className="h-5 w-5" /> : <HeartOutline className="h-5 w-5" />}
+                {count > 0 && (
+                  <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold leading-none text-white">
+                    {count > 99 ? '99+' : count}
+                  </span>
+                )}
+              </Link>
               {authPending ? (
                 <div
                   className={cn(
-                    'h-9 w-full max-w-[180px] animate-pulse rounded-xl',
+                    'h-9 w-full max-w-45 animate-pulse rounded-xl',
                     solidHeader ? 'bg-sand-100/80' : 'bg-white/15',
                   )}
                   aria-hidden
@@ -163,7 +189,7 @@ export default function GuidesHeader({ onLogout }: GuidesHeaderProps) {
                   >
                     Вхід
                   </Link>
-                  <Link to="/register/guide" className="btn-primary px-3 py-1.5 text-sm md:py-2">
+                  <Link to="/register/guide" className="btn-primary  px-3 py-1.5 text-sm md:py-2">
                     Стати гідом
                   </Link>
                 </>
@@ -187,7 +213,7 @@ export default function GuidesHeader({ onLogout }: GuidesHeaderProps) {
           </div>
         </div>
       </header>
-      {!homeOverlay && <div className="site-header-spacer h-14 shrink-0 md:h-[72px]" aria-hidden />}
+      {!homeOverlay && <div className="site-header-spacer h-14 shrink-0 md:h-18" aria-hidden />}
       {menuOpen && (
         <div className="fixed inset-0 z-40 md:hidden" role="presentation">
           <button type="button" className="absolute inset-0 bg-ink/25 backdrop-blur-[2px]" aria-label="Закрити меню" onClick={() => setMenuOpen(false)} />
@@ -200,6 +226,11 @@ export default function GuidesHeader({ onLogout }: GuidesHeaderProps) {
                   </Link>
                 </li>
               ))}
+              <li>
+                <Link to="/favorites" className={cn('flex min-h-11 items-center rounded-xl px-3 text-base font-medium transition', navActive(location.pathname, '/favorites') ? 'bg-ink text-white' : 'text-ink hover:bg-sand-100')}>
+                  Обране{count > 0 ? ` (${count})` : ''}
+                </Link>
+              </li>
             </ul>
             <div className="mt-4 space-y-1 border-t border-divider pt-4">
               {authPending ? (

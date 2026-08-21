@@ -16,6 +16,7 @@ import { useHasRole, useMe } from '@gaido/api-client/hooks/useAuth'
 import { getApiErrorCode } from '@gaido/api-client/api/http'
 import CatalogNotFound from '../components/CatalogNotFound'
 import { pageTitle } from '@gaido/site-urls/brand'
+import { buildExcursionItemListJsonLd, buildPersonJsonLd } from '../lib/excursionListingSchema'
 import { Seo } from '../lib/seo'
 
 export default function GuidePage() {
@@ -65,6 +66,24 @@ export default function GuidePage() {
   if (isLoading) return <div className="container-site p-8 text-muted">Завантаження…</div>
   if (isError || !guide) return <CatalogNotFound kind="guide" />
 
+  const excursionItems = excursions?.items ?? []
+  const countryFromExcursion = excursionItems.find((e) => e.country_slug && e.country_name)
+
+  const jsonLd = [
+    buildPersonJsonLd({
+      display_name: guide.display_name,
+      slug: guide.slug,
+      about: guide.about,
+      avatar_url: guide.avatar_url,
+      rating_avg: guide.rating_avg,
+      rating_count: guide.rating_count,
+    }),
+    ...((): Record<string, unknown>[] => {
+      const list = buildExcursionItemListJsonLd(excursionItems, `Екскурсії ${guide.display_name}`)
+      return list ? [list] : []
+    })(),
+  ]
+
   return (
     <>
       <Seo
@@ -72,19 +91,19 @@ export default function GuidePage() {
         description={guide.about ?? ''}
         path={`/guide/${guide.slug}`}
         image={guide.avatar_url}
-        jsonLd={{
-          '@context': 'https://schema.org',
-          '@type': 'Person',
-          name: guide.display_name,
-          description: guide.about,
-          image: guide.avatar_url,
-          url: `/guide/${guide.slug}`,
-        }}
+        jsonLd={jsonLd.length > 0 ? jsonLd : undefined}
       />
 
       <Breadcrumbs
+        currentPath={`/guide/${guide.slug}`}
         items={[
           { label: 'Гіди', to: '/guides' },
+          ...(countryFromExcursion
+            ? [{
+                label: countryFromExcursion.country_name!,
+                to: `/guides/countries/${countryFromExcursion.country_slug}`,
+              }]
+            : []),
           { label: guide.display_name },
         ]}
       />
@@ -99,11 +118,11 @@ export default function GuidePage() {
         <div className="space-y-10">
           <section>
             <h2 className="font-display mb-4 text-2xl font-bold">Екскурсії гіда</h2>
-            {(excursions?.items ?? []).length === 0 ? (
+            {(excursionItems).length === 0 ? (
               <p className="text-stone-600">Поки немає опублікованих екскурсій.</p>
             ) : (
               <div className="grid gap-4 sm:grid-cols-3">
-                {(excursions?.items ?? []).map((e) => (
+                {excursionItems.map((e) => (
                   <ExcursionCard key={e.id} e={e} compact />
                 ))}
               </div>

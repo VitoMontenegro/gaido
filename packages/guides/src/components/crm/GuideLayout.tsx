@@ -1,5 +1,6 @@
-import { Helmet } from 'react-helmet-async'
 import { NavLink, Outlet } from 'react-router-dom'
+import { Seo } from '../../lib/seo'
+import { pageTitle } from '@gaido/site-urls/brand'
 
 const TABS = [
   { to: '/account/guide', label: 'Огляд', end: true },
@@ -19,7 +20,7 @@ function tabClass({ isActive }: { isActive: boolean }) {
 export default function GuideLayout() {
   return (
     <>
-      <Helmet><title>Кабінет гіда</title></Helmet>
+      <Seo title={pageTitle('Кабінет гіда')} path="/account/guide" noIndex />
       <div className="space-y-5">
         <div>
           <h1 className="font-display text-2xl font-bold">Кабінет гіда</h1>

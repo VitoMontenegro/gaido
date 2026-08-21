@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
+import { Link, useLocation } from 'react-router-dom'
 import { resolveMediaUrl } from '@gaido/api-client/api/client'
 import { reviewsApi } from '@gaido/api-client/api/reviews'
+import { useMe } from '@gaido/api-client/hooks/useAuth'
 import ApiErrorBanner from '../ApiErrorBanner'
 import type { ExcursionItem } from '../excursionUi'
 import StarRating from './StarRating'
@@ -22,6 +24,8 @@ export default function ReviewForm({
   error?: unknown
   success?: boolean
 }) {
+  const { data: me } = useMe()
+  const location = useLocation()
   const formRef = useRef<HTMLFormElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const list = excursions ?? []
@@ -63,6 +67,17 @@ export default function ReviewForm({
     return (
       <p className="card text-sm text-stone-600">
         Відгуки можна залишити лише після появи опублікованих екскурсій.
+      </p>
+    )
+  }
+
+  if (!me) {
+    return (
+      <p className="card text-sm text-stone-600">
+        <Link to="/login" state={{ from: location.pathname }} className="link-accent">
+          Увійдіть в акаунт
+        </Link>
+        , щоб залишити відгук.
       </p>
     )
   }

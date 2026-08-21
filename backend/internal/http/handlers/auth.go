@@ -164,21 +164,36 @@ func (h *Handlers) WriteTokens(w http.ResponseWriter, r *http.Request, userID in
 	})
 	response.JSON(w, r, 200, map[string]any{"access_token": access, "user_id": userID, "roles": roles})
 }
+func (h *Handlers) clearRefreshCookie(w http.ResponseWriter) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     "refresh_token",
+		Value:    "",
+		Path:     "/api/v1/auth",
+		MaxAge:   -1,
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+		Secure:   h.Cfg.AppEnv != "development",
+	})
+}
+func (h *Handlers) refreshNoSession(w http.ResponseWriter, r *http.Request) {
+	h.clearRefreshCookie(w)
+	response.JSON(w, r, 200, map[string]any{"authenticated": false})
+}
 func (h *Handlers) Refresh(w http.ResponseWriter, r *http.Request) {
 	c, err := r.Cookie("refresh_token")
-	if err != nil {
-		response.Error(w, r, apperrors.ErrUnauthorized)
+	if err != nil || c.Value == "" {
+		h.refreshNoSession(w, r)
 		return
 	}
 	hash := auth.HashToken(c.Value)
 	userID, exp, err := h.Users.GetRefreshToken(r.Context(), hash)
 	if err != nil || time.Now().After(exp) {
-		response.Error(w, r, apperrors.ErrUnauthorized)
+		h.refreshNoSession(w, r)
 		return
 	}
 	u, err := h.Users.GetByID(r.Context(), userID)
 	if err != nil || u == nil {
-		response.Error(w, r, apperrors.ErrUnauthorized)
+		h.refreshNoSession(w, r)
 		return
 	}
 	_ = h.Users.DeleteRefreshToken(r.Context(), hash)
@@ -188,7 +203,7 @@ func (h *Handlers) Logout(w http.ResponseWriter, r *http.Request) {
 	if c, err := r.Cookie("refresh_token"); err == nil {
 		_ = h.Users.DeleteRefreshToken(r.Context(), auth.HashToken(c.Value))
 	}
-	http.SetCookie(w, &http.Cookie{Name: "refresh_token", Value: "", Path: "/api/v1/auth", MaxAge: -1})
+	h.clearRefreshCookie(w)
 	response.JSON(w, r, 200, map[string]string{"status": "ok"})
 }
 func (h *Handlers) Me(w http.ResponseWriter, r *http.Request) {

@@ -1,5 +1,6 @@
 import { Helmet } from 'react-helmet-async'
 import { Link } from 'react-router-dom'
+import { absoluteUrl } from '../lib/seo'
 
 export type BreadcrumbItem = {
   label: string
@@ -8,12 +9,11 @@ export type BreadcrumbItem = {
 
 type Props = {
   items: BreadcrumbItem[]
+  /** Canonical path for the current page (e.g. /countries/turkey). Used in JSON-LD. */
+  currentPath?: string
 }
 
-function buildSchema(items: BreadcrumbItem[]) {
-  if (typeof window === 'undefined') return null
-
-  const origin = window.location.origin
+function buildSchema(items: BreadcrumbItem[], currentPath?: string) {
   const trail: BreadcrumbItem[] = [{ label: 'Головна', to: '/' }, ...items]
 
   return {
@@ -21,7 +21,12 @@ function buildSchema(items: BreadcrumbItem[]) {
     '@type': 'BreadcrumbList',
     itemListElement: trail.map((item, index) => {
       const isLast = index === trail.length - 1
-      const href = isLast && !item.to ? window.location.href : `${origin}${item.to ?? ''}`
+      let href: string
+      if (isLast) {
+        href = currentPath ? absoluteUrl(currentPath) : item.to ? absoluteUrl(item.to) : absoluteUrl('/')
+      } else {
+        href = absoluteUrl(item.to ?? '/')
+      }
       return {
         '@type': 'ListItem',
         position: index + 1,
@@ -32,19 +37,17 @@ function buildSchema(items: BreadcrumbItem[]) {
   }
 }
 
-export default function Breadcrumbs({ items }: Props) {
+export default function Breadcrumbs({ items, currentPath }: Props) {
   if (items.length === 0) return null
 
-  const schema = buildSchema(items)
+  const schema = buildSchema(items, currentPath)
   const trail: BreadcrumbItem[] = [{ label: 'Головна', to: '/' }, ...items]
 
   return (
     <>
-      {schema && (
-        <Helmet>
-          <script type="application/ld+json">{JSON.stringify(schema)}</script>
-        </Helmet>
-      )}
+      <Helmet>
+        <script type="application/ld+json">{JSON.stringify(schema)}</script>
+      </Helmet>
       <div className="border-b border-divider bg-page">
         <nav className="container-site py-4 text-sm text-stone-500" aria-label="Навігаційний ланцюжок">
           <ol className="flex flex-wrap items-center">

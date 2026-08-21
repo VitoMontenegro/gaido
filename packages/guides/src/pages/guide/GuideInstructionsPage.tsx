@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
-import { Helmet } from 'react-helmet-async'
+import { Seo } from '../../lib/seo'
+import { pageTitle } from '@gaido/site-urls/brand'
 
 const PROFILE_TOC = [
   { id: 'profile-qualification', label: '1. Кваліфікація' },
@@ -81,7 +82,7 @@ function Step({
   children: ReactNode
 }) {
   return (
-    <section id={id} className="scroll-mt-28 space-y-3 border-t border-divider pt-6 first:border-t-0 first:pt-0">
+    <section id={id} className="scroll-mt-28 space-y-3">
       <div className="flex items-start gap-3">
         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-ink text-sm font-semibold text-white">
           {number}
@@ -115,7 +116,7 @@ function SubStep({ title, children }: { title: string; children: ReactNode }) {
 export function GuideInstructionsPage() {
   return (
     <div className="space-y-6">
-      <Helmet><title>Інструкції</title></Helmet>
+      <Seo title={pageTitle('Інструкції')} path="/account/guide/instructions" noIndex />
       <div>
         <h2 className="font-display text-xl font-bold">Інструкції</h2>
         <p className="mt-2 max-w-3xl text-sm leading-relaxed text-stone-600">
@@ -164,7 +165,7 @@ export function GuideInstructionsPage() {
       </nav>
 
       {/* —— Профіль —— */}
-      <article id="profile" className="card scroll-mt-28 space-y-6">
+      <article id="profile" className="card scroll-mt-28 space-y-6 [&>section+section]:border-t [&>section+section]:border-divider [&>section+section]:pt-6">
         <header className="space-y-2 border-b border-divider pb-5">
           <p className="text-xs font-semibold uppercase tracking-wide text-teal">Частина 1</p>
           <h2 className="font-display text-xl font-bold normal-case tracking-normal">
@@ -267,7 +268,7 @@ export function GuideInstructionsPage() {
       </article>
 
       {/* —— Екскурсії —— */}
-      <article id="excursions" className="card scroll-mt-28 space-y-6">
+      <article id="excursions" className="card scroll-mt-28 space-y-6 [&>section+section]:border-t [&>section+section]:border-divider [&>section+section]:pt-6">
         <header className="space-y-2 border-b border-divider pb-5">
           <p className="text-xs font-semibold uppercase tracking-wide text-teal">Частина 2</p>
           <h2 className="font-display text-xl font-bold normal-case tracking-normal">

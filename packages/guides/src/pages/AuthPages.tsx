@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { Helmet } from 'react-helmet-async'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { authApi } from '@gaido/api-client/api/auth'
@@ -8,6 +7,7 @@ import { validateRegisterForm, type RegisterFormData } from '@gaido/ui-primitive
 import { legalPath } from '../components/LegalContentEditor'
 import PasswordInput from '@gaido/ui-primitives/PasswordInput'
 import { pageTitle } from '@gaido/site-urls/brand'
+import { Seo } from '../lib/seo'
 
 function safeReturnPath(from: unknown): string {
   return typeof from === 'string' && from.startsWith('/') && !from.startsWith('//') ? from : '/account'
@@ -200,7 +200,7 @@ export default function LoginPage() {
 
   return (
     <>
-      <Helmet><title>{pageTitle('Вхід')}</title></Helmet>
+      <Seo title={pageTitle('Вхід')} path="/login" noIndex />
       <div className="container-site flex min-h-[60vh] max-w-md flex-col justify-center py-12">
         <h1 className="section-title-sm mb-6">Вхід</h1>
         <form onSubmit={submit} className="card space-y-4" autoComplete="off">
@@ -230,10 +230,10 @@ export default function LoginPage() {
 export function RegisterTouristPage() {
   return (
     <>
-      <Helmet><title>{pageTitle('Реєстрація')}</title></Helmet>
+      <Seo title={pageTitle('Реєстрація')} path="/register" noIndex />
       <div className="container-site max-w-md py-12">
         <h1 className="section-title-sm mb-2">Реєстрація мандрівника</h1>
-        <p className="mb-6 text-sm text-muted">Створіть акаунт, щоб зберігати обране та залишати відгуки.</p>
+        <p className="mb-6 text-sm text-muted">Створіть акаунт, щоб синхронізувати обране на всіх пристроях і залишати відгуки.</p>
         <RegisterForm mode="tourist" />
         <p className="mt-4 text-center text-sm text-muted">
           Хочете проводити екскурсії?{' '}
@@ -247,7 +247,7 @@ export function RegisterTouristPage() {
 export function RegisterGuidePage() {
   return (
     <>
-      <Helmet><title>{pageTitle('Реєстрація гіда')}</title></Helmet>
+      <Seo title={pageTitle('Реєстрація гіда')} path="/register/guide" noIndex />
       <div className="container-site max-w-md py-12">
         <h1 className="section-title-sm mb-2">Реєстрація гіда</h1>
         <p className="mb-6 text-sm text-muted">Створіть профіль гіда та додайте свої екскурсії в каталог.</p>

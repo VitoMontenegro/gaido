@@ -1,9 +1,15 @@
-import { Helmet } from 'react-helmet-async'
 import { Link, useParams } from 'react-router-dom'
+import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { catalogApi } from '@gaido/api-client/api/client'
 import Breadcrumbs from '../components/Breadcrumbs'
 import GuideCard, { GuideCardGrid } from '../components/GuideCard'
+import { buildPlaceJsonLd } from '../lib/excursionListingSchema'
+import { Seo } from '../lib/seo'
+import {
+  seoGuidesCountryDescription,
+  seoGuidesCountryTitle,
+} from '../lib/seoTemplates'
 import { pageTitle } from '@gaido/site-urls/brand'
 import { cn } from '@gaido/ui-primitives/cn'
 
@@ -33,10 +39,35 @@ export default function GuidesListPage() {
     queryFn: () => catalogApi.topGuides(10),
   })
 
+  const countryItems = countries?.items ?? []
+  const jsonLd = useMemo(
+    () =>
+      countryItems.length > 0
+        ? [{
+            '@context': 'https://schema.org',
+            '@type': 'ItemList',
+            name: 'Гіди за країнами',
+            numberOfItems: countryItems.length,
+            itemListElement: countryItems.map((c, index) => ({
+              '@type': 'ListItem',
+              position: index + 1,
+              name: c.name,
+              url: `/guides/countries/${c.slug}`,
+            })),
+          }]
+        : [],
+    [countryItems],
+  )
+
   return (
     <>
-      <Helmet><title>{pageTitle('Гіди')}</title></Helmet>
-      <Breadcrumbs items={[{ label: 'Гіди' }]} />
+      <Seo
+        title={pageTitle('Гіди')}
+        description="Оберіть країну — побачите місцевих експертів із авторськими маршрутами"
+        path="/guides"
+        jsonLd={jsonLd.length > 0 ? jsonLd : undefined}
+      />
+      <Breadcrumbs items={[{ label: 'Гіди' }]} currentPath="/guides" />
       <div className="container-site py-5 md:py-8">
         <h1 className="section-title mb-1 text-2xl md:text-[28px]">Гіди</h1>
         <p className="mb-6 text-sm text-muted md:mb-8 md:text-base">
@@ -47,11 +78,11 @@ export default function GuidesListPage() {
           <h2 className="mb-4 font-display text-lg font-medium normal-case text-ink md:text-xl">Країни</h2>
           {countriesLoading ? (
             <p className="text-sm text-muted">Завантаження…</p>
-          ) : (countries?.items ?? []).length === 0 ? (
+          ) : countryItems.length === 0 ? (
             <p className="text-sm text-muted">Поки немає опублікованих гідів.</p>
           ) : (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-              {(countries?.items ?? []).map((c) => (
+              {countryItems.map((c) => (
                 <CountryTile key={c.id} slug={c.slug} name={c.name} guideCount={c.guide_count} />
               ))}
             </div>
@@ -93,11 +124,40 @@ export function GuidesByCountryPage() {
   })
 
   const title = country?.name ?? countrySlug
+  const guideItems = guides?.items ?? []
+  const description = seoGuidesCountryDescription(title, country?.guide_count)
+
+  const jsonLd = useMemo(() => {
+    const schemas: Record<string, unknown>[] = [
+      buildPlaceJsonLd({ name: title, path: `/guides/countries/${countrySlug}` }),
+    ]
+    if (guideItems.length > 0) {
+      schemas.unshift({
+        '@context': 'https://schema.org',
+        '@type': 'ItemList',
+        name: `Гіди в ${title}`,
+        numberOfItems: guideItems.length,
+        itemListElement: guideItems.map((g, index) => ({
+          '@type': 'ListItem',
+          position: index + 1,
+          name: g.display_name,
+          url: `/guide/${g.slug}`,
+        })),
+      })
+    }
+    return schemas
+  }, [guideItems, title, countrySlug])
 
   return (
     <>
-      <Helmet><title>{pageTitle(title)}</title></Helmet>
+      <Seo
+        title={seoGuidesCountryTitle(title)}
+        description={description}
+        path={`/guides/countries/${countrySlug}`}
+        jsonLd={jsonLd.length > 0 ? jsonLd : undefined}
+      />
       <Breadcrumbs
+        currentPath={`/guides/countries/${countrySlug}`}
         items={[
           { label: 'Гіди', to: '/guides' },
           { label: title },
@@ -108,7 +168,7 @@ export function GuidesByCountryPage() {
           ← Усі країни
         </Link>
         <h1 className={cn('section-title mb-1 text-2xl md:text-[28px]', !country && 'capitalize')}>
-          {title}
+          Гіди в {title}
         </h1>
         <p className="mb-4 text-sm text-muted md:mb-6 md:text-base">
           {country
@@ -118,11 +178,11 @@ export function GuidesByCountryPage() {
 
         {isLoading ? (
           <p className="text-sm text-muted">Завантаження…</p>
-        ) : (guides?.items ?? []).length === 0 ? (
-          <p className="text-sm text-muted">У цій країні поки немає активних гідів.</p>
+        ) : guideItems.length === 0 ? (
+          <p className="text-sm text-muted">У цій країні поки немає опублікованих гідів.</p>
         ) : (
           <GuideCardGrid>
-            {(guides?.items ?? []).map((g) => (
+            {guideItems.map((g) => (
               <GuideCard key={g.id} guide={g} compact />
             ))}
           </GuideCardGrid>

@@ -1,5 +1,6 @@
 p, ROLE_TOURIST, /api/v1/favorites, GET
 p, ROLE_TOURIST, /api/v1/favorites, POST
+p, ROLE_TOURIST, /api/v1/favorites/*, POST
 p, ROLE_TOURIST, /api/v1/favorites/*, DELETE
 p, ROLE_TOURIST, /api/v1/reviews, POST
 p, ROLE_GUIDE, /api/v1/reviews/*, POST
@@ -16,6 +17,7 @@ p, ROLE_GUIDE, /api/v1/account/guide/*, DELETE
 p, ROLE_GUIDE, /api/v1/media, POST
 p, ROLE_GUIDE, /api/v1/favorites, GET
 p, ROLE_GUIDE, /api/v1/favorites, POST
+p, ROLE_GUIDE, /api/v1/favorites/*, POST
 p, ROLE_GUIDE, /api/v1/favorites/*, DELETE
 p, ROLE_GUIDE, /api/v1/notifications, GET
 p, ROLE_GUIDE, /api/v1/notifications/*, GET
@@ -29,6 +31,7 @@ p, ROLE_PROVIDER, /api/v1/looking-requests/*, POST
 p, ROLE_PROVIDER, /api/v1/media, POST
 p, ROLE_PROVIDER, /api/v1/favorites, GET
 p, ROLE_PROVIDER, /api/v1/favorites, POST
+p, ROLE_PROVIDER, /api/v1/favorites/*, POST
 p, ROLE_PROVIDER, /api/v1/favorites/*, DELETE
 p, ROLE_PROVIDER, /api/v1/notifications, GET
 p, ROLE_PROVIDER, /api/v1/notifications/*, GET

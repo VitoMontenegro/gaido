@@ -5,6 +5,7 @@ import { articlesApi, resolveMediaUrl } from '@gaido/api-client/api/client'
 import Breadcrumbs from '../components/Breadcrumbs'
 import ArticleAuthorByline from '../components/ArticleAuthorByline'
 import JournalArticleCard, { formatArticleDate } from '../components/JournalArticleCard'
+import { buildArticleJsonLd } from '../lib/excursionListingSchema'
 import { pageTitle } from '@gaido/site-urls/brand'
 import { sanitizeHtml } from '../lib/html'
 
@@ -64,7 +65,14 @@ export function JournalArticlePage() {
   })
 
   if (isLoading) return <div className="container-site py-10">Завантаження...</div>
-  if (!article) return <div className="container-site py-10">Статтю не знайдено</div>
+  if (!article) {
+    return (
+      <>
+        <Seo title={pageTitle('Статтю не знайдено')} noIndex />
+        <div className="container-site py-10">Статтю не знайдено</div>
+      </>
+    )
+  }
 
   const cover = resolveMediaUrl(article.cover_image_url)
 
@@ -75,9 +83,17 @@ export function JournalArticlePage() {
         description={article.excerpt || article.title}
         path={`/journal/${article.slug}`}
         image={cover}
+        jsonLd={buildArticleJsonLd({
+          title: article.title,
+          slug: article.slug,
+          excerpt: article.excerpt,
+          cover_image_url: article.cover_image_url,
+          published_at: article.published_at,
+        })}
       />
 
       <Breadcrumbs
+        currentPath={`/journal/${article.slug}`}
         items={[
           { label: 'Журнал', to: '/journal' },
           { label: article.title },

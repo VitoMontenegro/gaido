@@ -85,6 +85,7 @@ func NewRouter(cfg config.Config, log *slog.Logger, h *handlers.Handlers) http.H
 		api.Get("/reviews/photos", h.ListReviewPhotosPublic)
 
 		api.Get("/media/public/{key}", h.ServePublicMedia)
+		api.With(middleware.AuthRateLimit(30, time.Minute, cfg.TrustProxy)).Post("/favorites/resolve", h.ResolveFavorites)
 
 		authMW := middleware.Auth(h.JWT, h.Users)
 		rbacMW := middleware.RBAC(h.Enforcer)
@@ -95,6 +96,7 @@ func NewRouter(cfg config.Config, log *slog.Logger, h *handlers.Handlers) http.H
 			pr.Put("/account/profile", h.UpdateAccountProfile)
 			pr.Get("/favorites", h.ListFavorites)
 			pr.Post("/favorites", h.ToggleFavorite)
+			pr.Post("/favorites/import", h.ImportFavorites)
 			pr.Post("/reviews", h.CreateReview)
 			pr.Post("/reviews/photos", h.UploadReviewPhoto)
 			pr.Post("/reviews/{id}/comments", h.CreateReviewComment)
@@ -210,7 +212,7 @@ func NewRouter(cfg config.Config, log *slog.Logger, h *handlers.Handlers) http.H
 			http.NotFound(w, req)
 			return
 		}
-		spaFileServer(staticDirForHost(req.Host, cfg)).ServeHTTP(w, req)
+		spaFileServer(staticDirForHost(req.Host, cfg), h).ServeHTTP(w, req)
 	})
 	return r
 }
@@ -236,23 +238,39 @@ func normalizeHost(host string) string {
 	return strings.ToLower(strings.TrimSuffix(strings.TrimSpace(h), "."))
 }
 
-func spaFileServer(dist string) http.Handler {
+func spaFileServer(dist string, h *handlers.Handlers) http.Handler {
 	fileServer := http.FileServer(http.Dir(dist))
 	index := filepath.Join(dist, "index.html")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		rel := strings.TrimPrefix(r.URL.Path, "/")
 		if rel == "" {
-			serveSpaIndex(w, r, index)
+			serveSpaIndexWithMeta(w, r, index, h)
 			return
 		}
 		path := filepath.Join(dist, filepath.Clean("/"+rel))
 		if info, err := os.Stat(path); err != nil || info.IsDir() {
-			serveSpaIndex(w, r, index)
+			serveSpaIndexWithMeta(w, r, index, h)
 			return
 		}
 		setSpaCacheHeaders(w, rel, false)
 		fileServer.ServeHTTP(w, r)
 	})
+}
+
+func serveSpaIndexWithMeta(w http.ResponseWriter, r *http.Request, indexPath string, h *handlers.Handlers) {
+	var meta *PageMeta
+	if h != nil {
+		if resolved := h.ResolveSpaPageMeta(r.Context(), r.Host, r.URL.Path); resolved != nil {
+			meta = &PageMeta{
+				Title:       resolved.Title,
+				Description: resolved.Description,
+				Canonical:   resolved.Canonical,
+				OgImage:     resolved.OgImage,
+				NoIndex:     resolved.NoIndex,
+			}
+		}
+	}
+	serveSpaIndex(w, r, indexPath, meta)
 }
 
 func setSpaCacheHeaders(w http.ResponseWriter, rel string, isIndex bool) {

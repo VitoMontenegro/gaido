@@ -1,4 +1,4 @@
-import { api } from './http'
+import { api, requireAccessToken } from './http'
 import { buildUploadForm, type UploadFile } from './upload'
 import type { ReviewListResponse, ReviewPhotoListResponse } from './types/reviews'
 
@@ -23,23 +23,50 @@ export const reviewsApi = {
     return api<ReviewPhotoListResponse>(`/api/v1/reviews/photos?${q}`)
   },
 
-  uploadPhoto: (file: File | UploadFile) =>
-    api<{ public_key: string }>('/api/v1/reviews/photos', { method: 'POST', body: buildUploadForm(file) }),
+  uploadPhoto: (file: File | UploadFile) => {
+    requireAccessToken()
+    return api<{ public_key: string }>('/api/v1/reviews/photos', { method: 'POST', body: buildUploadForm(file) })
+  },
 
-  create: (body: { excursion_id: number; rating: number; text: string; photos?: string[] }) =>
-    api('/api/v1/reviews', { method: 'POST', body: JSON.stringify(body) }),
+  create: (body: { excursion_id: number; rating: number; text: string; photos?: string[] }) => {
+    requireAccessToken()
+    return api('/api/v1/reviews', { method: 'POST', body: JSON.stringify(body) })
+  },
 
-  addComment: (reviewId: number, text: string) =>
-    api(`/api/v1/reviews/${reviewId}/comments`, { method: 'POST', body: JSON.stringify({ text }) }),
+  addComment: (reviewId: number, text: string) => {
+    requireAccessToken()
+    return api(`/api/v1/reviews/${reviewId}/comments`, { method: 'POST', body: JSON.stringify({ text }) })
+  },
 
-  dispute: (reviewId: number, text: string) =>
-    api(`/api/v1/reviews/${reviewId}/dispute`, { method: 'POST', body: JSON.stringify({ text }) }),
+  dispute: (reviewId: number, text: string) => {
+    requireAccessToken()
+    return api(`/api/v1/reviews/${reviewId}/dispute`, { method: 'POST', body: JSON.stringify({ text }) })
+  },
 }
 
+export type FavoriteRef = { target_type: string; target_id: number }
+
 export const favoritesApi = {
-  list: () => api<{ items: import('./types/catalog').FavoriteItem[] }>('/api/v1/favorites'),
-  toggle: (body: { target_type: string; target_id: number }) =>
-    api<{ favorited: boolean }>('/api/v1/favorites', { method: 'POST', body: JSON.stringify(body) }),
+  list: () => {
+    requireAccessToken()
+    return api<{ items: import('./types/catalog').FavoriteItem[] }>('/api/v1/favorites')
+  },
+  toggle: (body: FavoriteRef) => {
+    requireAccessToken()
+    return api<{ favorited: boolean }>('/api/v1/favorites', { method: 'POST', body: JSON.stringify(body) })
+  },
+  importGuest: (items: FavoriteRef[]) => {
+    requireAccessToken()
+    return api<{ items: import('./types/catalog').FavoriteItem[] }>('/api/v1/favorites/import', {
+      method: 'POST',
+      body: JSON.stringify({ items }),
+    })
+  },
+  resolve: (items: FavoriteRef[]) =>
+    api<{ items: import('./types/catalog').FavoriteItem[] }>('/api/v1/favorites/resolve', {
+      method: 'POST',
+      body: JSON.stringify({ items }),
+    }),
 }
 
 export { PAGE_SIZE as REVIEWS_PAGE_SIZE }

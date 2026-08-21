@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom'
 import Breadcrumbs from './Breadcrumbs'
+import { Seo } from '../lib/seo'
+import { pageTitle } from '@gaido/site-urls/brand'
 
 type Props = {
   kind: 'excursion' | 'guide'
@@ -9,6 +11,10 @@ export default function CatalogNotFound({ kind }: Props) {
   const isExcursion = kind === 'excursion'
   return (
     <>
+      <Seo
+        title={pageTitle(isExcursion ? 'Екскурсію не знайдено' : 'Гіда не знайдено')}
+        noIndex
+      />
       <Breadcrumbs
         items={[
           { label: isExcursion ? 'Екскурсії' : 'Гіди', to: isExcursion ? '/search' : '/guides' },

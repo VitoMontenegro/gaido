@@ -17,6 +17,33 @@ export function resolveOgImage(image?: string) {
   return resolved ? absoluteUrl(resolved) : undefined
 }
 
+const JSON_LD_URL_KEYS = new Set(['url', 'item', '@id'])
+const JSON_LD_IMAGE_KEYS = new Set(['image', 'contentUrl', 'thumbnailUrl'])
+
+export function normalizeJsonLd(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(normalizeJsonLd)
+  }
+  if (value && typeof value === 'object') {
+    const out: Record<string, unknown> = {}
+    for (const [key, child] of Object.entries(value as Record<string, unknown>)) {
+      if (typeof child === 'string') {
+        if (JSON_LD_URL_KEYS.has(key) && child.startsWith('/')) {
+          out[key] = absoluteUrl(child)
+        } else if (JSON_LD_IMAGE_KEYS.has(key) && !child.startsWith('http')) {
+          out[key] = resolveOgImage(child) ?? child
+        } else {
+          out[key] = child
+        }
+      } else {
+        out[key] = normalizeJsonLd(child)
+      }
+    }
+    return out
+  }
+  return value
+}
+
 type SeoProps = {
   title: string
   description?: string
@@ -42,7 +69,8 @@ export function Seo({ title, description, path, image, noIndex, jsonLd }: SeoPro
   const url = path ? absoluteUrl(path) : undefined
   const desc = (description ?? '').replace(/\s+/g, ' ').trim().slice(0, 160)
   const ogImage = resolveOgImage(image)
-  const scripts = Array.isArray(jsonLd) ? jsonLd : jsonLd ? [jsonLd] : []
+  const rawScripts = Array.isArray(jsonLd) ? jsonLd : jsonLd ? [jsonLd] : []
+  const scripts = rawScripts.map((obj) => normalizeJsonLd(obj) as Record<string, unknown>)
 
   return (
     <Helmet>

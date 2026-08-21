@@ -1,11 +1,20 @@
-import { Helmet } from 'react-helmet-async'
 import { Link, useParams } from 'react-router-dom'
+import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { catalogApi } from '@gaido/api-client/api/client'
 import Breadcrumbs from '../components/Breadcrumbs'
 import CitiesMap from '../components/CitiesMap'
 import MapDestinationsList from '../components/MapDestinationsList'
 import ExcursionCard from '../components/ExcursionCard'
+import SeoFaqSection from '../components/SeoFaqSection'
+import { buildExcursionListingJsonLd, buildPlaceJsonLd } from '../lib/excursionListingSchema'
+import { Seo } from '../lib/seo'
+import {
+  buildFaqPageJsonLd,
+  cityExcursionFaq,
+  seoCityExcursionsDescription,
+  seoCityExcursionsTitle,
+} from '../lib/seoTemplates'
 import { pageTitle } from '@gaido/site-urls/brand'
 
 function BreadcrumbSkeleton() {
@@ -61,25 +70,57 @@ export default function CityPage() {
     enabled: !!city?.id,
   })
 
+  const { data: countries } = useQuery({
+    queryKey: ['countries'],
+    queryFn: () => catalogApi.countries(),
+  })
+  const countryName = (countries?.items ?? []).find((c) => c.slug === city?.country_slug)?.name
+
   const guideItems = guides?.items ?? []
   const excursionItems = excursions?.items ?? []
+  const faqItems = city ? cityExcursionFaq(city.name, countryName) : []
+  const seoDescription = city ? seoCityExcursionsDescription(city.name, countryName) : undefined
+
+  const jsonLd = useMemo(() => {
+    if (!city) return []
+    const schemas = buildExcursionListingJsonLd(excursionItems, {
+      name: seoCityExcursionsTitle(city.name),
+      description: seoDescription ?? '',
+    })
+    schemas.push(buildPlaceJsonLd({
+      name: city.name,
+      path: `/city/${slug}`,
+      countryName,
+    }))
+    if (faqItems.length > 0) schemas.push(buildFaqPageJsonLd(faqItems))
+    return schemas
+  }, [city, excursionItems, slug, countryName, seoDescription, faqItems])
+
+  const breadcrumbItems = city
+    ? [
+        ...(countryName && city.country_slug
+          ? [{ label: countryName, to: `/countries/${city.country_slug}` }]
+          : [{ label: 'Карта', to: '/map' }]),
+        { label: city.name },
+      ]
+    : []
 
   return (
     <>
-      <Helmet><title>{pageTitle(city?.name ?? 'Місто')}</title></Helmet>
+      <Seo
+        title={city ? seoCityExcursionsTitle(city.name) : pageTitle('Місто')}
+        description={seoDescription}
+        path={city ? `/city/${slug}` : undefined}
+        jsonLd={jsonLd.length > 0 ? jsonLd : undefined}
+      />
       {city ? (
-        <Breadcrumbs
-          items={[
-            { label: 'Карта', to: '/map' },
-            { label: city.name },
-          ]}
-        />
+        <Breadcrumbs items={breadcrumbItems} currentPath={`/city/${slug}`} />
       ) : (
         <BreadcrumbSkeleton />
       )}
       <div className="container-site py-8">
         {city ? (
-          <h1 className="font-display text-3xl font-bold">{city.name}</h1>
+          <h1 className="font-display text-3xl font-bold">Екскурсії в {city.name}</h1>
         ) : cityLoading ? (
           <div className="h-9 w-64 max-w-full animate-pulse rounded bg-sand-100" aria-label="Завантаження" />
         ) : (
@@ -88,6 +129,13 @@ export default function CityPage() {
 
         {city && (
           <>
+            {excursionItems.length > 0 && (
+              <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted md:text-base">
+                Авторські тури в {city.name}{countryName ? `, ${countryName}` : ''} від місцевих гідів.
+                Оберіть маршрут, перегляньте ціни та напишіть гіду для підтвердження дати.
+              </p>
+            )}
+
             <section className="mt-8 min-h-[120px]">
               <h2 className="mb-4 text-xl font-semibold">Гіди</h2>
               {guidesLoading ? (
@@ -117,6 +165,8 @@ export default function CityPage() {
                 </div>
               )}
             </section>
+
+            {excursionItems.length > 0 && <SeoFaqSection items={faqItems} />}
           </>
         )}
 
@@ -138,8 +188,8 @@ export function MapPage() {
 
   return (
     <>
-      <Helmet><title>{pageTitle('Карта')}</title></Helmet>
-      <Breadcrumbs items={[{ label: 'Карта' }]} />
+      <Seo title={pageTitle('Карта')} description="Міста з опублікованими екскурсіями" path="/map" />
+      <Breadcrumbs items={[{ label: 'Карта' }]} currentPath="/map" />
       <div className="container-site py-8">
         <h1 className="font-display text-3xl font-bold">Карта напрямків</h1>
         <p className="mt-2 text-stone-600">Міста з опублікованими екскурсіями — оберіть на карті або в списку</p>

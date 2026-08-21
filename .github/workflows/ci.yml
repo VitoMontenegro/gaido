@@ -73,3 +73,6 @@ jobs:
 
       - name: Frontend build
         run: npm run build
+
+      - name: SEO smoke checks
+        run: bash scripts/lighthouse-ci.sh

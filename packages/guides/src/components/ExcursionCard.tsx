@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom'
+import type { ReactNode } from 'react'
 import ExcursionCover from './ExcursionCover'
+import FavoriteButton from './FavoriteButton'
 import StarRating from './reviews/StarRating'
 import type { ExcursionItem } from './excursionUi'
 import {
@@ -43,14 +45,47 @@ function LocationPin({ className }: { className?: string }) {
   )
 }
 
+function CardFavorite({ id }: { id: number }) {
+  if (id <= 0) return null
+  return (
+    <FavoriteButton
+      targetType="EXCURSION"
+      targetId={id}
+      className="absolute right-2 top-2 z-20"
+    />
+  )
+}
+
+function CardShell({
+  slug,
+  className,
+  children,
+  id,
+}: {
+  slug: string
+  className: string
+  children: ReactNode
+  id: number
+}) {
+  return (
+    <div className="relative h-full">
+      <Link to={`/excursion/${slug}`} className={className}>
+        {children}
+      </Link>
+      <CardFavorite id={id} />
+    </div>
+  )
+}
+
 export default function ExcursionCard({ e, compact }: { e: ExcursionItem; compact?: boolean }) {
   const previewText = excursionPreviewText(e)
   const location = excursionLocationLine(e)
 
   if (compact) {
     return (
-      <Link
-        to={`/excursion/${e.slug}`}
+      <CardShell
+        slug={e.slug}
+        id={e.id}
         className="group flex h-full flex-col overflow-hidden rounded-2xl bg-surface transition hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)]"
       >
         <ExcursionCover
@@ -83,13 +118,14 @@ export default function ExcursionCard({ e, compact }: { e: ExcursionItem; compac
             </div>
           </div>
         </div>
-      </Link>
+      </CardShell>
     )
   }
 
   return (
-    <Link
-      to={`/excursion/${e.slug}`}
+    <CardShell
+      slug={e.slug}
+      id={e.id}
       className="group card flex h-full flex-col overflow-hidden p-0 transition hover:shadow-[0_10px_30px_rgba(0,0,0,0.08)]"
     >
       <ExcursionCover
@@ -126,7 +162,7 @@ export default function ExcursionCard({ e, compact }: { e: ExcursionItem; compac
           <p className="mt-2 text-xs text-muted-light">Гід: {e.guide_name}</p>
         )}
       </div>
-    </Link>
+    </CardShell>
   )
 }
 

@@ -47,7 +47,7 @@ const RegisterTouristPage = lazyImport(() => import('@gaido/guides/pages/AuthPag
 const RegisterGuidePage = lazyImport(() => import('@gaido/guides/pages/AuthPages').then((m) => ({ default: m.RegisterGuidePage })))
 const LegalDocumentPage = lazyImport(() => import('@gaido/guides/components/LegalContentEditor').then((m) => ({ default: m.LegalDocumentPage })))
 const AccountPage = lazyImport(() => import('@gaido/guides/pages/AccountPages').then((m) => ({ default: m.default })))
-const FavoritesPage = lazyImport(() => import('@gaido/guides/pages/AccountPages').then((m) => ({ default: m.FavoritesPage })))
+const FavoritesPage = lazyImport(() => import('@gaido/guides/pages/FavoritesPage'))
 const SettingsPage = lazyImport(() => import('@gaido/guides/pages/AccountPages').then((m) => ({ default: m.SettingsPage })))
 const GuideOverviewPage = lazyImport(() => import('@gaido/guides/pages/guide').then((m) => ({ default: m.GuideOverviewPage })))
 const GuideProfilePage = lazyImport(() => import('@gaido/guides/pages/guide').then((m) => ({ default: m.GuideProfilePage })))
@@ -72,7 +72,7 @@ export function guideAccountRoutes() {
   return (
     <>
       <Route path="/account" element={<Lazy><AccountPage /></Lazy>} />
-      <Route path="/account/favorites" element={<Lazy><FavoritesPage /></Lazy>} />
+      <Route path="/account/favorites" element={<Navigate to="/favorites" replace />} />
       <Route path="/account/settings" element={<Lazy><SettingsPage /></Lazy>} />
       <Route path="/account/guide/billing" element={<GuideGate><Lazy><GuideBillingPage /></Lazy></GuideGate>} />
       <Route path="/account/guide/instructions" element={<GuideGate><Lazy><GuideInstructionsPage /></Lazy></GuideGate>} />
@@ -106,6 +106,7 @@ export function svitPublicRoutes() {
       <Route path="looking" element={<PortalHomeRedirect />} />
       <Route path="ukrainians-in/:citySlug" element={<Lazy><SeoCityPage /></Lazy>} />
       <Route path="search" element={<Lazy><SearchPage /></Lazy>} />
+      <Route path="favorites" element={<Lazy><FavoritesPage /></Lazy>} />
       <Route path="map" element={<MapPage />} />
       <Route path="city/:slug" element={<CityPage />} />
       <Route path="countries/:countrySlug" element={<Lazy><CountryExcursionsPage /></Lazy>} />

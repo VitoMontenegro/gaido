@@ -81,6 +81,21 @@ export function getAccessToken() {
   return accessToken
 }
 
+export function requireAccessToken() {
+  if (!accessToken) {
+    throw new ApiClientError('UNAUTHORIZED', 'Authentication required')
+  }
+}
+
+function canRetryRefresh(path: string) {
+  return (
+    !!accessToken &&
+    !path.includes('/auth/refresh') &&
+    !path.includes('/auth/login') &&
+    !path.includes('/auth/register')
+  )
+}
+
 /** @deprecated use getAccessToken — token is kept in memory only */
 export function loadAccessToken() {
   return accessToken
@@ -106,11 +121,11 @@ export async function refreshAccessToken(): Promise<boolean> {
         method: 'POST',
         credentials: 'include',
       })
-      if (!res.ok) {
+      const data = (await res.json().catch(() => null)) as { access_token?: string; authenticated?: boolean } | null
+      if (!res.ok || !data?.access_token) {
         setAccessToken(null)
         return false
       }
-      const data = (await res.json()) as { access_token: string }
       setAccessToken(data.access_token)
       return true
     } catch {
@@ -145,7 +160,7 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
 
   let res = await doFetch()
 
-  if (res.status === 401 && !path.includes('/auth/refresh') && !path.includes('/auth/login') && !path.includes('/auth/register')) {
+  if (res.status === 401 && canRetryRefresh(path)) {
     const refreshed = await refreshAccessToken()
     if (refreshed) {
       if (accessToken) headers.set('Authorization', `Bearer ${accessToken}`)
@@ -171,7 +186,7 @@ export async function apiBlob(path: string): Promise<{ blob: Blob; contentType: 
 
   let res = await doFetch()
 
-  if (res.status === 401 && !path.includes('/auth/refresh') && !path.includes('/auth/login') && !path.includes('/auth/register')) {
+  if (res.status === 401 && canRetryRefresh(path)) {
     const refreshed = await refreshAccessToken()
     if (refreshed) {
       if (accessToken) headers.set('Authorization', `Bearer ${accessToken}`)

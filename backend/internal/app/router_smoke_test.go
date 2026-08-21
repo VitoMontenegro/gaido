@@ -212,6 +212,21 @@ func TestSmoke_authLoginRefresh(t *testing.T) {
 	}
 }
 
+func TestSmoke_authRefreshGuest(t *testing.T) {
+	a := newTestApp(t)
+	res := smokeRequest(t, a, http.MethodPost, "/api/v1/auth/refresh", nil, "", nil)
+	if res.code != http.StatusOK {
+		t.Fatalf("guest refresh: got %d body=%s", res.code, res.body)
+	}
+	out := decodeJSON[struct {
+		Authenticated bool   `json:"authenticated"`
+		AccessToken   string `json:"access_token"`
+	}](t, res.body)
+	if out.Authenticated || out.AccessToken != "" {
+		t.Fatalf("guest refresh: expected empty session, got %+v", out)
+	}
+}
+
 func TestSmoke_contactPaywall(t *testing.T) {
 	a := newSeededTestApp(t)
 	adminToken, _ := loginUser(t, a, "admin", "admin12345")
@@ -405,6 +420,44 @@ func TestSmoke_reviewCreate(t *testing.T) {
 		if errBody.Error.Code != "REVIEW_ALREADY_EXISTS" {
 			t.Fatalf("create review: %d %s", reviewRes.code, reviewRes.body)
 		}
+	}
+}
+
+func TestSmoke_favoritesGuestAndImport(t *testing.T) {
+	a := newTestApp(t)
+
+	guestToggle := smokeRequest(t, a, http.MethodPost, "/api/v1/favorites", map[string]any{
+		"target_type": "EXCURSION",
+		"target_id":   int64(1),
+	}, "", nil)
+	if guestToggle.code != http.StatusUnauthorized {
+		t.Fatalf("guest toggle: %d %s", guestToggle.code, guestToggle.body)
+	}
+
+	resolve := smokeRequest(t, a, http.MethodPost, "/api/v1/favorites/resolve", map[string]any{
+		"items": []map[string]any{{"target_type": "EXCURSION", "target_id": 1}},
+	}, "", nil)
+	if resolve.code != http.StatusOK {
+		t.Fatalf("resolve: %d %s", resolve.code, resolve.body)
+	}
+
+	token, _ := registerUser(t, a, uniqueLogin("fav_"), false)
+	toggle := smokeRequest(t, a, http.MethodPost, "/api/v1/favorites", map[string]any{
+		"target_type": "EXCURSION",
+		"target_id":   int64(1),
+	}, token, nil)
+	if toggle.code != http.StatusOK {
+		t.Fatalf("toggle: %d %s", toggle.code, toggle.body)
+	}
+	imp := smokeRequest(t, a, http.MethodPost, "/api/v1/favorites/import", map[string]any{
+		"items": []map[string]any{{"target_type": "GUIDE", "target_id": 1}},
+	}, token, nil)
+	if imp.code != http.StatusOK {
+		t.Fatalf("import: %d %s", imp.code, imp.body)
+	}
+	list := smokeRequest(t, a, http.MethodGet, "/api/v1/favorites", nil, token, nil)
+	if list.code != http.StatusOK {
+		t.Fatalf("list: %d %s", list.code, list.body)
 	}
 }
 

@@ -270,6 +270,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags: [reviews]
+      summary: Create review
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/v1/media/public/{key}:
     get:
       tags: [media]
@@ -314,7 +324,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /api/v1/favorites:
     post:
       tags: [account]
       summary: Toggle favorite
@@ -325,10 +334,21 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /api/v1/reviews:
+  /api/v1/favorites/import:
     post:
-      tags: [reviews]
-      summary: Create review
+      tags: [account]
+      summary: Import guest favorites into the account
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/favorites/resolve:
+    post:
+      tags: [catalog]
+      summary: Resolve favorite ids to public cards
       responses:
         '400':
           description: Validation error
@@ -391,7 +411,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /api/v1/account/guide/profile:
     put:
       tags: [guide]
       summary: Update guide profile
@@ -413,7 +432,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /api/v1/account/guide/documents:
     get:
       tags: [guide]
       summary: List documents
@@ -512,18 +530,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /api/v1/account/guide/excursions/{id}:
-    get:
-      tags: [guide]
-      summary: Get my excursion
-      responses:
-        '400':
-          description: Validation error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-  /api/v1/account/guide/excursions:
     post:
       tags: [guide]
       summary: Create excursion
@@ -535,6 +541,16 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
   /api/v1/account/guide/excursions/{id}:
+    get:
+      tags: [guide]
+      summary: Get my excursion
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
     put:
       tags: [guide]
       summary: Update excursion
@@ -545,7 +561,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /api/v1/account/guide/excursions/{id}:
     delete:
       tags: [guide]
       summary: Delete excursion
@@ -589,7 +604,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /api/v1/account/guide/calendar:
     post:
       tags: [guide]
       summary: Create calendar slot
@@ -732,18 +746,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /api/v1/moderator/articles/{id}:
-    get:
-      tags: [moderator]
-      summary: Get article (CMS)
-      responses:
-        '400':
-          description: Validation error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-  /api/v1/moderator/articles:
     post:
       tags: [moderator]
       summary: Create article
@@ -755,6 +757,16 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
   /api/v1/moderator/articles/{id}:
+    get:
+      tags: [moderator]
+      summary: Get article (CMS)
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
     put:
       tags: [moderator]
       summary: Update article
@@ -765,7 +777,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /api/v1/moderator/articles/{id}:
     delete:
       tags: [moderator]
       summary: Delete article
@@ -820,7 +831,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /api/v1/admin/settings:
     put:
       tags: [admin]
       summary: Update settings
@@ -842,7 +852,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /api/v1/admin/site-content:
     put:
       tags: [admin]
       summary: Update site content
@@ -886,7 +895,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /api/v1/admin/guides/{id}:
     delete:
       tags: [admin]
       summary: Delete guide
@@ -952,18 +960,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /api/v1/admin/articles/{id}:
-    get:
-      tags: [admin]
-      summary: Get article (admin)
-      responses:
-        '400':
-          description: Validation error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-  /api/v1/admin/articles:
     post:
       tags: [admin]
       summary: Create article (admin)
@@ -975,6 +971,16 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
   /api/v1/admin/articles/{id}:
+    get:
+      tags: [admin]
+      summary: Get article (admin)
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
     put:
       tags: [admin]
       summary: Update article (admin)
@@ -985,7 +991,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /api/v1/admin/articles/{id}:
     delete:
       tags: [admin]
       summary: Delete article (admin)

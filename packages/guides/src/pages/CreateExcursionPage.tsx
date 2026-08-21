@@ -1,8 +1,9 @@
-import { Helmet } from 'react-helmet-async'
 import { useNavigate } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
 import { guideApi } from '@gaido/api-client/api/guide'
 import ExcursionForm from '../components/ExcursionForm'
+import { Seo } from '../lib/seo'
+import { pageTitle } from '@gaido/site-urls/brand'
 
 export default function CreateExcursionPage() {
   const navigate = useNavigate()
@@ -17,7 +18,7 @@ export default function CreateExcursionPage() {
 
   return (
     <>
-      <Helmet><title>Нова екскурсія</title></Helmet>
+      <Seo title={pageTitle('Нова екскурсія')} noIndex />
       <div className="card max-w-4xl space-y-4">
         <h1 className="font-display text-2xl font-bold">Нова екскурсія</h1>
         <ExcursionForm

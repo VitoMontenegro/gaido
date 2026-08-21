@@ -15,7 +15,7 @@ func TestSpaFileServer_servesIndexForUnknownRoute(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	h := spaFileServer(dir)
+	h := spaFileServer(dir, nil)
 	req := httptest.NewRequest(http.MethodGet, "/account/guide", nil)
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
@@ -43,7 +43,7 @@ func TestSpaFileServer_assetsAreImmutable(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	h := spaFileServer(dir)
+	h := spaFileServer(dir, nil)
 	req := httptest.NewRequest(http.MethodGet, "/assets/GuidePage-abc.js", nil)
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)

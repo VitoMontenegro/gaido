@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { Helmet } from 'react-helmet-async'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, billingApi } from '@gaido/api-client/api/client'
 import {
   type ExcursionItem, formatPrice
 } from '../../components/excursionUi'
 import { formatPaidUntil, planPeriodLabel } from './shared'
+import { Seo } from '../../lib/seo'
+import { pageTitle } from '@gaido/site-urls/brand'
 
 export function GuideBillingPage() {
   const qc = useQueryClient()
@@ -49,7 +50,7 @@ export function GuideBillingPage() {
 
   return (
     <div className="space-y-6">
-      <Helmet><title>Білінг</title></Helmet>
+      <Seo title={pageTitle('Білінг')} path="/account/guide/billing" noIndex />
       <div>
         <h1 className="font-display text-2xl font-bold">Білінг</h1>
         <h2 className="mt-4 font-display text-xl font-bold">Розміщення та просування</h2>

@@ -1,5 +1,4 @@
-import { Helmet } from 'react-helmet-async'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { catalogApi } from '@gaido/api-client/api/client'
@@ -7,6 +6,8 @@ import Breadcrumbs from '../components/Breadcrumbs'
 import ExcursionCard, { ExcursionCardGrid } from '../components/ExcursionCard'
 import { DateFilterStrip } from '../components/PublicDateCalendar'
 import type { ExcursionItem } from '../components/excursionUi'
+import { buildExcursionListingJsonLd } from '../lib/excursionListingSchema'
+import { Seo } from '../lib/seo'
 import { pageTitle } from '@gaido/site-urls/brand'
 
 export default function SearchPage() {
@@ -47,10 +48,25 @@ export default function SearchPage() {
     setParams(next, { replace: true })
   }
 
+  const items = data?.items ?? []
+  const listingJsonLd = useMemo(
+    () =>
+      buildExcursionListingJsonLd(items, {
+        name: q ? `Екскурсії: ${q}` : 'Пошук екскурсій',
+        description: 'Каталог екскурсій для українців за кордоном',
+      }),
+    [items, q],
+  )
+
   return (
     <>
-      <Helmet><title>{pageTitle('Пошук')}</title></Helmet>
-      <Breadcrumbs items={[{ label: 'Пошук' }]} />
+      <Seo
+        title={pageTitle('Пошук')}
+        description="Знайдіть екскурсію за містом, темою, назвою або датою"
+        path="/search"
+        jsonLd={listingJsonLd.length > 0 ? listingJsonLd : undefined}
+      />
+      <Breadcrumbs items={[{ label: 'Екскурсії', to: '/search' }, { label: 'Пошук' }]} currentPath="/search" />
       <div className="container-site py-5 md:py-8">
         <h1 className="section-title mb-1 text-2xl md:text-[28px]">Пошук</h1>
         <p className="mb-4 text-sm text-muted md:mb-6 md:text-base">Знайдіть екскурсію за містом, темою, назвою або датою</p>
@@ -80,11 +96,11 @@ export default function SearchPage() {
           <p className="mb-4 text-sm text-muted">Пошук…</p>
         )}
         <ExcursionCardGrid>
-          {(data?.items ?? []).map((e) => (
+          {items.map((e) => (
             <ExcursionCard key={e.id} e={e} compact />
           ))}
         </ExcursionCardGrid>
-        {!isFetching && (data?.items ?? []).length === 0 && (q || date) && (
+        {!isFetching && items.length === 0 && (q || date) && (
           <p className="mt-4 text-muted">
             {date && q
               ? `За запитом «${q}» на обрану дату нічого не знайдено.`
