@@ -37,7 +37,7 @@ import {
   isValidMediaRef,
   normalizeStructuredContent,
 } from '../lib/excursionStructuredContent'
-import { buildExcursionEventJsonLd } from '../lib/excursionEventSchema'
+import { buildExcursionDetailJsonLd } from '../lib/excursionListingSchema'
 import { seoExcursionTitle } from '../lib/seoTemplates'
 import { Seo } from '../lib/seo'
 import type { Contacts } from '@gaido/api-client/api/types/catalog'
@@ -186,16 +186,8 @@ export default function ExcursionPage() {
     !!excursion.meeting_point?.trim()
 
   const upcomingDates = datesData?.items ?? []
-  const eventJsonLd = isUnpublished
-    ? []
-    : upcomingDates.length > 0
-      ? upcomingDates
-          .slice(0, 10)
-          .map((d) =>
-            buildExcursionEventJsonLd(excursion, { startsAt: d.starts_at, endsAt: d.ends_at }),
-          )
-          .filter((item): item is Record<string, unknown> => item !== null)
-      : ([buildExcursionEventJsonLd(excursion)].filter(Boolean) as Record<string, unknown>[])
+  const nearestSlot = upcomingDates.find((d) => new Date(d.starts_at).getTime() > Date.now()) ?? upcomingDates[0]
+  const detailJsonLd = isUnpublished ? [] : buildExcursionDetailJsonLd(excursion, nearestSlot)
 
   const breadcrumbItems = [
     { label: 'Екскурсії', to: '/search' },
@@ -219,7 +211,7 @@ export default function ExcursionPage() {
         path={`/excursion/${excursion.slug}`}
         image={excursion.cover_image_url}
         noIndex={isUnpublished}
-        jsonLd={eventJsonLd.length > 0 ? eventJsonLd : undefined}
+        jsonLd={detailJsonLd.length > 0 ? detailJsonLd : undefined}
       />
 
       <Breadcrumbs items={breadcrumbItems} currentPath={`/excursion/${excursion.slug}`} />

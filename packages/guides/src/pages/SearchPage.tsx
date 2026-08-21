@@ -66,7 +66,7 @@ export default function SearchPage() {
         path="/search"
         jsonLd={listingJsonLd.length > 0 ? listingJsonLd : undefined}
       />
-      <Breadcrumbs items={[{ label: 'Екскурсії', to: '/search' }, { label: 'Пошук' }]} currentPath="/search" />
+      <Breadcrumbs items={[{ label: 'Пошук' }]} currentPath="/search" />
       <div className="container-site py-5 md:py-8">
         <h1 className="section-title mb-1 text-2xl md:text-[28px]">Пошук</h1>
         <p className="mb-4 text-sm text-muted md:mb-6 md:text-base">Знайдіть екскурсію за містом, темою, назвою або датою</p>

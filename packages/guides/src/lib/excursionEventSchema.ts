@@ -12,6 +12,7 @@ const COUNTRY_SLUG_TO_ISO: Record<string, string> = {
   spain: 'ES',
   'united-kingdom': 'GB',
   'united-states': 'US',
+  ireland: 'IE',
   uae: 'AE',
   'south-korea': 'KR',
   'north-korea': 'KP',
@@ -122,6 +123,7 @@ export function buildExcursionEventJsonLd(
   return {
     '@context': 'https://schema.org',
     '@type': 'Event',
+    '@id': `${url}#event`,
     name: excursion.title,
     ...(description ? { description } : {}),
     startDate,
@@ -155,17 +157,6 @@ export function buildExcursionEventJsonLd(
       validFrom: startDate,
       url,
     },
-    ...((excursion.rating_count ?? 0) > 0
-      ? {
-          aggregateRating: {
-            '@type': 'AggregateRating',
-            worstRating: 1,
-            bestRating: 5,
-            ratingValue: excursion.rating_avg ?? 0,
-            reviewCount: excursion.rating_count,
-          },
-        }
-      : {}),
   }
 }
 
