@@ -3,8 +3,9 @@ import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, guideApi } from '@gaido/api-client/api/client'
 import GuideAvatar from '../../components/GuideAvatar'
+import GuideGeoSection from '../../components/guide/GuideGeoSection'
 import { ImageUrlField } from '../../components/ImageUrlField'
-import type { GuideProfile } from './shared'
+import type { GuideCity, GuideProfile } from './shared'
 import { CatalogStatusBanner } from './shared'
 
 export function GuideProfilePage() {
@@ -23,6 +24,7 @@ function profilePayload(f: Partial<GuideProfile>) {
     whatsapp: f.whatsapp ?? '',
     viber: f.viber ?? '',
     response_hours: f.response_hours ?? '',
+    country_id: f.country_id ?? null,
   }
 }
 
@@ -33,17 +35,33 @@ function GuideProfileForm() {
     queryFn: () => api<GuideProfile>('/api/v1/account/guide/profile'),
   })
   const [form, setForm] = useState<Partial<GuideProfile>>({})
+  const [geoCities, setGeoCities] = useState<GuideCity[] | null>(null)
   const patch = (next: Partial<GuideProfile>) => setForm((prev) => ({ ...prev, ...next }))
 
   const mutation = useMutation({
-    mutationFn: (body: Partial<GuideProfile>) => guideApi.updateProfile(profilePayload(body)),
+    mutationFn: async (body: Partial<GuideProfile>) => {
+      await guideApi.updateProfile(profilePayload(body))
+      const allCities = geoCities ?? body.cities ?? data?.cities ?? []
+      const countrySlug = body.country_slug ?? data?.country_slug
+      const cities = countrySlug
+        ? allCities.filter((c) => c.country_slug === countrySlug)
+        : allCities
+      const primary = cities.find((c) => c.is_primary)?.id ?? cities[0]?.id
+      await guideApi.setCities({
+        city_ids: cities.map((c) => c.id),
+        primary_city_id: primary,
+      })
+    },
     onSuccess: () => {
       setForm({})
+      setGeoCities(null)
       qc.invalidateQueries({ queryKey: ['guide-profile'] })
+      qc.invalidateQueries({ queryKey: ['countries-with-guides'] })
     },
   })
 
   const f = { ...data, ...form }
+  const cities = geoCities ?? f.cities ?? []
   const isCompanion = f.guide_type === 'COMPANION'
 
   return (
@@ -89,6 +107,19 @@ function GuideProfileForm() {
         placeholder="Про себе"
         value={f.about ?? ''}
         onChange={(e) => patch({ about: e.target.value })}
+      />
+      <GuideGeoSection
+        countryId={f.country_id}
+        countrySlug={f.country_slug}
+        cities={cities}
+        onCountryChange={(countryId, countrySlug) => {
+          patch({ country_id: countryId, country_slug: countrySlug })
+          const current = geoCities ?? f.cities ?? []
+          setGeoCities(
+            countrySlug ? current.filter((c) => c.country_slug === countrySlug) : [],
+          )
+        }}
+        onCitiesChange={setGeoCities}
       />
       <div className="space-y-3 rounded-xl border border-border bg-sand-50/80 p-4">
         <p className="font-medium">Контакти для клієнтів</p>
@@ -140,7 +171,7 @@ function GuideProfileForm() {
         type="button"
         className="btn-primary"
         disabled={mutation.isPending || !data}
-        onClick={() => mutation.mutate(f)}
+        onClick={() => mutation.mutate({ ...f, cities })}
       >
         {mutation.isPending ? 'Збереження…' : 'Зберегти'}
       </button>

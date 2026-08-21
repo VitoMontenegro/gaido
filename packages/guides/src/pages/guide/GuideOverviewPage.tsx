@@ -90,6 +90,9 @@ export function GuideOverviewPage() {
             <Link to="/account/guide/articles" className="rounded-xl border border-border px-3 py-3 text-sm transition hover:bg-sand-50">
               + Нова стаття
             </Link>
+            <Link to="/account/guide/instructions" className="rounded-xl border border-border px-3 py-3 text-sm transition hover:bg-sand-50">
+              Інструкції
+            </Link>
           </div>
         </section>
       </div>

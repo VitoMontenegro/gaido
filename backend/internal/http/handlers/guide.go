@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"strings"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/vitomonte/experts-tourister/internal/apperrors"
 	"github.com/vitomonte/experts-tourister/internal/domain"
 	"github.com/vitomonte/experts-tourister/internal/http/middleware"
@@ -25,10 +27,27 @@ func (h *Handlers) GetGuideProfile(w http.ResponseWriter, r *http.Request) {
 			g.DisplayName = fullName
 		}
 	}
-	response.JSON(w, r, 200, h.GuideAccountProfile(r.Context(), g))
+	response.JSON(w, r, 200, h.buildGuideAccountProfile(r.Context(), g))
+}
+func (h *Handlers) buildGuideAccountProfile(ctx context.Context, g *domain.GuideProfile) domain.GuideAccountProfile {
+	profile := guidesvc.BuildGuideAccountProfile(g, h.HasUploadedLicense(ctx, g))
+	if g.CountryID != nil && *g.CountryID > 0 {
+		if country, err := h.Geo.GetCountryByID(ctx, *g.CountryID); err == nil && country != nil {
+			profile.CountrySlug = country.Slug
+			profile.CountryName = country.Name
+		}
+	}
+	cities, err := h.Guides.ListCities(ctx, g.ID)
+	if err == nil {
+		profile.Cities = cities
+	}
+	if profile.Cities == nil {
+		profile.Cities = []domain.GuideCityBrief{}
+	}
+	return profile
 }
 func (h *Handlers) GuideAccountProfile(ctx context.Context, g *domain.GuideProfile) domain.GuideAccountProfile {
-	return guidesvc.BuildGuideAccountProfile(g, h.HasUploadedLicense(ctx, g))
+	return h.buildGuideAccountProfile(ctx, g)
 }
 func (h *Handlers) HasUploadedLicense(ctx context.Context, g *domain.GuideProfile) bool {
 	ok, _ := h.Guides.HasDocument(ctx, g.ID, domain.DocTypeGuideLicense)
@@ -44,6 +63,13 @@ func (h *Handlers) UpdateGuideProfile(w http.ResponseWriter, r *http.Request) {
 		response.Error(w, r, apperrors.ErrValidation)
 		return
 	}
+	if req.CountryID != nil && *req.CountryID > 0 {
+		country, err := h.Geo.GetCountryByID(r.Context(), *req.CountryID)
+		if err != nil || country == nil {
+			response.Error(w, r, apperrors.ErrValidation)
+			return
+		}
+	}
 	profile, err := h.GuideSvc.UpdateProfile(r.Context(), middleware.UserIDFromContext(r.Context()), req)
 	if err != nil || profile == nil {
 		if err == nil {
@@ -53,7 +79,8 @@ func (h *Handlers) UpdateGuideProfile(w http.ResponseWriter, r *http.Request) {
 		response.Error(w, r, apperrors.ErrInternal)
 		return
 	}
-	response.JSON(w, r, 200, profile)
+	g, _ := h.Guides.GetByUserID(r.Context(), middleware.UserIDFromContext(r.Context()))
+	response.JSON(w, r, 200, h.buildGuideAccountProfile(r.Context(), g))
 }
 func (h *Handlers) UploadDocument(w http.ResponseWriter, r *http.Request) {
 	g, _ := h.Guides.GetByUserID(r.Context(), middleware.UserIDFromContext(r.Context()))
@@ -143,6 +170,77 @@ func (h *Handlers) AddGuideCity(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := h.Guides.AddCity(r.Context(), g.ID, req.CityID, req.IsPrimary); err != nil {
 		response.Error(w, r, apperrors.ErrInternal)
+		return
+	}
+	response.JSON(w, r, 200, map[string]string{"status": "ok"})
+}
+
+func (h *Handlers) SetGuideCities(w http.ResponseWriter, r *http.Request) {
+	g, err := h.Guides.GetByUserID(r.Context(), middleware.UserIDFromContext(r.Context()))
+	if err != nil || g == nil {
+		response.Error(w, r, apperrors.ErrNotFound)
+		return
+	}
+	var req struct {
+		CityIDs       []int64 `json:"city_ids"`
+		PrimaryCityID int64   `json:"primary_city_id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Error(w, r, apperrors.ErrValidation)
+		return
+	}
+	for _, cityID := range req.CityIDs {
+		if cityID <= 0 {
+			response.Error(w, r, apperrors.ErrValidation)
+			return
+		}
+		city, err := h.Geo.GetCityByID(r.Context(), cityID)
+		if err != nil || city == nil {
+			response.Error(w, r, apperrors.ErrValidation)
+			return
+		}
+		if g.CountryID != nil && *g.CountryID > 0 && city.CountryID != *g.CountryID {
+			response.Error(w, r, apperrors.ErrValidation)
+			return
+		}
+	}
+	if req.PrimaryCityID > 0 {
+		found := false
+		for _, id := range req.CityIDs {
+			if id == req.PrimaryCityID {
+				found = true
+				break
+			}
+		}
+		if !found {
+			response.Error(w, r, apperrors.ErrValidation)
+			return
+		}
+	}
+	if err := h.Guides.ReplaceCities(r.Context(), g.ID, req.CityIDs, req.PrimaryCityID); err != nil {
+		response.Error(w, r, apperrors.ErrInternal)
+		return
+	}
+	cities, _ := h.Guides.ListCities(r.Context(), g.ID)
+	if cities == nil {
+		cities = []domain.GuideCityBrief{}
+	}
+	response.JSON(w, r, 200, map[string]any{"items": cities})
+}
+
+func (h *Handlers) RemoveGuideCity(w http.ResponseWriter, r *http.Request) {
+	g, err := h.Guides.GetByUserID(r.Context(), middleware.UserIDFromContext(r.Context()))
+	if err != nil || g == nil {
+		response.Error(w, r, apperrors.ErrNotFound)
+		return
+	}
+	cityID, err := strconv.ParseInt(chi.URLParam(r, "cityId"), 10, 64)
+	if err != nil || cityID <= 0 {
+		response.Error(w, r, apperrors.ErrValidation)
+		return
+	}
+	if err := h.Guides.RemoveCity(r.Context(), g.ID, cityID); err != nil {
+		response.Error(w, r, apperrors.ErrNotFound)
 		return
 	}
 	response.JSON(w, r, 200, map[string]string{"status": "ok"})

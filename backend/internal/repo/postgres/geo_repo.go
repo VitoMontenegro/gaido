@@ -74,6 +74,16 @@ func (r *GeoRepo) GetCountryBySlug(ctx context.Context, slug string) (*Country, 
 	return &c, err
 }
 
+func (r *GeoRepo) GetCountryByID(ctx context.Context, id int64) (*Country, error) {
+	row := r.db.Pool.QueryRow(ctx, `SELECT id, slug, name, is_active FROM countries WHERE id=$1 AND is_active=true`, id)
+	var c Country
+	err := row.Scan(&c.ID, &c.Slug, &c.Name, &c.IsActive)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	}
+	return &c, err
+}
+
 func (r *GeoRepo) ListCountries(ctx context.Context) ([]Country, error) {
 	rows, err := r.db.Pool.Query(ctx, `SELECT id, slug, name, is_active FROM countries WHERE is_active=true ORDER BY name`)
 	if err != nil {
@@ -93,15 +103,44 @@ func (r *GeoRepo) ListCountries(ctx context.Context) ([]Country, error) {
 
 func (r *GeoRepo) ListCountriesWithGuideCount(ctx context.Context) ([]CountryWithGuideCount, error) {
 	rows, err := r.db.Pool.Query(ctx, `
-		SELECT co.id, co.slug, co.name, COUNT(DISTINCT gp.id)::int
+		WITH guides_with_published AS (
+			SELECT DISTINCT guide_id FROM excursions WHERE status = 'PUBLISHED'
+		),
+		guide_effective_countries AS (
+			SELECT DISTINCT c.country_id, e.guide_id
+			FROM excursions e
+			JOIN cities c ON c.id = e.city_id AND c.is_active = true
+			JOIN guide_profiles gp ON gp.id = e.guide_id AND gp.status = $1
+			WHERE e.status = 'PUBLISHED'
+			UNION
+			SELECT DISTINCT c.country_id, gc.guide_id
+			FROM guide_cities gc
+			JOIN cities c ON c.id = gc.city_id AND c.is_active = true
+			JOIN guide_profiles gp ON gp.id = gc.guide_id AND gp.status = $1
+			WHERE gc.is_active = true
+			AND NOT EXISTS (
+				SELECT 1 FROM guides_with_published gwp WHERE gwp.guide_id = gc.guide_id
+			)
+			UNION
+			SELECT gp.country_id, gp.id
+			FROM guide_profiles gp
+			WHERE gp.status = $1
+			AND gp.country_id IS NOT NULL
+			AND NOT EXISTS (
+				SELECT 1 FROM guides_with_published gwp WHERE gwp.guide_id = gp.id
+			)
+			AND NOT EXISTS (
+				SELECT 1 FROM guide_cities gc
+				WHERE gc.guide_id = gp.id AND gc.is_active = true
+			)
+		)
+		SELECT co.id, co.slug, co.name, COUNT(DISTINCT gec.guide_id)::int
 		FROM countries co
-		JOIN cities c ON c.country_id = co.id AND c.is_active = true
-		JOIN guide_cities gc ON gc.city_id = c.id AND gc.is_active = true
-		JOIN guide_profiles gp ON gp.id = gc.guide_id AND gp.status = $1
+		JOIN guide_effective_countries gec ON gec.country_id = co.id
 		WHERE co.is_active = true
 		GROUP BY co.id, co.slug, co.name
-		HAVING COUNT(DISTINCT gp.id) > 0
-		ORDER BY COUNT(DISTINCT gp.id) DESC, co.name ASC
+		HAVING COUNT(DISTINCT gec.guide_id) > 0
+		ORDER BY COUNT(DISTINCT gec.guide_id) DESC, co.name ASC
 	`, domain.GuideStatusActive)
 	if err != nil {
 		return nil, err

@@ -58,13 +58,14 @@ export function GuidesAccountLayout() {
           <p className="section-title-sm mb-4">Кабінет</p>
           {isGuide && (
             <>
-              <AccountNavLink to="/account/guide" exceptPrefixes={['/account/guide/billing']}>
+              <AccountNavLink to="/account/guide" exceptPrefixes={['/account/guide/billing', '/account/guide/instructions']}>
                 Кабінет гіда{unread > 0 ? ` (${unread})` : ''}
               </AccountNavLink>
               <AccountNavLink to="/account/guide/billing">Білінг</AccountNavLink>
             </>
           )}
           <AccountNavLink to="/account/settings">Налаштування</AccountNavLink>
+          {isGuide && <AccountNavLink to="/account/guide/instructions">Інструкції</AccountNavLink>}
           {(isAdmin || isModerator) && (
             <>
               <p className="section-title-sm mb-1 mt-4 px-3 pt-2">Адміністрування</p>

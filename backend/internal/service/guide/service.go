@@ -18,6 +18,9 @@ type GuideRepository interface {
 	DeleteDocumentByType(ctx context.Context, guideID int64, docType string) error
 	AddDocument(ctx context.Context, guideID int64, docType, storageKey, mime string, size int64, checksum string) error
 	AddCity(ctx context.Context, guideID, cityID int64, isPrimary bool) error
+	ListCities(ctx context.Context, guideID int64) ([]domain.GuideCityBrief, error)
+	RemoveCity(ctx context.Context, guideID, cityID int64) error
+	ReplaceCities(ctx context.Context, guideID int64, cityIDs []int64, primaryID int64) error
 }
 
 type ExcursionPublisher interface {
@@ -78,6 +81,11 @@ func (s *Service) ApplyProfileUpdate(ctx context.Context, g *domain.GuideProfile
 	g.Viber = req.Viber
 	g.ResponseHours = strings.TrimSpace(req.ResponseHours)
 	g.AvatarURL = strings.TrimSpace(req.AvatarURL)
+	if req.CountryID != nil && *req.CountryID <= 0 {
+		g.CountryID = nil
+	} else {
+		g.CountryID = req.CountryID
+	}
 	if g.DisplayName != "" && (g.Status == domain.GuideStatusDraft || g.Status == domain.GuideStatusWaitingPayment) {
 		payments, _ := s.Settings.GetBool(ctx, "guide_placement_payments_enabled", false)
 		if payments {

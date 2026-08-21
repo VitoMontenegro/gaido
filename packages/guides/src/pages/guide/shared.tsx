@@ -14,6 +14,18 @@ export type GuideProfile = {
   type_badge?: string
   has_license: boolean
   catalog_status: 'companion' | 'confirmed' | 'pending'
+  country_id?: number | null
+  country_slug?: string
+  country_name?: string
+  cities?: GuideCity[]
+}
+
+export type GuideCity = {
+  id: number
+  name: string
+  slug: string
+  country_slug: string
+  is_primary: boolean
 }
 
 export type GuideDocument = {

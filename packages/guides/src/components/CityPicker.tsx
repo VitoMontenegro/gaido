@@ -6,11 +6,12 @@ type Props = {
   value?: number
   onChange: (cityId: number) => void
   required?: boolean
+  defaultCountrySlug?: string
 }
 
-export default function CityPicker({ value = 0, onChange, required }: Props) {
+export default function CityPicker({ value = 0, onChange, required, defaultCountrySlug = '' }: Props) {
   const qc = useQueryClient()
-  const [countrySlug, setCountrySlug] = useState('')
+  const [countrySlug, setCountrySlug] = useState(defaultCountrySlug)
   const [customName, setCustomName] = useState('')
   const [showCustom, setShowCustom] = useState(false)
   const [duplicateHint, setDuplicateHint] = useState('')
@@ -37,6 +38,12 @@ export default function CityPicker({ value = 0, onChange, required }: Props) {
       setCountrySlug(selectedCity.country_slug)
     }
   }, [value, selectedCity?.country_slug, selectedCity?.id])
+
+  useEffect(() => {
+    if (defaultCountrySlug && value <= 0) {
+      setCountrySlug(defaultCountrySlug)
+    }
+  }, [defaultCountrySlug, value])
 
   const createCity = useMutation({
     mutationFn: (body: { country_slug: string; name: string }) =>

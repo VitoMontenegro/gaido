@@ -26,7 +26,7 @@ func (r *GuideRepo) CreateProfile(ctx context.Context, userID int64, guideType, 
 
 const guideProfileSelect = `id, user_id, guide_type, first_name, last_name, display_name, about, website_slug,
 	rating_avg, rating_count, preferred_contact_method, phone, email, telegram, whatsapp, viber, response_hours,
-	status, last_shown_at, created_at, avatar_url`
+	status, country_id, last_shown_at, created_at, avatar_url`
 
 func (r *GuideRepo) GetByUserID(ctx context.Context, userID int64) (*domain.GuideProfile, error) {
 	row := r.db.Pool.QueryRow(ctx, `
@@ -53,7 +53,7 @@ func scanGuide(row pgx.Row) (*domain.GuideProfile, error) {
 	var g domain.GuideProfile
 	err := row.Scan(&g.ID, &g.UserID, &g.GuideType, &g.FirstName, &g.LastName, &g.DisplayName, &g.About,
 		&g.WebsiteSlug, &g.RatingAvg, &g.RatingCount, &g.PreferredContactMethod, &g.Phone, &g.Email,
-		&g.Telegram, &g.Whatsapp, &g.Viber, &g.ResponseHours, &g.Status, &g.LastShownAt, &g.CreatedAt, &g.AvatarURL)
+		&g.Telegram, &g.Whatsapp, &g.Viber, &g.ResponseHours, &g.Status, &g.CountryID, &g.LastShownAt, &g.CreatedAt, &g.AvatarURL)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}
@@ -67,7 +67,7 @@ func scanGuideRow(rows pgx.Rows) (domain.GuideProfile, error) {
 	var g domain.GuideProfile
 	err := rows.Scan(&g.ID, &g.UserID, &g.GuideType, &g.FirstName, &g.LastName, &g.DisplayName, &g.About,
 		&g.WebsiteSlug, &g.RatingAvg, &g.RatingCount, &g.PreferredContactMethod, &g.Phone, &g.Email,
-		&g.Telegram, &g.Whatsapp, &g.Viber, &g.ResponseHours, &g.Status, &g.LastShownAt, &g.CreatedAt, &g.AvatarURL)
+		&g.Telegram, &g.Whatsapp, &g.Viber, &g.ResponseHours, &g.Status, &g.CountryID, &g.LastShownAt, &g.CreatedAt, &g.AvatarURL)
 	if err == nil {
 		g.About = sanitize.Text(g.About)
 	}
@@ -78,10 +78,10 @@ func (r *GuideRepo) UpdateProfile(ctx context.Context, g *domain.GuideProfile) e
 	_, err := r.db.Pool.Exec(ctx, `
 		UPDATE guide_profiles SET guide_type=$2, first_name=$3, last_name=$4, display_name=$5, about=$6,
 			preferred_contact_method=$7, phone=$8, email=$9, telegram=$10, whatsapp=$11, viber=$12, response_hours=$13, status=$14,
-			avatar_url=$15, updated_at=NOW()
+			country_id=$15, avatar_url=$16, updated_at=NOW()
 		WHERE id=$1
 	`, g.ID, g.GuideType, g.FirstName, g.LastName, g.DisplayName, g.About, g.PreferredContactMethod,
-		g.Phone, g.Email, g.Telegram, g.Whatsapp, g.Viber, g.ResponseHours, g.Status, g.AvatarURL)
+		g.Phone, g.Email, g.Telegram, g.Whatsapp, g.Viber, g.ResponseHours, g.Status, g.CountryID, g.AvatarURL)
 	return err
 }
 
@@ -154,23 +154,40 @@ func (r *GuideRepo) ListPublic(ctx context.Context, cityID, countryID *int64, gu
 	n := 2
 	if cityID != nil {
 		q += fmt.Sprintf(` AND id IN (
-			SELECT guide_id FROM guide_cities WHERE city_id=$%d AND is_active=true
+			SELECT e.guide_id FROM excursions e
+			WHERE e.status='PUBLISHED' AND e.city_id=$%d
 			UNION
-			SELECT e.guide_id FROM excursions e WHERE e.city_id=$%d AND e.status='PUBLISHED'
+			SELECT gc.guide_id FROM guide_cities gc
+			WHERE gc.city_id=$%d AND gc.is_active=true
+			AND NOT EXISTS (
+				SELECT 1 FROM excursions e WHERE e.guide_id=gc.guide_id AND e.status='PUBLISHED'
+			)
 		)`, n, n)
 		args = append(args, *cityID)
 		n++
 	}
 	if countryID != nil {
 		q += fmt.Sprintf(` AND id IN (
-			SELECT gc.guide_id FROM guide_cities gc
-			JOIN cities c ON c.id = gc.city_id AND c.is_active=true
-			WHERE c.country_id=$%d AND gc.is_active=true
-			UNION
 			SELECT e.guide_id FROM excursions e
-			JOIN cities c ON c.id = e.city_id AND c.is_active=true
-			WHERE c.country_id=$%d AND e.status='PUBLISHED'
-		)`, n, n)
+			JOIN cities c ON c.id=e.city_id AND c.is_active=true
+			WHERE e.status='PUBLISHED' AND c.country_id=$%d
+			UNION
+			SELECT gc.guide_id FROM guide_cities gc
+			JOIN cities c ON c.id=gc.city_id AND c.is_active=true
+			WHERE gc.is_active=true AND c.country_id=$%d
+			AND NOT EXISTS (
+				SELECT 1 FROM excursions e WHERE e.guide_id=gc.guide_id AND e.status='PUBLISHED'
+			)
+			UNION
+			SELECT gp.id FROM guide_profiles gp
+			WHERE gp.country_id=$%d AND gp.status=$1
+			AND NOT EXISTS (
+				SELECT 1 FROM excursions e WHERE e.guide_id=gp.id AND e.status='PUBLISHED'
+			)
+			AND NOT EXISTS (
+				SELECT 1 FROM guide_cities gc WHERE gc.guide_id=gp.id AND gc.is_active=true
+			)
+		)`, n, n, n)
 		args = append(args, *countryID)
 		n++
 	}
@@ -379,4 +396,84 @@ func (r *GuideRepo) AddCity(ctx context.Context, guideID, cityID int64, primary 
 		ON CONFLICT (guide_id, city_id) DO UPDATE SET is_active=true, is_primary=EXCLUDED.is_primary
 	`, guideID, cityID, primary)
 	return err
+}
+
+func (r *GuideRepo) ListCities(ctx context.Context, guideID int64) ([]domain.GuideCityBrief, error) {
+	rows, err := r.db.Pool.Query(ctx, `
+		SELECT c.id, c.slug, c.name, co.slug, gc.is_primary
+		FROM guide_cities gc
+		JOIN cities c ON c.id = gc.city_id AND c.is_active = true
+		JOIN countries co ON co.id = c.country_id AND co.is_active = true
+		WHERE gc.guide_id = $1 AND gc.is_active = true
+		ORDER BY gc.is_primary DESC, c.name
+	`, guideID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []domain.GuideCityBrief
+	for rows.Next() {
+		var c domain.GuideCityBrief
+		if err := rows.Scan(&c.ID, &c.Slug, &c.Name, &c.CountrySlug, &c.IsPrimary); err != nil {
+			return nil, err
+		}
+		out = append(out, c)
+	}
+	return out, rows.Err()
+}
+
+func (r *GuideRepo) RemoveCity(ctx context.Context, guideID, cityID int64) error {
+	tag, err := r.db.Pool.Exec(ctx, `
+		UPDATE guide_cities SET is_active=false
+		WHERE guide_id=$1 AND city_id=$2 AND is_active=true
+	`, guideID, cityID)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return pgx.ErrNoRows
+	}
+	return nil
+}
+
+func (r *GuideRepo) ReplaceCities(ctx context.Context, guideID int64, cityIDs []int64, primaryID int64) error {
+	tx, err := r.db.Pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	if len(cityIDs) == 0 {
+		if _, err := tx.Exec(ctx, `UPDATE guide_cities SET is_active=false WHERE guide_id=$1`, guideID); err != nil {
+			return err
+		}
+		return tx.Commit(ctx)
+	}
+
+	if _, err := tx.Exec(ctx, `
+		UPDATE guide_cities SET is_active=false
+		WHERE guide_id=$1 AND NOT (city_id = ANY($2))
+	`, guideID, cityIDs); err != nil {
+		return err
+	}
+
+	if _, err := tx.Exec(ctx, `UPDATE guide_cities SET is_primary=false WHERE guide_id=$1`, guideID); err != nil {
+		return err
+	}
+
+	effectivePrimary := primaryID
+	if effectivePrimary <= 0 && len(cityIDs) > 0 {
+		effectivePrimary = cityIDs[0]
+	}
+
+	for _, cityID := range cityIDs {
+		primary := cityID == effectivePrimary
+		if _, err := tx.Exec(ctx, `
+			INSERT INTO guide_cities (guide_id, city_id, is_primary) VALUES ($1,$2,$3)
+			ON CONFLICT (guide_id, city_id) DO UPDATE SET is_active=true, is_primary=EXCLUDED.is_primary
+		`, guideID, cityID, primary); err != nil {
+			return err
+		}
+	}
+	return tx.Commit(ctx)
 }

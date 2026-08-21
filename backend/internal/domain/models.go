@@ -38,15 +38,27 @@ type GuideProfile struct {
 	Viber                  string     `json:"viber"`
 	ResponseHours          string     `json:"response_hours"`
 	Status                 string     `json:"status"`
+	CountryID              *int64     `json:"country_id,omitempty"`
 	LastShownAt            *time.Time `json:"last_shown_at,omitempty"`
 	CreatedAt              time.Time  `json:"created_at,omitempty"`
 }
 
+type GuideCityBrief struct {
+	ID          int64  `json:"id"`
+	Name        string `json:"name"`
+	Slug        string `json:"slug"`
+	CountrySlug string `json:"country_slug"`
+	IsPrimary   bool   `json:"is_primary"`
+}
+
 type GuideAccountProfile struct {
 	GuideProfile
-	TypeBadge     *string `json:"type_badge,omitempty"`
-	HasLicense    bool    `json:"has_license"`
-	CatalogStatus string  `json:"catalog_status"`
+	TypeBadge     *string          `json:"type_badge,omitempty"`
+	HasLicense    bool             `json:"has_license"`
+	CatalogStatus string           `json:"catalog_status"`
+	CountrySlug   string           `json:"country_slug,omitempty"`
+	CountryName   string           `json:"country_name,omitempty"`
+	Cities        []GuideCityBrief `json:"cities,omitempty"`
 }
 
 type GuideDocumentModerationItem struct {
