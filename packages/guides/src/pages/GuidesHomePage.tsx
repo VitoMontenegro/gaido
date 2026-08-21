@@ -7,6 +7,7 @@ import ExcursionCard, { excursionCardPropsFromPartial } from '../components/Excu
 import GuideCard from '../components/GuideCard'
 import HorizontalSwiper from '../components/HorizontalSwiper'
 import HomeHero from '../components/HomeHero'
+import CountryNameLink from '../components/CountryNameLink'
 import ApiErrorBanner from '../components/ApiErrorBanner'
 import { pageTitle } from '@gaido/site-urls/brand'
 import { Seo } from '../lib/seo'
@@ -265,7 +266,13 @@ export default function GuidesHomePage() {
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {destinations.map((group) => (
               <div key={group.country_slug} className="card">
-                <h3 className="section-title-sm mb-3">{group.country_name}</h3>
+                <h3 className="section-title-sm mb-3">
+                  <CountryNameLink
+                    slug={group.country_slug}
+                    name={group.country_name}
+                    className="text-teal font-semibold text-[16px] hover:text-teal-dark"
+                  />
+                </h3>
                 <ul className="space-y-2">
                   {group.cities.map((city) => (
                     <li key={city.slug}>

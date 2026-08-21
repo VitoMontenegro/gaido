@@ -25,7 +25,7 @@ export default function OfferingCard({ item, compact, onSelect }: Props) {
             {item.category_name}
             {item.service_name ? ` · ${item.service_name}` : ''}
           </p>
-          <h3 className="font-display text-base font-medium uppercase leading-snug text-ink transition group-hover:text-brand-700 md:text-lg">
+          <h3 className="font-display text-base font-medium uppercase leading-snug text-ink transition group-hover:text-teal-dark md:text-lg">
             {item.title}
           </h3>
           <p className="text-sm text-muted">{item.provider.display_name}</p>

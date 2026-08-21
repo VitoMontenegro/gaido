@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import type { MapPoint } from '@gaido/api-client/api/client'
+import CountryNameLink from './CountryNameLink'
 
 type CountryGroup = {
   slug: string
@@ -31,7 +32,9 @@ export default function MapDestinationsList({ points }: { points: MapPoint[] }) 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {groups.map((country) => (
           <article key={country.slug} className="card">
-            <h3 className="font-semibold text-teal">{country.name}</h3>
+            <h3 className="font-semibold text-teal">
+              <CountryNameLink slug={country.slug} name={country.name} className="hover:text-teal-dark" />
+            </h3>
             <ul className="mt-3 flex flex-wrap gap-x-3 gap-y-2">
               {country.cities.map((city) => (
                 <li key={city.id}>
