@@ -68,7 +68,7 @@ export function GuidesAccountLayout() {
           {isGuide && <AccountNavLink to="/account/guide/instructions">Інструкції</AccountNavLink>}
           {(isAdmin || isModerator) && (
             <>
-              <p className="section-title-sm mb-1 mt-4 px-3 pt-2">Адміністрування</p>
+
               {isModerator && <AccountNavLink to="/moderator">Модератор</AccountNavLink>}
               {isAdmin && (
                 <>
