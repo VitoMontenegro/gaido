@@ -392,6 +392,14 @@ func (r *ExcursionRepo) ListPublishedByGuide(ctx context.Context, guideID int64)
 	return scanExcursionViews(rows, true)
 }
 
+func (r *ExcursionRepo) HasPublishedByGuide(ctx context.Context, guideID int64) (bool, error) {
+	var exists bool
+	err := r.db.Pool.QueryRow(ctx, `
+		SELECT EXISTS(SELECT 1 FROM excursions WHERE guide_id=$1 AND status=$2)
+	`, guideID, domain.ExcursionPublished).Scan(&exists)
+	return exists, err
+}
+
 func (r *ExcursionRepo) GetViewBySlug(ctx context.Context, slug string) (*domain.ExcursionView, error) {
 	row := r.db.Pool.QueryRow(ctx, `
 		SELECT `+excursionSelectColsAliased+`,

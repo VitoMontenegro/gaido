@@ -28,6 +28,16 @@ const guideProfileSelect = `id, user_id, guide_type, first_name, last_name, disp
 	rating_avg, rating_count, preferred_contact_method, phone, email, telegram, whatsapp, viber, response_hours,
 	status, country_id, last_shown_at, created_at, avatar_url`
 
+const catalogEligibleGuideSQL = ` AND COALESCE(TRIM(avatar_url), '') <> ''
+AND EXISTS (SELECT 1 FROM excursions e WHERE e.guide_id = guide_profiles.id AND e.status = 'PUBLISHED')`
+
+func catalogEligibleClause(catalogOnly bool) string {
+	if catalogOnly {
+		return catalogEligibleGuideSQL
+	}
+	return ""
+}
+
 func (r *GuideRepo) GetByUserID(ctx context.Context, userID int64) (*domain.GuideProfile, error) {
 	row := r.db.Pool.QueryRow(ctx, `
 		SELECT `+guideProfileSelect+` FROM guide_profiles WHERE user_id=$1
@@ -208,8 +218,8 @@ func (r *GuideRepo) ListPublic(ctx context.Context, cityID, countryID *int64, gu
 	return out, rows.Err()
 }
 
-func (r *GuideRepo) ListTopRated(ctx context.Context, limit int, exclude []int64) ([]domain.GuideProfile, error) {
-	q := `SELECT ` + guideProfileSelect + ` FROM guide_profiles WHERE status=$1 AND rating_count > 0`
+func (r *GuideRepo) ListTopRated(ctx context.Context, limit int, exclude []int64, catalogOnly bool) ([]domain.GuideProfile, error) {
+	q := `SELECT ` + guideProfileSelect + ` FROM guide_profiles WHERE status=$1 AND rating_count > 0` + catalogEligibleClause(catalogOnly)
 	args := []any{domain.GuideStatusActive}
 	n := 2
 	if len(exclude) > 0 {
@@ -235,8 +245,8 @@ func (r *GuideRepo) ListTopRated(ctx context.Context, limit int, exclude []int64
 	return out, rows.Err()
 }
 
-func (r *GuideRepo) ListPublicRandom(ctx context.Context, limit int, exclude []int64) ([]domain.GuideProfile, error) {
-	q := `SELECT ` + guideProfileSelect + ` FROM guide_profiles WHERE status=$1`
+func (r *GuideRepo) ListPublicRandom(ctx context.Context, limit int, exclude []int64, catalogOnly bool) ([]domain.GuideProfile, error) {
+	q := `SELECT ` + guideProfileSelect + ` FROM guide_profiles WHERE status=$1` + catalogEligibleClause(catalogOnly)
 	args := []any{domain.GuideStatusActive}
 	n := 2
 	if len(exclude) > 0 {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -52,6 +53,14 @@ func (h *Handlers) ListTopGuides(w http.ResponseWriter, r *http.Request) {
 	out := h.ResolveTopGuides(r.Context(), limit)
 	response.JSON(w, r, 200, map[string]any{"items": out})
 }
+func (h *Handlers) guideEligibleForTop(ctx context.Context, g *domain.GuideProfile) bool {
+	if g == nil || strings.TrimSpace(g.AvatarURL) == "" {
+		return false
+	}
+	ok, err := h.Exc.HasPublishedByGuide(ctx, g.ID)
+	return err == nil && ok
+}
+
 func (h *Handlers) ResolveTopGuides(ctx context.Context, limit int) []domain.PublicGuideDTO {
 	out := make([]domain.PublicGuideDTO, 0, limit)
 	seen := map[int64]bool{}
@@ -67,6 +76,9 @@ func (h *Handlers) ResolveTopGuides(ctx context.Context, limit int) []domain.Pub
 			continue
 		}
 		seen[g.ID] = true
+		if !h.guideEligibleForTop(ctx, g) {
+			continue
+		}
 		touchIDs = append(touchIDs, g.ID)
 		dto := h.publicGuideDTO(ctx, g)
 		dto.IsPromoted = true
@@ -78,7 +90,7 @@ func (h *Handlers) ResolveTopGuides(ctx context.Context, limit int) []domain.Pub
 		for id := range seen {
 			exclude = append(exclude, id)
 		}
-		topRated, _ := h.Guides.ListTopRated(ctx, limit-len(out), exclude)
+		topRated, _ := h.Guides.ListTopRated(ctx, limit-len(out), exclude, true)
 		for i := range topRated {
 			g := &topRated[i]
 			if seen[g.ID] {
@@ -98,7 +110,7 @@ func (h *Handlers) ResolveTopGuides(ctx context.Context, limit int) []domain.Pub
 		for id := range seen {
 			exclude = append(exclude, id)
 		}
-		rest, _ := h.Guides.ListPublicRandom(ctx, limit-len(out), exclude)
+		rest, _ := h.Guides.ListPublicRandom(ctx, limit-len(out), exclude, true)
 		for i := range rest {
 			g := &rest[i]
 			if seen[g.ID] {
