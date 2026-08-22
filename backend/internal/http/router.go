@@ -252,7 +252,7 @@ func spaFileServer(dist string, h *handlers.Handlers) http.Handler {
 			serveSpaIndexWithMeta(w, r, index, h)
 			return
 		}
-		setSpaCacheHeaders(w, rel, false)
+		setSPAFileCacheHeaders(w, rel, false)
 		fileServer.ServeHTTP(w, r)
 	})
 }
@@ -274,12 +274,3 @@ func serveSpaIndexWithMeta(w http.ResponseWriter, r *http.Request, indexPath str
 	serveSpaIndex(w, r, indexPath, meta)
 }
 
-func setSpaCacheHeaders(w http.ResponseWriter, rel string, isIndex bool) {
-	if isIndex {
-		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
-		return
-	}
-	if strings.HasPrefix(rel, "assets/") {
-		w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
-	}
-}

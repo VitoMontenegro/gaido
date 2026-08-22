@@ -1,7 +1,8 @@
 import { resolveMediaUrl } from '@gaido/api-client/api/client'
+import { staticAssetUrl } from '@gaido/site-urls/staticAsset'
 import { cn } from '@gaido/ui-primitives/cn'
 
-export const EXCURSION_DEFAULT_COVER = '/images/home/excursions.jpg'
+export const EXCURSION_DEFAULT_COVER = staticAssetUrl('/images/home/excursions.jpg')
 
 export function excursionCoverSrc(cover?: string | null) {
   const url = cover?.trim()

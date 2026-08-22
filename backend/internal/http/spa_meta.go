@@ -172,6 +172,6 @@ func serveSpaIndex(w http.ResponseWriter, r *http.Request, indexPath string, met
 	}
 	html := patchIndexHTML(string(raw), r.Host, meta)
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	setSpaCacheHeaders(w, "", true)
+	setSPAFileCacheHeaders(w, "", true)
 	_, _ = w.Write([]byte(html))
 }

@@ -205,7 +205,17 @@ export async function apiBlob(path: string): Promise<{ blob: Blob; contentType: 
 /** Повний URL зображення: зовнішній URL, шлях або public_key з медіа-сховища */
 export function resolveMediaUrl(url: string): string {
   if (!url) return ''
-  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('/')) return url
+  if (url.startsWith('http://') || url.startsWith('https://')) return url
+  if (url.startsWith('/')) return versionStaticPath(url)
   const base = API_BASE.replace(/\/$/, '')
   return `${base}/api/v1/media/public/${url}`
+}
+
+function versionStaticPath(path: string): string {
+  if (!path.startsWith('/images/') && !path.startsWith('/fonts/')) return path
+  if (/[?&]v=/.test(path)) return path
+  const buildId = import.meta.env.VITE_BUILD_ID as string | undefined
+  if (!buildId || buildId === 'dev') return path
+  const sep = path.includes('?') ? '&' : '?'
+  return `${path}${sep}v=${buildId}`
 }

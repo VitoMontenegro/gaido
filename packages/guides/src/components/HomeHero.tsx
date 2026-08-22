@@ -1,11 +1,12 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { staticAssetUrl } from '@gaido/site-urls/staticAsset'
 import { sanitizeHtml } from '../lib/html'
 
 const SLIDES = [
-  { src: '/images/home/excursions.jpg', alt: 'Авторська екскурсія містом' },
-  { src: '/images/home/about.jpg', alt: 'Атмосфера подорожі' },
-  { src: '/images/home/guides.jpg', alt: 'Місцевий гід' },
+  { src: staticAssetUrl('/images/home/excursions.jpg'), alt: 'Авторська екскурсія містом' },
+  { src: staticAssetUrl('/images/home/about.jpg'), alt: 'Атмосфера подорожі' },
+  { src: staticAssetUrl('/images/home/guides.jpg'), alt: 'Місцевий гід' },
 ] as const
 
 type Props = {

@@ -84,6 +84,8 @@ mkdir -p "$STATIC_ROOT"
 echo "→ frontend build (4 apps)"
 cd "$REPO"
 npm ci
+BUILD_ID="$(git -C "$REPO" rev-parse --short HEAD 2>/dev/null || date +%s)"
+echo "→ build id: $BUILD_ID"
 PROD_DOMAIN="${PROD_DOMAIN:-gaido.top}"
 declare -A APP_ORIGINS=(
   [portal]="https://${PROD_DOMAIN}"
@@ -93,7 +95,7 @@ declare -A APP_ORIGINS=(
 )
 for app in portal svit servis vezu; do
   echo "→ build @gaido/$app (${APP_ORIGINS[$app]})"
-  VITE_PUBLIC_SITE_URL="${APP_ORIGINS[$app]}" npm run build -w "@gaido/$app"
+  VITE_BUILD_ID="$BUILD_ID" VITE_PUBLIC_SITE_URL="${APP_ORIGINS[$app]}" npm run build -w "@gaido/$app"
   echo "→ publish $app to $STATIC_ROOT/$app"
   mkdir -p "$STATIC_ROOT/$app"
   rsync -a --delete \

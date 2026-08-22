@@ -12,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/vitomonte/experts-tourister/internal/apperrors"
 	"github.com/vitomonte/experts-tourister/internal/domain"
+	"github.com/vitomonte/experts-tourister/internal/http/cacheheaders"
 	"github.com/vitomonte/experts-tourister/internal/http/middleware"
 	"github.com/vitomonte/experts-tourister/internal/http/response"
 )
@@ -250,5 +251,6 @@ func (h *Handlers) UploadMedia(w http.ResponseWriter, r *http.Request) {
 }
 func (h *Handlers) ServePublicMedia(w http.ResponseWriter, r *http.Request) {
 	key := chi.URLParam(r, "key")
+	w.Header().Set("Cache-Control", cacheheaders.Immutable)
 	http.ServeFile(w, r, h.Media.PublicPath(key))
 }

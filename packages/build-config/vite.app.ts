@@ -1,6 +1,6 @@
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
-import { existsSync, readFileSync } from 'fs'
+import { existsSync, readFileSync, writeFileSync } from 'fs'
 import { resolve } from 'path'
 import { defineConfig, loadEnv, type Plugin, type UserConfig } from 'vite'
 
@@ -79,6 +79,52 @@ function socialMetaHtmlPlugin(siteOrigin: string, siteMode: SiteMode): Plugin {
   }
 }
 
+function buildIdPlugin(buildId: string): Plugin {
+  return {
+    name: 'gaido-build-id',
+    closeBundle() {
+      writeFileSync(resolve(process.cwd(), 'dist', 'build-id.txt'), `${buildId}\n`, 'utf8')
+    },
+  }
+}
+
+/** Append ?v=BUILD_ID to /fonts and /images URLs in emitted CSS and index.html. */
+function versionStaticRefsPlugin(buildId: string): Plugin {
+  if (!buildId || buildId === 'dev') {
+    return { name: 'gaido-version-static-refs' }
+  }
+  const versionUrl = (path: string) => {
+    if (/[?&]v=/.test(path)) return path
+    const sep = path.includes('?') ? '&' : '?'
+    return `${path}${sep}v=${buildId}`
+  }
+  const patchCss = (code: string) =>
+    code.replace(
+      /url\((['"]?)\/(fonts|images)\/([^'")]+)\1\)/g,
+      (_m, q: string, dir: string, file: string) => `url(${q}/${dir}/${file}?v=${buildId}${q})`,
+    )
+  return {
+    name: 'gaido-version-static-refs',
+    transform(code, id) {
+      if (!id.endsWith('.css')) return null
+      return patchCss(code)
+    },
+    generateBundle(_options, bundle) {
+      for (const chunk of Object.values(bundle)) {
+        if (chunk.type === 'asset' && chunk.fileName.endsWith('.css') && typeof chunk.source === 'string') {
+          chunk.source = patchCss(chunk.source)
+        }
+      }
+    },
+    transformIndexHtml(html) {
+      return html.replace(
+        /((?:href|src)=["'])\/(fonts|images|favicon[^"']*|apple-touch-icon[^"']*)(["'])/g,
+        (_m, prefix: string, path: string, suffix: string) => `${prefix}${versionUrl(`/${path}`)}${suffix}`,
+      )
+    },
+  }
+}
+
 export function createAppViteConfig({
   appDir,
   defaultPort,
@@ -117,6 +163,7 @@ export function createAppViteConfig({
       localPorts.PUBLIC_BASE_URL ||
       `http://localhost:${frontendPort}`
     ).replace(/\/$/, '')
+    const buildId = process.env.VITE_BUILD_ID || env.VITE_BUILD_ID || 'dev'
 
     const aliases: Record<string, string> = {
       '@gaido/api-client': resolve(root, 'packages/api-client/src'),
@@ -129,12 +176,19 @@ export function createAppViteConfig({
     }
 
     const config: UserConfig = {
-      plugins: [react(), tailwindcss(), socialMetaHtmlPlugin(siteOrigin, siteMode)],
+      plugins: [
+        react(),
+        tailwindcss(),
+        socialMetaHtmlPlugin(siteOrigin, siteMode),
+        versionStaticRefsPlugin(buildId),
+        buildIdPlugin(buildId),
+      ],
       envDir: root,
       publicDir,
       define: {
         'import.meta.env.VITE_SITE_MODE': JSON.stringify(siteMode),
         'import.meta.env.VITE_PUBLIC_SITE_URL': JSON.stringify(siteOrigin),
+        'import.meta.env.VITE_BUILD_ID': JSON.stringify(buildId),
       },
       resolve: {
         alias: aliases,
