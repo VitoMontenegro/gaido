@@ -91,7 +91,7 @@ export default function ExcursionCard({ e, compact }: { e: ExcursionItem; compac
         <ExcursionCover
           cover={e.cover_image_url}
           title={e.title}
-          className="aspect-[4/3]"
+          className="aspect-4/3"
           typeLabel={excursionTypeLabel(e.type)}
           metaLine={excursionCoverMetaLine(e.duration_minutes, e.transport_mode)}
         />
@@ -107,7 +107,7 @@ export default function ExcursionCard({ e, compact }: { e: ExcursionItem; compac
             )}
             <ExcursionRatingRow avg={e.rating_avg} count={e.rating_count} />
           </div>
-          <h3 className="mt-1.5 line-clamp-2 font-semibold normal-case leading-snug text-ink group-hover:text-teal">
+          <h3 className="mt-1.5 line-clamp-2 font-semibold normal-case text-ink group-hover:text-teal text-[14px] sm:text-[18px] leading-[110%]">
             {e.title}
           </h3>
           <ExcursionPreviewDescription text={previewText} className="mt-1.5" />
@@ -131,7 +131,7 @@ export default function ExcursionCard({ e, compact }: { e: ExcursionItem; compac
       <ExcursionCover
         cover={e.cover_image_url}
         title={e.title}
-        className="aspect-[16/10]"
+        className="aspect-16/10"
         typeLabel={excursionTypeLabel(e.type)}
         metaLine={excursionCoverMetaLine(e.duration_minutes, e.transport_mode)}
       />
