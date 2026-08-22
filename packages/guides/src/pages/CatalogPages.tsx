@@ -17,7 +17,7 @@ function CountryTile({ slug, name, guideCount }: { slug: string; name: string; g
   return (
     <Link
       to={`/guides/countries/${slug}`}
-      className="group flex min-h-[88px] flex-col justify-between rounded-2xl border border-border bg-surface p-4 transition hover:border-brand-300 hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)] md:min-h-[96px] md:p-5"
+      className="group flex min-h-22 flex-col justify-between rounded-2xl border border-border bg-surface p-4 transition hover:border-brand-300 hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)] md:min-h-24 md:p-5"
     >
       <p className="font-display text-base font-medium normal-case text-ink group-hover:text-brand-700 md:text-lg">
         {name}
@@ -94,7 +94,7 @@ export default function GuidesListPage() {
             <div className="mb-5">
               <h2 className="font-display text-lg font-medium normal-case text-ink md:text-xl">Топ гіди</h2>
               <p className="mt-1 text-sm text-muted">
-                За кількістю опублікованих екскурсій
+                За відгуками мандрівників та активним просуванням на платформі
               </p>
             </div>
             <GuideCardGrid>
