@@ -18,7 +18,7 @@ function PortalHomeRedirect() {
 }
 
 const VezuStubPage = lazyImport(() => import('@gaido/transport/pages/VezuStubPage'))
-const LegalDocumentPage = lazyImport(() => import('@gaido/transport/components/LegalContentEditor').then((m) => ({ default: m.LegalDocumentPage })))
+const LegalDocumentPage = lazyImport(() => import('@gaido/transport/components/LegalDocumentPage'))
 
 export function transportPublicRoutes() {
   return (

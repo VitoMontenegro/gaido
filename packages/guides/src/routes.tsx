@@ -45,7 +45,7 @@ const GuidesByCountryPage = lazyImport(() => import('@gaido/guides/pages/Catalog
 const LoginPage = lazyImport(() => import('@gaido/guides/pages/AuthPages').then((m) => ({ default: m.default })))
 const RegisterTouristPage = lazyImport(() => import('@gaido/guides/pages/AuthPages').then((m) => ({ default: m.RegisterTouristPage })))
 const RegisterGuidePage = lazyImport(() => import('@gaido/guides/pages/AuthPages').then((m) => ({ default: m.RegisterGuidePage })))
-const LegalDocumentPage = lazyImport(() => import('@gaido/guides/components/LegalContentEditor').then((m) => ({ default: m.LegalDocumentPage })))
+const LegalDocumentPage = lazyImport(() => import('@gaido/guides/components/LegalDocumentPage'))
 const AccountPage = lazyImport(() => import('@gaido/guides/pages/AccountPages').then((m) => ({ default: m.default })))
 const FavoritesPage = lazyImport(() => import('@gaido/guides/pages/FavoritesPage'))
 const SettingsPage = lazyImport(() => import('@gaido/guides/pages/AccountPages').then((m) => ({ default: m.SettingsPage })))

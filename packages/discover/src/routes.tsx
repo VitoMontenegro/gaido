@@ -26,7 +26,7 @@ const ProviderPage = lazyImport(() => import('@gaido/discover/pages/ProviderPage
 const ProviderAccountPage = lazyImport(() => import('@gaido/discover/pages/provider/ProviderAccountPage'))
 const LoginPage = lazyImport(() => import('@gaido/discover/pages/AuthPages').then((m) => ({ default: m.default })))
 const RegisterTouristPage = lazyImport(() => import('@gaido/discover/pages/AuthPages').then((m) => ({ default: m.RegisterTouristPage })))
-const LegalDocumentPage = lazyImport(() => import('@gaido/discover/components/LegalContentEditor').then((m) => ({ default: m.LegalDocumentPage })))
+const LegalDocumentPage = lazyImport(() => import('@gaido/discover/components/LegalDocumentPage'))
 const AccountPage = lazyImport(() => import('@gaido/discover/pages/AccountPages').then((m) => ({ default: m.default })))
 const FavoritesPage = lazyImport(() => import('@gaido/discover/pages/AccountPages').then((m) => ({ default: m.FavoritesPage })))
 const SettingsPage = lazyImport(() => import('@gaido/discover/pages/AccountPages').then((m) => ({ default: m.SettingsPage })))

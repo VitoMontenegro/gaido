@@ -155,7 +155,14 @@ export function createAppViteConfig({
       config.optimizeDeps = { include: ['leaflet'] }
     }
 
+    const deferModulePreload = /lazyRichTextEditor|LegalContentEditor|RichTextEditor|tinymce|AdminPage|ModeratorPage|DeployPage|ExcursionForm|CreateExcursion|EditExcursion|GuideOverview|GuideProfile|GuideBilling|GuideDocuments|GuideExcursions|GuideCalendar|GuideArticles|GuideInstructions|AvailabilityCalendar|ImageUrlField|ArticlesEditor/i
+
     config.build = {
+      modulePreload: {
+        resolveDependencies(_filename, deps) {
+          return deps.filter((dep) => !deferModulePreload.test(dep))
+        },
+      },
       rolldownOptions: {
         output: {
           // TinyMCE skins/plugins register via global tinymce — keep module order stable.

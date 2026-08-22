@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { legalPath } from './LegalContentEditor'
+import { legalPath } from '@gaido/ui-primitives/legalPaths'
 import { useCookieConsent } from '../hooks/useCookieConsent'
 
 export default function CookieBanner() {
