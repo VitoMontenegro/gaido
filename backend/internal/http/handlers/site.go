@@ -147,7 +147,7 @@ func (h *Handlers) ResolveFeaturedGuides(ctx context.Context, limit int) []domai
 		for id := range seen {
 			exclude = append(exclude, id)
 		}
-		randomGuides, _ := h.Guides.ListPublicRandom(ctx, limit-len(out), exclude, false)
+		randomGuides, _ := h.Guides.ListByExcursionCount(ctx, limit-len(out), exclude, true)
 		for i := range randomGuides {
 			g := &randomGuides[i]
 			if seen[g.ID] {

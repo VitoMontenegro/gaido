@@ -245,6 +245,35 @@ func (r *GuideRepo) ListTopRated(ctx context.Context, limit int, exclude []int64
 	return out, rows.Err()
 }
 
+func (r *GuideRepo) ListByExcursionCount(ctx context.Context, limit int, exclude []int64, catalogOnly bool) ([]domain.GuideProfile, error) {
+	q := `SELECT ` + guideProfileSelect + ` FROM guide_profiles WHERE status=$1` + catalogEligibleClause(catalogOnly)
+	args := []any{domain.GuideStatusActive}
+	n := 2
+	if len(exclude) > 0 {
+		q += fmt.Sprintf(` AND NOT (id = ANY($%d))`, n)
+		args = append(args, exclude)
+		n++
+	}
+	q += fmt.Sprintf(` ORDER BY (
+		SELECT COUNT(*)::int FROM excursions e WHERE e.guide_id = guide_profiles.id AND e.status = 'PUBLISHED'
+	) DESC, rating_avg DESC, rating_count DESC LIMIT $%d`, n)
+	args = append(args, limit)
+	rows, err := r.db.Pool.Query(ctx, q, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []domain.GuideProfile
+	for rows.Next() {
+		g, err := scanGuideRow(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, g)
+	}
+	return out, rows.Err()
+}
+
 func (r *GuideRepo) ListPublicRandom(ctx context.Context, limit int, exclude []int64, catalogOnly bool) ([]domain.GuideProfile, error) {
 	q := `SELECT ` + guideProfileSelect + ` FROM guide_profiles WHERE status=$1` + catalogEligibleClause(catalogOnly)
 	args := []any{domain.GuideStatusActive}

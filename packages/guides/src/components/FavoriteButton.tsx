@@ -65,7 +65,7 @@ export default function FavoriteButton({
     <button
       type="button"
       className={cn(
-        'inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-ink shadow-sm backdrop-blur-sm transition hover:bg-white',
+        'inline-flex h-6 w-6 sm:h-9 sm:w-9 items-center justify-center rounded-full bg-white/90 text-ink shadow-sm backdrop-blur-sm transition hover:bg-white',
         favorited && 'text-red-500',
         className,
       )}
@@ -75,7 +75,7 @@ export default function FavoriteButton({
       onClick={onToggle}
       onPointerDown={stop}
     >
-      {favorited ? <HeartSolid className="h-5 w-5" /> : <HeartOutline className="h-5 w-5" />}
+      {favorited ? <HeartSolid className="h-5 w-5" /> : <HeartOutline className="h-4 w-4 sm:h-5 sm:w-5" />}
     </button>
   )
 }

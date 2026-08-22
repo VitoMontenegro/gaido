@@ -90,29 +90,9 @@ func (h *Handlers) ResolveTopGuides(ctx context.Context, limit int) []domain.Pub
 		for id := range seen {
 			exclude = append(exclude, id)
 		}
-		topRated, _ := h.Guides.ListTopRated(ctx, limit-len(out), exclude, true)
-		for i := range topRated {
-			g := &topRated[i]
-			if seen[g.ID] {
-				continue
-			}
-			seen[g.ID] = true
-			touchIDs = append(touchIDs, g.ID)
-			out = append(out, h.publicGuideDTO(ctx, g))
-			if len(out) >= limit {
-				break
-			}
-		}
-	}
-
-	if len(out) < limit {
-		exclude := make([]int64, 0, len(seen))
-		for id := range seen {
-			exclude = append(exclude, id)
-		}
-		rest, _ := h.Guides.ListPublicRandom(ctx, limit-len(out), exclude, true)
-		for i := range rest {
-			g := &rest[i]
+		byExcursions, _ := h.Guides.ListByExcursionCount(ctx, limit-len(out), exclude, true)
+		for i := range byExcursions {
+			g := &byExcursions[i]
 			if seen[g.ID] {
 				continue
 			}

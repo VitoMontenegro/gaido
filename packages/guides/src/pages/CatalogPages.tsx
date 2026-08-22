@@ -94,7 +94,7 @@ export default function GuidesListPage() {
             <div className="mb-5">
               <h2 className="font-display text-lg font-medium normal-case text-ink md:text-xl">Топ гіди</h2>
               <p className="mt-1 text-sm text-muted">
-                За відгуками мандрівників та активним просуванням на платформі
+                За кількістю опублікованих екскурсій
               </p>
             </div>
             <GuideCardGrid>
