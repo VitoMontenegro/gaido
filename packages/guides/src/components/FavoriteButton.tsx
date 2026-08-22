@@ -75,7 +75,7 @@ export default function FavoriteButton({
       onClick={onToggle}
       onPointerDown={stop}
     >
-      {favorited ? <HeartSolid className="h-5 w-5" /> : <HeartOutline className="h-4 w-4 sm:h-5 sm:w-5" />}
+      {favorited ? <HeartSolid className="h-4 w-4 sm:h-5 sm:w-5" /> : <HeartOutline className="h-4 w-4 sm:h-5 sm:w-5" />}
     </button>
   )
 }
