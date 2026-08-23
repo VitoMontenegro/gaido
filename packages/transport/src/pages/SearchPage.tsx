@@ -164,8 +164,7 @@ export default function SearchPage() {
             <p className="text-muted">Завантаження…</p>
           ) : isError ? (
             <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-              Не вдалося завантажити рейси. Перевірте, що API запущено.
-              <span className="mt-1 block text-xs">Локально: <code>LOCAL_SEED=1 ./restart-local.sh</code></span>
+              Не вдалося завантажити рейси. Спробуйте оновити сторінку пізніше.
             </div>
           ) : items.length ? (
             <div className="space-y-3">
@@ -181,10 +180,7 @@ export default function SearchPage() {
               {hasRoute ? (
                 <p>Рейсів за цим маршрутом поки немає. Спробуйте інші міста або дату.</p>
               ) : (
-                <p>
-                  Опублікованих рейсів поки немає. На локалі запустіть демо-дані:{' '}
-                  <code className="rounded bg-white px-1.5 py-0.5">LOCAL_SEED=1 ./restart-local.sh</code>
-                </p>
+                <p>Опублікованих рейсів поки немає. Загляньте пізніше або оберіть інший маршрут.</p>
               )}
             </div>
           )}

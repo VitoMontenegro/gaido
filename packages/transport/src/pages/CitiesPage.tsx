@@ -49,7 +49,7 @@ export default function CitiesPage() {
             ))}
           </div>
         ) : (
-          <p className="text-muted">Напрямків поки немає. Запустіть демо-дані: LOCAL_SEED=1 ./restart-local.sh</p>
+          <p className="text-muted">Напрямків поки немає. Загляньте пізніше або скористайтесь пошуком рейсів.</p>
         )}
       </div>
     </>
