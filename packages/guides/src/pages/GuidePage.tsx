@@ -115,7 +115,7 @@ export default function GuidePage() {
       </div>
 
       <div className="container-site grid gap-10 py-10 lg:grid-cols-[1fr_320px]">
-        <div className="space-y-10">
+        <div className="min-w-0 space-y-10">
           <section>
             <h2 className="font-display mb-4 text-2xl font-bold">Екскурсії гіда</h2>
             {(excursionItems).length === 0 ? (

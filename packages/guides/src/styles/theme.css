@@ -365,8 +365,7 @@
   }
 
   .leaflet-map {
-    @apply w-full rounded-3xl border border-border;
-    height: 520px;
+    @apply w-full rounded-3xl border border-border h-65 sm:h-130;
   }
 
   .leaflet-map--wheel-active {

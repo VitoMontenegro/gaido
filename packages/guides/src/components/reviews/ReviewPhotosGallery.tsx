@@ -1,6 +1,8 @@
+import { useRef } from 'react'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { resolveMediaUrl } from '@gaido/api-client/api/client'
 import { reviewsApi, REVIEWS_PAGE_SIZE } from '@gaido/api-client/api/reviews'
+import { useDragScroll } from '../../hooks/useDragScroll'
 import { openImageGallery } from '../../lib/fancybox'
 
 type Props = {
@@ -9,6 +11,9 @@ type Props = {
 }
 
 export default function ReviewPhotosGallery({ excursionId, guideId }: Props) {
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const { consumeDragClick } = useDragScroll(scrollRef)
+
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } = useInfiniteQuery({
     queryKey: ['review-photos', excursionId ? 'excursion' : 'guide', excursionId ?? guideId],
     queryFn: ({ pageParam = 0 }) =>
@@ -35,19 +40,27 @@ export default function ReviewPhotosGallery({ excursionId, guideId }: Props) {
   const remaining = total - items.length
 
   return (
-    <div className="mb-6">
+    <div className="mb-6 min-w-0">
       <h3 className="mb-3 text-lg font-semibold text-stone-900">Галерея фото туристів</h3>
-      <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {urls.map((src, i) => (
-          <button
-            key={`${items[i]?.public_key}-${i}`}
-            type="button"
-            className="h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-stone-200 bg-stone-100 transition hover:opacity-90 sm:h-24 sm:w-24"
-            onClick={() => openImageGallery(urls, i)}
-          >
-            <img src={src} alt="" className="h-full w-full object-cover" loading="lazy" />
-          </button>
-        ))}
+      <div
+        ref={scrollRef}
+        className="cursor-grab overflow-x-auto overscroll-x-contain scroll-smooth pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [touch-action:pan-x] [&::-webkit-scrollbar]:hidden"
+      >
+        <div className="flex snap-x snap-mandatory gap-2">
+          {urls.map((src, i) => (
+            <button
+              key={`${items[i]?.public_key}-${i}`}
+              type="button"
+              className="h-20 w-20 shrink-0 snap-start overflow-hidden rounded-xl border border-stone-200 bg-stone-100 transition hover:opacity-90 sm:h-24 sm:w-24"
+              onClick={() => {
+                if (consumeDragClick()) return
+                openImageGallery(urls, i)
+              }}
+            >
+              <img src={src} alt="" className="pointer-events-none h-full w-full object-cover" loading="lazy" draggable={false} />
+            </button>
+          ))}
+        </div>
       </div>
       {hasNextPage && (
         <button
