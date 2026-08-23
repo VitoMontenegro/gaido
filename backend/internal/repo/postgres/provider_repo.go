@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/vitomonte/experts-tourister/internal/domain"
@@ -848,4 +849,34 @@ func (r *ProviderRepo) HasActiveSubscription(ctx context.Context, providerID int
 		SELECT COUNT(*) FROM provider_subscriptions
 		WHERE provider_id=$1 AND status='ACTIVE' AND expires_at > NOW()`, providerID).Scan(&n)
 	return n > 0, err
+}
+
+func (r *ProviderRepo) GetActiveSubscription(ctx context.Context, providerID int64) (map[string]any, error) {
+	row := r.db.Pool.QueryRow(ctx, `
+		SELECT ps.id, ps.status, ps.starts_at, ps.expires_at, sp.code, sp.name
+		FROM provider_subscriptions ps
+		JOIN subscription_plans sp ON sp.id = ps.plan_id
+		WHERE ps.provider_id=$1 AND ps.status='ACTIVE' AND ps.expires_at > NOW()
+		ORDER BY ps.expires_at DESC LIMIT 1`, providerID)
+	var id int64
+	var status, code, name string
+	var starts, expires time.Time
+	err := row.Scan(&id, &status, &starts, &expires, &code, &name)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return map[string]any{
+		"id": id, "status": status, "starts_at": starts, "expires_at": expires,
+		"plan_code": code, "plan_name": name,
+	}, nil
+}
+
+func (r *ProviderRepo) ActivateSubscription(ctx context.Context, providerID, planID int64, starts, expires time.Time, paymentID *int64, source string) error {
+	_, err := r.db.Pool.Exec(ctx, `
+		INSERT INTO provider_subscriptions (provider_id, plan_id, status, starts_at, expires_at, paid_at, payment_id, activation_source)
+		VALUES ($1,$2,'ACTIVE',$3,$4,$3,$5,$6)`, providerID, planID, starts, expires, paymentID, source)
+	return err
 }

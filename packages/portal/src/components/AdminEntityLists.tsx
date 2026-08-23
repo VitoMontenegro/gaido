@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { adminApi, userDisplayName, type AdminExcursion, type AdminGuide, type AdminReview, type AdminUser } from '@gaido/api-client/api/client'
+import { adminApi, userDisplayName, type AdminCarrier, type AdminExcursion, type AdminGuide, type AdminReview, type AdminTransportRide, type AdminUser } from '@gaido/api-client/api/client'
+import { isTransportSite, transportUrl } from '@gaido/site-urls/site'
 import { useMe } from '@gaido/api-client/hooks/useAuth'
 import { formatPrice } from './excursionUi'
 import GuideAvatar from './GuideAvatar'
@@ -392,6 +393,251 @@ export function AdminReviewsList() {
             )}
           </li>
         ))}
+      </ul>
+    </ListShell>
+  )
+}
+
+function carrierStatusLabel(status: string) {
+  const map: Record<string, string> = {
+    draft: 'Чернетка',
+    pending: 'На модерації',
+    published: 'Опубліковано',
+    suspended: 'Призупинено',
+  }
+  return map[status] ?? status
+}
+
+function rideStatusLabel(status: string) {
+  const map: Record<string, string> = {
+    draft: 'Чернетка',
+    pending: 'На модерації',
+    published: 'Опубліковано',
+    rejected: 'Відхилено',
+  }
+  return map[status] ?? status
+}
+
+function carrierTypeLabel(type: string) {
+  const map: Record<string, string> = {
+    company: 'Компанія',
+    fop: 'ФОП',
+    private: 'Приватний',
+    individual: 'Фіз. особа',
+  }
+  return map[type] ?? type
+}
+
+export function AdminCarriersList({ statusFilter }: { statusFilter?: string }) {
+  const qc = useQueryClient()
+  const { data, isLoading, isError, error } = useQuery({
+    queryKey: ['admin-carriers', statusFilter ?? 'all'],
+    queryFn: () => adminApi.carriers(statusFilter ? { status: statusFilter } : undefined),
+  })
+
+  const update = useMutation({
+    mutationFn: ({ id, patch }: { id: number; patch: Parameters<typeof adminApi.updateCarrier>[1] }) =>
+      adminApi.updateCarrier(id, patch),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-carriers'] })
+      qc.invalidateQueries({ queryKey: ['analytics'] })
+      qc.invalidateQueries({ queryKey: ['mod-carriers'] })
+    },
+  })
+
+  const bypass = useMutation({
+    mutationFn: (id: number) => adminApi.bypassCarrier(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-carriers'] })
+      qc.invalidateQueries({ queryKey: ['analytics'] })
+    },
+  })
+
+  const title = statusFilter === 'published'
+    ? 'Опубліковані перевізники'
+    : statusFilter === 'pending'
+      ? 'Перевізники на модерації'
+      : statusFilter === 'suspended'
+        ? 'Призупинені перевізники'
+        : 'Перевізники Vezu'
+
+  if (isLoading) return <ListShell title={title}>Завантаження…</ListShell>
+  if (isError) return <ListShell title={title}>{error?.message ?? 'Помилка'}</ListShell>
+
+  return (
+    <ListShell title={title} count={(data?.items ?? []).length}>
+      <ul className="divide-y divide-divider">
+        {(data?.items ?? []).map((c: AdminCarrier) => (
+          <li key={c.provider_id} className="px-4 py-3">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="min-w-0 flex-1">
+                <p className="font-medium">{c.display_name}</p>
+                <p className="text-sm text-stone-500">
+                  /{c.website_slug}
+                  {c.base_city_name ? ` · ${c.base_city_name}` : ''}
+                  {c.phone ? ` · ${c.phone}` : ''}
+                </p>
+              </div>
+              <span className="rounded-full bg-sand-100 px-2 py-0.5 text-xs font-medium text-stone-600">
+                {carrierTypeLabel(c.carrier_type)}
+              </span>
+              <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusBadge(c.status.toUpperCase())}`}>
+                {carrierStatusLabel(c.status)}
+              </span>
+              {c.subscription_active ? (
+                <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">Підписка</span>
+              ) : (
+                <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800">Без підписки</span>
+              )}
+              <div className="flex flex-wrap items-center gap-2">
+                {c.status === 'pending' && (
+                  <button
+                    type="button"
+                    className="rounded-lg border border-emerald-200 px-2 py-1 text-xs text-emerald-800 hover:bg-emerald-50 disabled:opacity-50"
+                    disabled={update.isPending}
+                    onClick={() => update.mutate({ id: c.provider_id, patch: { status: 'published' } })}
+                  >
+                    Схвалити
+                  </button>
+                )}
+                {c.status === 'published' && (
+                  <button
+                    type="button"
+                    className="rounded-lg border border-amber-200 px-2 py-1 text-xs text-amber-800 hover:bg-amber-50 disabled:opacity-50"
+                    disabled={update.isPending}
+                    onClick={() => update.mutate({ id: c.provider_id, patch: { status: 'suspended' } })}
+                  >
+                    Призупинити
+                  </button>
+                )}
+                {(c.status === 'suspended' || c.status === 'draft') && (
+                  <button
+                    type="button"
+                    className="rounded-lg border border-emerald-200 px-2 py-1 text-xs text-emerald-800 hover:bg-emerald-50 disabled:opacity-50"
+                    disabled={update.isPending}
+                    onClick={() => update.mutate({ id: c.provider_id, patch: { status: 'published' } })}
+                  >
+                    Опублікувати
+                  </button>
+                )}
+                {!c.subscription_active && (
+                  <button
+                    type="button"
+                    className="rounded-lg border border-teal/30 px-2 py-1 text-xs text-teal hover:bg-teal/5 disabled:opacity-50"
+                    disabled={bypass.isPending}
+                    onClick={() => {
+                      if (window.confirm(`Активувати підписку для «${c.display_name}»?`)) {
+                        bypass.mutate(c.provider_id)
+                      }
+                    }}
+                  >
+                    Підписка (bypass)
+                  </button>
+                )}
+                {isTransportSite() ? (
+                  <Link to={`/carriers/${c.website_slug}`} className="text-sm text-teal hover:underline" target="_blank" rel="noreferrer">
+                    Vezu
+                  </Link>
+                ) : (
+                  <a href={transportUrl(`/carriers/${c.website_slug}`)} className="text-sm text-teal hover:underline" target="_blank" rel="noreferrer">
+                    Vezu
+                  </a>
+                )}
+              </div>
+            </div>
+            <div className="mt-2 flex flex-wrap gap-2 pl-0 text-xs text-stone-500">
+              {(['identity', 'ukrainian', 'business', 'documents'] as const).map((field) => {
+                const key = `${field}_status` as keyof AdminCarrier
+                const val = c[key] as string
+                return (
+                  <button
+                    key={field}
+                    type="button"
+                    className={`rounded-lg border px-2 py-0.5 ${val === 'verified' ? 'border-emerald-200 text-emerald-700' : 'border-border text-stone-600 hover:bg-sand-50'}`}
+                    disabled={update.isPending}
+                    onClick={() => {
+                      const next = val === 'verified' ? 'pending' : 'verified'
+                      update.mutate({ id: c.provider_id, patch: { [`${field}_status`]: next } })
+                    }}
+                  >
+                    {field}: {val === 'verified' ? '✓' : val || '—'}
+                  </button>
+                )
+              })}
+            </div>
+          </li>
+        ))}
+        {(data?.items ?? []).length === 0 && (
+          <li className="px-4 py-6 text-sm text-stone-500">Перевізників не знайдено. Для демо: LOCAL_SEED=1 ./restart-local.sh</li>
+        )}
+      </ul>
+    </ListShell>
+  )
+}
+
+export function AdminTransportRidesList({ statusFilter }: { statusFilter?: string }) {
+  const qc = useQueryClient()
+  const { data, isLoading, isError, error } = useQuery({
+    queryKey: ['admin-transport-rides', statusFilter ?? 'all'],
+    queryFn: () => adminApi.transportRides(statusFilter ? { status: statusFilter } : undefined),
+  })
+
+  const update = useMutation({
+    mutationFn: ({ id, status }: { id: number; status: string }) => adminApi.updateTransportRide(id, status),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-transport-rides'] })
+      qc.invalidateQueries({ queryKey: ['analytics'] })
+      qc.invalidateQueries({ queryKey: ['mod-transport-rides'] })
+    },
+  })
+
+  const title = statusFilter === 'published'
+    ? 'Опубліковані рейси'
+    : statusFilter === 'pending'
+      ? 'Рейси на модерації'
+      : 'Рейси Vezu'
+
+  if (isLoading) return <ListShell title={title}>Завантаження…</ListShell>
+  if (isError) return <ListShell title={title}>{error?.message ?? 'Помилка'}</ListShell>
+
+  return (
+    <ListShell title={title} count={(data?.items ?? []).length}>
+      <ul className="divide-y divide-divider">
+        {(data?.items ?? []).map((ride: AdminTransportRide) => (
+          <li key={ride.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+            <div className="min-w-0">
+              <p className="font-medium">{ride.company_name || ride.driver_names || ride.provider_name}</p>
+              <p className="text-sm text-stone-500">
+                #{ride.id} · {ride.kind === 'regular' ? 'Регулярний' : 'Попутка'} · {ride.provider_name}
+              </p>
+            </div>
+            <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusBadge(ride.status.toUpperCase())}`}>
+              {rideStatusLabel(ride.status)}
+            </span>
+            <div className="flex flex-wrap items-center gap-2">
+              {ride.status === 'pending' && (
+                <>
+                  <button type="button" className="rounded-lg border border-emerald-200 px-2 py-1 text-xs text-emerald-800 hover:bg-emerald-50 disabled:opacity-50" disabled={update.isPending} onClick={() => update.mutate({ id: ride.id, status: 'published' })}>Схвалити</button>
+                  <button type="button" className="rounded-lg border border-red-200 px-2 py-1 text-xs text-red-700 hover:bg-red-50 disabled:opacity-50" disabled={update.isPending} onClick={() => update.mutate({ id: ride.id, status: 'rejected' })}>Відхилити</button>
+                </>
+              )}
+              {ride.status === 'published' && (
+                <button type="button" className="rounded-lg border border-amber-200 px-2 py-1 text-xs text-amber-800 hover:bg-amber-50 disabled:opacity-50" disabled={update.isPending} onClick={() => update.mutate({ id: ride.id, status: 'draft' })}>Зняти</button>
+              )}
+              {(ride.status === 'rejected' || ride.status === 'draft') && (
+                <button type="button" className="rounded-lg border border-emerald-200 px-2 py-1 text-xs text-emerald-800 hover:bg-emerald-50 disabled:opacity-50" disabled={update.isPending} onClick={() => update.mutate({ id: ride.id, status: 'published' })}>Опублікувати</button>
+              )}
+              {isTransportSite() ? (
+                <Link to={`/rides/${ride.id}`} className="text-sm text-teal hover:underline" target="_blank" rel="noreferrer">Vezu</Link>
+              ) : (
+                <a href={transportUrl(`/rides/${ride.id}`)} className="text-sm text-teal hover:underline" target="_blank" rel="noreferrer">Vezu</a>
+              )}
+            </div>
+          </li>
+        ))}
+        {(data?.items ?? []).length === 0 && (
+          <li className="px-4 py-6 text-sm text-stone-500">Рейсів не знайдено. Для демо: LOCAL_SEED=1 ./restart-local.sh</li>
+        )}
       </ul>
     </ListShell>
   )

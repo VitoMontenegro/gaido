@@ -83,6 +83,30 @@ func (r *AdminRepo) DashboardStats(ctx context.Context) (domain.AdminAnalytics, 
 	if stats.RevenueMonth, err = r.countFloat(ctx, `SELECT COALESCE(SUM(amount),0) FROM payments WHERE status='PAID' AND created_at >= date_trunc('month', NOW())`); err != nil {
 		return stats, err
 	}
+	if stats.TotalCarriers, err = r.countInt(ctx, `SELECT COUNT(*) FROM carrier_profiles`); err != nil {
+		return stats, err
+	}
+	if stats.PublishedCarriers, err = r.countInt(ctx, `SELECT COUNT(*) FROM carrier_profiles WHERE status='published'`); err != nil {
+		return stats, err
+	}
+	if stats.PendingCarriers, err = r.countInt(ctx, `SELECT COUNT(*) FROM carrier_profiles WHERE status='pending'`); err != nil {
+		return stats, err
+	}
+	if stats.PublishedRides, err = r.countInt(ctx, `SELECT COUNT(*) FROM transport_listings WHERE status='published'`); err != nil {
+		return stats, err
+	}
+	if stats.PendingRides, err = r.countInt(ctx, `SELECT COUNT(*) FROM transport_listings WHERE status='pending'`); err != nil {
+		return stats, err
+	}
+	if stats.TransportBookings, err = r.countInt(ctx, `SELECT COUNT(*) FROM transport_bookings`); err != nil {
+		return stats, err
+	}
+	if stats.CarrierSubscriptions, err = r.countInt(ctx, `
+		SELECT COUNT(*) FROM provider_subscriptions ps
+		JOIN subscription_plans sp ON sp.id = ps.plan_id
+		WHERE ps.status='ACTIVE' AND ps.expires_at > NOW() AND sp.code LIKE 'carrier-%'`); err != nil {
+		return stats, err
+	}
 
 	rows, err := r.db.Pool.Query(ctx, `
 		SELECT p.id, p.amount, p.currency, p.purpose, p.status, p.created_at,

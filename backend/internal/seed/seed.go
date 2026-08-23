@@ -143,7 +143,10 @@ func (s *Seeder) RunDemo(ctx context.Context) error {
 	if err := s.ensureExtraArticlesDemo(ctx); err != nil {
 		return err
 	}
-	return s.ensurePlatformDemo(ctx)
+	if err := s.ensurePlatformDemo(ctx); err != nil {
+		return err
+	}
+	return s.ensureTransportDemo(ctx)
 }
 
 func (s *Seeder) Run(ctx context.Context) error {

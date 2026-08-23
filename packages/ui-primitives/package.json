@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@gaido/api-client": "*",
+    "@tanstack/react-query": "^5.101.4",
     "tinymce": "^8.8.2",
     "clsx": "^2.1.1",
     "react": "^19.2.8",

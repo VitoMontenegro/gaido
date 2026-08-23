@@ -125,4 +125,5 @@ type SitePayload struct {
 	Legal          LegalContent     `json:"legal"`
 	About          AboutPageContent `json:"about"`
 	TelegramBotURL string           `json:"telegram_bot_url,omitempty"`
+	BodyFont       string           `json:"body_font"`
 }

@@ -31,5 +31,9 @@ export function useBootstrapAuth() {
 
 export function useHasRole(role: string) {
   const { data: me } = useMe()
-  return me?.roles?.includes(role) ?? false
+  if (!me?.roles) return false
+  if (me.roles.includes(role)) return true
+  // ROLE_ADMIN має доступ до модераторських UI/API (Casbin g, ROLE_ADMIN, ROLE_MODERATOR)
+  if (role === 'ROLE_MODERATOR' && me.roles.includes('ROLE_ADMIN')) return true
+  return false
 }

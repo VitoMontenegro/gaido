@@ -42,11 +42,33 @@ export function isSectionSite(): boolean {
   return mode === 'transport' || mode === 'services'
 }
 
+function isLocalDevHost(): boolean {
+  if (typeof window === 'undefined') return false
+  const h = window.location.hostname.toLowerCase()
+  return h === 'localhost' || h === '127.0.0.1'
+}
+
+const LOCAL_DEV_PORTS: Record<string, number> = {
+  [PORTAL_HOST]: 5173,
+  [GUIDES_HOST]: 5174,
+  [SERVICES_HOST]: 5175,
+  [TRANSPORT_HOST]: 5176,
+}
+
 function originForHost(host: string, envKey: string): string {
   const fromEnv = (import.meta.env[envKey] as string | undefined)?.replace(/\/$/, '')
   if (fromEnv) return fromEnv
-  if (typeof window !== 'undefined' && window.location.hostname.toLowerCase() === host) {
-    return window.location.origin
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname.toLowerCase()
+    if (hostname === host) return window.location.origin
+    if (isLocalDevHost()) {
+      if (host === TRANSPORT_HOST && getSiteMode() === 'transport') return window.location.origin
+      if (host === GUIDES_HOST && getSiteMode() === 'guides') return window.location.origin
+      if (host === SERVICES_HOST && getSiteMode() === 'services') return window.location.origin
+      if (host === PORTAL_HOST && getSiteMode() === 'portal') return window.location.origin
+      const port = LOCAL_DEV_PORTS[host]
+      if (port) return `http://${hostname}:${port}`
+    }
   }
   return `https://${host}`
 }
@@ -105,6 +127,17 @@ const PORTAL_POST_LOGIN_PATHS = ['/admin', '/moderator', '/downloads', '/deploy'
 
 function isPortalPostLoginPath(path: string): boolean {
   return PORTAL_POST_LOGIN_PATHS.some((prefix) => path === prefix || path.startsWith(`${prefix}/`) || path.startsWith(`${prefix}?`))
+}
+
+/** Куди вести після входу на vezu.gaido.top */
+export function transportPostLoginUrl(from: string | undefined, roles: string[]): string {
+  if (from?.startsWith('/admin') || from?.startsWith('/moderator') || from?.startsWith('/downloads')) {
+    if (roles.includes('ROLE_ADMIN') || roles.includes('ROLE_MODERATOR')) return from
+  }
+  if (roles.includes('ROLE_ADMIN')) return '/admin'
+  if (roles.includes('ROLE_MODERATOR')) return '/moderator'
+  if (roles.includes('ROLE_PROVIDER')) return '/account/rides'
+  return from?.startsWith('/account') ? from : '/account/bookings'
 }
 
 /** Куди вести після входу на gaido.top (portal). */

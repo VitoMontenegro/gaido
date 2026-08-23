@@ -13,7 +13,7 @@ export function RoleGate({ role, children }: { role: string; children: ReactNode
     return <Navigate to="/login" replace state={{ from: window.location.pathname }} />
   }
 
-  if (!me.roles.includes(role)) {
+  if (!me.roles.includes(role) && !(role === 'ROLE_MODERATOR' && me.roles.includes('ROLE_ADMIN'))) {
     return (
       <div className="card space-y-2">
         <h1 className="font-display text-xl font-bold">Доступ заборонено</h1>

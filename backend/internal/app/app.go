@@ -83,6 +83,9 @@ func New(ctx context.Context, cfg config.Config, log *slog.Logger) (*App, error)
 		CookieConsents: postgres.NewCookieConsentRepo(db),
 		Media:    store,
 		Providers: postgres.NewProviderRepo(db),
+		Transport: postgres.NewTransportRepo(db),
+		Carriers:  postgres.NewCarrierRepo(db),
+		TransportBookings: postgres.NewTransportBookingRepo(db),
 		Jobs:     postgres.NewJobRepo(db),
 		Looking:  postgres.NewLookingRepo(db),
 	}

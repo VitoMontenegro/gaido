@@ -91,6 +91,7 @@ export type SitePayload = {
   legal: LegalContent
   about: AboutPageContent
   telegram_bot_url?: string
+  body_font: 'roboto' | 'rubik'
 }
 
 export type SiteContentPayload = {

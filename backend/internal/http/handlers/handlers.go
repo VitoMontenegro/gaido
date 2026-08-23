@@ -46,6 +46,9 @@ type Handlers struct {
 	Telegram  *tgsvc.Service
 	CookieConsents *postgres.CookieConsentRepo
 	Providers      *postgres.ProviderRepo
+	Transport      *postgres.TransportRepo
+	Carriers       *postgres.CarrierRepo
+	TransportBookings *postgres.TransportBookingRepo
 	Jobs           *postgres.JobRepo
 	Looking        *postgres.LookingRepo
 }

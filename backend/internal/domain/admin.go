@@ -23,6 +23,13 @@ type AdminAnalytics struct {
 	RevenueTotal        float64
 	RevenueMonth        float64
 	RecentPayments      []AdminPaymentRow
+	TotalCarriers       int
+	PublishedCarriers   int
+	PendingCarriers     int
+	PublishedRides      int
+	PendingRides        int
+	TransportBookings   int
+	CarrierSubscriptions int
 }
 
 type AdminPaymentRow struct {

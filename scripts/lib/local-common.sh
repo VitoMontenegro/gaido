@@ -275,7 +275,9 @@ local_print_urls() {
   echo " Postgres:  localhost:${pg_port}"
   echo " Redis:     localhost:${redis_port}"
   echo "──────────────────────────────────────────────"
-  echo " Demo: guide1 / guide12345"
+  echo " Demo: admin / admin12345 · guide1 / guide12345"
+  echo " Vezu demo: LOCAL_SEED=1 ./restart-local.sh (carrier-demo-abc / carrier12345)"
+  echo " Vezu site: LOCAL_APP=vezu ./restart-local.sh"
   echo "══════════════════════════════════════════════"
   echo ""
 }

@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "@gaido/api-client": "*",
+    "@gaido/portal-shell": "*",
     "@gaido/site-urls": "*",
     "@gaido/ui-primitives": "*",
     "@tanstack/react-query": "^5.101.4",

@@ -5,7 +5,10 @@
 #   ./restart-local.sh
 #   LOCAL_SKIP_FRONTEND=1 ./restart-local.sh
 #   LOCAL_SKIP_DOCKER=1 ./restart-local.sh
-#   LOCAL_SKIP_MIGRATE=1 ./restart-local.sh
+#   LOCAL_SKIP_MIGRATE=1 ./restart-local.sh   # отключить auto-migrate
+#
+# При каждом перезапуске run-local.sh автоматически выполняет goose migrate up
+# (после поднятия Postgres, до старта API).
 #
 # PhpStorm: Run Configuration → Shell Script → Script path: restart-local.sh
 set -euo pipefail

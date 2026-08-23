@@ -97,6 +97,10 @@ func (h *Handlers) AdminAnalytics(w http.ResponseWriter, r *http.Request) {
 		"active_subscriptions":   stats.ActiveSubscriptions,
 		"featured_guides_active": stats.FeaturedGuides, "featured_excursions_active": stats.FeaturedExcursions,
 		"cities_count": stats.CitiesCount, "countries_count": stats.CountriesCount,
+		"total_carriers": stats.TotalCarriers, "published_carriers": stats.PublishedCarriers,
+		"pending_carriers": stats.PendingCarriers, "published_rides": stats.PublishedRides,
+		"pending_rides": stats.PendingRides, "transport_bookings": stats.TransportBookings,
+		"carrier_subscriptions": stats.CarrierSubscriptions,
 		"recent_payments": recentPayments,
 	})
 }
@@ -104,31 +108,47 @@ func (h *Handlers) AdminGetSettings(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	payments, _ := h.Settings.GetBool(ctx, "guide_placement_payments_enabled", false)
 	moderation, _ := h.Settings.GetBool(ctx, "moderation_enabled", true)
+	bodyFont := h.LoadBodyFont(ctx)
 	if !payments || !moderation {
 		h.SyncCatalogFillingMode(ctx)
 	}
-	response.JSON(w, r, 200, map[string]bool{
+	response.JSON(w, r, 200, map[string]any{
 		"guide_placement_payments_enabled": payments,
 		"moderation_enabled":               moderation,
+		"body_font":                        bodyFont,
 	})
 }
 func (h *Handlers) AdminSetSettings(w http.ResponseWriter, r *http.Request) {
-	var req map[string]bool
+	var req struct {
+		GuidePlacementPaymentsEnabled *bool   `json:"guide_placement_payments_enabled"`
+		ModerationEnabled             *bool   `json:"moderation_enabled"`
+		BodyFont                      *string `json:"body_font"`
+	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		response.Error(w, r, apperrors.ErrValidation)
 		return
 	}
 	actor := middleware.UserIDFromContext(r.Context())
-	for key, v := range req {
+	if req.GuidePlacementPaymentsEnabled != nil {
 		val := "false"
-		if v {
+		if *req.GuidePlacementPaymentsEnabled {
 			val = "true"
 		}
-		switch key {
-		case "guide_placement_payments_enabled", "moderation_enabled":
-			_ = h.Settings.Set(r.Context(), key, val)
-			_ = h.Audit.Log(r.Context(), &actor, "SITE_SETTING_CHANGE", "site_settings", nil, key, val, r.RemoteAddr, r.UserAgent())
+		_ = h.Settings.Set(r.Context(), "guide_placement_payments_enabled", val)
+		_ = h.Audit.Log(r.Context(), &actor, "SITE_SETTING_CHANGE", "site_settings", nil, "guide_placement_payments_enabled", val, r.RemoteAddr, r.UserAgent())
+	}
+	if req.ModerationEnabled != nil {
+		val := "false"
+		if *req.ModerationEnabled {
+			val = "true"
 		}
+		_ = h.Settings.Set(r.Context(), "moderation_enabled", val)
+		_ = h.Audit.Log(r.Context(), &actor, "SITE_SETTING_CHANGE", "site_settings", nil, "moderation_enabled", val, r.RemoteAddr, r.UserAgent())
+	}
+	if req.BodyFont != nil {
+		font := normalizeBodyFont(*req.BodyFont)
+		_ = h.Settings.Set(r.Context(), "body_font", font)
+		_ = h.Audit.Log(r.Context(), &actor, "SITE_SETTING_CHANGE", "site_settings", nil, "body_font", font, r.RemoteAddr, r.UserAgent())
 	}
 	h.SyncCatalogFillingMode(r.Context())
 	h.AdminGetSettings(w, r)

@@ -77,6 +77,51 @@ const (
 )
 
 const (
+	TransportKindRegular   = "regular"
+	TransportKindOccasional = "occasional"
+)
+
+const (
+	CarrierTypeCompany    = "company"
+	CarrierTypeFOP        = "fop"
+	CarrierTypePrivate    = "private"
+	CarrierTypeIndividual = "individual"
+)
+
+const (
+	CarrierStatusDraft     = "draft"
+	CarrierStatusPending   = "pending"
+	CarrierStatusPublished = "published"
+	CarrierStatusSuspended = "suspended"
+)
+
+const (
+	VerificationPending  = "pending"
+	VerificationVerified = "verified"
+	VerificationRejected = "rejected"
+)
+
+const (
+	CarrierTrustNew      = "new"
+	CarrierTrustVerified = "verified"
+	CarrierTrustTrusted  = "trusted"
+)
+
+const (
+	TransportListingDraft     = "draft"
+	TransportListingPending   = "pending"
+	TransportListingPublished = "published"
+	TransportListingRejected  = "rejected"
+)
+
+const (
+	TransportBookingPending   = "pending"
+	TransportBookingConfirmed = "confirmed"
+	TransportBookingCancelled = "cancelled"
+	TransportBookingCompleted = "completed"
+)
+
+const (
 	ArticlePublished = "PUBLISHED"
 	ArticleDraft     = "DRAFT"
 )

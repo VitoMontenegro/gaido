@@ -13,6 +13,34 @@ const PRODUCTION_ORIGINS: Record<SiteMode, string> = {
   services: 'https://servis.gaido.top',
 }
 
+/** Canonical Vite dev ports (see defaultPort in each app vite.config). */
+const DEV_SITE_PORTS: Record<SiteMode, number> = {
+  portal: 5173,
+  guides: 5174,
+  services: 5175,
+  transport: 5176,
+}
+
+function localCrossSiteUrl(
+  target: SiteMode,
+  current: SiteMode,
+  siteOrigin: string,
+  mode: string,
+  env: Record<string, string>,
+): string {
+  const envKeys: Record<SiteMode, string> = {
+    portal: 'VITE_PORTAL_SITE_URL',
+    guides: 'VITE_GUIDES_SITE_URL',
+    services: 'VITE_SERVICES_SITE_URL',
+    transport: 'VITE_TRANSPORT_SITE_URL',
+  }
+  const fromEnv = env[envKeys[target]]?.replace(/\/$/, '')
+  if (fromEnv) return fromEnv
+  if (mode === 'production') return PRODUCTION_ORIGINS[target]
+  if (target === current) return siteOrigin
+  return `http://localhost:${DEV_SITE_PORTS[target]}`
+}
+
 const SITE_SOCIAL: Record<SiteMode, { title: string; description: string }> = {
   portal: { title: 'Gaido', description: 'Для українців — від українців' },
   guides: { title: 'Gaido', description: 'Гіди та екскурсії для українців за кордоном' },
@@ -58,6 +86,9 @@ function socialMetaHtmlPlugin(siteOrigin: string, siteMode: SiteMode): Plugin {
   const ogImage = `${origin}/api/v1/media/public/${DEFAULT_OG_IMAGE_KEY}`
   const { title, description } = SITE_SOCIAL[siteMode]
   const tags = [
+    `<link rel="preconnect" href="https://fonts.googleapis.com" />`,
+    `<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />`,
+    `<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Rubik:wght@400;500;700&display=swap" rel="stylesheet" />`,
     `<meta property="og:type" content="website" />`,
     `<meta property="og:site_name" content="${title}" />`,
     `<meta property="og:title" content="${title}" />`,
@@ -189,6 +220,18 @@ export function createAppViteConfig({
         'import.meta.env.VITE_SITE_MODE': JSON.stringify(siteMode),
         'import.meta.env.VITE_PUBLIC_SITE_URL': JSON.stringify(siteOrigin),
         'import.meta.env.VITE_BUILD_ID': JSON.stringify(buildId),
+        'import.meta.env.VITE_PORTAL_SITE_URL': JSON.stringify(
+          localCrossSiteUrl('portal', siteMode, siteOrigin, mode, env),
+        ),
+        'import.meta.env.VITE_GUIDES_SITE_URL': JSON.stringify(
+          localCrossSiteUrl('guides', siteMode, siteOrigin, mode, env),
+        ),
+        'import.meta.env.VITE_TRANSPORT_SITE_URL': JSON.stringify(
+          localCrossSiteUrl('transport', siteMode, siteOrigin, mode, env),
+        ),
+        'import.meta.env.VITE_SERVICES_SITE_URL': JSON.stringify(
+          localCrossSiteUrl('services', siteMode, siteOrigin, mode, env),
+        ),
       },
       resolve: {
         alias: aliases,

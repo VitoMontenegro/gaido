@@ -5,6 +5,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter } from 'react-router-dom'
 import { ApiClientError, bootstrapAuth } from '@gaido/api-client/api/http'
 import { handleDynamicImportRejection } from '@gaido/ui-primitives/lazyImport'
+import BodyFontSync from '@gaido/ui-primitives/BodyFontSync'
+import { applyBodyFont } from '@gaido/ui-primitives/bodyFont'
 import { initTelegramButtons } from './lib/telegramButtons'
 import { DefaultSocialMeta } from './lib/seo'
 import './styles/theme.css'
@@ -36,6 +38,7 @@ export function mountApp(App: ComponentType) {
         <HelmetProvider>
           <QueryClientProvider client={queryClient}>
             <BrowserRouter>
+              <BodyFontSync />
               <DefaultSocialMeta />
               <App />
             </BrowserRouter>
@@ -45,5 +48,8 @@ export function mountApp(App: ComponentType) {
     )
   }
 
-  bootstrapAuth().finally(renderApp)
+  bootstrapAuth().finally(() => {
+    applyBodyFont('rubik')
+    renderApp()
+  })
 }

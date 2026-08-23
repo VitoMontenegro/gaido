@@ -22,7 +22,7 @@
 }
 
 @theme {
-  --font-sans: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-sans: "Rubik", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
   --font-display: "MTS Extended", Arial, sans-serif;
 
   --color-ink: #060606;
@@ -48,15 +48,11 @@
 }
 
 @layer base {
-  .admin-ui {
-    --font-sans: "MTS Extended", Arial, sans-serif;
-  }
-
   body {
     @apply bg-page text-ink font-sans antialiased;
     font-size: 16px;
-    line-height: 1.2;
-    letter-spacing: -0.02em;
+    line-height: 1.45;
+    letter-spacing: 0;
   }
 
   h1, h2, h3 {
@@ -71,7 +67,7 @@
   }
 
   .section-title {
-    @apply font-display text-[28px] font-medium uppercase leading-[1.2] text-ink md:text-[28px];
+    @apply font-display text-[28px] font-semibold uppercase leading-[1.2] text-ink md:text-[28px];
   }
 
   .section-title-sm {

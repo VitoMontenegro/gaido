@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"strings"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -22,6 +23,18 @@ func (r *SettingsRepo) GetBool(ctx context.Context, key string, def bool) (bool,
 		return def, err
 	}
 	return val == "true" || val == `"true"`, nil
+}
+
+func (r *SettingsRepo) GetString(ctx context.Context, key string, def string) (string, error) {
+	var val string
+	err := r.db.Pool.QueryRow(ctx, `SELECT value::text FROM site_settings WHERE key=$1`, key).Scan(&val)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return def, nil
+	}
+	if err != nil {
+		return def, err
+	}
+	return strings.Trim(val, `"`), nil
 }
 
 func (r *SettingsRepo) Set(ctx context.Context, key string, value string) error {

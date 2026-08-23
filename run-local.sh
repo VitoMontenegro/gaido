@@ -28,6 +28,12 @@ local_resolve_ports "$ROOT"
 PG_HOST="${PG_HOST:-127.0.0.1}"
 REDIS_HOST="${REDIS_HOST:-127.0.0.1}"
 
+export DATABASE_URL="${DATABASE_URL:-postgres://tourister:tourister@${PG_HOST}:${PG_PORT}/tourister?sslmode=disable}"
+export REDIS_URL="${REDIS_URL:-redis://${REDIS_HOST}:${REDIS_PORT}/0}"
+export REDIS_SESSION_URL="${REDIS_SESSION_URL:-redis://${REDIS_HOST}:${REDIS_PORT}/1}"
+export REDIS_SIGNAL_URL="${REDIS_SIGNAL_URL:-redis://${REDIS_HOST}:${REDIS_PORT}/2}"
+export PAYMENT_STUB_ENABLED="${PAYMENT_STUB_ENABLED:-true}"
+
 echo "■ run-local.sh"
 
 if [[ "${LOCAL_SKIP_DOCKER:-0}" != "1" ]]; then
@@ -42,17 +48,11 @@ else
 fi
 
 if [[ "${LOCAL_SKIP_MIGRATE:-0}" != "1" ]]; then
-  echo "→ migrations"
+  echo "→ migrations (DATABASE_URL → ${PG_HOST}:${PG_PORT})"
   (cd "$ROOT/backend" && go run ./cmd/migrate -cmd up)
 else
   echo "→ skip migrate (LOCAL_SKIP_MIGRATE=1)"
 fi
-
-export DATABASE_URL="${DATABASE_URL:-postgres://tourister:tourister@localhost:${PG_PORT}/tourister?sslmode=disable}"
-export REDIS_URL="${REDIS_URL:-redis://localhost:${REDIS_PORT}/0}"
-export REDIS_SESSION_URL="${REDIS_SESSION_URL:-redis://localhost:${REDIS_PORT}/1}"
-export REDIS_SIGNAL_URL="${REDIS_SIGNAL_URL:-redis://localhost:${REDIS_PORT}/2}"
-export PAYMENT_STUB_ENABLED="${PAYMENT_STUB_ENABLED:-true}"
 
 if [[ "${LOCAL_SKIP_BACKEND:-0}" != "1" ]]; then
   echo "→ backend :${BACKEND_PORT}"

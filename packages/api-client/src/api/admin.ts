@@ -43,6 +43,35 @@ export type AdminExcursion = {
   currency: string
 }
 
+export type AdminCarrier = {
+  provider_id: number
+  display_name: string
+  website_slug: string
+  carrier_type: string
+  status: string
+  base_city_name?: string
+  phone?: string
+  email?: string
+  subscription_active?: boolean
+  identity_status: string
+  ukrainian_status: string
+  business_status: string
+  documents_status: string
+}
+
+export type AdminTransportRide = {
+  id: number
+  provider_id: number
+  provider_name: string
+  provider_slug: string
+  company_name: string
+  driver_names: string
+  kind: string
+  status: string
+  price_amount: number
+  price_currency: string
+}
+
 export type AdminReview = {
   id: number
   guide_id: number
@@ -64,6 +93,7 @@ export type AdminReview = {
 export type AdminSettings = {
   guide_placement_payments_enabled: boolean
   moderation_enabled: boolean
+  body_font: 'roboto' | 'rubik'
 }
 
 export type AdminPaymentRow = {
@@ -96,6 +126,13 @@ export type AdminAnalytics = {
   featured_excursions_active: number
   cities_count: number
   countries_count: number
+  total_carriers: number
+  published_carriers: number
+  pending_carriers: number
+  published_rides: number
+  pending_rides: number
+  transport_bookings: number
+  carrier_subscriptions: number
   recent_payments: AdminPaymentRow[]
 }
 
@@ -219,4 +256,24 @@ export const adminApi = {
       '/api/v1/admin/auth/clear-rate-limit',
       { method: 'POST', body: JSON.stringify(body) },
     ),
+  carriers: (params?: { status?: string }) => {
+    const q = params?.status ? `?status=${encodeURIComponent(params.status)}` : ''
+    return api<{ items: AdminCarrier[] }>(`/api/v1/admin/carriers${q}`)
+  },
+  updateCarrier: (id: number, body: Partial<Pick<AdminCarrier, 'status' | 'identity_status' | 'ukrainian_status' | 'business_status' | 'documents_status'>>) =>
+    api<AdminCarrier>(`/api/v1/admin/carriers/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+  bypassCarrier: (id: number, planId?: number) =>
+    api<{ status: string }>(`/api/v1/admin/carriers/${id}/bypass`, {
+      method: 'POST',
+      body: JSON.stringify(planId ? { plan_id: planId } : {}),
+    }),
+  transportRides: (params?: { status?: string }) => {
+    const q = params?.status ? `?status=${encodeURIComponent(params.status)}` : ''
+    return api<{ items: AdminTransportRide[] }>(`/api/v1/admin/transport/rides${q}`)
+  },
+  updateTransportRide: (id: number, status: string) =>
+    api<{ status: string }>(`/api/v1/admin/transport/rides/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ status }),
+    }),
 }

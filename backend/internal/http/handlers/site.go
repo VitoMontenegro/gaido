@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/vitomonte/experts-tourister/internal/apperrors"
 	"github.com/vitomonte/experts-tourister/internal/domain"
@@ -92,6 +93,21 @@ func mergeAboutContent(stored domain.AboutPageContent) domain.AboutPageContent {
 	}
 	return stored
 }
+
+func normalizeBodyFont(raw string) string {
+	switch strings.ToLower(strings.TrimSpace(raw)) {
+	case "roboto":
+		return "roboto"
+	default:
+		return "rubik"
+	}
+}
+
+func (h *Handlers) LoadBodyFont(ctx context.Context) string {
+	font, _ := h.Settings.GetString(ctx, "body_font", "rubik")
+	return normalizeBodyFont(font)
+}
+
 func (h *Handlers) GetSite(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	content := h.LoadHomeContent(ctx)
@@ -114,6 +130,7 @@ func (h *Handlers) GetSite(w http.ResponseWriter, r *http.Request) {
 		Legal:          legal,
 		About:          about,
 		TelegramBotURL: h.telegramBotURL(),
+		BodyFont:       h.LoadBodyFont(ctx),
 	})
 }
 

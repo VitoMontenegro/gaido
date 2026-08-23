@@ -6,6 +6,7 @@ var europeExtraCities = []struct {
 	lat, lng                             float64
 }{
 	// Україна
+	{"ua", "main", "kyiv", "Київ", 50.4501, 30.5234},
 	{"ua", "main", "lviv", "Львів", 49.8397, 24.0297},
 	{"ua", "main", "odesa", "Одеса", 46.4825, 30.7233},
 	{"ua", "main", "kharkiv", "Харків", 49.9935, 36.2304},
