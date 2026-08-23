@@ -157,17 +157,45 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section className="cta-panel">
-          <div className="flex flex-wrap items-center justify-between gap-6">
-            <div>
-              <h2 className="font-display text-2xl font-bold text-white">Шукаєте поїздку?</h2>
-              <p className="mt-2 max-w-lg text-white/80">Знайдіть рейс серед перевірених перевізників або зареєструйтесь як водій.</p>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <Link to="/search" className="btn-accent bg-white text-ink hover:bg-sand-50">Знайти рейс</Link>
-              <Link to="/register/driver" className="rounded-xl border border-white/40 px-5 py-3 text-sm font-medium text-white transition hover:bg-white/10">
-                Стати перевізником
+        <section className="prefooter-cta">
+          <div className="prefooter-cta__grid">
+            <div className="prefooter-cta__panel prefooter-cta__panel--left">
+              <div className="prefooter-cta__info">
+                <h2 className="prefooter-cta__title">Шукаєте поїздку?</h2>
+                <p className="prefooter-cta__text">
+                  Знайдіть рейс серед <strong>перевірених перевізників</strong> — міжнародні маршрутки та попутки для українців за кордоном.
+                </p>
+              </div>
+              <div className="prefooter-cta__meta">
+                <div className="prefooter-cta__meta-label">Пошук рейсів</div>
+                <div className="prefooter-cta__meta-value">Безкоштовно · Щодня</div>
+              </div>
+              <Link to="/search" className="prefooter-cta__btn prefooter-cta__btn--accent">
+                Знайти рейс
               </Link>
+              <svg className="prefooter-cta__decoration" width="180" height="160" viewBox="0 0 180 160" fill="none" aria-hidden="true">
+                <path
+                  d="M24 48h132c6.6 0 12 5.4 12 12v52c0 6.6-5.4 12-12 12h-8l-8 16H40l-8-16h-8c-6.6 0-12-5.4-12-12V60c0-6.6 5.4-12 12-12zm16 64a12 12 0 1 0 0-24 12 12 0 0 0 0 24zm100 0a12 12 0 1 0 0-24 12 12 0 0 0 0 24zM48 68h84v8H48v-8z"
+                  fill="#141414"
+                />
+              </svg>
+            </div>
+
+            <div className="prefooter-cta__panel prefooter-cta__panel--right">
+              <div className="prefooter-cta__info">
+                <h2 className="prefooter-cta__title">Стати перевізником</h2>
+                <p className="prefooter-cta__text">
+                  Додайте маршрути, отримуйте бронювання та <strong>зростайте разом з Vezu</strong>.
+                </p>
+              </div>
+              <div className="prefooter-cta__actions">
+                <Link to="/register/driver" className="prefooter-cta__btn prefooter-cta__btn--light">
+                  Зареєструватись
+                </Link>
+                <Link to="/carriers" className="prefooter-cta__link">
+                  Переглянути перевізників →
+                </Link>
+              </div>
             </div>
           </div>
         </section>

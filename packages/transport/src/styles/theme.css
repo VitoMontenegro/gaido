@@ -246,8 +246,112 @@
     @apply text-sm font-medium text-brand-600 no-underline hover:text-brand-700;
   }
 
-  .cta-panel {
-    @apply overflow-hidden rounded-[28px] bg-ink text-white;
+  .prefooter-cta__grid {
+    @apply flex items-stretch gap-3 md:gap-7;
+  }
+
+  .prefooter-cta__panel {
+    @apply relative flex flex-col overflow-hidden rounded-3xl bg-ink p-6 text-white;
+  }
+
+  .prefooter-cta__panel--left {
+    @apply w-full md:w-[43.5%];
+  }
+
+  .prefooter-cta__panel--right {
+    @apply w-full md:w-[calc(56.5%-1.75rem)];
+  }
+
+  .prefooter-cta__info {
+    @apply relative z-[1] mb-5;
+  }
+
+  .prefooter-cta__title {
+    @apply font-display text-base font-medium uppercase leading-[1.2] text-white sm:text-[22px];
+  }
+
+  .prefooter-cta__text {
+    @apply mt-2 text-sm leading-snug tracking-tight text-white sm:text-base;
+    letter-spacing: -0.02em;
+  }
+
+  .prefooter-cta__text strong {
+    @apply font-medium;
+  }
+
+  .prefooter-cta__meta {
+    @apply relative z-[1] mb-7;
+  }
+
+  .prefooter-cta__meta-label {
+    @apply text-sm tracking-tight text-white sm:text-base;
+    letter-spacing: -0.02em;
+  }
+
+  .prefooter-cta__meta-value {
+    @apply mt-1 font-display text-base font-medium uppercase text-white sm:text-lg;
+  }
+
+  .prefooter-cta__actions {
+    @apply relative z-[1] mt-auto flex flex-col gap-3;
+  }
+
+  .prefooter-cta__btn {
+    @apply relative z-[1] inline-flex min-h-11 w-fit items-center justify-center rounded-xl px-[18px] py-2 text-base font-medium transition;
+    letter-spacing: -0.02em;
+  }
+
+  .prefooter-cta__btn--accent {
+    @apply mt-auto bg-teal text-white hover:bg-teal-dark;
+  }
+
+  .prefooter-cta__btn--light {
+    @apply bg-white text-ink hover:bg-sand-50;
+  }
+
+  .prefooter-cta__link {
+    @apply text-sm font-medium text-white/70 transition hover:text-white;
+  }
+
+  .prefooter-cta__decoration {
+    @apply pointer-events-none absolute top-4 -right-10 z-0 text-white;
+  }
+
+  @media (max-width: 860px) {
+    .prefooter-cta__grid {
+      @apply flex-col items-center gap-3;
+    }
+
+    .prefooter-cta__panel--left,
+    .prefooter-cta__panel--right {
+      @apply w-full max-w-[580px];
+    }
+  }
+
+  @media (max-width: 640px) {
+    .prefooter-cta__info {
+      @apply mb-4;
+    }
+
+    .prefooter-cta__title {
+      @apply text-base;
+    }
+
+    .prefooter-cta__text {
+      @apply text-sm;
+    }
+
+    .prefooter-cta__meta {
+      @apply mb-5;
+    }
+
+    .prefooter-cta__decoration {
+      @apply top-0 w-36 -right-8;
+    }
+
+    .prefooter-cta__btn {
+      @apply w-full;
+    }
   }
 
   .about-hero__eyebrow {
