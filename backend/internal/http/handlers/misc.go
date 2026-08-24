@@ -32,6 +32,7 @@ type registerReq struct {
 	AcceptPrivacy        bool   `json:"accept_privacy"`
 	AcceptSiteRules      bool   `json:"accept_site_rules"`
 	AcceptPlacementRules bool   `json:"accept_placement_rules"`
+	ReturnOrigin         string `json:"return_origin"`
 }
 type loginReq struct {
 	Login    string `json:"login"`

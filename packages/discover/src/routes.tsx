@@ -26,6 +26,8 @@ const ProviderPage = lazyImport(() => import('@gaido/discover/pages/ProviderPage
 const ProviderAccountPage = lazyImport(() => import('@gaido/discover/pages/provider/ProviderAccountPage'))
 const LoginPage = lazyImport(() => import('@gaido/discover/pages/AuthPages').then((m) => ({ default: m.default })))
 const RegisterTouristPage = lazyImport(() => import('@gaido/discover/pages/AuthPages').then((m) => ({ default: m.RegisterTouristPage })))
+const ForgotPasswordPage = lazyImport(() => import('@gaido/discover/pages/AuthPages').then((m) => ({ default: m.ForgotPasswordPage })))
+const ResetPasswordPage = lazyImport(() => import('@gaido/discover/pages/AuthPages').then((m) => ({ default: m.ResetPasswordPage })))
 const LegalDocumentPage = lazyImport(() => import('@gaido/discover/components/LegalDocumentPage'))
 const AccountPage = lazyImport(() => import('@gaido/discover/pages/AccountPages').then((m) => ({ default: m.default })))
 const FavoritesPage = lazyImport(() => import('@gaido/discover/pages/AccountPages').then((m) => ({ default: m.FavoritesPage })))
@@ -39,6 +41,8 @@ export function discoverPublicRoutes() {
       <Route path="provider/:slug" element={<Lazy><ProviderPage /></Lazy>} />
       <Route path="login" element={<Lazy><LoginPage /></Lazy>} />
       <Route path="register" element={<Lazy><RegisterTouristPage /></Lazy>} />
+      <Route path="forgot-password" element={<Lazy><ForgotPasswordPage /></Lazy>} />
+      <Route path="reset-password" element={<Lazy><ResetPasswordPage /></Lazy>} />
       <Route path="legal/:slug" element={<Lazy><LegalDocumentPage /></Lazy>} />
       <Route path="guides/*" element={<GuidesCanonicalRedirect />} />
       <Route path="guide/:slug" element={<GuidesCanonicalRedirect />} />

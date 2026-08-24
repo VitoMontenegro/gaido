@@ -90,10 +90,23 @@ export type AdminReview = {
   }
 }
 
+export type MailSettings = {
+  enabled: boolean
+  host: string
+  port: number
+  username: string
+  from_email: string
+  from_name: string
+  encryption: 'starttls' | 'tls' | 'none'
+  has_password: boolean
+  password?: string
+}
+
 export type AdminSettings = {
   guide_placement_payments_enabled: boolean
   moderation_enabled: boolean
   body_font: 'roboto' | 'rubik'
+  mail: MailSettings
 }
 
 export type AdminPaymentRow = {
@@ -175,6 +188,8 @@ export const adminApi = {
   settings: () => api<AdminSettings>('/api/v1/admin/settings'),
   updateSettings: (body: Partial<AdminSettings>) =>
     api<AdminSettings>('/api/v1/admin/settings', { method: 'PUT', body: JSON.stringify(body) }),
+  testMail: (to: string) =>
+    api<{ status: string }>('/api/v1/admin/settings/test-mail', { method: 'POST', body: JSON.stringify({ to }) }),
   siteContent: () => api<SiteContentPayload>('/api/v1/admin/site-content'),
   saveSiteContent: (body: SiteContentPayload) =>
     api<SiteContentPayload>('/api/v1/admin/site-content', {

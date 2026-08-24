@@ -33,6 +33,8 @@ function PortalHomeRedirect() {
 
 const PortalStubPage = lazyImport(() => import('@gaido/portal-shell/pages/PortalStubPage'))
 const LoginPage = lazyImport(() => import('@gaido/portal-shell/pages/AuthPages').then((m) => ({ default: m.default })))
+const ForgotPasswordPage = lazyImport(() => import('@gaido/portal-shell/pages/AuthPages').then((m) => ({ default: m.ForgotPasswordPage })))
+const ResetPasswordPage = lazyImport(() => import('@gaido/portal-shell/pages/AuthPages').then((m) => ({ default: m.ResetPasswordPage })))
 const AdminPage = lazyImport(() => import('@gaido/portal-shell/pages/AdminPages').then((m) => ({ default: m.default })))
 const ModeratorPage = lazyImport(() => import('@gaido/portal-shell/pages/AdminPages').then((m) => ({ default: m.ModeratorPage })))
 const DeployPage = lazyImport(() => import('@gaido/portal-shell/pages/DeployPage'))
@@ -62,6 +64,8 @@ export function portalPublicRoutes() {
       <Route path="looking" element={<PortalHomeRedirect />} />
       <Route path="about" element={<PortalHomeRedirect />} />
       <Route path="login" element={<Lazy><LoginPage /></Lazy>} />
+      <Route path="forgot-password" element={<Lazy><ForgotPasswordPage /></Lazy>} />
+      <Route path="reset-password" element={<Lazy><ResetPasswordPage /></Lazy>} />
       <Route path="account/*" element={<GuidesCanonicalRedirect />} />
       <Route path="register" element={<GuidesCanonicalRedirect />} />
       <Route path="register/guide" element={<GuidesCanonicalRedirect />} />

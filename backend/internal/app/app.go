@@ -19,6 +19,7 @@ import (
 	"github.com/vitomonte/experts-tourister/internal/service/billing"
 	excsvc "github.com/vitomonte/experts-tourister/internal/service/excursion"
 	guidesvc "github.com/vitomonte/experts-tourister/internal/service/guide"
+	mailsvc "github.com/vitomonte/experts-tourister/internal/service/mail"
 	reviewsvc "github.com/vitomonte/experts-tourister/internal/service/review"
 	tgsvc "github.com/vitomonte/experts-tourister/internal/service/telegram"
 )
@@ -59,36 +60,38 @@ func New(ctx context.Context, cfg config.Config, log *slog.Logger) (*App, error)
 	}
 
 	h := &handlers.Handlers{
-		Cfg:      cfg,
-		Log:      log,
-		DB:       db,
-		Redis:    rdb,
-		JWT:      auth.NewJWTService(cfg.JWTAccessSecret, cfg.JWTRefreshSecret, cfg.JWTAccessTTL, cfg.JWTRefreshTTL),
-		Enforcer: enforcer,
-		Users:    postgres.NewUserRepo(db),
-		Guides:   postgres.NewGuideRepo(db),
-		Geo:      postgres.NewGeoRepo(db),
-		Subs:     postgres.NewSubscriptionRepo(db),
-		Payments: postgres.NewPaymentRepo(db),
-		Exc:      postgres.NewExcursionRepo(db),
-		Reviews:  postgres.NewReviewRepo(db),
-		Favs:     postgres.NewFavoriteRepo(db),
-		Notif:    postgres.NewNotificationRepo(db),
-		Settings: postgres.NewSettingsRepo(db),
-		Audit:    postgres.NewAuditRepo(db),
-		Calendar: postgres.NewCalendarRepo(db),
-		Featured: postgres.NewFeaturedPlacementRepo(db),
-		Articles: postgres.NewArticleRepo(db),
-		Admin:    postgres.NewAdminRepo(db),
-		CookieConsents: postgres.NewCookieConsentRepo(db),
-		Media:    store,
-		Providers: postgres.NewProviderRepo(db),
-		Transport: postgres.NewTransportRepo(db),
-		Carriers:  postgres.NewCarrierRepo(db),
+		Cfg:               cfg,
+		Log:               log,
+		DB:                db,
+		Redis:             rdb,
+		JWT:               auth.NewJWTService(cfg.JWTAccessSecret, cfg.JWTRefreshSecret, cfg.JWTAccessTTL, cfg.JWTRefreshTTL),
+		Enforcer:          enforcer,
+		Users:             postgres.NewUserRepo(db),
+		Guides:            postgres.NewGuideRepo(db),
+		Geo:               postgres.NewGeoRepo(db),
+		Subs:              postgres.NewSubscriptionRepo(db),
+		Payments:          postgres.NewPaymentRepo(db),
+		Exc:               postgres.NewExcursionRepo(db),
+		Reviews:           postgres.NewReviewRepo(db),
+		Favs:              postgres.NewFavoriteRepo(db),
+		Notif:             postgres.NewNotificationRepo(db),
+		Settings:          postgres.NewSettingsRepo(db),
+		Audit:             postgres.NewAuditRepo(db),
+		Calendar:          postgres.NewCalendarRepo(db),
+		Featured:          postgres.NewFeaturedPlacementRepo(db),
+		Articles:          postgres.NewArticleRepo(db),
+		Admin:             postgres.NewAdminRepo(db),
+		CookieConsents:    postgres.NewCookieConsentRepo(db),
+		Media:             store,
+		Providers:         postgres.NewProviderRepo(db),
+		Transport:         postgres.NewTransportRepo(db),
+		Carriers:          postgres.NewCarrierRepo(db),
 		TransportBookings: postgres.NewTransportBookingRepo(db),
-		Jobs:     postgres.NewJobRepo(db),
-		Looking:  postgres.NewLookingRepo(db),
+		Jobs:              postgres.NewJobRepo(db),
+		Looking:           postgres.NewLookingRepo(db),
+		EmailTokens:       postgres.NewEmailTokenRepo(db),
 	}
+	h.Mail = mailsvc.NewService(h.Settings)
 	billingSvc := &billing.Service{
 		DB: db, Guides: h.Guides, Subs: h.Subs, Payments: h.Payments,
 		Featured: h.Featured, Exc: h.Exc, Settings: h.Settings, Audit: h.Audit,

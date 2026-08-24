@@ -17,6 +17,8 @@ func (h *Handlers) RobotsTxt(w http.ResponseWriter, r *http.Request) {
 		"Disallow: /account/",
 		"Disallow: /login",
 		"Disallow: /register",
+		"Disallow: /forgot-password",
+		"Disallow: /reset-password",
 		"Disallow: /admin",
 		"Disallow: /moderator",
 		"Disallow: /downloads",

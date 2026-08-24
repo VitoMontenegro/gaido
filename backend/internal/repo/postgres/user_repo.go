@@ -73,6 +73,14 @@ func scanUser(row pgx.Row) (*domain.User, error) {
 	return &u, err
 }
 
+func (r *UserRepo) UpdatePassword(ctx context.Context, id int64, hash string) error {
+	_, err := r.db.Pool.Exec(ctx, `
+		UPDATE users SET password_hash=$2, updated_at=NOW()
+		WHERE id=$1 AND deleted_at IS NULL
+	`, id, hash)
+	return err
+}
+
 func (r *UserRepo) UpdateProfile(ctx context.Context, id int64, firstName, lastName string) error {
 	_, err := r.db.Pool.Exec(ctx, `
 		UPDATE users SET first_name=$2, last_name=$3, updated_at=NOW()

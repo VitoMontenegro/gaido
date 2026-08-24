@@ -24,6 +24,8 @@ const RideDetailPage = lazyImport(() => import('@gaido/transport/pages/RideDetai
 const LoginPage = lazyImport(() => import('@gaido/transport/pages/AuthPages'))
 const RegisterTouristPage = lazyImport(() => import('@gaido/transport/pages/AuthPages').then((m) => ({ default: m.RegisterTouristPage })))
 const RegisterDriverPage = lazyImport(() => import('@gaido/transport/pages/AuthPages').then((m) => ({ default: m.RegisterDriverPage })))
+const ForgotPasswordPage = lazyImport(() => import('@gaido/transport/pages/AuthPages').then((m) => ({ default: m.ForgotPasswordPage })))
+const ResetPasswordPage = lazyImport(() => import('@gaido/transport/pages/AuthPages').then((m) => ({ default: m.ResetPasswordPage })))
 const LegalDocumentPage = lazyImport(() => import('@gaido/transport/components/LegalDocumentPage'))
 const RidesAccountPage = lazyImport(() => import('@gaido/transport/pages/account/RidesAccountPage'))
 const CarrierAccountPage = lazyImport(() => import('@gaido/transport/pages/account/CarrierAccountPage'))
@@ -48,6 +50,8 @@ export function transportPublicRoutes() {
       <Route path="login" element={<Lazy><LoginPage /></Lazy>} />
       <Route path="register" element={<Lazy><RegisterTouristPage /></Lazy>} />
       <Route path="register/driver" element={<Lazy><RegisterDriverPage /></Lazy>} />
+      <Route path="forgot-password" element={<Lazy><ForgotPasswordPage /></Lazy>} />
+      <Route path="reset-password" element={<Lazy><ResetPasswordPage /></Lazy>} />
       <Route path="guides/*" element={<GuidesCanonicalRedirect />} />
       <Route path="guide/:slug" element={<GuidesCanonicalRedirect />} />
       <Route path="map" element={<GuidesCanonicalRedirect />} />

@@ -4,6 +4,9 @@ import { useQueryClient } from '@tanstack/react-query'
 import { authApi } from '@gaido/api-client/api/auth'
 import { formatApiError, setAccessToken } from '@gaido/api-client/api/http'
 import { validateRegisterForm, type RegisterFormData } from '@gaido/ui-primitives/authValidation'
+import CheckEmailNotice from '@gaido/ui-primitives/CheckEmailNotice'
+import ForgotPasswordForm from '@gaido/ui-primitives/ForgotPasswordForm'
+import ResetPasswordForm, { loginConfirmMessage } from '@gaido/ui-primitives/ResetPasswordForm'
 import { legalPath } from '@gaido/ui-primitives/legalPaths'
 import PasswordInput from '@gaido/ui-primitives/PasswordInput'
 import { pageTitle } from '@gaido/site-urls/brand'
@@ -44,10 +47,9 @@ function ConsentCheckbox({
 }
 
 function RegisterForm({ mode }: { mode: 'tourist' | 'driver' }) {
-  const navigate = useNavigate()
-  const qc = useQueryClient()
   const [form, setForm] = useState<RegisterFormData>(emptyRegisterForm)
   const [error, setError] = useState('')
+  const [pendingEmail, setPendingEmail] = useState('')
   const isDriver = mode === 'driver'
 
   const submit = async (e: React.FormEvent) => {
@@ -68,14 +70,15 @@ function RegisterForm({ mode }: { mode: 'tourist' | 'driver' }) {
         accept_privacy: form.accept_privacy,
         accept_site_rules: form.accept_site_rules,
         accept_placement_rules: false,
+        return_origin: window.location.origin,
       })
-      setAccessToken(res.access_token)
-      await qc.invalidateQueries({ queryKey: ['me'] })
-      navigate(isDriver ? '/account/rides/new' : '/account/bookings')
+      setPendingEmail(res.email)
     } catch (err) {
       setError(formatApiError(err))
     }
   }
+
+  if (pendingEmail) return <CheckEmailNotice email={pendingEmail} />
 
   return (
     <form onSubmit={submit} className="card space-y-4">
@@ -117,6 +120,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const from = (location.state as { from?: string } | null)?.from
+  const confirmHint = loginConfirmMessage(new URLSearchParams(location.search).get('confirm'))
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -142,9 +146,13 @@ export default function LoginPage() {
         <form onSubmit={submit} className="card space-y-4" autoComplete="off">
           <input className="input" placeholder="Логін або email" value={login} onChange={(e) => setLogin(e.target.value)} />
           <input className="input" type="password" placeholder="Пароль" value={password} onChange={(e) => setPassword(e.target.value)} />
+          {confirmHint && <p className="text-sm text-red-600">{confirmHint}</p>}
           {error && <p className="text-sm text-red-600">{error}</p>}
           <button type="submit" className="btn-accent w-full">Увійти</button>
         </form>
+        <p className="mt-3 text-center text-sm">
+          <Link to="/forgot-password" className="text-brand-700 hover:underline">Забули пароль?</Link>
+        </p>
         <p className="mt-4 text-center text-sm text-muted">
           Немає акаунта? <Link to="/register" className="text-brand-700 hover:underline">Реєстрація</Link>
           {' · '}
@@ -184,6 +192,38 @@ export function RegisterDriverPage() {
         <p className="mt-4 text-center text-sm text-muted">
           Шукаєте поїздку? <Link to="/register" className="text-brand-700 hover:underline">Реєстрація пасажира</Link>
         </p>
+      </div>
+    </>
+  )
+}
+
+export function ForgotPasswordPage() {
+  return (
+    <>
+      <Seo title={pageTitle('Відновлення пароля')} path="/forgot-password" noIndex />
+      <div className="container-site max-w-md py-12">
+        <h1 className="section-title-sm mb-6">Відновлення пароля</h1>
+        <ForgotPasswordForm />
+      </div>
+    </>
+  )
+}
+
+export function ResetPasswordPage() {
+  const navigate = useNavigate()
+  const qc = useQueryClient()
+  return (
+    <>
+      <Seo title={pageTitle('Новий пароль')} path="/reset-password" noIndex />
+      <div className="container-site max-w-md py-12">
+        <h1 className="section-title-sm mb-6">Новий пароль</h1>
+        <ResetPasswordForm
+          onSuccess={async (token) => {
+            setAccessToken(token)
+            await qc.invalidateQueries({ queryKey: ['me'] })
+            navigate('/')
+          }}
+        />
       </div>
     </>
   )

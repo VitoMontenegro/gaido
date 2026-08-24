@@ -30,6 +30,9 @@ const API_ERROR_MESSAGES: Record<string, string> = {
   DISPUTE_ALREADY_EXISTS: 'Ви вже оскаржили цей відгук',
   RATE_LIMITED: 'Забагато спроб. Спробуйте пізніше',
   CITY_NOT_FOUND: 'Місто не знайдено на карті. Перевірте правопис назви.',
+  MAIL_NOT_CONFIGURED: 'Поштовий сервер не налаштовано. Спробуйте пізніше',
+  MAIL_SEND_FAILED: 'Не вдалося надіслати лист. Спробуйте пізніше',
+  INVALID_TOKEN: 'Посилання недійсне або прострочене',
 }
 
 export type ApiErrorHints = Partial<Record<string, string>>
@@ -92,7 +95,9 @@ function canRetryRefresh(path: string) {
     !!accessToken &&
     !path.includes('/auth/refresh') &&
     !path.includes('/auth/login') &&
-    !path.includes('/auth/register')
+    !path.includes('/auth/register') &&
+    !path.includes('/auth/forgot-password') &&
+    !path.includes('/auth/reset-password')
   )
 }
 

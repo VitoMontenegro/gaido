@@ -1,7 +1,7 @@
 import { Helmet } from 'react-helmet-async'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { adminApi, api, type AdminAnalytics, type AdminPaymentRow, type CookieConsentRecord } from '@gaido/api-client/api/client'
+import { adminApi, api, type AdminAnalytics, type AdminPaymentRow, type CookieConsentRecord, type MailSettings } from '@gaido/api-client/api/client'
 import StatCard, { StatGrid } from '../components/crm/StatCard'
 import { useHasRole } from '@gaido/api-client/hooks/useAuth'
 import { SiteContentEditor } from '../components/SiteContentEditor'
@@ -235,6 +235,7 @@ export default function AdminPage() {
               </p>
             </div>
 
+            <MailServerSettings mail={settings?.mail} />
             <LoginRateLimitReset />
           </div>
         )}
@@ -245,6 +246,121 @@ export default function AdminPage() {
         {tab === 'cookies' && <AdminCookieConsents />}
       </div>
     </>
+  )
+}
+
+function MailServerSettings({ mail }: { mail?: MailSettings }) {
+  const qc = useQueryClient()
+  const [form, setForm] = useState({
+    enabled: false,
+    host: '',
+    port: 587,
+    username: '',
+    password: '',
+    from_email: '',
+    from_name: 'Gaido',
+    encryption: 'starttls' as MailSettings['encryption'],
+  })
+  const [testTo, setTestTo] = useState('')
+  const [message, setMessage] = useState('')
+  const [hydrated, setHydrated] = useState(false)
+
+  useEffect(() => {
+    if (!mail || hydrated) return
+    setForm({
+      enabled: mail.enabled,
+      host: mail.host,
+      port: mail.port || 587,
+      username: mail.username,
+      password: '',
+      from_email: mail.from_email,
+      from_name: mail.from_name || 'Gaido',
+      encryption: mail.encryption || 'starttls',
+    })
+    setHydrated(true)
+  }, [mail, hydrated])
+
+  const save = useMutation({
+    mutationFn: () =>
+      adminApi.updateSettings({
+        mail: {
+          enabled: form.enabled,
+          host: form.host.trim(),
+          port: Number(form.port) || 587,
+          username: form.username.trim(),
+          from_email: form.from_email.trim(),
+          from_name: form.from_name.trim(),
+          encryption: form.encryption,
+          has_password: Boolean(mail?.has_password),
+          ...(form.password ? { password: form.password } : {}),
+        },
+      }),
+    onSuccess: () => {
+      setForm((f) => ({ ...f, password: '' }))
+      setMessage('Збережено')
+      qc.invalidateQueries({ queryKey: ['settings'] })
+    },
+    onError: (err: Error) => setMessage(err.message),
+  })
+  const test = useMutation({
+    mutationFn: () => adminApi.testMail(testTo.trim()),
+    onSuccess: () => setMessage('Тестовий лист надіслано'),
+    onError: (err: Error) => setMessage(err.message),
+  })
+
+
+  return (
+    <div className="card space-y-4">
+      <div>
+        <p className="font-semibold">Поштовий сервер (SMTP)</p>
+        <p className="mt-1 text-sm text-stone-600">
+          Листи підтвердження реєстрації та скидання пароля. Пароль не показується після збереження.
+          {mail?.has_password ? ' Пароль уже збережено.' : ''}
+        </p>
+      </div>
+      <label className="flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={form.enabled}
+          onChange={(e) => setForm({ ...form, enabled: e.target.checked })}
+        />
+        Увімкнути відправку листів
+      </label>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <input className="input" placeholder="SMTP хост" value={form.host} onChange={(e) => setForm({ ...form, host: e.target.value })} />
+        <input className="input" type="number" placeholder="Порт" value={form.port} onChange={(e) => setForm({ ...form, port: Number(e.target.value) })} />
+        <input className="input" placeholder="Логін" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} />
+        <input className="input" type="password" placeholder={mail?.has_password ? 'Новий пароль (не обовʼязково)' : 'Пароль'} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
+        <input className="input" type="email" placeholder="From email" value={form.from_email} onChange={(e) => setForm({ ...form, from_email: e.target.value })} />
+        <input className="input" placeholder="From name" value={form.from_name} onChange={(e) => setForm({ ...form, from_name: e.target.value })} />
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {([
+          { id: 'starttls' as const, label: 'STARTTLS' },
+          { id: 'tls' as const, label: 'TLS' },
+          { id: 'none' as const, label: 'Без шифрування' },
+        ]).map((opt) => (
+          <button
+            key={opt.id}
+            type="button"
+            className={`rounded-xl border px-3 py-1.5 text-sm ${form.encryption === opt.id ? 'border-teal bg-teal/5' : 'border-border'}`}
+            onClick={() => setForm({ ...form, encryption: opt.id })}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+      <button type="button" className="btn-primary" disabled={save.isPending} onClick={() => { setMessage(''); save.mutate() }}>
+        Зберегти пошту
+      </button>
+      <div className="grid gap-3 border-t border-divider pt-4 sm:grid-cols-[1fr_auto]">
+        <input className="input" type="email" placeholder="Email для тестового листа" value={testTo} onChange={(e) => setTestTo(e.target.value)} />
+        <button type="button" className="btn-ghost" disabled={test.isPending || !testTo.trim()} onClick={() => { setMessage(''); test.mutate() }}>
+          Надіслати тестовий лист
+        </button>
+      </div>
+      {message && <p className="text-sm text-stone-600">{message}</p>}
+    </div>
   )
 }
 

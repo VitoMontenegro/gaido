@@ -41,6 +41,10 @@ func NewRouter(cfg config.Config, log *slog.Logger, h *handlers.Handlers) http.H
 		registerLimit := middleware.AuthRateLimit(5, time.Minute, cfg.TrustProxy)
 		refreshLimit := middleware.AuthRateLimit(30, time.Minute, cfg.TrustProxy)
 		api.With(registerLimit).Post("/auth/register", h.Register)
+		api.With(registerLimit).Post("/auth/register/resend", h.ResendRegister)
+		api.Get("/auth/register/confirm", h.ConfirmRegister)
+		api.With(registerLimit).Post("/auth/forgot-password", h.ForgotPassword)
+		api.With(registerLimit).Post("/auth/reset-password", h.ResetPassword)
 		api.Post("/auth/login", h.Login)
 		api.With(refreshLimit).Post("/auth/refresh", h.Refresh)
 		api.Post("/auth/logout", h.Logout)
@@ -212,6 +216,7 @@ func NewRouter(cfg config.Config, log *slog.Logger, h *handlers.Handlers) http.H
 			ar.Get("/admin/plans", h.ListPlans)
 			ar.Get("/admin/settings", h.AdminGetSettings)
 			ar.Put("/admin/settings", h.AdminSetSettings)
+			ar.Post("/admin/settings/test-mail", h.AdminTestMail)
 			ar.Post("/admin/auth/clear-rate-limit", h.AdminClearLoginRateLimit)
 			ar.Get("/admin/site-content", h.AdminGetSiteContent)
 			ar.Put("/admin/site-content", h.AdminSetSiteContent)
@@ -308,4 +313,3 @@ func serveSpaIndexWithMeta(w http.ResponseWriter, r *http.Request, indexPath str
 	}
 	serveSpaIndex(w, r, indexPath, meta)
 }
-

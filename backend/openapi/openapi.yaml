@@ -53,10 +53,52 @@ paths:
   /api/v1/auth/register:
     post:
       tags: [auth]
-      summary: Register user
+      summary: Start registration and send confirmation email
       responses:
         '400':
           description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/auth/register/confirm:
+    get:
+      tags: [auth]
+      summary: Confirm registration via emailed link
+      parameters:
+        - in: query
+          name: token
+          required: true
+          schema:
+            type: string
+      responses:
+        '302':
+          description: Redirect to site home with session cookie
+  /api/v1/auth/register/resend:
+    post:
+      tags: [auth]
+      summary: Resend registration confirmation email
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/auth/forgot-password:
+    post:
+      tags: [auth]
+      summary: Request password reset email
+      responses:
+        '200':
+          description: Always ok (does not reveal whether email exists)
+  /api/v1/auth/reset-password:
+    post:
+      tags: [auth]
+      summary: Set a new password using reset token
+      responses:
+        '400':
+          description: Invalid token or password
           content:
             application/json:
               schema:

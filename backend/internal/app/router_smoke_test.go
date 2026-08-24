@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -112,10 +113,36 @@ func registerUser(t *testing.T, a *app.App, login string, asGuide bool) (token s
 	if res.code != http.StatusOK && res.code != http.StatusCreated {
 		t.Fatalf("register: %d %s", res.code, res.body)
 	}
+	pending := decodeJSON[struct {
+		DevToken string `json:"dev_token"`
+	}](t, res.body)
+	if pending.DevToken == "" {
+		t.Fatal("register: empty dev_token")
+	}
+	confirm := smokeRequest(t, a, http.MethodGet, "/api/v1/auth/register/confirm?token="+pending.DevToken, nil, "", nil)
+	if confirm.code != http.StatusFound {
+		t.Fatalf("confirm: %d %s loc=%s", confirm.code, confirm.body, confirm.hdr.Get("Location"))
+	}
+	return refreshTokenWithCookies(t, a, parseSetCookies(confirm.hdr))
+}
+
+func refreshTokenWithCookies(t *testing.T, a *app.App, cookies []*http.Cookie) (string, []*http.Cookie) {
+	t.Helper()
+	res := smokeRequest(t, a, http.MethodPost, "/api/v1/auth/refresh", nil, "", cookies)
+	if res.code != http.StatusOK {
+		t.Fatalf("refresh: %d %s", res.code, res.body)
+	}
 	out := decodeJSON[struct {
 		AccessToken string `json:"access_token"`
 	}](t, res.body)
-	return out.AccessToken, parseSetCookies(res.hdr)
+	if out.AccessToken == "" {
+		t.Fatal("refresh: empty access_token")
+	}
+	next := parseSetCookies(res.hdr)
+	if len(next) == 0 {
+		next = cookies
+	}
+	return out.AccessToken, next
 }
 
 func loginUser(t *testing.T, a *app.App, login, password string) (token string, cookies []*http.Cookie) {
@@ -145,17 +172,8 @@ func parseSetCookies(h http.Header) []*http.Cookie {
 
 func refreshToken(t *testing.T, a *app.App, cookies []*http.Cookie) string {
 	t.Helper()
-	res := smokeRequest(t, a, http.MethodPost, "/api/v1/auth/refresh", nil, "", cookies)
-	if res.code != http.StatusOK {
-		t.Fatalf("refresh: %d %s", res.code, res.body)
-	}
-	out := decodeJSON[struct {
-		AccessToken string `json:"access_token"`
-	}](t, res.body)
-	if out.AccessToken == "" {
-		t.Fatal("refresh: empty access_token")
-	}
-	return out.AccessToken
+	token, _ := refreshTokenWithCookies(t, a, cookies)
+	return token
 }
 
 func TestSmoke_healthz(t *testing.T) {
@@ -187,17 +205,49 @@ func TestSmoke_publicCatalog(t *testing.T) {
 func TestSmoke_authRegisterLogin(t *testing.T) {
 	a := newTestApp(t)
 	login := uniqueLogin("smoke_")
-	res := smokeRequest(t, a, http.MethodPost, "/api/v1/auth/register", map[string]any{
-		"email":             login + "@test.local",
-		"login":             login,
-		"password":          "smokepass12345",
-		"first_name":        "Smoke",
-		"last_name":         "Test",
-		"accept_privacy":    true,
-		"accept_site_rules": true,
+	token, _ := registerUser(t, a, login, false)
+	res := smokeRequest(t, a, http.MethodGet, "/api/v1/account/me", nil, token, nil)
+	if res.code != http.StatusOK {
+		t.Fatalf("me after confirm: %d %s", res.code, res.body)
+	}
+}
+
+func TestSmoke_authConfirmInvalid(t *testing.T) {
+	a := newTestApp(t)
+	res := smokeRequest(t, a, http.MethodGet, "/api/v1/auth/register/confirm?token=deadbeef", nil, "", nil)
+	if res.code != http.StatusFound {
+		t.Fatalf("invalid confirm: %d", res.code)
+	}
+	if loc := res.hdr.Get("Location"); loc == "" || !strings.Contains(loc, "confirm=invalid") {
+		t.Fatalf("location: %s", loc)
+	}
+}
+
+func TestSmoke_authForgotReset(t *testing.T) {
+	a := newTestApp(t)
+	login := uniqueLogin("reset_")
+	registerUser(t, a, login, false)
+	res := smokeRequest(t, a, http.MethodPost, "/api/v1/auth/forgot-password", map[string]any{
+		"email": login + "@test.local",
 	}, "", nil)
-	if res.code != http.StatusOK && res.code != http.StatusCreated {
-		t.Fatalf("register: got %d body=%s", res.code, res.body)
+	if res.code != http.StatusOK {
+		t.Fatalf("forgot: %d %s", res.code, res.body)
+	}
+	out := decodeJSON[struct {
+		DevToken string `json:"dev_token"`
+	}](t, res.body)
+	if out.DevToken == "" {
+		t.Fatal("forgot: empty dev_token")
+	}
+	reset := smokeRequest(t, a, http.MethodPost, "/api/v1/auth/reset-password", map[string]any{
+		"token":    out.DevToken,
+		"password": "newpass12345",
+	}, "", nil)
+	if reset.code != http.StatusOK {
+		t.Fatalf("reset: %d %s", reset.code, reset.body)
+	}
+	if _, cookies := loginUser(t, a, login, "newpass12345"); len(cookies) == 0 {
+		t.Fatal("login after reset: no cookies")
 	}
 }
 

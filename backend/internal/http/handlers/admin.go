@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -15,6 +16,7 @@ import (
 	"github.com/vitomonte/experts-tourister/internal/http/cacheheaders"
 	"github.com/vitomonte/experts-tourister/internal/http/middleware"
 	"github.com/vitomonte/experts-tourister/internal/http/response"
+	mailsvc "github.com/vitomonte/experts-tourister/internal/service/mail"
 )
 
 func (h *Handlers) AdminUsers(w http.ResponseWriter, r *http.Request) {
@@ -101,7 +103,7 @@ func (h *Handlers) AdminAnalytics(w http.ResponseWriter, r *http.Request) {
 		"pending_carriers": stats.PendingCarriers, "published_rides": stats.PublishedRides,
 		"pending_rides": stats.PendingRides, "transport_bookings": stats.TransportBookings,
 		"carrier_subscriptions": stats.CarrierSubscriptions,
-		"recent_payments": recentPayments,
+		"recent_payments":       recentPayments,
 	})
 }
 func (h *Handlers) AdminGetSettings(w http.ResponseWriter, r *http.Request) {
@@ -112,17 +114,23 @@ func (h *Handlers) AdminGetSettings(w http.ResponseWriter, r *http.Request) {
 	if !payments || !moderation {
 		h.SyncCatalogFillingMode(ctx)
 	}
+	mailCfg, err := h.Mail.Load(ctx)
+	if err != nil {
+		h.Log.Warn("mail settings load failed", "error", err)
+	}
 	response.JSON(w, r, 200, map[string]any{
 		"guide_placement_payments_enabled": payments,
 		"moderation_enabled":               moderation,
 		"body_font":                        bodyFont,
+		"mail":                             h.Mail.Public(mailCfg),
 	})
 }
 func (h *Handlers) AdminSetSettings(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		GuidePlacementPaymentsEnabled *bool   `json:"guide_placement_payments_enabled"`
-		ModerationEnabled             *bool   `json:"moderation_enabled"`
-		BodyFont                      *string `json:"body_font"`
+		GuidePlacementPaymentsEnabled *bool                `json:"guide_placement_payments_enabled"`
+		ModerationEnabled             *bool                `json:"moderation_enabled"`
+		BodyFont                      *string              `json:"body_font"`
+		Mail                          *domain.MailSettings `json:"mail"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		response.Error(w, r, apperrors.ErrValidation)
@@ -150,8 +158,40 @@ func (h *Handlers) AdminSetSettings(w http.ResponseWriter, r *http.Request) {
 		_ = h.Settings.Set(r.Context(), "body_font", font)
 		_ = h.Audit.Log(r.Context(), &actor, "SITE_SETTING_CHANGE", "site_settings", nil, "body_font", font, r.RemoteAddr, r.UserAgent())
 	}
+	if req.Mail != nil {
+		if _, err := h.Mail.Save(r.Context(), *req.Mail); err != nil {
+			response.Error(w, r, apperrors.ErrInternal)
+			return
+		}
+		_ = h.Audit.Log(r.Context(), &actor, "SITE_SETTING_CHANGE", "site_settings", nil, "mail_settings", req.Mail.Host, r.RemoteAddr, r.UserAgent())
+	}
 	h.SyncCatalogFillingMode(r.Context())
 	h.AdminGetSettings(w, r)
+}
+
+func (h *Handlers) AdminTestMail(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		To string `json:"to"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Error(w, r, apperrors.ErrValidation)
+		return
+	}
+	to := strings.TrimSpace(req.To)
+	if to == "" || !emailRe.MatchString(to) {
+		response.Error(w, r, apperrors.New("VALIDATION_ERROR", "invalid email format", 400))
+		return
+	}
+	if err := h.Mail.Send(r.Context(), to, "Тестовий лист Gaido", "Це тестовий лист з адмінки Gaido. Поштовий сервер налаштовано коректно.\n"); err != nil {
+		if errors.Is(err, mailsvc.ErrNotConfigured) {
+			response.Error(w, r, apperrors.ErrMailNotConfigured)
+			return
+		}
+		h.Log.Warn("test mail failed", "error", err)
+		response.Error(w, r, apperrors.New("MAIL_SEND_FAILED", "failed to send email", 502))
+		return
+	}
+	response.JSON(w, r, 200, map[string]string{"status": "sent"})
 }
 func (h *Handlers) SyncCatalogFillingMode(ctx context.Context) {
 	payments, _ := h.Settings.GetBool(ctx, "guide_placement_payments_enabled", false)

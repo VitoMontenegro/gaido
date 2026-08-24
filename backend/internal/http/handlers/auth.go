@@ -15,7 +15,6 @@ import (
 	"github.com/vitomonte/experts-tourister/internal/domain"
 	"github.com/vitomonte/experts-tourister/internal/http/middleware"
 	"github.com/vitomonte/experts-tourister/internal/http/response"
-	guidesvc "github.com/vitomonte/experts-tourister/internal/service/guide"
 )
 
 var (
@@ -58,17 +57,13 @@ func (h *Handlers) Register(w http.ResponseWriter, r *http.Request) {
 		response.Error(w, r, apperrors.New("VALIDATION_ERROR", "invalid JSON body", 400))
 		return
 	}
-	req.Email = strings.TrimSpace(req.Email)
+	req.Email = strings.ToLower(strings.TrimSpace(req.Email))
 	req.Login = strings.TrimSpace(req.Login)
 	req.FirstName = strings.TrimSpace(req.FirstName)
 	req.LastName = strings.TrimSpace(req.LastName)
 	if err := validateRegisterReq(req); err != nil {
 		response.Error(w, r, err)
 		return
-	}
-	roles := []string{domain.RoleTourist}
-	if req.AsGuide {
-		roles = append(roles, domain.RoleGuide)
 	}
 	hash, err := password.Hash(req.Password)
 	if err != nil {
@@ -89,21 +84,34 @@ func (h *Handlers) Register(w http.ResponseWriter, r *http.Request) {
 		response.Error(w, r, apperrors.New("LOGIN_ALREADY_EXISTS", "login already taken", 409))
 		return
 	}
-	id, err := h.Users.Create(r.Context(), req.Email, req.Login, req.FirstName, req.LastName, hash, roles)
+	origin := h.resolveAuthOrigin(r, req.ReturnOrigin)
+	payload, err := json.Marshal(domain.RegisterEmailPayload{
+		Login: req.Login, PasswordHash: hash,
+		FirstName: req.FirstName, LastName: req.LastName,
+		AsGuide: req.AsGuide, AcceptPrivacy: req.AcceptPrivacy,
+		AcceptSiteRules: req.AcceptSiteRules, AcceptPlacementRules: req.AcceptPlacementRules,
+		Origin: origin,
+	})
 	if err != nil {
-		response.Error(w, r, apperrors.ErrConflict)
+		response.Error(w, r, apperrors.ErrInternal)
 		return
 	}
-	if req.AsGuide {
-		slug := guidesvc.Slugify(req.Login)
-		displayName := domain.UserDisplayName(req.FirstName, req.LastName, req.Login)
-		if guideID, err := h.Guides.CreateProfile(r.Context(), id, domain.GuideTypeGuide, displayName, slug); err != nil {
-			h.Log.Warn("guide profile creation failed", "user_id", id, "error", err)
-		} else {
-			_ = h.GuideSvc.ActivateForCatalogFilling(r.Context(), guideID)
-		}
+	plain, exp, err := h.storeEmailToken(r.Context(), req.Email, domain.EmailPurposeRegister, payload, 24*time.Hour)
+	if err != nil {
+		response.Error(w, r, apperrors.ErrInternal)
+		return
 	}
-	h.WriteTokens(w, r, id, roles)
+	link := origin + "/api/v1/auth/register/confirm?token=" + plain
+	if err := h.sendAuthMail(r.Context(), req.Email, "Підтвердіть реєстрацію на Gaido", registerMailBody(link)); err != nil {
+		response.Error(w, r, err)
+		return
+	}
+	out := map[string]any{"email": req.Email, "expires_in": int(time.Until(exp).Seconds())}
+	if h.devTokenEnabled() {
+		out["dev_token"] = plain
+		h.Log.Info("register confirmation token", "email", req.Email, "dev_token", plain)
+	}
+	response.JSON(w, r, 200, out)
 }
 func (h *Handlers) Login(w http.ResponseWriter, r *http.Request) {
 	var req loginReq
@@ -138,20 +146,17 @@ func (h *Handlers) Login(w http.ResponseWriter, r *http.Request) {
 	}
 	h.WriteTokens(w, r, u.ID, u.Roles)
 }
-func (h *Handlers) WriteTokens(w http.ResponseWriter, r *http.Request, userID int64, roles []string) {
+func (h *Handlers) issueSession(w http.ResponseWriter, r *http.Request, userID int64, roles []string) (string, error) {
 	access, _, err := h.JWT.GenerateAccessToken(userID, roles)
 	if err != nil {
-		response.Error(w, r, apperrors.ErrInternal)
-		return
+		return "", err
 	}
 	plain, hash, exp, err := h.JWT.NewRefreshToken()
 	if err != nil {
-		response.Error(w, r, apperrors.ErrInternal)
-		return
+		return "", err
 	}
 	if err := h.Users.SaveRefreshToken(r.Context(), userID, hash, exp); err != nil {
-		response.Error(w, r, apperrors.ErrInternal)
-		return
+		return "", err
 	}
 	http.SetCookie(w, &http.Cookie{
 		Name:     "refresh_token",
@@ -162,6 +167,15 @@ func (h *Handlers) WriteTokens(w http.ResponseWriter, r *http.Request, userID in
 		Secure:   h.Cfg.AppEnv != "development",
 		Expires:  exp,
 	})
+	return access, nil
+}
+
+func (h *Handlers) WriteTokens(w http.ResponseWriter, r *http.Request, userID int64, roles []string) {
+	access, err := h.issueSession(w, r, userID, roles)
+	if err != nil {
+		response.Error(w, r, apperrors.ErrInternal)
+		return
+	}
 	response.JSON(w, r, 200, map[string]any{"access_token": access, "user_id": userID, "roles": roles})
 }
 func (h *Handlers) clearRefreshCookie(w http.ResponseWriter) {
