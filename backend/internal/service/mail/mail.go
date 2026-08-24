@@ -69,6 +69,10 @@ func Configured(cfg domain.MailSettings) bool {
 }
 
 func (s *Service) Send(ctx context.Context, to, subject, body string) error {
+	return s.SendHTML(ctx, to, subject, body, "")
+}
+
+func (s *Service) SendHTML(ctx context.Context, to, subject, text, html string) error {
 	cfg, err := s.Load(ctx)
 	if err != nil {
 		return err
@@ -76,7 +80,7 @@ func (s *Service) Send(ctx context.Context, to, subject, body string) error {
 	if !Configured(cfg) {
 		return ErrNotConfigured
 	}
-	return sendSMTP(cfg, to, subject, body)
+	return sendSMTP(cfg, to, subject, text, html)
 }
 
 var ErrNotConfigured = errors.New("mail is not configured")
@@ -114,7 +118,7 @@ func normalize(in domain.MailSettings, keepPassword string) domain.MailSettings 
 	return out
 }
 
-func sendSMTP(cfg domain.MailSettings, to, subject, body string) error {
+func sendSMTP(cfg domain.MailSettings, to, subject, text, html string) error {
 	from := strings.TrimSpace(cfg.FromEmail)
 	if from == "" {
 		from = cfg.Username
@@ -126,10 +130,7 @@ func sendSMTP(cfg domain.MailSettings, to, subject, body string) error {
 	if name := strings.TrimSpace(cfg.FromName); name != "" {
 		headerFrom = fmt.Sprintf("\"%s\" <%s>", strings.ReplaceAll(name, "\"", ""), from)
 	}
-	msg := []byte(fmt.Sprintf(
-		"From: %s\r\nTo: %s\r\nSubject: %s\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n%s",
-		headerFrom, to, encodeSubject(subject), body,
-	))
+	msg := buildMIME(headerFrom, to, subject, text, html)
 	addr := net.JoinHostPort(cfg.Host, strconv.Itoa(cfg.Port))
 	var auth smtp.Auth
 	if cfg.Username != "" {

@@ -67,6 +67,7 @@ func (h *Handlers) ConfirmRegister(w http.ResponseWriter, r *http.Request) {
 		response.Error(w, r, apperrors.ErrInternal)
 		return
 	}
+	h.sendWelcomeMail(r.Context(), tok.Email, payload.FirstName, payload.AsGuide)
 	h.redirectAuth(w, r, payload.Origin, "/")
 }
 
@@ -255,6 +256,20 @@ func newEmailToken() (string, error) {
 		return "", err
 	}
 	return hex.EncodeToString(b), nil
+}
+
+func (h *Handlers) sendWelcomeMail(ctx context.Context, to, firstName string, asGuide bool) {
+	if h.Mail == nil {
+		return
+	}
+	cfg, err := h.Mail.Load(ctx)
+	if err != nil || !mailsvc.Configured(cfg) {
+		return
+	}
+	letter := mailsvc.WelcomeLetter(firstName, asGuide)
+	if err := h.Mail.SendHTML(ctx, to, letter.Subject, letter.Text, letter.HTML); err != nil {
+		h.Log.Warn("welcome mail send failed", "email", to, "error", err)
+	}
 }
 
 func (h *Handlers) sendAuthMail(ctx context.Context, to, subject, body string) error {
