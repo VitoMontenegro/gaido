@@ -25,7 +25,6 @@ type Props = {
   monthTabCount?: number
   readOnly?: boolean
   loading?: boolean
-  title?: string
   emptyHint?: string
   footnote?: string
 }
@@ -167,7 +166,6 @@ export default function AvailabilityCalendar({
   monthTabCount = 8,
   readOnly = false,
   loading,
-  title = 'Доступні дати',
   emptyHint,
   footnote,
 }: Props) {

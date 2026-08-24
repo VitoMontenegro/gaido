@@ -118,7 +118,6 @@ export default function ExcursionDatesEditor({
         onDateClick={handleClick}
         mode="edit"
         loading={loading || pending}
-        title="Календар"
       />
     </div>
   )

@@ -245,7 +245,6 @@ function CalendarMonthPopup({
           }}
           mode="view"
           loading={loading}
-          title=""
         />
       </div>
     </div>

@@ -68,7 +68,6 @@ export function GuideCalendarPage() {
         }}
         mode="edit"
         loading={isLoading || pending}
-        title="Доступні дати"
       />
 
       {(addSlot.isError || removeSlot.isError) && (

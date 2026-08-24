@@ -66,7 +66,6 @@ export default function ExcursionAvailabilityPanel({ slug, excursionType }: Prop
       showMonthTabs
       readOnly
       loading={isLoading}
-      title="Доступні дати"
       emptyHint={emptyHint}
       footnote="Для бронювання напишіть гіду — він підтвердить дату та час."
     />
