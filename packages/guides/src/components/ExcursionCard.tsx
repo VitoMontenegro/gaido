@@ -2,7 +2,6 @@ import { Link } from 'react-router-dom'
 import type { ReactNode } from 'react'
 import ExcursionCover from './ExcursionCover'
 import FavoriteButton from './FavoriteButton'
-import StarRating from './reviews/StarRating'
 import type { ExcursionItem } from './excursionUi'
 import {
   excursionCoverMetaLine,
@@ -10,23 +9,10 @@ import {
   excursionPreviewText,
   excursionPriceCaption,
   excursionTypeLabel,
+  formatDuration,
   formatPrice,
-  formatReviewCount,
 } from './excursionUi'
 import { cn } from '@gaido/ui-primitives/cn'
-
-function ExcursionRatingRow({ avg, count, className }: { avg?: number; count?: number; className?: string }) {
-  if ((count ?? 0) <= 0) return null
-  const value = avg ?? 0
-
-  return (
-    <div className={cn('flex shrink-0 items-center gap-1.5 text-xs text-muted', className)}>
-      <span>{formatReviewCount(count)}</span>
-      <span className="font-semibold tabular-nums text-ink">{value.toFixed(1).replace('.', ',')}</span>
-      <StarRating value={value} size="sm" className="gap-px" />
-    </div>
-  )
-}
 
 function ExcursionPreviewDescription({ text, className }: { text: string; className?: string }) {
   if (!text) return null
@@ -93,20 +79,17 @@ export default function ExcursionCard({ e, compact }: { e: ExcursionItem; compac
           title={e.title}
           className="aspect-4/3"
           typeLabel={excursionTypeLabel(e.type)}
-          metaLine={excursionCoverMetaLine(e.duration_minutes, e.transport_mode)}
+          metaLine={formatDuration(e.duration_minutes ?? 180)}
+          ratingAvg={e.rating_avg}
+          ratingCount={e.rating_count}
         />
         <div className="flex flex-1 flex-col p-2.5 md:p-3">
-          <div className="flex items-start justify-between gap-2">
-            {location ? (
-              <p className="flex min-w-0 items-center gap-1 text-xs text-muted-light">
-                <LocationPin className="text-brand-500" />
-                <span className="line-clamp-1">{location}</span>
-              </p>
-            ) : (
-              <span />
-            )}
-            <ExcursionRatingRow avg={e.rating_avg} count={e.rating_count} />
-          </div>
+          {location ? (
+            <p className="flex min-w-0 items-center gap-1 text-xs text-muted-light">
+              <LocationPin className="text-brand-500" />
+              <span className="line-clamp-1">{location}</span>
+            </p>
+          ) : null}
           <h3 className="mt-1.5 line-clamp-2 font-semibold normal-case text-ink group-hover:text-teal text-[14px] sm:text-[18px] leading-[110%]">
             {e.title}
           </h3>
@@ -134,22 +117,19 @@ export default function ExcursionCard({ e, compact }: { e: ExcursionItem; compac
         className="aspect-16/10"
         typeLabel={excursionTypeLabel(e.type)}
         metaLine={excursionCoverMetaLine(e.duration_minutes, e.transport_mode)}
+        ratingAvg={e.rating_avg}
+        ratingCount={e.rating_count}
       />
       <div className="flex flex-1 flex-col px-3 pb-4 pt-3">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            {location && (
-              <p className="flex items-center gap-1 text-sm text-muted-light">
-                <LocationPin className="text-brand-500" />
-                <span className="line-clamp-1">{location}</span>
-              </p>
-            )}
-            <h3 className="mt-1 font-display text-base font-medium uppercase leading-snug text-ink group-hover:text-brand-700">
-              {e.title}
-            </h3>
-          </div>
-          <ExcursionRatingRow avg={e.rating_avg} count={e.rating_count} className="pt-0.5" />
-        </div>
+        {location && (
+          <p className="flex min-w-0 items-center gap-1 text-sm text-muted-light">
+            <LocationPin className="text-brand-500" />
+            <span className="line-clamp-1">{location}</span>
+          </p>
+        )}
+        <h3 className="mt-1 font-display text-base font-medium uppercase leading-snug text-ink group-hover:text-brand-700">
+          {e.title}
+        </h3>
         <ExcursionPreviewDescription text={previewText} className="mt-2" />
         <hr className="my-3 h-px border-0 bg-divider" />
         <div className="mt-auto flex flex-wrap items-end justify-between gap-2">

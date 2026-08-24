@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { authApi, api, type FavoriteItem, userDisplayName } from '@gaido/api-client/api/client'
+import { ChangePasswordForm } from '@gaido/ui-primitives/ResetPasswordForm'
 import ExcursionCard, { excursionCardPropsFromPartial } from '../components/ExcursionCard'
 import GuideAvatar from '../components/GuideAvatar'
 import ApiErrorBanner from '../components/ApiErrorBanner'
@@ -42,14 +43,9 @@ export default function AccountPage() {
             )}
             <Link to="/account/settings" className="btn-secondary">Налаштування профілю</Link>
             {!isGuide && !isAdmin && (
-              <>
-                <Link to="/register" className="btn-accent text-sm">
-                  Реєстрація
-                </Link>
-                <Link to="/register/guide" className="btn-ghost text-sm">
-                  Стати гідом
-                </Link>
-              </>
+              <Link to="/register/guide" className="btn-ghost text-sm">
+                Стати гідом
+              </Link>
             )}
           </div>
         </div>
@@ -215,7 +211,8 @@ export function SettingsPage() {
   })
 
   return (
-    <div className="card max-w-lg space-y-4">
+    <div className="max-w-lg space-y-5">
+      <div className="card space-y-4">
       <div>
         <h1 className="font-display text-2xl font-bold">Налаштування</h1>
         <p className="mt-2 text-stone-600">Ім&apos;я та прізвище відображаються у ваших відгуках.</p>
@@ -255,6 +252,8 @@ export function SettingsPage() {
       >
         {mutation.isPending ? 'Збереження…' : 'Зберегти'}
       </button>
+      </div>
+      <ChangePasswordForm />
     </div>
   )
 }

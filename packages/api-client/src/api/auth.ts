@@ -46,4 +46,6 @@ export const authApi = {
   me: () => api<MeUser>('/api/v1/account/me'),
   updateProfile: (body: { first_name: string; last_name: string }) =>
     api<MeUser>('/api/v1/account/profile', { method: 'PUT', body: JSON.stringify(body) }),
+  changePassword: (body: { current_password: string; new_password: string }) =>
+    api<{ status: string }>('/api/v1/account/password', { method: 'PUT', body: JSON.stringify(body) }),
 }

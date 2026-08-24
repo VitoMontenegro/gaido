@@ -33,6 +33,7 @@ const API_ERROR_MESSAGES: Record<string, string> = {
   MAIL_NOT_CONFIGURED: 'Поштовий сервер не налаштовано. Спробуйте пізніше',
   MAIL_SEND_FAILED: 'Не вдалося надіслати лист. Спробуйте пізніше',
   INVALID_TOKEN: 'Посилання недійсне або прострочене',
+  INVALID_CURRENT_PASSWORD: 'Поточний пароль невірний',
 }
 
 export type ApiErrorHints = Partial<Record<string, string>>
@@ -44,6 +45,8 @@ const VALIDATION_MESSAGE_UA: Record<string, string> = {
   'login must be 3-32 latin letters, digits, _, . or -':
     'Логін: лише латиниця, цифри та символи _ . - (від 3 до 32 символів)',
   'password must be at least 8 characters': 'Пароль — мінімум 8 символів',
+  'new password must differ': 'Новий пароль має відрізнятися від поточного',
+  'current password is required': 'Вкажіть поточний пароль',
   'invalid JSON body': 'Невірний формат запиту',
   'first_name is required': 'Вкажіть імʼя',
   'last_name is required': 'Вкажіть прізвище',

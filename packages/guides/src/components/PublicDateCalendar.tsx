@@ -149,11 +149,111 @@ function HorizontalDateStrip({ monthGroups, selected, onPick }: StripProps) {
   )
 }
 
+function CalendarIconButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      className="mb-0.5 flex h-12 w-11 shrink-0 items-center justify-center rounded-3xl border-0 bg-teal text-white hover:opacity-90 sm:mb-3"
+      aria-label="Відкрити календар"
+      onClick={onClick}
+    >
+      <CalendarIcon />
+    </button>
+  )
+}
+
+function monthFromSelected(selected?: string | null) {
+  if (selected) {
+    const parsed = parseDateKey(selected)
+    if (parsed.year && parsed.month) return { year: parsed.year, month: parsed.month }
+  }
+  const now = new Date()
+  return { year: now.getFullYear(), month: now.getMonth() + 1 }
+}
+
+function CalendarMonthPopup({
+  open,
+  dates,
+  selected,
+  loading,
+  onSelect,
+  onClose,
+}: {
+  open: boolean
+  dates: CalendarDateItem[]
+  selected?: string | null
+  loading?: boolean
+  onSelect: (dateKey: string, item?: CalendarDateItem) => void
+  onClose: () => void
+}) {
+  const initial = monthFromSelected(selected)
+  const [year, setYear] = useState(initial.year)
+  const [month, setMonth] = useState(initial.month)
+
+  useEffect(() => {
+    if (!open) return
+    const next = monthFromSelected(selected)
+    setYear(next.year)
+    setMonth(next.month)
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.body.style.overflow = prev
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [open, selected, onClose])
+
+  if (!open) return null
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4"
+      role="dialog"
+      aria-modal
+      aria-label="Календар"
+      onClick={onClose}
+    >
+      <div
+        className="relative max-h-[90vh] w-full overflow-auto rounded-t-[32px] bg-white p-3 sm:max-w-[665px] sm:rounded-[32px] sm:bg-transparent sm:p-0"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          type="button"
+          className="absolute right-3 top-3 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-stone-600 shadow-sm hover:bg-stone-100"
+          aria-label="Закрити"
+          onClick={onClose}
+        >
+          ✕
+        </button>
+        <AvailabilityCalendar
+          year={year}
+          month={month}
+          dates={dates}
+          selected={selected}
+          onMonthChange={(y, m) => {
+            setYear(y)
+            setMonth(m)
+          }}
+          onDateClick={(dateKey, item) => {
+            if (!item) return
+            onSelect(dateKey, item)
+            onClose()
+          }}
+          mode="view"
+          loading={loading}
+          title=""
+        />
+      </div>
+    </div>
+  )
+}
+
 export default function PublicDateCalendar({ dates, selected, onSelect, loading, emptyHint }: Props) {
   const [popupOpen, setPopupOpen] = useState(false)
-  const now = new Date()
-  const [popupYear, setPopupYear] = useState(now.getFullYear())
-  const [popupMonth, setPopupMonth] = useState(now.getMonth() + 1)
 
   const monthGroups = useMemo(() => {
     const groups = groupDatesByMonth(dates)
@@ -163,24 +263,11 @@ export default function PublicDateCalendar({ dates, selected, onSelect, loading,
     return groups
   }, [dates])
 
-  const handlePopupSelect = (dateKey: string, item?: CalendarDateItem) => {
-    if (!item) return
-    onSelect(dateKey, item)
-    setPopupOpen(false)
-  }
-
   return (
     <>
       <div className={PARUS_CALENDAR_SHELL}>
         <div className="relative flex w-full max-w-full items-end gap-1 sm:items-center sm:gap-4">
-          <button
-            type="button"
-            className="mb-0.5 flex h-12 w-11 shrink-0 items-center justify-center rounded-3xl border-0 bg-teal text-white hover:opacity-90 sm:mb-3"
-            aria-label="Відкрити календар"
-            onClick={() => setPopupOpen(true)}
-          >
-            <CalendarIcon />
-          </button>
+          <CalendarIconButton onClick={() => setPopupOpen(true)} />
 
           <div className="relative min-w-0 flex-1 overflow-hidden">
             {loading ? (
@@ -194,32 +281,14 @@ export default function PublicDateCalendar({ dates, selected, onSelect, loading,
         </div>
       </div>
 
-      {popupOpen && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4" role="dialog" aria-modal aria-label="Календар">
-          <div className="max-h-[90vh] w-full overflow-auto rounded-t-3xl bg-white p-4 sm:max-w-[665px] sm:rounded-3xl sm:p-6">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="font-display text-lg font-bold">Оберіть дату</h3>
-              <button type="button" className="flex h-10 w-10 items-center justify-center rounded-full text-stone-600 hover:bg-stone-100" aria-label="Закрити" onClick={() => setPopupOpen(false)}>
-                ✕
-              </button>
-            </div>
-            <AvailabilityCalendar
-              year={popupYear}
-              month={popupMonth}
-              dates={dates}
-              selected={selected}
-              onMonthChange={(y, m) => {
-                setPopupYear(y)
-                setPopupMonth(m)
-              }}
-              onDateClick={handlePopupSelect}
-              mode="view"
-              loading={loading}
-              title=""
-            />
-          </div>
-        </div>
-      )}
+      <CalendarMonthPopup
+        open={popupOpen}
+        dates={dates}
+        selected={selected}
+        loading={loading}
+        onSelect={onSelect}
+        onClose={() => setPopupOpen(false)}
+      />
     </>
   )
 }
@@ -233,7 +302,8 @@ export function DateFilterStrip({
   onSelect: (dateKey: string) => void
   daysAhead?: number
 }) {
-  const monthGroups = useMemo(() => {
+  const [popupOpen, setPopupOpen] = useState(false)
+  const dates = useMemo(() => {
     const items: CalendarDateItem[] = []
     const start = new Date()
     start.setHours(0, 0, 0, 0)
@@ -242,24 +312,32 @@ export function DateFilterStrip({
       d.setDate(start.getDate() + i)
       items.push({ date: toDateKeyLocal(d) })
     }
-    return groupDatesByMonth(items)
+    return items
   }, [daysAhead])
+  const monthGroups = useMemo(() => groupDatesByMonth(dates), [dates])
 
   return (
-    <div className={PARUS_CALENDAR_SHELL}>
-      <div className="relative flex w-full max-w-full items-end gap-1 sm:items-center sm:gap-4">
-        <div className="mb-0.5 flex h-12 w-11 shrink-0 items-center justify-center rounded-3xl bg-teal text-white sm:mb-3" aria-hidden>
-          <CalendarIcon />
-        </div>
-        <div className="relative min-w-0 flex-1 overflow-hidden">
-          <HorizontalDateStrip
-            monthGroups={monthGroups}
-            selected={selected}
-            onPick={(dateKey) => onSelect(dateKey)}
-          />
+    <>
+      <div className={PARUS_CALENDAR_SHELL}>
+        <div className="relative flex w-full max-w-full items-end gap-1 sm:items-center sm:gap-4">
+          <CalendarIconButton onClick={() => setPopupOpen(true)} />
+          <div className="relative min-w-0 flex-1 overflow-hidden">
+            <HorizontalDateStrip
+              monthGroups={monthGroups}
+              selected={selected}
+              onPick={(dateKey) => onSelect(dateKey)}
+            />
+          </div>
         </div>
       </div>
-    </div>
+      <CalendarMonthPopup
+        open={popupOpen}
+        dates={dates}
+        selected={selected}
+        onSelect={(dateKey) => onSelect(dateKey)}
+        onClose={() => setPopupOpen(false)}
+      />
+    </>
   )
 }
 

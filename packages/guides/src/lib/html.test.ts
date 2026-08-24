@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { sanitizeHtml } from './html'
+import { normalizeHref, sanitizeHtml } from './html'
 
 describe('sanitizeHtml', () => {
   it('strips script tags', () => {
@@ -18,5 +18,20 @@ describe('sanitizeHtml', () => {
     )
     expect(out).not.toContain('text-stone-700')
     expect(out).toContain('Повний опис')
+  })
+})
+
+describe('normalizeHref', () => {
+  it('keeps shared Google Maps app links', () => {
+    const url = 'https://maps.app.goo.gl/GpxqXFwzyphKdWDW8?g_st=ic'
+    expect(normalizeHref(url)).toBe(url)
+  })
+
+  it('adds https to bare maps hosts', () => {
+    expect(normalizeHref('maps.app.goo.gl/xyz')).toBe('https://maps.app.goo.gl/xyz')
+  })
+
+  it('strips trailing punctuation', () => {
+    expect(normalizeHref('https://maps.google.com/maps?q=1.')).toBe('https://maps.google.com/maps?q=1')
   })
 })

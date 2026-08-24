@@ -1,6 +1,6 @@
 import { normalizeItems } from '../lib/bookingTerms'
 import { cn } from '@gaido/ui-primitives/cn'
-import { sanitizeHtml } from '../lib/html'
+import { linkifyText, sanitizeHtml } from '../lib/html'
 
 type Props = {
   included?: string[] | null
@@ -71,7 +71,7 @@ export default function BookingTermsSection({ included, excluded, notesHtml, mee
       {meeting && (
         <div className="mt-5 rounded-2xl border border-stone-100 bg-stone-50/50 p-4">
           <h3 className="text-sm font-semibold uppercase tracking-wide text-stone-500">Місце зустрічі</h3>
-          <p className="mt-2 whitespace-pre-wrap text-base leading-relaxed text-stone-800">{meeting}</p>
+          <p className="mt-2 whitespace-pre-wrap text-base leading-relaxed text-stone-800">{linkifyText(meeting)}</p>
         </div>
       )}
 

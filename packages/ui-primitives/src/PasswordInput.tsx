@@ -6,6 +6,7 @@ type Props = {
   placeholder?: string
   autoComplete?: string
   name?: string
+  disabled?: boolean
 }
 
 function EyeIcon({ open }: { open: boolean }) {
@@ -27,7 +28,7 @@ function EyeIcon({ open }: { open: boolean }) {
   )
 }
 
-export default function PasswordInput({ value, onChange, placeholder, autoComplete, name }: Props) {
+export default function PasswordInput({ value, onChange, placeholder, autoComplete, name, disabled }: Props) {
   const [visible, setVisible] = useState(false)
 
   return (
@@ -39,6 +40,7 @@ export default function PasswordInput({ value, onChange, placeholder, autoComple
         autoComplete={autoComplete}
         placeholder={placeholder}
         value={value}
+        disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
       />
       <button

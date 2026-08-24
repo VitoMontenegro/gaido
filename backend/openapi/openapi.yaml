@@ -355,6 +355,17 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/account/password:
+    put:
+      tags: [account]
+      summary: Change password
+      responses:
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/v1/favorites:
     get:
       tags: [account]

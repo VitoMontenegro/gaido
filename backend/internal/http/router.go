@@ -103,6 +103,7 @@ func NewRouter(cfg config.Config, log *slog.Logger, h *handlers.Handlers) http.H
 			pr.Use(authMW)
 			pr.Get("/account/me", h.Me)
 			pr.Put("/account/profile", h.UpdateAccountProfile)
+			pr.Put("/account/password", h.ChangeAccountPassword)
 			pr.Get("/favorites", h.ListFavorites)
 			pr.Post("/favorites", h.ToggleFavorite)
 			pr.Post("/favorites/import", h.ImportFavorites)

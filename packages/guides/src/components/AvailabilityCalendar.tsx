@@ -192,11 +192,6 @@ export default function AvailabilityCalendar({
   return (
     <div className={shellClass}>
       <div className="flex items-center justify-between gap-2 px-0.5">
-        {title ? (
-          <h3 className="font-display text-base font-bold text-stone-900 sm:text-lg">{title}</h3>
-        ) : (
-          <span />
-        )}
         {!showMonthTabs && (
           <div className="flex shrink-0 items-center gap-1">
             <button

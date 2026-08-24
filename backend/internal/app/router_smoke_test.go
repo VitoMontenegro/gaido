@@ -212,6 +212,38 @@ func TestSmoke_authRegisterLogin(t *testing.T) {
 	}
 }
 
+func TestSmoke_authChangePassword(t *testing.T) {
+	a := newTestApp(t)
+	login := uniqueLogin("pwchg_")
+	token, _ := registerUser(t, a, login, false)
+	bad := smokeRequest(t, a, http.MethodPut, "/api/v1/account/password", map[string]any{
+		"current_password": "wrong-password",
+		"new_password":     "newpass12345",
+	}, token, nil)
+	if bad.code != http.StatusBadRequest {
+		t.Fatalf("wrong current: %d %s", bad.code, bad.body)
+	}
+	ok := smokeRequest(t, a, http.MethodPut, "/api/v1/account/password", map[string]any{
+		"current_password": "smokepass12345",
+		"new_password":     "newpass12345",
+	}, token, nil)
+	if ok.code != http.StatusOK {
+		t.Fatalf("change: %d %s", ok.code, ok.body)
+	}
+	oldLogin := smokeRequest(t, a, http.MethodPost, "/api/v1/auth/login", map[string]any{
+		"login": login, "password": "smokepass12345",
+	}, "", nil)
+	if oldLogin.code == http.StatusOK {
+		t.Fatal("old password still works")
+	}
+	fresh := smokeRequest(t, a, http.MethodPost, "/api/v1/auth/login", map[string]any{
+		"login": login, "password": "newpass12345",
+	}, "", nil)
+	if fresh.code != http.StatusOK {
+		t.Fatalf("login with new password: %d %s", fresh.code, fresh.body)
+	}
+}
+
 func TestSmoke_authConfirmInvalid(t *testing.T) {
 	a := newTestApp(t)
 	res := smokeRequest(t, a, http.MethodGet, "/api/v1/auth/register/confirm?token=deadbeef", nil, "", nil)

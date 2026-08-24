@@ -264,3 +264,46 @@ func (h *Handlers) UpdateAccountProfile(w http.ResponseWriter, r *http.Request) 
 		"roles":      u.Roles,
 	})
 }
+func (h *Handlers) ChangeAccountPassword(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		CurrentPassword string `json:"current_password"`
+		NewPassword     string `json:"new_password"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Error(w, r, apperrors.New("VALIDATION_ERROR", "invalid JSON body", 400))
+		return
+	}
+	if strings.TrimSpace(req.CurrentPassword) == "" {
+		response.Error(w, r, apperrors.New("VALIDATION_ERROR", "current password is required", 400))
+		return
+	}
+	if utf8.RuneCountInString(req.NewPassword) < 8 {
+		response.Error(w, r, apperrors.New("VALIDATION_ERROR", "password must be at least 8 characters", 400))
+		return
+	}
+	if req.CurrentPassword == req.NewPassword {
+		response.Error(w, r, apperrors.New("VALIDATION_ERROR", "new password must differ", 400))
+		return
+	}
+	uid := middleware.UserIDFromContext(r.Context())
+	u, err := h.Users.GetByID(r.Context(), uid)
+	if err != nil || u == nil {
+		response.Error(w, r, apperrors.ErrNotFound)
+		return
+	}
+	ok, err := password.Verify(req.CurrentPassword, u.PasswordHash)
+	if err != nil || !ok {
+		response.Error(w, r, apperrors.New("INVALID_CURRENT_PASSWORD", "current password is incorrect", 400))
+		return
+	}
+	hash, err := password.Hash(req.NewPassword)
+	if err != nil {
+		response.Error(w, r, apperrors.ErrInternal)
+		return
+	}
+	if err := h.Users.UpdatePassword(r.Context(), u.ID, hash); err != nil {
+		response.Error(w, r, apperrors.ErrInternal)
+		return
+	}
+	response.JSON(w, r, 200, map[string]string{"status": "ok"})
+}

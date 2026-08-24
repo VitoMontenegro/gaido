@@ -67,6 +67,94 @@ export default function ResetPasswordForm({ onSuccess }: { onSuccess: (accessTok
   )
 }
 
+export function ChangePasswordForm() {
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [error, setError] = useState('')
+  const [saved, setSaved] = useState(false)
+  const [pending, setPending] = useState(false)
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (newPassword.length < 8) {
+      setError('Пароль — мінімум 8 символів')
+      return
+    }
+    if (newPassword !== confirmPassword) {
+      setError('Паролі не збігаються')
+      return
+    }
+    if (newPassword === currentPassword) {
+      setError('Новий пароль має відрізнятися від поточного')
+      return
+    }
+    setError('')
+    setSaved(false)
+    setPending(true)
+    try {
+      await authApi.changePassword({
+        current_password: currentPassword,
+        new_password: newPassword,
+      })
+      setCurrentPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
+      setSaved(true)
+    } catch (err) {
+      setError(formatApiError(err))
+    } finally {
+      setPending(false)
+    }
+  }
+
+  return (
+    <form onSubmit={submit} className="card space-y-4">
+      <div>
+        <h2 className="font-display text-xl font-bold">Пароль</h2>
+        <p className="mt-2 text-stone-600">Змініть пароль, щоб захистити акаунт.</p>
+      </div>
+      <label className="block space-y-1">
+        <span className="text-sm font-medium">Поточний пароль</span>
+        <PasswordInput
+          autoComplete="current-password"
+          value={currentPassword}
+          onChange={(v) => { setCurrentPassword(v); setSaved(false) }}
+          disabled={pending}
+        />
+      </label>
+      <label className="block space-y-1">
+        <span className="text-sm font-medium">Новий пароль</span>
+        <PasswordInput
+          autoComplete="new-password"
+          placeholder="Мінімум 8 символів"
+          value={newPassword}
+          onChange={(v) => { setNewPassword(v); setSaved(false) }}
+          disabled={pending}
+        />
+      </label>
+      <label className="block space-y-1">
+        <span className="text-sm font-medium">Повторіть новий пароль</span>
+        <PasswordInput
+          autoComplete="new-password"
+          value={confirmPassword}
+          onChange={(v) => { setConfirmPassword(v); setSaved(false) }}
+          disabled={pending}
+        />
+      </label>
+      {error && <p className="text-sm text-red-600">{error}</p>}
+      {saved && !error && (
+        <p className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800" role="status">
+          Пароль змінено.
+        </p>
+      )}
+      <button type="submit" className="btn-primary" disabled={pending}>
+        {pending ? 'Збереження…' : 'Змінити пароль'}
+      </button>
+    </form>
+  )
+}
+
 export function loginConfirmMessage(flag: string | null): string {
   if (flag === 'invalid') return 'Посилання підтвердження недійсне або прострочене'
   if (flag === 'exists') return 'Цей акаунт уже підтверджено. Увійдіть.'
