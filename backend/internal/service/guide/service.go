@@ -129,8 +129,8 @@ func (s *Service) UpdateProfile(ctx context.Context, userID int64, req domain.Gu
 	if g == nil {
 		return nil, nil
 	}
-	if req.GuideType == domain.GuideTypeCompanion {
-		_ = s.Guides.DeleteLicenseDocuments(ctx, g.ID)
+	if req.GuideType == domain.GuideTypeCompanion && s.HasUploadedLicense(ctx, g) {
+		req.GuideType = g.GuideType
 	}
 	s.ApplyProfileUpdate(ctx, g, req)
 	if err := s.Guides.UpdateProfile(ctx, g); err != nil {

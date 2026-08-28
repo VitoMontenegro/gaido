@@ -45,11 +45,22 @@ func TestCatalogStatus(t *testing.T) {
 	if guidesvc.CatalogStatus(domain.GuideTypeCompanion, false) != "companion" {
 		t.Fatal("companion status")
 	}
+	if guidesvc.CatalogStatus(domain.GuideTypeCompanion, true) != "confirmed" {
+		t.Fatal("license overrides companion")
+	}
 	if guidesvc.CatalogStatus(domain.GuideTypeGuide, true) != "confirmed" {
 		t.Fatal("confirmed")
 	}
 	if guidesvc.CatalogStatus(domain.GuideTypeGuide, false) != "pending" {
 		t.Fatal("pending")
+	}
+}
+
+func TestTypeBadgeLicenseOverridesCompanion(t *testing.T) {
+	g := &domain.GuideProfile{GuideType: domain.GuideTypeCompanion}
+	dto := guidesvc.BuildPublicGuideDTO(g, nil, true, true)
+	if dto.TypeBadge == nil || *dto.TypeBadge != "Гід" {
+		t.Fatal("license should override companion badge")
 	}
 }
 

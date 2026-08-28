@@ -50,20 +50,13 @@ func BuildPublicGuideDTO(g *domain.GuideProfile, sub *domain.GuideSubscription, 
 }
 
 func CatalogStatus(guideType string, hasLicense bool) string {
-	switch guideType {
-	case domain.GuideTypeCompanion:
-		return "companion"
-	case domain.GuideTypeGuide, domain.GuideTypeEntertainer:
-		if hasLicense {
-			return "confirmed"
-		}
-		return "pending"
-	default:
-		if hasLicense {
-			return "confirmed"
-		}
-		return "pending"
+	if hasLicense {
+		return "confirmed"
 	}
+	if guideType == domain.GuideTypeCompanion {
+		return "companion"
+	}
+	return "pending"
 }
 
 func GuideTypeForDocument(docType string) string {
@@ -91,17 +84,14 @@ func BuildGuideAccountProfile(g *domain.GuideProfile, hasLicense bool) domain.Gu
 }
 
 func typeBadge(guideType string, hasLicense bool) string {
-	switch guideType {
-	case domain.GuideTypeCompanion:
-		return "Компаньйон"
-	case domain.GuideTypeGuide:
-		if hasLicense {
-			return "Гід"
-		}
-	case domain.GuideTypeEntertainer:
-		if hasLicense {
+	if hasLicense {
+		if guideType == domain.GuideTypeEntertainer {
 			return "Конферансьє"
 		}
+		return "Гід"
+	}
+	if guideType == domain.GuideTypeCompanion {
+		return "Компаньйон"
 	}
 	return ""
 }

@@ -43,6 +43,21 @@ export type GuideDocument = {
   size: number
 }
 
+export function guideProfilePayload(f: Partial<GuideProfile>, guideType?: string) {
+  return {
+    guide_type: guideType ?? f.guide_type,
+    display_name: f.display_name ?? '',
+    about: f.about ?? '',
+    avatar_url: f.avatar_url ?? '',
+    phone: f.phone ?? '',
+    email: f.email ?? '',
+    telegram: f.telegram ?? '',
+    whatsapp: f.whatsapp ?? '',
+    viber: f.viber ?? '',
+    response_hours: f.response_hours ?? '',
+  }
+}
+
 export function formatDate(iso?: string) {
   if (!iso) return '—'
   return new Date(iso).toLocaleDateString('uk-UA', { day: 'numeric', month: 'short', year: 'numeric' })

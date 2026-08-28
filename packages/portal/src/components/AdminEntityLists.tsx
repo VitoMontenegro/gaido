@@ -39,7 +39,7 @@ function statusLabel(status: string) {
 }
 
 function guideTypeBadgeClass(guide: AdminGuide) {
-  if (guide.guide_type === 'COMPANION' || guide.catalog_status === 'companion') {
+  if (guide.catalog_status === 'companion') {
     return 'bg-violet-50 text-violet-700'
   }
   if (guide.guide_type === 'ENTERTAINER') {

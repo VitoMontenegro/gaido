@@ -1,8 +1,8 @@
 import { useRef, useState } from 'react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, guideApi } from '@gaido/api-client/api/client'
 import type { GuideDocument, GuideProfile } from './shared'
-import { CatalogStatusBanner, formatSize } from './shared'
+import { CatalogStatusBanner, formatSize, guideProfilePayload } from './shared'
 
 export function GuideDocumentsPage() {
   const qc = useQueryClient()
@@ -16,14 +16,21 @@ export function GuideDocumentsPage() {
   })
 
   const items = docs?.items ?? []
-  const isCompanion = profile?.guide_type === 'COMPANION'
   const guideDoc = items.find((d) => d.type === 'GUIDE_LICENSE')
   const entertainerDoc = items.find((d) => d.type === 'ENTERTAINER_LICENSE')
+  const hasLicense = !!(guideDoc || entertainerDoc)
+  const isCompanion = !hasLicense && profile?.guide_type === 'COMPANION'
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ['guide-documents'] })
     qc.invalidateQueries({ queryKey: ['guide-profile'] })
   }
+
+  const companionMutation = useMutation({
+    mutationFn: (asCompanion: boolean) =>
+      guideApi.updateProfile(guideProfilePayload(profile ?? {}, asCompanion ? 'COMPANION' : 'GUIDE')),
+    onSuccess: invalidate,
+  })
 
   return (
     <div className="space-y-6">
@@ -36,20 +43,33 @@ export function GuideDocumentsPage() {
 
       {profile && <CatalogStatusBanner profile={profile} />}
 
-      {isCompanion ? (
-        <div className="card">
-          <h2 className="font-semibold">Компаньйон</h2>
-          <p className="mt-2 text-sm text-stone-600">
-            Для компаньйона ліцензія не потрібна — бейдж «Компаньйон» відображається автоматично.
-            Щоб стати гідом або конферансьє, зніміть позначку «Компаньйон» у профілі.
+      <div className="card space-y-3">
+        <label className="flex items-center gap-2 text-base">
+          <input
+            type="checkbox"
+            checked={isCompanion}
+            disabled={!profile || companionMutation.isPending || hasLicense}
+            onChange={(e) => companionMutation.mutate(e.target.checked)}
+          />
+          Я компаньйон (ліцензія не потрібна)
+        </label>
+        {hasLicense ? (
+          <p className="text-sm text-stone-600">
+            Є завантажена ліцензія — статус у каталозі визначається нею, позначка компаньйона не враховується.
           </p>
-        </div>
-      ) : (
-        <>
-          <GuideLicenseForm document={guideDoc} active={!!guideDoc} onUploaded={invalidate} />
-          <EntertainerLicenseForm document={entertainerDoc} active={!!entertainerDoc} onUploaded={invalidate} />
-        </>
-      )}
+        ) : isCompanion ? (
+          <p className="text-sm text-stone-600">
+            Для компаньйона ліцензія не потрібна — бейдж «Компаньйон» відображається автоматично.
+            Завантажте ліцензію, щоб стати гідом або конферансьє.
+          </p>
+        ) : null}
+        {companionMutation.isError && (
+          <p className="text-sm text-red-600">Не вдалося зберегти статус. Спробуйте ще раз.</p>
+        )}
+      </div>
+
+      <GuideLicenseForm document={guideDoc} active={!!guideDoc} onUploaded={invalidate} />
+      <EntertainerLicenseForm document={entertainerDoc} active={!!entertainerDoc} onUploaded={invalidate} />
     </div>
   )
 }
