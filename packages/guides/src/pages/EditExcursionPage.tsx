@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, guideApi } from '@gaido/api-client/api/client'
-import ExcursionForm, { type ExcursionFormData } from '../components/ExcursionForm'
+import ExcursionForm, { excursionWritePayload, type ExcursionFormData, type ExcursionPhotoPersist } from '../components/ExcursionForm'
+import { mergePersistedPhotos, normalizeStructuredContent } from '../lib/excursionStructuredContent'
 import { Seo } from '../lib/seo'
 import { pageTitle } from '@gaido/site-urls/brand'
 
@@ -122,6 +123,21 @@ export default function EditExcursionPage() {
                 </button>
               ) : undefined
             }
+            onPersistPhotos={async (photos: ExcursionPhotoPersist) => {
+              const current = (qc.getQueryData(['my-excursion', id]) ?? data) as ExcursionFormData
+              const body = excursionWritePayload({
+                ...current,
+                cover_image_url: photos.cover_image_url,
+                structured_content: mergePersistedPhotos(
+                  normalizeStructuredContent(current.structured_content),
+                  photos.structured_content,
+                ),
+              })
+              await guideApi.updateExcursion(excursionId, body)
+              qc.setQueryData(['my-excursion', id], (prev) =>
+                prev && typeof prev === 'object' ? { ...prev, ...body } : { ...current, ...body },
+              )
+            }}
             onSubmit={async (body) => {
               await guideApi.updateExcursion(excursionId, body)
               await qc.invalidateQueries({ queryKey: ['my-excursion', id] })

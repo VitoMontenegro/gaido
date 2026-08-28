@@ -55,11 +55,43 @@ const TABS: { id: TabId; label: string }[] = [
   { id: 'terms', label: 'Умови' },
 ]
 
+export type ExcursionPhotoPersist = {
+  cover_image_url: string
+  structured_content: ExcursionStructuredContent
+  draft: ExcursionFormData
+}
+
+export function excursionWritePayload(e: Partial<ExcursionFormData>): ExcursionFormData {
+  return {
+    title: e.title ?? '',
+    description: e.description ?? '',
+    city_id: e.city_id ?? 0,
+    type: e.type ?? 'INDIVIDUAL',
+    max_guests: e.max_guests ?? 4,
+    price_from: e.price_from ?? 0,
+    currency: e.currency ?? 'EUR',
+    duration_minutes: e.duration_minutes ?? 180,
+    transport_mode: e.transport_mode ?? 'WALKING',
+    children_allowed: e.children_allowed ?? true,
+    language: e.language ?? DEFAULT_EXCURSION_LANGUAGE,
+    organizational_details: e.organizational_details ?? '',
+    meeting_point: e.meeting_point ?? '',
+    included_items: e.included_items ?? [],
+    excluded_items: e.excluded_items ?? [],
+    cover_image_url: e.cover_image_url ?? '',
+    body_html: e.body_html ?? '',
+    map_embed_url: e.map_embed_url ?? '',
+    structured_content: sanitizeStructuredContentForSave(normalizeStructuredContent(e.structured_content)),
+  }
+}
+
 type Props = {
   initial?: Partial<ExcursionFormData>
   submitLabel: string
   successMessage?: string
   onSubmit: (data: ExcursionFormData) => Promise<void>
+  /** Зберігає фото одразу, без кнопки «Зберегти». */
+  onPersistPhotos?: (payload: ExcursionPhotoPersist) => Promise<void>
   /** Зберігає активну вкладку між збереженнями (id екскурсії або "new"). */
   persistTabKey?: string
   datesEditor?: {
@@ -145,7 +177,7 @@ function DurationPartInput({
   )
 }
 
-export default function ExcursionForm({ initial, submitLabel, successMessage = 'Збережено', onSubmit, persistTabKey, datesEditor, footerExtra }: Props) {
+export default function ExcursionForm({ initial, submitLabel, successMessage = 'Збережено', onSubmit, onPersistPhotos, persistTabKey, datesEditor, footerExtra }: Props) {
   const [tab, setTab] = useState<TabId>(() => readStoredTab(persistTabKey))
 
   useEffect(() => {
@@ -181,7 +213,16 @@ export default function ExcursionForm({ initial, submitLabel, successMessage = '
   const [excluded, setExcluded] = useState(() => normalizeItems(initial?.excluded_items))
   const [submitting, setSubmitting] = useState(false)
   const [saveFeedback, setSaveFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [photoFeedback, setPhotoFeedback] = useState<{ type: 'pending' | 'success' | 'error'; text: string } | null>(null)
   const feedbackRef = useRef<HTMLDivElement>(null)
+  const structuredRef = useRef(structured)
+  structuredRef.current = structured
+  const coverRef = useRef(cover)
+  coverRef.current = cover
+  const persistInflight = useRef(false)
+  const persistPending = useRef<ExcursionPhotoPersist | null>(null)
+  const submittingRef = useRef(false)
+  const cityReadyRef = useRef(cityId > 0)
 
   useEffect(() => {
     if (!saveFeedback) return
@@ -191,18 +232,109 @@ export default function ExcursionForm({ initial, submitLabel, successMessage = '
     return () => window.clearTimeout(timer)
   }, [saveFeedback])
 
+  useEffect(() => {
+    if (!photoFeedback || photoFeedback.type !== 'success') return
+    const timer = window.setTimeout(() => setPhotoFeedback(null), 4000)
+    return () => window.clearTimeout(timer)
+  }, [photoFeedback])
+
   const updateStructured = (patch: Partial<ExcursionStructuredContent>) => {
     setStructured((prev) => normalizeStructuredContent({ ...prev, ...patch }))
   }
+
+  const flushPhotoPersist = async () => {
+    if (!onPersistPhotos || persistInflight.current || submittingRef.current) return
+    persistInflight.current = true
+    setPhotoFeedback({ type: 'pending', text: 'Збереження фото…' })
+    try {
+      while (persistPending.current && !submittingRef.current) {
+        const payload = persistPending.current
+        persistPending.current = null
+        try {
+          await onPersistPhotos(payload)
+          if (!submittingRef.current) setPhotoFeedback({ type: 'success', text: 'Фото збережено' })
+        } catch (err) {
+          setPhotoFeedback({
+            type: 'error',
+            text: err instanceof Error ? err.message : 'Не вдалося зберегти фото',
+          })
+        }
+      }
+    } finally {
+      persistInflight.current = false
+      if (persistPending.current && !submittingRef.current) void flushPhotoPersist()
+    }
+  }
+
+  const persistPhotos = (nextCover: string, nextStructured: ExcursionStructuredContent) => {
+    if (!onPersistPhotos || submittingRef.current) return
+    const gallery = nextStructured.gallery
+    const coverUrl = gallery[0] ?? nextCover
+    const structured_content = sanitizeStructuredContentForSave({
+      ...nextStructured,
+      gallery: gallery.length ? gallery : coverUrl ? [coverUrl] : [],
+    })
+    persistPending.current = {
+      cover_image_url: coverUrl,
+      structured_content,
+      draft: excursionWritePayload({
+        title,
+        description,
+        city_id: cityId,
+        type,
+        max_guests: Math.max(1, Number.isFinite(maxGuests) ? maxGuests : 1),
+        price_from: Number.isFinite(priceFrom) ? priceFrom : 0,
+        currency: 'EUR',
+        duration_minutes: Math.max(1, durationPartsToMinutes({ days: durationDays, hours: durationHours, minutes: durationMinutes }) || 180),
+        transport_mode: transportMode,
+        children_allowed: childrenAllowed,
+        language,
+        organizational_details: stripEditorArtifacts(bookingHtml),
+        meeting_point: meetingPoint,
+        included_items: included,
+        excluded_items: excluded,
+        cover_image_url: coverUrl,
+        body_html: stripEditorArtifacts(bodyHtml || (description ? `<p>${description}</p>` : '')),
+        map_embed_url: resolveMapEmbed(mapEmbedUrl) ?? '',
+        structured_content,
+      }),
+    }
+    void flushPhotoPersist()
+  }
+
+  const commitStructured = (patch: Partial<ExcursionStructuredContent>, nextCover = coverRef.current) => {
+    const next = normalizeStructuredContent({ ...structuredRef.current, ...patch })
+    setStructured(next)
+    if (patch.gallery) {
+      nextCover = patch.gallery[0] ?? ''
+      setCover(nextCover)
+    }
+    persistPhotos(nextCover, next)
+  }
+
+  useEffect(() => {
+    const ready = cityId > 0
+    const justBecameReady = ready && !cityReadyRef.current
+    cityReadyRef.current = ready
+    if (!justBecameReady || !onPersistPhotos) return
+    const next = structuredRef.current
+    if (!next.gallery.length && !next.photo_locations.length && !coverRef.current) return
+    persistPhotos(coverRef.current, next)
+  }, [cityId])
 
   return (
     <form
       className="space-y-4"
       onSubmit={async (e) => {
         e.preventDefault()
+        submittingRef.current = true
+        persistPending.current = null
         setSubmitting(true)
         setSaveFeedback(null)
         try {
+          while (persistInflight.current) {
+            await new Promise((resolve) => window.setTimeout(resolve, 40))
+          }
           const synced = syncCoverFromGallery(cover, structured)
           await onSubmit({
             title,
@@ -232,6 +364,7 @@ export default function ExcursionForm({ initial, submitLabel, successMessage = '
             text: err instanceof Error ? err.message : 'Не вдалося зберегти',
           })
         } finally {
+          submittingRef.current = false
           setSubmitting(false)
         }
       }}
@@ -323,17 +456,15 @@ export default function ExcursionForm({ initial, submitLabel, successMessage = '
           <GalleryField
             label="Галерея"
             value={structured.gallery}
-            onChange={(gallery) => {
-              updateStructured({ gallery })
-              if (gallery[0]) setCover(gallery[0])
-            }}
-            hint="Фото в шапці сторінки. Перше фото — обкладинка в каталозі."
+            onChange={(gallery) => commitStructured({ gallery })}
+            hint="Фото в шапці сторінки. Перше фото — обкладинка в каталозі. Зберігається одразу."
             cropAspect={16 / 10}
           />
           <ImageUrlField
             label="Галерея (перше фото для mobile)"
             value={structured.gallery_mobile_cover ?? ''}
             onChange={(gallery_mobile_cover) => updateStructured({ gallery_mobile_cover })}
+            onPersist={(gallery_mobile_cover) => commitStructured({ gallery_mobile_cover })}
             cropAspect={4 / 3}
             maxBytes={400 * 1024}
             hint="Якщо не заповнено — використовується перше фото галереї"
@@ -343,9 +474,18 @@ export default function ExcursionForm({ initial, submitLabel, successMessage = '
               label="Обкладинка (якщо галерея порожня)"
               value={cover}
               onChange={setCover}
+              onPersist={(nextCover) => {
+                setCover(nextCover)
+                persistPhotos(nextCover, structuredRef.current)
+              }}
               cropAspect={16 / 10}
               maxBytes={400 * 1024}
             />
+          )}
+          {photoFeedback && (
+            <p className={`text-sm ${photoFeedback.type === 'error' ? 'text-red-600' : photoFeedback.type === 'success' ? 'text-emerald-700' : 'text-stone-500'}`}>
+              {photoFeedback.text}
+            </p>
           )}
         </div>
       )}
@@ -414,6 +554,11 @@ export default function ExcursionForm({ initial, submitLabel, successMessage = '
             onChange={(preview_desktop) =>
               updateStructured({ video: { url: structured.video?.url ?? '', preview_desktop, preview_mobile: structured.video?.preview_mobile } })
             }
+            onPersist={(preview_desktop) =>
+              commitStructured({
+                video: { url: structuredRef.current.video?.url ?? '', preview_desktop, preview_mobile: structuredRef.current.video?.preview_mobile },
+              })
+            }
             cropAspect={16 / 9}
           />
           <ImageUrlField
@@ -422,19 +567,36 @@ export default function ExcursionForm({ initial, submitLabel, successMessage = '
             onChange={(preview_mobile) =>
               updateStructured({ video: { url: structured.video?.url ?? '', preview_desktop: structured.video?.preview_desktop, preview_mobile } })
             }
+            onPersist={(preview_mobile) =>
+              commitStructured({
+                video: { url: structuredRef.current.video?.url ?? '', preview_desktop: structuredRef.current.video?.preview_desktop, preview_mobile },
+              })
+            }
             cropAspect={4 / 3}
           />
+          {photoFeedback && tab === 'video' && (
+            <p className={`text-sm ${photoFeedback.type === 'error' ? 'text-red-600' : photoFeedback.type === 'success' ? 'text-emerald-700' : 'text-stone-500'}`}>
+              {photoFeedback.text}
+            </p>
+          )}
         </div>
       )}
 
       {tab === 'locations' && (
-        <GalleryField
-          label="Фото-локації на маршруті"
-          value={structured.photo_locations}
-          onChange={(photo_locations) => updateStructured({ photo_locations })}
-          hint="Окрема галерея локацій під основним текстом"
-          cropAspect={1}
-        />
+        <div className="space-y-2">
+          <GalleryField
+            label="Фото-локації на маршруті"
+            value={structured.photo_locations}
+            onChange={(photo_locations) => commitStructured({ photo_locations })}
+            hint="Окрема галерея локацій під основним текстом. Зберігається одразу."
+            cropAspect={1}
+          />
+          {photoFeedback && (
+            <p className={`text-sm ${photoFeedback.type === 'error' ? 'text-red-600' : photoFeedback.type === 'success' ? 'text-emerald-700' : 'text-stone-500'}`}>
+              {photoFeedback.text}
+            </p>
+          )}
+        </div>
       )}
 
       {tab === 'comfort' && (

@@ -135,3 +135,23 @@ export function syncCoverFromGallery(
   }
   return { cover: isValidMediaRef(cover) ? cover.trim() : '', content: normalized }
 }
+
+/** Підставляє нові фото в уже збережений контент, не чіпаючи маршрут і текст. */
+export function mergePersistedPhotos(
+  saved: ExcursionStructuredContent,
+  incoming: ExcursionStructuredContent,
+): ExcursionStructuredContent {
+  const current = normalizeStructuredContent(saved)
+  const photos = normalizeStructuredContent(incoming)
+  return sanitizeStructuredContentForSave({
+    ...current,
+    gallery: photos.gallery,
+    gallery_mobile_cover: photos.gallery_mobile_cover,
+    photo_locations: photos.photo_locations,
+    video: {
+      url: current.video?.url ?? '',
+      preview_desktop: photos.video?.preview_desktop,
+      preview_mobile: photos.video?.preview_mobile,
+    },
+  })
+}

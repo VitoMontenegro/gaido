@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, guideApi } from '@gaido/api-client/api/client'
 import GuideAvatar from '../../components/GuideAvatar'
@@ -33,7 +33,14 @@ function GuideProfileForm() {
   const [form, setForm] = useState<Partial<GuideProfile>>({})
   const [geoCountries, setGeoCountries] = useState<GuideCountry[] | null>(null)
   const [geoCities, setGeoCities] = useState<GuideCity[] | null>(null)
+  const [avatarSaved, setAvatarSaved] = useState(false)
   const patch = (next: Partial<GuideProfile>) => setForm((prev) => ({ ...prev, ...next }))
+
+  useEffect(() => {
+    if (!avatarSaved) return
+    const timer = window.setTimeout(() => setAvatarSaved(false), 4000)
+    return () => window.clearTimeout(timer)
+  }, [avatarSaved])
 
   const mutation = useMutation({
     mutationFn: async (body: Partial<GuideProfile>) => {
@@ -60,6 +67,23 @@ function GuideProfileForm() {
     },
   })
 
+  const avatarMutation = useMutation({
+    mutationFn: (avatar_url: string) =>
+      guideApi.updateProfile(guideProfilePayload({ ...data, avatar_url })),
+    onSuccess: (_res, avatar_url) => {
+      qc.setQueryData(['guide-profile'], (prev: GuideProfile | undefined) =>
+        prev ? { ...prev, avatar_url } : prev,
+      )
+      setForm((prev) => {
+        if (!('avatar_url' in prev)) return prev
+        const next = { ...prev }
+        delete next.avatar_url
+        return next
+      })
+      setAvatarSaved(true)
+    },
+  })
+
   const f = { ...data, ...form }
   const countries = geoCountries ?? resolveCountries(data)
   const cities = geoCities ?? f.cities ?? []
@@ -79,7 +103,21 @@ function GuideProfileForm() {
             outputFormat="webp"
             maxBytes={150 * 1024}
             onChange={(avatar_url) => patch({ avatar_url })}
+            onPersist={(avatar_url) => {
+              patch({ avatar_url })
+              setAvatarSaved(false)
+              if (data) avatarMutation.mutate(avatar_url)
+            }}
           />
+          {avatarMutation.isPending && (
+            <p className="mt-1 text-sm text-stone-500">Збереження фото…</p>
+          )}
+          {avatarSaved && !avatarMutation.isPending && (
+            <p className="mt-1 text-sm text-emerald-700">Фото збережено</p>
+          )}
+          {avatarMutation.isError && (
+            <p className="mt-1 text-sm text-red-600">Не вдалося зберегти фото. Спробуйте ще раз.</p>
+          )}
         </div>
       </div>
       <input

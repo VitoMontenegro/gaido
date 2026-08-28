@@ -14,6 +14,8 @@ export type ImageUrlFieldProps = {
   label: string
   value: string
   onChange: (value: string) => void
+  /** Викликається після завантаження або видалення — не під час введення URL */
+  onPersist?: (value: string) => void
   hint?: string
   /** Увімкнути обрізку перед завантаженням */
   cropAspect?: number
@@ -27,6 +29,7 @@ export function ImageUrlField({
   label,
   value,
   onChange,
+  onPersist,
   hint,
   cropAspect = 1,
   maxBytes = 150 * 1024,
@@ -53,6 +56,7 @@ export function ImageUrlField({
     try {
       const { public_key } = await adminApi.uploadMedia(file)
       onChange(public_key)
+      onPersist?.(public_key)
       setLastSize(file.blob.size)
     } catch (e) {
       setError(formatApiError(e))
@@ -107,7 +111,7 @@ export function ImageUrlField({
             {uploading ? 'Завантаження…' : preparing ? 'Підготовка…' : 'Завантажити та обрізати'}
           </button>
           {value && (
-            <button type="button" className="text-sm text-muted hover:text-ink" onClick={() => { onChange(''); setLastSize(null) }}>
+            <button type="button" className="text-sm text-muted hover:text-ink" onClick={() => { onChange(''); onPersist?.(''); setLastSize(null) }}>
               Видалити
             </button>
           )}
