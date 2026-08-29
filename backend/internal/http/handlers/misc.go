@@ -85,12 +85,8 @@ type articleRequest struct {
 
 func (req *articleRequest) normalize() postgres.ArticleInput {
 	title := strings.TrimSpace(req.Title)
-	slug := strings.TrimSpace(req.Slug)
-	if slug == "" {
-		slug = guidesvc.Slugify(title)
-	}
 	return postgres.ArticleInput{
-		Slug:          slug,
+		Slug:          guidesvc.ArticleSlug(req.Slug, title),
 		Title:         title,
 		Excerpt:       strings.TrimSpace(req.Excerpt),
 		BodyHTML:      sanitize.HTML(req.BodyHTML),

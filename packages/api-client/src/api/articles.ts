@@ -24,6 +24,16 @@ export type Article = ArticleListItem & {
   updated_at?: string
 }
 
+export function sanitizeArticleSlugInput(raw?: string): string {
+  const s = (raw ?? '').trim()
+  if (!s) return ''
+  const lower = s.toLowerCase()
+  if (s.includes('://') || /[/\\?#]/.test(s) || lower.startsWith('http:') || lower.startsWith('https:')) {
+    return ''
+  }
+  return s
+}
+
 type ArticleInput = {
   title: string
   slug?: string

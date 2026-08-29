@@ -1,7 +1,7 @@
 import { Suspense, useEffect, useState } from 'react'
 import { lazyRichTextEditor } from '@gaido/ui-primitives/lazyRichTextEditor'
 import { useQueryClient } from '@tanstack/react-query'
-import { articlesApi, type Article } from '@gaido/api-client/api/client'
+import { articlesApi, sanitizeArticleSlugInput, type Article } from '@gaido/api-client/api/client'
 import { ImageUrlField } from './ImageUrlField'
 
 const RichTextEditor = lazyRichTextEditor(() => import('./RichTextEditor'))
@@ -68,7 +68,7 @@ export function ArticlesEditor({ apiBase }: Props) {
     try {
       const body = {
         title: draft.title,
-        slug: draft.slug ?? '',
+        slug: sanitizeArticleSlugInput(draft.slug),
         excerpt: draft.excerpt ?? '',
         body_html: draft.body_html,
         cover_image_url: draft.cover_image_url ?? '',
@@ -148,7 +148,7 @@ export function ArticlesEditor({ apiBase }: Props) {
       </aside>
 
       <div className="card space-y-4">
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className={`grid gap-4 ${apiBase === 'guide' ? '' : 'md:grid-cols-2'}`}>
           <label className="block space-y-1">
             <span className="text-sm font-medium">Заголовок</span>
             <input
@@ -157,15 +157,19 @@ export function ArticlesEditor({ apiBase }: Props) {
               onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))}
             />
           </label>
-          <label className="block space-y-1">
-            <span className="text-sm font-medium">Slug (URL)</span>
-            <input
-              className="input w-full"
-              value={draft.slug ?? ''}
-              placeholder="авто з заголовка"
-              onChange={(e) => setDraft((d) => ({ ...d, slug: e.target.value }))}
-            />
-          </label>
+          {apiBase !== 'guide' && (
+            <label className="block space-y-1">
+              <span className="text-sm font-medium">Адреса в журналі</span>
+              <input
+                className="input w-full"
+                name="article-slug"
+                autoComplete="off"
+                value={draft.slug ?? ''}
+                placeholder="авто з заголовка"
+                onChange={(e) => setDraft((d) => ({ ...d, slug: e.target.value }))}
+              />
+            </label>
+          )}
         </div>
 
         <label className="block space-y-1">

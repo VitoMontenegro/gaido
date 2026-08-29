@@ -58,6 +58,38 @@ func transliterateCyrillic(s string) string {
 	return b.String()
 }
 
+const maxArticleSlugLen = 80
+
+// ArticleSlug — публічний slug статті: відкидає URL, транслітерує кирилицю.
+func ArticleSlug(raw, title string) string {
+	src := strings.TrimSpace(raw)
+	if !safeArticleSlugInput(src) {
+		src = strings.TrimSpace(title)
+	}
+	out := asciiSlug(normalizeCityName(src))
+	if out == "" {
+		out = asciiSlug(normalizeCityName(title))
+	}
+	if out == "" {
+		return "article"
+	}
+	if len(out) > maxArticleSlugLen {
+		out = strings.Trim(out[:maxArticleSlugLen], "-")
+	}
+	return out
+}
+
+func safeArticleSlugInput(s string) bool {
+	if s == "" {
+		return false
+	}
+	lower := strings.ToLower(s)
+	if strings.Contains(s, "://") || strings.ContainsAny(s, `/\#?`) {
+		return false
+	}
+	return !strings.HasPrefix(lower, "http:") && !strings.HasPrefix(lower, "https:")
+}
+
 func asciiSlug(s string) string {
 	s = strings.ToLower(strings.TrimSpace(s))
 	s = strings.ReplaceAll(s, "'", "")
