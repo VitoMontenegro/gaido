@@ -46,7 +46,7 @@ type TabId = 'basic' | 'media' | 'route' | 'video' | 'locations' | 'comfort' | '
 
 const TABS: { id: TabId; label: string }[] = [
   { id: 'basic', label: 'Основне' },
-  { id: 'media', label: 'Фото' },
+  { id: 'media', label: 'Фото шапки' },
   { id: 'route', label: 'Маршрут' },
   { id: 'video', label: 'Відео' },
   { id: 'locations', label: 'Фото-локації' },
