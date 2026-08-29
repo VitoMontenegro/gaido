@@ -124,11 +124,6 @@ export function JournalArticlePage() {
           {article.excerpt && (
             <p className="mt-4 text-lg leading-relaxed text-muted">{article.excerpt}</p>
           )}
-          {article.author && (
-            <div className="article-byline-panel mt-8">
-              <ArticleAuthorByline author={article.author} />
-            </div>
-          )}
           <div
             className="excursion-body mt-8"
             dangerouslySetInnerHTML={{ __html: sanitizeHtml(article.body_html) }}
