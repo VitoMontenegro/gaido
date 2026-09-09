@@ -135,5 +135,13 @@ if [ -f "$APP_ROOT/repo/deploy/systemd/tourister-api.service" ]; then
   systemctl daemon-reload
   systemctl enable tourister-api
 fi
+if [ -f "$APP_ROOT/repo/deploy/systemd/tourister-backup.timer" ]; then
+  cp "$APP_ROOT/repo/deploy/systemd/tourister-backup.service" /etc/systemd/system/
+  cp "$APP_ROOT/repo/deploy/systemd/tourister-backup.timer" /etc/systemd/system/
+  touch "$APP_ROOT/logs/backup.log"
+  chown deploy:deploy "$APP_ROOT/logs/backup.log"
+  systemctl daemon-reload
+  systemctl enable --now tourister-backup.timer
+fi
 
 echo "== bootstrap done =="

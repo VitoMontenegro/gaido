@@ -1,0 +1,19 @@
+[Unit]
+Description=Tourister PostgreSQL backup (zip)
+After=postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=oneshot
+User=deploy
+Group=deploy
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+Environment=APP_ROOT=/var/www/tourister
+Environment=BACKUP_DIR=/var/www/tourister/backups
+Environment=BACKUP_ENV_FILE=/var/www/tourister/.env
+Environment=PATH=/usr/pgsql-14/bin:/usr/bin:/bin
+ExecStart=/var/www/tourister/bin/backup-db.sh
+StandardOutput=append:/var/www/tourister/logs/backup.log
+StandardError=append:/var/www/tourister/logs/backup.log

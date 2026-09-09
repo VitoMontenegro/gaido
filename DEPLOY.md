@@ -239,18 +239,20 @@ server {
 deploy ALL=(ALL) NOPASSWD: /bin/systemctl restart tourister-api, /bin/systemctl status tourister-api
 ```
 
-### 1.6. `scripts/backup-db.sh`
+### 1.6. Бэкап БД (`scripts/backup-db.sh`)
+
+Ежедневно в 03:00 (systemd `tourister-backup.timer`) — zip в `/var/www/tourister/backups/`.
+В архиве: `tourister.sql` (plain, `--no-owner --no-acl --clean`), `restore.sh`, `MANIFEST.txt`.
+Хранение 14 дней. Медиа (`storage/`) в zip не входит.
 
 ```bash
-#!/usr/bin/env bash
-set -euo pipefail
-BACKUP_DIR="${BACKUP_DIR:-/var/www/tourister/backups}"
-mkdir -p "$BACKUP_DIR"
-pg_dump -U tourister tourister | gzip > "$BACKUP_DIR/tourister-$(date +%F-%H%M).sql.gz"
-find "$BACKUP_DIR" -name '*.sql.gz' -mtime +14 -delete
-```
+# на проде: первый запуск + таймер
+/var/www/tourister/repo/scripts/backup-db.sh --install
 
-Cron: `0 3 * * * /var/www/tourister/repo/scripts/backup-db.sh`
+# восстановить на любом сервере (БД уже создана)
+DATABASE_URL=postgres://tourister:PASS@127.0.0.1:5432/tourister \
+  ./scripts/restore-db.sh /path/to/tourister-db-YYYY-MM-DD-HHMMSSZ.zip
+```
 
 ### 1.7. Backend — endpoint деплоя
 
