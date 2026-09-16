@@ -31,6 +31,25 @@ const guideProfileSelect = `id, user_id, guide_type, first_name, last_name, disp
 const catalogEligibleGuideSQL = ` AND COALESCE(TRIM(avatar_url), '') <> ''
 AND EXISTS (SELECT 1 FROM excursions e WHERE e.guide_id = guide_profiles.id AND e.status = 'PUBLISHED')`
 
+// Published excursion in the country, or no published tours but that country is set on the profile.
+const catalogCountryGuidesUnion = `
+SELECT DISTINCT c.country_id, e.guide_id
+FROM excursions e
+JOIN cities c ON c.id = e.city_id AND c.is_active = true
+WHERE e.status = 'PUBLISHED'
+UNION
+SELECT gco.country_id, gco.guide_id
+FROM guide_countries gco
+WHERE gco.is_active = true
+  AND NOT EXISTS (SELECT 1 FROM excursions e WHERE e.guide_id = gco.guide_id AND e.status = 'PUBLISHED')
+UNION
+SELECT gp.country_id, gp.id
+FROM guide_profiles gp
+WHERE gp.country_id IS NOT NULL
+  AND NOT EXISTS (SELECT 1 FROM guide_countries gco WHERE gco.guide_id = gp.id AND gco.is_active = true)
+  AND NOT EXISTS (SELECT 1 FROM excursions e WHERE e.guide_id = gp.id AND e.status = 'PUBLISHED')
+`
+
 func catalogEligibleClause(catalogOnly bool) string {
 	if catalogOnly {
 		return catalogEligibleGuideSQL
@@ -172,9 +191,7 @@ func (r *GuideRepo) ListPublic(ctx context.Context, cityID, countryID *int64, gu
 	}
 	if countryID != nil {
 		q += fmt.Sprintf(` AND id IN (
-			SELECT e.guide_id FROM excursions e
-			JOIN cities c ON c.id=e.city_id AND c.is_active=true
-			WHERE e.status='PUBLISHED' AND c.country_id=$%d
+			SELECT guide_id FROM (`+catalogCountryGuidesUnion+`) ccg WHERE country_id=$%d
 		)`, n)
 		args = append(args, *countryID)
 		n++
