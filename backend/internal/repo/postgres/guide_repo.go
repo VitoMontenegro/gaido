@@ -31,23 +31,25 @@ const guideProfileSelect = `id, user_id, guide_type, first_name, last_name, disp
 const catalogEligibleGuideSQL = ` AND COALESCE(TRIM(avatar_url), '') <> ''
 AND EXISTS (SELECT 1 FROM excursions e WHERE e.guide_id = guide_profiles.id AND e.status = 'PUBLISHED')`
 
-// Published excursion in the country, or no published tours but that country is set on the profile.
+// Excursion in the country (published or draft), or no such tours but that country is set on the profile.
+const catalogCountryExcursionSQL = `e.status IN ('PUBLISHED', 'DRAFT')`
+
 const catalogCountryGuidesUnion = `
 SELECT DISTINCT c.country_id, e.guide_id
 FROM excursions e
 JOIN cities c ON c.id = e.city_id AND c.is_active = true
-WHERE e.status = 'PUBLISHED'
+WHERE ` + catalogCountryExcursionSQL + `
 UNION
 SELECT gco.country_id, gco.guide_id
 FROM guide_countries gco
 WHERE gco.is_active = true
-  AND NOT EXISTS (SELECT 1 FROM excursions e WHERE e.guide_id = gco.guide_id AND e.status = 'PUBLISHED')
+  AND NOT EXISTS (SELECT 1 FROM excursions e WHERE e.guide_id = gco.guide_id AND ` + catalogCountryExcursionSQL + `)
 UNION
 SELECT gp.country_id, gp.id
 FROM guide_profiles gp
 WHERE gp.country_id IS NOT NULL
   AND NOT EXISTS (SELECT 1 FROM guide_countries gco WHERE gco.guide_id = gp.id AND gco.is_active = true)
-  AND NOT EXISTS (SELECT 1 FROM excursions e WHERE e.guide_id = gp.id AND e.status = 'PUBLISHED')
+  AND NOT EXISTS (SELECT 1 FROM excursions e WHERE e.guide_id = gp.id AND ` + catalogCountryExcursionSQL + `)
 `
 
 func catalogEligibleClause(catalogOnly bool) string {
