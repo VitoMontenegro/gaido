@@ -103,40 +103,16 @@ func (r *GeoRepo) ListCountries(ctx context.Context) ([]Country, error) {
 
 func (r *GeoRepo) ListCountriesWithGuideCount(ctx context.Context) ([]CountryWithGuideCount, error) {
 	rows, err := r.db.Pool.Query(ctx, `
-		WITH guide_effective_countries AS (
-			SELECT DISTINCT c.country_id, e.guide_id
-			FROM excursions e
-			JOIN cities c ON c.id = e.city_id AND c.is_active = true
-			JOIN guide_profiles gp ON gp.id = e.guide_id AND gp.status = $1
-			WHERE e.status = 'PUBLISHED'
-			UNION
-			SELECT DISTINCT c.country_id, gc.guide_id
-			FROM guide_cities gc
-			JOIN cities c ON c.id = gc.city_id AND c.is_active = true
-			JOIN guide_profiles gp ON gp.id = gc.guide_id AND gp.status = $1
-			WHERE gc.is_active = true
-			UNION
-			SELECT gco.country_id, gco.guide_id
-			FROM guide_countries gco
-			JOIN guide_profiles gp ON gp.id = gco.guide_id AND gp.status = $1
-			WHERE gco.is_active = true
-			UNION
-			SELECT gp.country_id, gp.id
-			FROM guide_profiles gp
-			WHERE gp.status = $1
-			AND gp.country_id IS NOT NULL
-			AND NOT EXISTS (
-				SELECT 1 FROM guide_countries gco WHERE gco.guide_id = gp.id AND gco.is_active = true
-			)
-		)
-		SELECT co.id, co.slug, co.name, COUNT(DISTINCT gec.guide_id)::int
+		SELECT co.id, co.slug, co.name, COUNT(DISTINCT e.guide_id)::int
 		FROM countries co
-		JOIN guide_effective_countries gec ON gec.country_id = co.id
+		JOIN cities c ON c.country_id = co.id AND c.is_active = true
+		JOIN excursions e ON e.city_id = c.id AND e.status = $2
+		JOIN guide_profiles gp ON gp.id = e.guide_id AND gp.status = $1
 		WHERE co.is_active = true
 		GROUP BY co.id, co.slug, co.name
-		HAVING COUNT(DISTINCT gec.guide_id) > 0
-		ORDER BY COUNT(DISTINCT gec.guide_id) DESC, co.name ASC
-	`, domain.GuideStatusActive)
+		HAVING COUNT(DISTINCT e.guide_id) > 0
+		ORDER BY COUNT(DISTINCT e.guide_id) DESC, co.name ASC
+	`, domain.GuideStatusActive, domain.ExcursionPublished)
 	if err != nil {
 		return nil, err
 	}
