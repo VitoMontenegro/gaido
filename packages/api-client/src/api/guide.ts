@@ -1,3 +1,4 @@
+import { catalogApi } from './catalog'
 import { api } from './http'
 import type { GuideDashboard } from './types/catalog'
 
@@ -42,8 +43,5 @@ export const guideApi = {
   deleteExcursion: (id: number) =>
     api(`/api/v1/account/guide/excursions/${id}`, { method: 'DELETE' }),
   createGeoCity: (body: { country_slug: string; name: string; latitude?: number; longitude?: number }) =>
-    api<{ id: number; name: string; created: boolean }>('/api/v1/account/guide/geo/cities', {
-      method: 'POST',
-      body: JSON.stringify(body),
-    }),
+    catalogApi.createGeoCity(body),
 }

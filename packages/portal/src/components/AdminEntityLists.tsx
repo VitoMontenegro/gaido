@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { adminApi, userDisplayName, type AdminCarrier, type AdminExcursion, type AdminGuide, type AdminReview, type AdminTransportRide, type AdminUser } from '@gaido/api-client/api/client'
-import { isTransportSite, transportUrl } from '@gaido/site-urls/site'
+import { adminApi, userDisplayName, type AdminCarrier, type AdminExcursion, type AdminGuide, type AdminProvider, type AdminOffering, type AdminComplaint, type AdminReview, type AdminTransportRide, type AdminUser } from '@gaido/api-client/api/client'
+import { isTransportSite, isServicesSite, transportUrl, servicesUrl } from '@gaido/site-urls/site'
 import { useMe } from '@gaido/api-client/hooks/useAuth'
 import { formatPrice } from './excursionUi'
 import GuideAvatar from './GuideAvatar'
@@ -12,13 +12,21 @@ function statusBadge(status: string) {
   const map: Record<string, string> = {
     ACTIVE: 'bg-emerald-50 text-emerald-700',
     PUBLISHED: 'bg-emerald-50 text-emerald-700',
+    VERIFIED: 'bg-emerald-50 text-emerald-700',
     PENDING: 'bg-amber-50 text-amber-800',
     PENDING_MODERATION: 'bg-amber-50 text-amber-800',
     WAITING_PAYMENT: 'bg-amber-50 text-amber-800',
+    MODERATION: 'bg-amber-50 text-amber-800',
+    NEED_INFO: 'bg-amber-50 text-amber-800',
+    NEW: 'bg-amber-50 text-amber-800',
+    OPEN: 'bg-amber-50 text-amber-800',
     DRAFT: 'bg-sand-100 text-stone-600',
     REJECTED: 'bg-red-50 text-red-700',
     BLOCKED: 'bg-red-50 text-red-700',
     EXPIRED: 'bg-stone-100 text-stone-600',
+    SUSPENDED: 'bg-red-50 text-red-700',
+    RESOLVED: 'bg-emerald-50 text-emerald-700',
+    DISMISSED: 'bg-stone-100 text-stone-600',
   }
   return map[status] ?? 'bg-sand-100 text-stone-600'
 }
@@ -27,13 +35,21 @@ function statusLabel(status: string) {
   const map: Record<string, string> = {
     ACTIVE: 'Активний',
     PUBLISHED: 'Опубліковано',
+    VERIFIED: 'Верифіковано',
     PENDING: 'Очікує',
     PENDING_MODERATION: 'На модерації',
     WAITING_PAYMENT: 'Очікує оплату',
+    MODERATION: 'На модерації',
+    NEED_INFO: 'Потрібні дані',
+    NEW: 'Новий',
+    OPEN: 'Відкрита',
     DRAFT: 'Чернетка',
     REJECTED: 'Відхилено',
     BLOCKED: 'Заблоковано',
     EXPIRED: 'Закінчився',
+    SUSPENDED: 'Призупинено',
+    RESOLVED: 'Вирішено',
+    DISMISSED: 'Відхилено',
   }
   return map[status] ?? status
 }
@@ -167,10 +183,9 @@ export function AdminGuidesList({ statusFilter }: { statusFilter?: string }) {
     mutationFn: (id: number) => adminApi.deleteGuide(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin-guides'] })
-      qc.invalidateQueries({ queryKey: ['admin-excursions'] })
-      qc.invalidateQueries({ queryKey: ['analytics'] })
-      qc.invalidateQueries({ queryKey: ['excursions'] })
+      qc.invalidateQueries({ queryKey: ['guides'] })
       qc.invalidateQueries({ queryKey: ['site'] })
+      qc.invalidateQueries({ queryKey: ['analytics'] })
     },
   })
 
@@ -206,7 +221,7 @@ export function AdminGuidesList({ statusFilter }: { statusFilter?: string }) {
                 <p className="font-medium">{g.display_name}</p>
                 <p className="text-sm text-stone-500">/{g.slug}</p>
               </div>
-              <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${guideTypeBadgeClass(g)}`}>
+              <span className={`rounded-full bg-teal/10 px-2 py-0.5 text-xs font-medium ${guideTypeBadgeClass(g)}`}>
                 {guideTypeBadgeLabel(g)}
               </span>
               <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusBadge(g.status)}`}>
@@ -216,7 +231,7 @@ export function AdminGuidesList({ statusFilter }: { statusFilter?: string }) {
                 {guideNeedsApproval(g.status) && (
                   <button
                     type="button"
-                    className="rounded-lg border border-emerald-200 px-2 py-1 text-xs text-emerald-800 hover:bg-emerald-50 disabled:opacity-50"
+                    className="rounded-lg border border-emerald/200 px-2 py-1 text-xs text-emerald-800 hover:bg-emerald/50 disabled:opacity-50"
                     disabled={approve.isPending || !placementPlanId}
                     title={placementPlanId ? undefined : 'Немає тарифного плану'}
                     onClick={() => {
@@ -478,22 +493,22 @@ export function AdminCarriersList({ statusFilter }: { statusFilter?: string }) {
                   {c.phone ? ` · ${c.phone}` : ''}
                 </p>
               </div>
-              <span className="rounded-full bg-sand-100 px-2 py-0.5 text-xs font-medium text-stone-600">
+              <span className="rounded-full bg-sand/10 px-2 py-0.5 text-xs font-medium text-stone-600">
                 {carrierTypeLabel(c.carrier_type)}
               </span>
               <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusBadge(c.status.toUpperCase())}`}>
                 {carrierStatusLabel(c.status)}
               </span>
               {c.subscription_active ? (
-                <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">Підписка</span>
+                <span className="rounded-full bg-emerald/50 px-2 py-0.5 text-xs font-medium text-emerald-700">Підписка</span>
               ) : (
-                <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800">Без підписки</span>
+                <span className="rounded-full bg-amber/50 px-2 py-0.5 text-xs font-medium text-amber-800">Без підписки</span>
               )}
               <div className="flex flex-wrap items-center gap-2">
                 {c.status === 'pending' && (
                   <button
                     type="button"
-                    className="rounded-lg border border-emerald-200 px-2 py-1 text-xs text-emerald-800 hover:bg-emerald-50 disabled:opacity-50"
+                    className="rounded-lg border border-emerald/200 px-2 py-1 text-xs text-emerald-800 hover:bg-emerald/50 disabled:opacity-50"
                     disabled={update.isPending}
                     onClick={() => update.mutate({ id: c.provider_id, patch: { status: 'published' } })}
                   >
@@ -503,7 +518,7 @@ export function AdminCarriersList({ statusFilter }: { statusFilter?: string }) {
                 {c.status === 'published' && (
                   <button
                     type="button"
-                    className="rounded-lg border border-amber-200 px-2 py-1 text-xs text-amber-800 hover:bg-amber-50 disabled:opacity-50"
+                    className="rounded-lg border border-amber/200 px-2 py-1 text-xs text-amber-800 hover:bg-amber/50 disabled:opacity-50"
                     disabled={update.isPending}
                     onClick={() => update.mutate({ id: c.provider_id, patch: { status: 'suspended' } })}
                   >
@@ -513,7 +528,7 @@ export function AdminCarriersList({ statusFilter }: { statusFilter?: string }) {
                 {(c.status === 'suspended' || c.status === 'draft') && (
                   <button
                     type="button"
-                    className="rounded-lg border border-emerald-200 px-2 py-1 text-xs text-emerald-800 hover:bg-emerald-50 disabled:opacity-50"
+                    className="rounded-lg border border-emerald/200 px-2 py-1 text-xs text-emerald-800 hover:bg-emerald/50 disabled:opacity-50"
                     disabled={update.isPending}
                     onClick={() => update.mutate({ id: c.provider_id, patch: { status: 'published' } })}
                   >
@@ -553,7 +568,7 @@ export function AdminCarriersList({ statusFilter }: { statusFilter?: string }) {
                   <button
                     key={field}
                     type="button"
-                    className={`rounded-lg border px-2 py-0.5 ${val === 'verified' ? 'border-emerald-200 text-emerald-700' : 'border-border text-stone-600 hover:bg-sand-50'}`}
+                    className={`rounded-lg border px-2 py-0.5 ${val === 'verified' ? 'border-emerald/200 text-emerald-700' : 'border-border text-stone-600 hover:bg-sand/50'}`}
                     disabled={update.isPending}
                     onClick={() => {
                       const next = val === 'verified' ? 'pending' : 'verified'
@@ -617,15 +632,15 @@ export function AdminTransportRidesList({ statusFilter }: { statusFilter?: strin
             <div className="flex flex-wrap items-center gap-2">
               {ride.status === 'pending' && (
                 <>
-                  <button type="button" className="rounded-lg border border-emerald-200 px-2 py-1 text-xs text-emerald-800 hover:bg-emerald-50 disabled:opacity-50" disabled={update.isPending} onClick={() => update.mutate({ id: ride.id, status: 'published' })}>Схвалити</button>
-                  <button type="button" className="rounded-lg border border-red-200 px-2 py-1 text-xs text-red-700 hover:bg-red-50 disabled:opacity-50" disabled={update.isPending} onClick={() => update.mutate({ id: ride.id, status: 'rejected' })}>Відхилити</button>
+                  <button type="button" className="rounded-lg border border-emerald/200 px-2 py-1 text-xs text-emerald-800 hover:bg-emerald/50 disabled:opacity-50" disabled={update.isPending} onClick={() => update.mutate({ id: ride.id, status: 'published' })}>Схвалити</button>
+                  <button type="button" className="rounded-lg border border-red/200 px-2 py-1 text-xs text-red-700 hover:bg-red-50 disabled:opacity-50" disabled={update.isPending} onClick={() => update.mutate({ id: ride.id, status: 'rejected' })}>Відхилити</button>
                 </>
               )}
               {ride.status === 'published' && (
-                <button type="button" className="rounded-lg border border-amber-200 px-2 py-1 text-xs text-amber-800 hover:bg-amber-50 disabled:opacity-50" disabled={update.isPending} onClick={() => update.mutate({ id: ride.id, status: 'draft' })}>Зняти</button>
+                <button type="button" className="rounded-lg border border-amber/200 px-2 py-1 text-xs text-amber-800 hover:bg-amber/50 disabled:opacity-50" disabled={update.isPending} onClick={() => update.mutate({ id: ride.id, status: 'draft' })}>Зняти</button>
               )}
               {(ride.status === 'rejected' || ride.status === 'draft') && (
-                <button type="button" className="rounded-lg border border-emerald-200 px-2 py-1 text-xs text-emerald-800 hover:bg-emerald-50 disabled:opacity-50" disabled={update.isPending} onClick={() => update.mutate({ id: ride.id, status: 'published' })}>Опублікувати</button>
+                <button type="button" className="rounded-lg border border-emerald/200 px-2 py-1 text-xs text-emerald-800 hover:bg-emerald/50 disabled:opacity-50" disabled={update.isPending} onClick={() => update.mutate({ id: ride.id, status: 'published' })}>Опублікувати</button>
               )}
               {isTransportSite() ? (
                 <Link to={`/rides/${ride.id}`} className="text-sm text-teal hover:underline" target="_blank" rel="noreferrer">Vezu</Link>
@@ -639,6 +654,336 @@ export function AdminTransportRidesList({ statusFilter }: { statusFilter?: strin
           <li className="px-4 py-6 text-sm text-stone-500">Рейсів не знайдено. Для демо: LOCAL_SEED=1 ./restart-local.sh</li>
         )}
       </ul>
+    </ListShell>
+  )
+}
+
+// Marketplace (servis) components
+
+export function AdminProvidersList({ statusFilter }: { statusFilter?: string }) {
+  const qc = useQueryClient()
+  const { data, isLoading, isError, error } = useQuery({
+    queryKey: ['admin-providers', statusFilter ?? 'all'],
+    queryFn: () => adminApi.providers(statusFilter ? { status: statusFilter } : undefined),
+  })
+
+  const update = useMutation({
+    mutationFn: ({ id, status }: { id: number; status: string }) => adminApi.updateProvider(id, { status }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-providers'] })
+      qc.invalidateQueries({ queryKey: ['analytics'] })
+    },
+  })
+
+  const title = statusFilter === 'verified'
+    ? 'Верифіковані автори'
+    : statusFilter === 'moderation'
+      ? 'Автори на модерації'
+      : statusFilter === 'new'
+        ? 'Нові автори'
+        : statusFilter === 'blocked'
+          ? 'Заблоковані автори'
+          : 'Автори оголошень'
+
+  if (isLoading) return <ListShell title={title}>Завантаження…</ListShell>
+  if (isError) return <ListShell title={title}>{error?.message ?? 'Помилка'}</ListShell>
+
+  return (
+    <ListShell title={title} count={(data?.items ?? []).length}>
+      <table className="w-full min-w-[720px] text-sm">
+        <thead>
+          <tr className="border-b border-divider bg-sand-50 text-left text-stone-500">
+            <th className="px-4 py-2 font-medium">#</th>
+            <th className="px-4 py-2 font-medium">Назва</th>
+            <th className="px-4 py-2 font-medium">Користувач</th>
+            <th className="px-4 py-2 font-medium">Email</th>
+            <th className="px-4 py-2 font-medium">Рейтинг</th>
+            <th className="px-4 py-2 font-medium">Статус</th>
+            <th className="px-4 py-2 font-medium" />
+          </tr>
+        </thead>
+        <tbody>
+          {(data?.items ?? []).map((p: AdminProvider) => (
+            <tr key={p.id} className="border-b border-divider last:border-0">
+              <td className="px-4 py-2.5">{p.id}</td>
+              <td className="px-4 py-2.5 font-medium">{p.display_name}</td>
+              <td className="px-4 py-2.5 text-stone-600">{p.login}</td>
+              <td className="px-4 py-2.5 text-sm text-stone-500">{p.email}</td>
+              <td className="px-4 py-2.5">
+                {p.rating_avg > 0 ? (
+                  <span className="text-amber-600">{'★'.repeat(Math.max(1, Math.round(p.rating_avg)))} ({p.rating_count})</span>
+                ) : (
+                  '—'
+                )}
+              </td>
+              <td className="px-4 py-2.5">
+                <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusBadge(p.status.toUpperCase())}`}>
+                  {statusLabel(p.status.toUpperCase())}
+                </span>
+              </td>
+              <td className="px-4 py-2.5 text-right">
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  {(p.status === 'new' || p.status === 'moderation' || p.status === 'need_info') && (
+                    <button
+                      type="button"
+                      className="rounded-lg border border-emerald-200 px-2 py-1 text-xs text-emerald-800 hover:bg-emerald-50 disabled:opacity-50"
+                      disabled={update.isPending}
+                      onClick={() => update.mutate({ id: p.id, status: 'verified' })}
+                    >
+                      Схвалити
+                    </button>
+                  )}
+                  {p.status === 'verified' && (
+                    <button
+                      type="button"
+                      className="rounded-lg border border-amber-200 px-2 py-1 text-xs text-amber-800 hover:bg-amber-50 disabled:opacity-50"
+                      disabled={update.isPending}
+                      onClick={() => update.mutate({ id: p.id, status: 'blocked' })}
+                    >
+                      Заблокувати
+                    </button>
+                  )}
+                  {p.status === 'blocked' && (
+                    <button
+                      type="button"
+                      className="rounded-lg border border-emerald-200 px-2 py-1 text-xs text-emerald-800 hover:bg-emerald-50 disabled:opacity-50"
+                      disabled={update.isPending}
+                      onClick={() => update.mutate({ id: p.id, status: 'verified' })}
+                    >
+                      Розблокувати
+                    </button>
+                  )}
+                  {isServicesSite() ? (
+                    <Link to={`/provider/${p.website_slug}`} className="text-sm text-teal hover:underline" target="_blank" rel="noreferrer">
+                      Servis
+                    </Link>
+                  ) : (
+                    <a href={servicesUrl(`/provider/${p.website_slug}`)} className="text-sm text-teal hover:underline" target="_blank" rel="noreferrer">
+                      Servis
+                    </a>
+                  )}
+                </div>
+              </td>
+            </tr>
+          ))}
+          {(data?.items ?? []).length === 0 && (
+            <tr>
+              <td colSpan={7} className="px-4 py-6 text-sm text-stone-500">Авторів не знайдено</td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </ListShell>
+  )
+}
+
+export function AdminOfferingsList({ statusFilter }: { statusFilter?: string }) {
+  const qc = useQueryClient()
+  const { data, isLoading, isError, error } = useQuery({
+    queryKey: ['admin-offerings', statusFilter ?? 'all'],
+    queryFn: () => adminApi.offerings(statusFilter ? { status: statusFilter } : undefined),
+  })
+
+  const update = useMutation({
+    mutationFn: ({ id, status }: { id: number; status: string }) => adminApi.updateOffering(id, { status }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-offerings'] })
+      qc.invalidateQueries({ queryKey: ['analytics'] })
+    },
+  })
+
+  const title = statusFilter === 'published'
+    ? 'Опубліковані оголошення'
+    : statusFilter === 'draft'
+      ? 'Чернетки оголошень'
+      : statusFilter === 'rejected'
+        ? 'Відхилені оголошення'
+        : 'Оголошення'
+
+  if (isLoading) return <ListShell title={title}>Завантаження…</ListShell>
+  if (isError) return <ListShell title={title}>{error?.message ?? 'Помилка'}</ListShell>
+
+  return (
+    <ListShell title={title} count={(data?.items ?? []).length}>
+      <table className="w-full min-w-[720px] text-sm">
+        <thead>
+          <tr className="border-b border-divider bg-sand-50 text-left text-stone-500">
+            <th className="px-4 py-2 font-medium">#</th>
+            <th className="px-4 py-2 font-medium">Назва</th>
+            <th className="px-4 py-2 font-medium">Провайдер</th>
+            <th className="px-4 py-2 font-medium">Категорія</th>
+            <th className="px-4 py-2 font-medium">Ціна</th>
+            <th className="px-4 py-2 font-medium">Статус</th>
+            <th className="px-4 py-2 font-medium" />
+          </tr>
+        </thead>
+        <tbody>
+          {(data?.items ?? []).map((o: AdminOffering) => (
+            <tr key={o.id} className="border-b border-divider last:border-0">
+              <td className="px-4 py-2.5">{o.id}</td>
+              <td className="px-4 py-2.5">
+                <p className="font-medium">{o.title}</p>
+                <p className="text-xs text-stone-500">/{o.slug}</p>
+              </td>
+              <td className="px-4 py-2.5 text-stone-600">{o.provider_name}</td>
+              <td className="px-4 py-2.5 text-sm text-stone-500">{o.category_name || o.service_name || '—'}</td>
+              <td className="px-4 py-2.5">—</td>
+              <td className="px-4 py-2.5">
+                <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusBadge(o.status.toUpperCase())}`}>
+                  {statusLabel(o.status.toUpperCase())}
+                </span>
+              </td>
+              <td className="px-4 py-2.5 text-right">
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  {o.status === 'draft' && (
+                    <>
+                      <button
+                        type="button"
+                        className="rounded-lg border border-emerald-200 px-2 py-1 text-xs text-emerald-800 hover:bg-emerald-50 disabled:opacity-50"
+                        disabled={update.isPending}
+                        onClick={() => update.mutate({ id: o.id, status: 'published' })}
+                      >
+                        Опублікувати
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded-lg border border-red-200 px-2 py-1 text-xs text-red-700 hover:bg-red-50 disabled:opacity-50"
+                        disabled={update.isPending}
+                        onClick={() => update.mutate({ id: o.id, status: 'rejected' })}
+                      >
+                        Відхилити
+                      </button>
+                    </>
+                  )}
+                  {o.status === 'published' && (
+                    <button
+                      type="button"
+                      className="rounded-lg border border-amber-200 px-2 py-1 text-xs text-amber-800 hover:bg-amber-50 disabled:opacity-50"
+                      disabled={update.isPending}
+                      onClick={() => update.mutate({ id: o.id, status: 'rejected' })}
+                    >
+                      Зняти
+                    </button>
+                  )}
+                  {o.status === 'rejected' && (
+                    <button
+                      type="button"
+                      className="rounded-lg border border-emerald-200 px-2 py-1 text-xs text-emerald-800 hover:bg-emerald-50 disabled:opacity-50"
+                      disabled={update.isPending}
+                      onClick={() => update.mutate({ id: o.id, status: 'published' })}
+                    >
+                      Опублікувати
+                    </button>
+                  )}
+                  {isServicesSite() ? (
+                    <Link to={`/provider/${o.provider_slug}`} className="text-sm text-teal hover:underline" target="_blank" rel="noreferrer">
+                      Servis
+                    </Link>
+                  ) : (
+                    <a href={servicesUrl(`/provider/${o.provider_slug}`)} className="text-sm text-teal hover:underline" target="_blank" rel="noreferrer">
+                      Servis
+                    </a>
+                  )}
+                </div>
+              </td>
+            </tr>
+          ))}
+          {(data?.items ?? []).length === 0 && (
+            <tr>
+              <td colSpan={7} className="px-4 py-6 text-sm text-stone-500">Оголошень не знайдено</td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </ListShell>
+  )
+}
+
+export function AdminComplaintsList({ statusFilter }: { statusFilter?: string }) {
+  const qc = useQueryClient()
+  const { data, isLoading, isError, error } = useQuery({
+    queryKey: ['admin-complaints', statusFilter ?? 'all'],
+    queryFn: () => adminApi.complaints(statusFilter ? { status: statusFilter } : undefined),
+  })
+
+  const update = useMutation({
+    mutationFn: ({ id, status }: { id: number; status: string }) => adminApi.updateComplaint(id, { status }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-complaints'] })
+      qc.invalidateQueries({ queryKey: ['analytics'] })
+    },
+  })
+
+  const title = statusFilter === 'open'
+    ? 'Відкриті скарги'
+    : statusFilter === 'resolved'
+      ? 'Вирішені скарги'
+      : statusFilter === 'dismissed'
+        ? 'Відхилені скарги'
+        : 'Скарги'
+
+  if (isLoading) return <ListShell title={title}>Завантаження…</ListShell>
+  if (isError) return <ListShell title={title}>{error?.message ?? 'Помилка'}</ListShell>
+
+  return (
+    <ListShell title={title} count={(data?.items ?? []).length}>
+      <table className="w-full min-w-[720px] text-sm">
+        <thead>
+          <tr className="border-b border-divider bg-sand-50 text-left text-stone-500">
+            <th className="px-4 py-2 font-medium">#</th>
+            <th className="px-4 py-2 font-medium">Автор</th>
+            <th className="px-4 py-2 font-medium">Тип</th>
+            <th className="px-4 py-2 font-medium">Причина</th>
+            <th className="px-4 py-2 font-medium">Статус</th>
+            <th className="px-4 py-2 font-medium" />
+          </tr>
+        </thead>
+        <tbody>
+          {(data?.items ?? []).map((c: AdminComplaint) => (
+            <tr key={c.id} className="border-b border-divider last:border-0">
+              <td className="px-4 py-2.5">{c.id}</td>
+              <td className="px-4 py-2.5">
+                <p className="font-medium">{c.reporter_login}</p>
+                <p className="text-xs text-stone-500">{c.reporter_email}</p>
+              </td>
+              <td className="px-4 py-2.5 text-stone-600">{c.target_type} #{c.target_id}</td>
+              <td className="px-4 py-2.5 text-sm text-stone-500">{c.reason}</td>
+              <td className="px-4 py-2.5">
+                <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusBadge(c.status.toUpperCase())}`}>
+                  {statusLabel(c.status.toUpperCase())}
+                </span>
+              </td>
+              <td className="px-4 py-2.5 text-right">
+                {c.status === 'open' && (
+                  <div className="flex flex-wrap items-center justify-end gap-2">
+                    <button
+                      type="button"
+                      className="rounded-lg border border-emerald-200 px-2 py-1 text-xs text-emerald-800 hover:bg-emerald-50 disabled:opacity-50"
+                      disabled={update.isPending}
+                      onClick={() => update.mutate({ id: c.id, status: 'resolved' })}
+                    >
+                      Вирішити
+                    </button>
+                    <button
+                      type="button"
+                      className="rounded-lg border border-red-200 px-2 py-1 text-xs text-red-700 hover:bg-red-50 disabled:opacity-50"
+                      disabled={update.isPending}
+                      onClick={() => update.mutate({ id: c.id, status: 'dismissed' })}
+                    >
+                      Відхилити
+                    </button>
+                  </div>
+                )}
+              </td>
+            </tr>
+          ))}
+          {(data?.items ?? []).length === 0 && (
+            <tr>
+              <td colSpan={6} className="px-4 py-6 text-sm text-stone-500">Скарг не знайдено</td>
+            </tr>
+          )}
+        </tbody>
+      </table>
     </ListShell>
   )
 }

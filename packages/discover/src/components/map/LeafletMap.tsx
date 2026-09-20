@@ -24,7 +24,9 @@ export type LeafletMapProps<T extends LatLngPoint> = {
   getTooltip?: (point: T) => string
   renderPopup?: (point: T) => HTMLElement | string
   onMarkerClick?: (point: T) => void
+  onMapClick?: (lat: number, lng: number) => void
   showAttribution?: boolean
+  compact?: boolean
 }
 
 export default function LeafletMap<T extends LatLngPoint>({
@@ -34,19 +36,23 @@ export default function LeafletMap<T extends LatLngPoint>({
   getTooltip,
   renderPopup,
   onMarkerClick,
+  onMapClick,
   showAttribution = true,
+  compact = false,
 }: LeafletMapProps<T>) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
   const onMarkerClickRef = useRef(onMarkerClick)
+  const onMapClickRef = useRef(onMapClick)
   const getTooltipRef = useRef(getTooltip)
   const renderPopupRef = useRef(renderPopup)
 
   useEffect(() => {
     onMarkerClickRef.current = onMarkerClick
+    onMapClickRef.current = onMapClick
     getTooltipRef.current = getTooltip
     renderPopupRef.current = renderPopup
-  }, [onMarkerClick, getTooltip, renderPopup])
+  }, [onMarkerClick, onMapClick, getTooltip, renderPopup])
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return
@@ -66,6 +72,9 @@ export default function LeafletMap<T extends LatLngPoint>({
 
     mapRef.current = map
     const unbindWheel = bindPageFriendlyWheelZoom(map)
+    map.on('click', (e: L.LeafletMouseEvent) => {
+      onMapClickRef.current?.(e.latlng.lat, e.latlng.lng)
+    })
 
     const fixSize = () => map.invalidateSize()
     requestAnimationFrame(fixSize)
@@ -128,10 +137,12 @@ export default function LeafletMap<T extends LatLngPoint>({
 
   return (
     <div className="map-wrap">
-      <div ref={containerRef} className="leaflet-map" />
+      <div ref={containerRef} className={compact ? 'leaflet-map leaflet-map-sm' : 'leaflet-map'} />
       {showAttribution && (
         <p className="mt-2 text-xs text-stone-500">
-          Клікніть на карту, щоб масштабувати колесом · OpenStreetMap
+          {onMapClick
+            ? 'Клікніть на карті, щоб поставити точку · OpenStreetMap'
+            : 'Клікніть на карту, щоб масштабувати колесом · OpenStreetMap'}
         </p>
       )}
     </div>

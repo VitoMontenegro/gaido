@@ -68,6 +68,7 @@ export type PublicProvider = {
   languages: string[]
   has_verified_docs: boolean
   contacts_unlocked: boolean
+  preview?: boolean
   phone?: string
   email?: string
   telegram?: string

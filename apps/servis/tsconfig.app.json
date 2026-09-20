@@ -30,6 +30,6 @@
       "@gaido/transport/*": ["../../packages/transport/src/*"]
     }
   },
-  "include": ["src", "../../packages/discover/src", "../../packages/build-config/vite.app.ts"],
+      "include": ["src", "../../packages/discover/src", "../../packages/portal/src", "../../packages/ui-primitives/src", "../../packages/build-config/vite.app.ts"],
   "exclude": ["../../packages/discover/src/pages/_legacy"]
 }

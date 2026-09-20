@@ -13,21 +13,21 @@ import (
 
 type demoOfferingSpec struct {
 	catSlug, svcSlug, title, slug, description string
-	formats                                      []string
+	formats                                    []string
 	hasAvailability                            bool
-	mobileZone                                   bool
-	transportZone                                bool
+	mobileZone                                 bool
+	transportZone                              bool
 }
 
 type demoProviderSpec struct {
-	login, email, pass, firstName, lastName string
+	login, email, pass, firstName, lastName            string
 	slug, displayName, businessName, profession, about string
-	phone, telegram, responseHours                         string
-	citySlug                                               string
-	pointLabel, district                                   string
-	lat, lng                                               float64
-	languages                                              []string
-	offerings                                              []demoOfferingSpec
+	phone, telegram, responseHours                     string
+	citySlug                                           string
+	pointLabel, district                               string
+	lat, lng                                           float64
+	languages                                          []string
+	offerings                                          []demoOfferingSpec
 }
 
 func (s *Seeder) ensurePlatformDemo(ctx context.Context) error {
@@ -36,6 +36,19 @@ func (s *Seeder) ensurePlatformDemo(ctx context.Context) error {
 	}
 
 	providers := []demoProviderSpec{
+		{
+			login: "translator1", email: "translator1@example.com", pass: "translator123",
+			firstName: "Олександр", lastName: "Перекладач",
+			slug: "oleksandr-translator", displayName: "Олександр Перекладач", businessName: "UA Translate",
+			profession: "Перекладач", about: "Усний і письмовий переклад. Також проводжу екскурсії на Svit.",
+			phone: "+491511000001", telegram: "@oleksandr_tr", responseHours: domain.ResponseUnder1h,
+			citySlug: "berlin", pointLabel: "Berlin Mitte", district: "Mitte", lat: 52.5200, lng: 13.4050,
+			languages: []string{"uk", "de", "en"},
+			offerings: []demoOfferingSpec{
+				{"translation", "translator", "Усний переклад", "interpreter", "Супровід у відомствах, лікарнях, нотаріуса.", []string{domain.FormatOnSite, domain.FormatMobile, domain.FormatOnline}, true, true, false},
+				{"translation", "interpreter", "Письмовий переклад", "written", "Документи, довідки, листування.", []string{domain.FormatOnline}, true, false, false},
+			},
+		},
 		{
 			login: "provider1", email: "provider1@example.com", pass: "provider12345",
 			firstName: "Олена", lastName: "Кравчук",

@@ -1,9 +1,7 @@
 import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { transportApi } from '@gaido/api-client/api/transport'
-import { providerApi } from '@gaido/api-client/api/discover'
 import { resolveMediaUrl } from '@gaido/api-client/api/http'
-import { useMe } from '@gaido/api-client/hooks/useAuth'
 import type { TransportDeparture, TransportListing, TransportListingInput } from '@gaido/api-client/api/types/transport'
 import CitySelect from './CitySelect'
 
@@ -16,7 +14,6 @@ type Props = {
 const emptyDeparture = (): TransportDeparture => ({ depart_on: '', arrive_on: '' })
 
 export default function RideForm({ initial, onSaved, onCancel }: Props) {
-  const { data: me } = useMe()
   const [kind, setKind] = useState<'regular' | 'occasional'>(initial?.kind ?? 'regular')
   const [companyName, setCompanyName] = useState(initial?.company_name ?? '')
   const [driverNames, setDriverNames] = useState(initial?.driver_names ?? '')
@@ -61,13 +58,6 @@ export default function RideForm({ initial, onSaved, onCancel }: Props) {
   const handlePhoto = async (file: File) => {
     setUploading(true)
     try {
-      if (me) {
-        const acc = await providerApi.account()
-        if (!acc.profile) {
-          const name = driverNames.trim() || `${me.first_name} ${me.last_name}`.trim() || me.login
-          await providerApi.register(name, me.login.toLowerCase())
-        }
-      }
       const res = await transportApi.uploadPhoto(file)
       setVehiclePhoto(res.public_key)
     } catch (e) {

@@ -136,8 +136,19 @@ export function transportPostLoginUrl(from: string | undefined, roles: string[])
   }
   if (roles.includes('ROLE_ADMIN')) return '/admin'
   if (roles.includes('ROLE_MODERATOR')) return '/moderator'
-  if (roles.includes('ROLE_PROVIDER')) return '/account/rides'
+  if (roles.includes('ROLE_CARRIER')) return '/account/rides'
   return from?.startsWith('/account') ? from : '/account/bookings'
+}
+
+/** Куди вести після входу на servis.gaido-ua.com */
+export function servicesPostLoginUrl(from: string | undefined, roles: string[]): string {
+  if (from?.startsWith('/admin') || from?.startsWith('/moderator') || from?.startsWith('/downloads')) {
+    if (roles.includes('ROLE_ADMIN') || roles.includes('ROLE_MODERATOR')) return from
+  }
+  if (roles.includes('ROLE_ADMIN')) return '/admin'
+  if (roles.includes('ROLE_MODERATOR')) return '/moderator'
+  if (roles.includes('ROLE_PROVIDER')) return '/account/provider'
+  return from?.startsWith('/account') ? from : '/account'
 }
 
 /** Куди вести після входу на gaido-ua.com (portal). */

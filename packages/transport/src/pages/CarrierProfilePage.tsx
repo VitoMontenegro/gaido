@@ -36,12 +36,20 @@ export default function CarrierProfilePage() {
   const description = carrier.about
     ? `${title} — ${typeName}. ${carrier.about.slice(0, 120)}`
     : `${title} — ${typeName}${carrier.base_city_name ? `, база ${carrier.base_city_name}` : ''}. Міжнародні перевезення на Vezu.`
+  const hasContacts = Boolean(
+    carrier.phone || carrier.telegram || carrier.whatsapp || carrier.viber || carrier.email,
+  )
 
   return (
     <>
       <Seo title={pageTitle(title)} description={description} path={`/carriers/${carrier.website_slug}`} />
       <Breadcrumbs items={[{ label: 'Перевізники', to: '/carriers' }, { label: title }]} />
       <div className="container-site max-w-4xl space-y-6 py-10">
+        {carrier.preview && (
+          <p className="rounded-lg bg-sand-100 px-4 py-3 text-sm text-muted">
+            Це попередній перегляд. Профіль ще не в каталозі (статус: {carrier.status}).
+          </p>
+        )}
         <div className="card flex flex-wrap gap-4 p-5">
           {avatar ? (
             <img src={avatar} alt="" className="h-24 w-24 rounded-full object-cover" />
@@ -107,7 +115,7 @@ export default function CarrierProfilePage() {
 
         <section className="card space-y-3 p-5">
           <h2 className="font-medium text-ink">Контакти</h2>
-          {carrier.contacts_unlocked ? (
+          {hasContacts ? (
             <div className="space-y-1">
               <ContactRow label="Телефон" value={carrier.phone} />
               <ContactRow label="Telegram" value={carrier.telegram} />
@@ -117,7 +125,7 @@ export default function CarrierProfilePage() {
             </div>
           ) : (
             <p className="text-sm text-muted">
-              Контакти перевізника будуть доступні після активації підписки на платформі.
+              Контактів поки немає.
             </p>
           )}
         </section>

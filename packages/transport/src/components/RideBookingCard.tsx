@@ -57,7 +57,7 @@ export default function RideBookingCard({ ride }: Props) {
     },
   })
 
-  const canBook = ride.subscription_active && ride.contacts_unlocked
+  const hasContact = Boolean(ride.phone)
 
   return (
     <aside className="sticky top-24 space-y-5 rounded-3xl bg-surface p-5 shadow-[0_12px_40px_rgba(0,0,0,0.08)] lg:top-28">
@@ -98,15 +98,6 @@ export default function RideBookingCard({ ride }: Props) {
             <Link to="/login" state={{ from: `/rides/${ride.id}` }} className="text-teal hover:underline">вхід</Link>
           </p>
         </div>
-      ) : !canBook ? (
-        <div className="space-y-3">
-          <p className="text-sm text-muted">Бронювання недоступне — перевізник не активував підписку Vezu.</p>
-          {ride.provider_slug && (
-            <Link to={`/carriers/${ride.provider_slug}`} className="btn-secondary block w-full text-center">
-              Профіль перевізника
-            </Link>
-          )}
-        </div>
       ) : (
         <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); book.mutate() }}>
           <button type="submit" className="btn-accent w-full" disabled={book.isPending || !phone.trim()}>
@@ -142,7 +133,7 @@ export default function RideBookingCard({ ride }: Props) {
         )}
       </section>
 
-      {ride.contacts_unlocked && ride.phone && (
+      {hasContact && (
         <div className="border-t border-divider pt-4 text-sm">
           <p className="mb-1 font-medium text-ink">Контакт перевізника</p>
           <p>📞 {ride.phone}</p>

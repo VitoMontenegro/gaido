@@ -64,3 +64,37 @@ func TestSearchCity(t *testing.T) {
 		t.Fatalf("unexpected coords: %f, %f", result.Lat, result.Lng)
 	}
 }
+
+func TestSearchAddress(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/search" {
+			t.Fatalf("path = %s", r.URL.Path)
+		}
+		if got := r.URL.Query().Get("addressdetails"); got != "1" {
+			t.Fatalf("addressdetails = %q", got)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`[{
+			"lat":"52.5170",
+			"lon":"13.3889",
+			"display_name":"Unter den Linden 1, Berlin, Germany",
+			"address":{"road":"Unter den Linden","house_number":"1","city":"Berlin","suburb":"Mitte"}
+		}]`))
+	}))
+	defer srv.Close()
+
+	n := &Nominatim{BaseURL: srv.URL, UserAgent: "test", Client: srv.Client()}
+	got, ok, err := n.SearchAddress(context.Background(), "Unter den Linden 1", "de")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !ok {
+		t.Fatal("expected hit")
+	}
+	if got.Address != "Unter den Linden 1" {
+		t.Fatalf("address = %q", got.Address)
+	}
+	if got.CityName != "Berlin" || got.District != "Mitte" {
+		t.Fatalf("city/district = %q / %q", got.CityName, got.District)
+	}
+}

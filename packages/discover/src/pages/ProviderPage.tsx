@@ -20,8 +20,13 @@ export default function ProviderPage() {
 
   return (
     <>
-      <Seo title={pageTitle(data.display_name)} description={data.about.slice(0, 160)} path={`/provider/${slug}`} />
+      <Seo title={pageTitle(data.display_name)} description={(data.about ?? '').slice(0, 160)} path={`/provider/${slug}`} />
       <div className="container-site space-y-8 py-10">
+        {data.preview && (
+          <p className="rounded-lg bg-sand-100 px-4 py-3 text-sm text-muted">
+            Це попередній перегляд. Профіль ще не в каталозі (статус: {data.status}).
+          </p>
+        )}
         <header className="grid gap-6 md:grid-cols-[120px_1fr]">
           {data.avatar_url ? (
             <img src={data.avatar_url} alt="" className="h-28 w-28 rounded-2xl object-cover" />
@@ -55,7 +60,7 @@ export default function ProviderPage() {
         <section>
           <h2 className="section-title-sm mb-4">Послуги</h2>
           <div className="grid gap-4 sm:grid-cols-2">
-            {data.offerings.map((o) => (
+            {(data.offerings ?? []).map((o) => (
               <article key={o.id} className="card p-4">
                 <h3 className="font-medium text-ink">{o.title}</h3>
                 <p className="mt-1 line-clamp-2 text-sm text-muted">{o.description}</p>
@@ -67,11 +72,11 @@ export default function ProviderPage() {
           </div>
         </section>
 
-        {data.points.length > 0 && (
+        {(data.points ?? []).length > 0 && (
           <section>
             <h2 className="section-title-sm mb-4">📍 Місця</h2>
             <ul className="space-y-2">
-              {data.points.map((p) => (
+              {(data.points ?? []).map((p) => (
                 <li key={p.id} className="card p-4 text-sm">
                   <strong>{p.label}</strong>
                   {p.district && <span className="text-muted"> · {p.district}</span>}

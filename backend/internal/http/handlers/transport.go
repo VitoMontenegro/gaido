@@ -125,7 +125,7 @@ func (h *Handlers) GetTransportRide(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) ListMyTransportRides(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value("userID").(int64)
+	userID := middleware.UserIDFromContext(r.Context())
 	p, err := h.Providers.GetProviderByUserID(r.Context(), userID)
 	if err != nil {
 		response.Error(w, r, apperrors.ErrInternal)
@@ -148,7 +148,7 @@ func (h *Handlers) ListMyTransportRides(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h *Handlers) CreateTransportRide(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value("userID").(int64)
+	userID := middleware.UserIDFromContext(r.Context())
 	var req transportListingReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		response.Error(w, r, apperrors.ErrValidation)
@@ -172,7 +172,7 @@ func (h *Handlers) CreateTransportRide(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	p, err := h.ensureTransportProvider(r, userID, req)
+	p, err := h.requireCarrierProfile(r, userID)
 	if err != nil {
 		if appErr, ok := err.(*apperrors.AppError); ok {
 			response.Error(w, r, appErr)
@@ -195,7 +195,7 @@ func (h *Handlers) CreateTransportRide(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) UpdateTransportRide(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value("userID").(int64)
+	userID := middleware.UserIDFromContext(r.Context())
 	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 	if err != nil || id <= 0 {
 		response.Error(w, r, apperrors.ErrValidation)
@@ -226,7 +226,7 @@ func (h *Handlers) UpdateTransportRide(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) DeleteTransportRide(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value("userID").(int64)
+	userID := middleware.UserIDFromContext(r.Context())
 	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 	if err != nil || id <= 0 {
 		response.Error(w, r, apperrors.ErrValidation)
@@ -275,39 +275,22 @@ func (h *Handlers) ModRejectTransportRide(w http.ResponseWriter, r *http.Request
 	response.JSON(w, r, 200, map[string]string{"status": "rejected"})
 }
 
-func (h *Handlers) ensureTransportProvider(r *http.Request, userID int64, req transportListingReq) (*domain.Provider, error) {
+func (h *Handlers) requireCarrierProfile(r *http.Request, userID int64) (*domain.Provider, error) {
 	p, err := h.Providers.GetProviderByUserID(r.Context(), userID)
 	if err != nil {
 		return nil, err
 	}
-	if p != nil {
-		return p, nil
+	if p == nil {
+		return nil, apperrors.ErrCarrierProfileReq
 	}
-	displayName := strings.TrimSpace(req.ProviderName)
-	if displayName == "" {
-		displayName = strings.TrimSpace(req.CompanyName)
-	}
-	if displayName == "" {
-		displayName = strings.TrimSpace(req.DriverNames)
-	}
-	slug := strings.ToLower(strings.TrimSpace(req.ProviderSlug))
-	if slug == "" {
-		u, err := h.Users.GetByID(r.Context(), userID)
-		if err != nil || u == nil {
-			return nil, err
-		}
-		slug = strings.ToLower(u.Login)
-	}
-	if !transportSlugRe.MatchString(slug) || displayName == "" {
-		return nil, apperrors.ErrValidation
-	}
-	id, err := h.Providers.CreateProvider(r.Context(), userID, slug, displayName)
+	prof, err := h.Carriers.GetProfileByProviderID(r.Context(), p.ID)
 	if err != nil {
 		return nil, err
 	}
-	_ = id
-	_ = h.Users.AddRole(r.Context(), userID, domain.RoleProvider)
-	return h.Providers.GetProviderByUserID(r.Context(), userID)
+	if prof == nil {
+		return nil, apperrors.ErrCarrierProfileReq
+	}
+	return p, nil
 }
 
 func (h *Handlers) parseTransportListingReq(req transportListingReq) (*domain.TransportListing, error) {
@@ -369,27 +352,27 @@ func (h *Handlers) parseTransportListingReq(req transportListingReq) (*domain.Tr
 
 func transportListingDTO(item domain.TransportListing, contactsUnlocked bool) map[string]any {
 	dto := map[string]any{
-		"id":               item.ID,
-		"provider_id":      item.ProviderID,
-		"kind":             item.Kind,
-		"company_name":     item.CompanyName,
-		"driver_names":     item.DriverNames,
-		"vehicle_brand":    item.VehicleBrand,
-		"vehicle_photo_url": item.VehiclePhotoURL,
-		"price_amount":     item.PriceAmount,
-		"price_currency":   item.PriceCurrency,
-		"seats_total":      item.SeatsTotal,
-		"parcels_accepted": item.ParcelsAccepted,
-		"parcels_terms":    item.ParcelsTerms,
-		"depart_time":      item.DepartTime,
-		"arrive_time_approx": item.ArriveTimeApprox,
-		"status":           item.Status,
-		"provider_name":    item.ProviderName,
-		"provider_slug":    item.ProviderSlug,
-		"contacts_unlocked": contactsUnlocked,
+		"id":                  item.ID,
+		"provider_id":         item.ProviderID,
+		"kind":                item.Kind,
+		"company_name":        item.CompanyName,
+		"driver_names":        item.DriverNames,
+		"vehicle_brand":       item.VehicleBrand,
+		"vehicle_photo_url":   item.VehiclePhotoURL,
+		"price_amount":        item.PriceAmount,
+		"price_currency":      item.PriceCurrency,
+		"seats_total":         item.SeatsTotal,
+		"parcels_accepted":    item.ParcelsAccepted,
+		"parcels_terms":       item.ParcelsTerms,
+		"depart_time":         item.DepartTime,
+		"arrive_time_approx":  item.ArriveTimeApprox,
+		"status":              item.Status,
+		"provider_name":       item.ProviderName,
+		"provider_slug":       item.ProviderSlug,
+		"contacts_unlocked":   contactsUnlocked,
 		"subscription_active": contactsUnlocked,
-		"stops":            item.Stops,
-		"departures":       item.Departures,
+		"stops":               item.Stops,
+		"departures":          item.Departures,
 	}
 	if contactsUnlocked {
 		dto["phone"] = item.Phone

@@ -26,8 +26,10 @@ export default function CityPicker({ label, value, onChange, placeholder = 'Об
     const list = q
       ? items.filter((c) => c.name.toLowerCase().includes(q) || c.slug.includes(q))
       : items
-    return list.slice(0, 80)
-  }, [items, query])
+    const sliced = list.slice(0, 80)
+    if (selected && !sliced.some((c) => c.id === selected.id)) return [selected, ...sliced]
+    return sliced
+  }, [items, query, selected])
 
   return (
     <div className="space-y-2">

@@ -2,6 +2,7 @@ import { Suspense, type ReactNode } from 'react'
 import { Navigate, Route, useLocation } from 'react-router-dom'
 import ExternalRedirect from '@gaido/ui-primitives/ExternalRedirect'
 import { lazyImport } from '@gaido/ui-primitives/lazyImport'
+import { RoleGate } from '@gaido/ui-primitives/RoleGate'
 import { redirectToGuides } from '@gaido/site-urls/site'
 
 export function PageFallback() {
@@ -32,6 +33,9 @@ const LegalDocumentPage = lazyImport(() => import('@gaido/discover/components/Le
 const AccountPage = lazyImport(() => import('@gaido/discover/pages/AccountPages').then((m) => ({ default: m.default })))
 const FavoritesPage = lazyImport(() => import('@gaido/discover/pages/AccountPages').then((m) => ({ default: m.FavoritesPage })))
 const SettingsPage = lazyImport(() => import('@gaido/discover/pages/AccountPages').then((m) => ({ default: m.SettingsPage })))
+const AdminPage = lazyImport(() => import('@gaido/portal-shell/pages/AdminPages').then((m) => ({ default: m.default })))
+const ModeratorPage = lazyImport(() => import('@gaido/portal-shell/pages/AdminPages').then((m) => ({ default: m.ModeratorPage })))
+const DeployPage = lazyImport(() => import('@gaido/portal-shell/pages/DeployPage'))
 
 export function discoverPublicRoutes() {
   return (
@@ -61,6 +65,17 @@ export function discoverAccountRoutes() {
       <Route path="/account/favorites" element={<Lazy><FavoritesPage /></Lazy>} />
       <Route path="/account/settings" element={<Lazy><SettingsPage /></Lazy>} />
       <Route path="/account/provider" element={<Lazy><ProviderAccountPage /></Lazy>} />
+    </>
+  )
+}
+
+export function discoverAdminRoutes() {
+  return (
+    <>
+      <Route path="/admin" element={<RoleGate role="ROLE_ADMIN"><Lazy><AdminPage /></Lazy></RoleGate>} />
+      <Route path="/downloads" element={<RoleGate role="ROLE_ADMIN"><Lazy><DeployPage /></Lazy></RoleGate>} />
+      <Route path="/deploy" element={<Navigate to="/downloads?app=web-prod-2026" replace />} />
+      <Route path="/moderator" element={<RoleGate role="ROLE_MODERATOR"><Lazy><ModeratorPage /></Lazy></RoleGate>} />
     </>
   )
 }

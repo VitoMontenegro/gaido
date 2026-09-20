@@ -16,23 +16,23 @@ type ProviderRepo struct{ db *DB }
 func NewProviderRepo(db *DB) *ProviderRepo { return &ProviderRepo{db: db} }
 
 type DiscoverParams struct {
-	CityID       int64
-	RegionID     int64
-	Lat          float64
-	Lng          float64
-	RadiusKm     int
-	Query        string
-	CategorySlug string
-	ServiceSlug  string
-	Format       string
-	MinRating    float64
-	VerifiedOnly bool
+	CityID          int64
+	RegionID        int64
+	Lat             float64
+	Lng             float64
+	RadiusKm        int
+	Query           string
+	CategorySlug    string
+	ServiceSlug     string
+	Format          string
+	MinRating       float64
+	VerifiedOnly    bool
 	HasAvailability bool
-	ZoneFilter   string
-	SortNearest  bool
-	Limit        int
-	Offset       int
-	Section      string // jobs, places, help, transport — filter by category slug prefix
+	ZoneFilter      string
+	SortNearest     bool
+	Limit           int
+	Offset          int
+	Section         string // jobs, places, help, transport — filter by category slug prefix
 }
 
 func (r *ProviderRepo) ListCategories(ctx context.Context) ([]domain.ServiceCategory, error) {
@@ -123,15 +123,21 @@ func (r *ProviderRepo) CreateProvider(ctx context.Context, userID int64, slug, d
 	return id, err
 }
 
+func (r *ProviderRepo) SlugTaken(ctx context.Context, slug string, exceptID int64) (bool, error) {
+	var n int
+	err := r.db.Pool.QueryRow(ctx, `SELECT COUNT(*) FROM providers WHERE website_slug=$1 AND id<>$2`, slug, exceptID).Scan(&n)
+	return n > 0, err
+}
+
 func (r *ProviderRepo) UpdateProvider(ctx context.Context, p *domain.Provider) error {
 	_, err := r.db.Pool.Exec(ctx, `
 		UPDATE providers SET display_name=$2, business_name=$3, profession=$4, about=$5, avatar_url=$6,
 			response_hours=$7, phone=$8, email=$9, telegram=$10, whatsapp=$11, viber=$12,
-			instagram=$13, facebook=$14, website=$15, primary_city_id=$16, languages=$17, updated_at=NOW()
+			instagram=$13, facebook=$14, website=$15, primary_city_id=$16, languages=$17, website_slug=$19, updated_at=NOW()
 		WHERE id=$1 AND user_id=$18`,
 		p.ID, p.DisplayName, p.BusinessName, p.Profession, p.About, p.AvatarURL, p.ResponseHours,
 		p.Phone, p.Email, p.Telegram, p.Whatsapp, p.Viber, p.Instagram, p.Facebook, p.Website,
-		p.PrimaryCityID, p.Languages, p.UserID)
+		p.PrimaryCityID, p.Languages, p.UserID, p.WebsiteSlug)
 	return err
 }
 

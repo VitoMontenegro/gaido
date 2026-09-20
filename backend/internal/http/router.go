@@ -55,6 +55,8 @@ func NewRouter(cfg config.Config, log *slog.Logger, h *handlers.Handlers) http.H
 		api.Get("/geo/cities/id/{id}", h.GetCityByID)
 		api.Get("/geo/cities/{slug}", h.GetCity)
 		api.Get("/geo/reverse", h.GeoReverse)
+		api.Get("/geo/search", h.GeoSearch)
+		api.Get("/geo/address", h.GeoAddress)
 		api.Get("/geo/nearby-cities", h.GeoNearbyCities)
 		api.Get("/geo/countries/{country}/regions", h.ListRegions)
 		api.Get("/map/points", h.ListMapPoints)
@@ -63,7 +65,9 @@ func NewRouter(cfg config.Config, log *slog.Logger, h *handlers.Handlers) http.H
 		api.Get("/discover/map-points", h.ListDiscoverMapPoints)
 		api.Get("/categories", h.ListServiceCategories)
 		api.Get("/categories/{slug}/services", h.ListCategoryServices)
-		api.Get("/providers/{slug}", h.GetProviderPublic)
+
+		optionalAuth := middleware.OptionalAuth(h.JWT, h.Users)
+		api.With(optionalAuth).Get("/providers/{slug}", h.GetProviderPublic)
 		api.Get("/jobs", h.ListJobs)
 		api.Get("/looking-requests", h.ListLookingRequests)
 
@@ -77,12 +81,11 @@ func NewRouter(cfg config.Config, log *slog.Logger, h *handlers.Handlers) http.H
 		api.Get("/guides", h.ListGuides)
 		api.Get("/guides/{slug}", h.GetGuide)
 
-		optionalAuth := middleware.OptionalAuth(h.JWT, h.Users)
 		api.With(optionalAuth).Get("/transport/rides", h.ListTransportRides)
 		api.With(optionalAuth).Get("/transport/rides/{id}", h.GetTransportRide)
 		api.Get("/transport/rides/{id}/companions", h.GetTransportRideCompanions)
 		api.Get("/carriers", h.ListCarriers)
-		api.Get("/carriers/{slug}", h.GetCarrierPublic)
+		api.With(optionalAuth).Get("/carriers/{slug}", h.GetCarrierPublic)
 		api.Get("/excursions", h.ListExcursions)
 		api.With(optionalAuth).Get("/excursions/{slug}/dates", h.ListExcursionDatesPublic)
 		api.With(optionalAuth).Get("/excursions/{slug}", h.GetExcursion)
@@ -104,6 +107,8 @@ func NewRouter(cfg config.Config, log *slog.Logger, h *handlers.Handlers) http.H
 			pr.Get("/account/me", h.Me)
 			pr.Put("/account/profile", h.UpdateAccountProfile)
 			pr.Put("/account/password", h.ChangeAccountPassword)
+			pr.Get("/account/guide/profile", h.GetGuideProfile)
+			pr.Put("/account/guide/profile", h.UpdateGuideProfile)
 			pr.Get("/favorites", h.ListFavorites)
 			pr.Post("/favorites", h.ToggleFavorite)
 			pr.Post("/favorites/import", h.ImportFavorites)
@@ -120,8 +125,6 @@ func NewRouter(cfg config.Config, log *slog.Logger, h *handlers.Handlers) http.H
 		api.Group(func(gr chi.Router) {
 			gr.Use(authMW, rbacMW)
 			gr.Get("/account/guide/dashboard", h.GuideDashboard)
-			gr.Get("/account/guide/profile", h.GetGuideProfile)
-			gr.Put("/account/guide/profile", h.UpdateGuideProfile)
 			gr.Post("/account/guide/documents", h.UploadDocument)
 			gr.Get("/account/guide/documents", h.ListDocuments)
 			gr.Post("/account/guide/cities", h.AddGuideCity)
@@ -129,6 +132,7 @@ func NewRouter(cfg config.Config, log *slog.Logger, h *handlers.Handlers) http.H
 			gr.Delete("/account/guide/cities/{cityId}", h.RemoveGuideCity)
 			gr.Put("/account/guide/countries", h.SetGuideCountries)
 			gr.Post("/account/guide/geo/cities", h.CreateGuideGeoCity)
+			gr.Post("/account/geo/cities", h.CreateGuideGeoCity)
 			gr.Get("/account/guide/billing/plans", h.ListPlans)
 			gr.Get("/account/guide/billing/status", h.GetBillingStatus)
 			gr.Post("/account/guide/billing/checkout", h.Checkout)
@@ -207,6 +211,14 @@ func NewRouter(cfg config.Config, log *slog.Logger, h *handlers.Handlers) http.H
 			mr.Post("/moderator/carriers/{id}/reject", h.ModRejectCarrier)
 			mr.Post("/moderator/carriers/{id}/verify/{field}", h.ModVerifyCarrier)
 			h.RegisterModeratorArticleRoutes(mr)
+
+			// Marketplace (servis) admin/moderator routes
+			mr.Get("/moderator/providers", h.ModListProviders)
+			mr.Post("/moderator/providers/{id}", h.ModUpdateProvider)
+			mr.Get("/moderator/offerings", h.ModListOfferings)
+			mr.Post("/moderator/offerings/{id}", h.ModUpdateOffering)
+			mr.Get("/moderator/complaints", h.ModListComplaints)
+			mr.Post("/moderator/complaints/{id}", h.ModUpdateComplaint)
 		})
 
 		api.Group(func(ar chi.Router) {
@@ -238,6 +250,15 @@ func NewRouter(cfg config.Config, log *slog.Logger, h *handlers.Handlers) http.H
 			ar.Post("/admin/carriers/{id}/bypass", h.AdminBypassCarrier)
 			ar.Get("/admin/transport/rides", h.AdminListTransportRides)
 			ar.Put("/admin/transport/rides/{id}", h.AdminUpdateTransportRide)
+
+			// Marketplace (servis) admin routes
+			ar.Get("/admin/providers", h.AdminListProviders)
+			ar.Put("/admin/providers/{id}", h.AdminUpdateProvider)
+			ar.Get("/admin/offerings", h.AdminListOfferings)
+			ar.Put("/admin/offerings/{id}", h.AdminUpdateOffering)
+			ar.Get("/admin/complaints", h.AdminListComplaints)
+			ar.Put("/admin/complaints/{id}", h.AdminUpdateComplaint)
+
 			h.RegisterAdminArticleRoutes(ar)
 			ar.Post("/payments/{id}/confirm", h.ConfirmPayment)
 			ar.Get("/admin/deploy/info", h.AdminDeployInfo)

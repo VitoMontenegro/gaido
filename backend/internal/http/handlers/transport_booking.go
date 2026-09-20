@@ -24,7 +24,7 @@ type transportBookingReq struct {
 }
 
 func (h *Handlers) CreateTransportBooking(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value("userID").(int64)
+	userID := middleware.UserIDFromContext(r.Context())
 	var req transportBookingReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		response.Error(w, r, apperrors.ErrValidation)
@@ -50,11 +50,6 @@ func (h *Handlers) CreateTransportBooking(w http.ResponseWriter, r *http.Request
 		response.Error(w, r, apperrors.ErrNotFound)
 		return
 	}
-	if !h.transportContactsUnlocked(r, listing.ProviderID) {
-		response.Error(w, r, apperrors.New("SUBSCRIPTION_REQUIRED", "Бронювання недоступне: перевізник не активував підписку", 403))
-		return
-	}
-
 	taken, err := h.TransportBookings.CountActiveSeats(r.Context(), req.ListingID, req.DepartureID)
 	if err != nil {
 		response.Error(w, r, apperrors.ErrInternal)
@@ -94,7 +89,7 @@ func (h *Handlers) CreateTransportBooking(w http.ResponseWriter, r *http.Request
 }
 
 func (h *Handlers) ListMyTransportBookings(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value("userID").(int64)
+	userID := middleware.UserIDFromContext(r.Context())
 	items, err := h.TransportBookings.ListByUser(r.Context(), userID)
 	if err != nil {
 		response.Error(w, r, apperrors.ErrInternal)
@@ -107,7 +102,7 @@ func (h *Handlers) ListMyTransportBookings(w http.ResponseWriter, r *http.Reques
 }
 
 func (h *Handlers) ListIncomingTransportBookings(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value("userID").(int64)
+	userID := middleware.UserIDFromContext(r.Context())
 	p, err := h.Providers.GetProviderByUserID(r.Context(), userID)
 	if err != nil || p == nil {
 		response.JSON(w, r, 200, map[string]any{"items": []any{}})
@@ -125,7 +120,7 @@ func (h *Handlers) ListIncomingTransportBookings(w http.ResponseWriter, r *http.
 }
 
 func (h *Handlers) UpdateTransportBookingStatus(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value("userID").(int64)
+	userID := middleware.UserIDFromContext(r.Context())
 	id, _ := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 	var req struct {
 		Status string `json:"status"`
@@ -167,7 +162,7 @@ func (h *Handlers) GetTransportRideCompanions(w http.ResponseWriter, r *http.Req
 }
 
 func (h *Handlers) GetTransportBooking(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value("userID").(int64)
+	userID := middleware.UserIDFromContext(r.Context())
 	id, _ := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 	b, err := h.TransportBookings.GetByID(r.Context(), id)
 	if err != nil || b == nil {
@@ -183,8 +178,5 @@ func (h *Handlers) GetTransportBooking(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) transportContactsUnlockedForClient(r *http.Request, providerID int64) bool {
-	if middleware.UserIDFromContext(r.Context()) <= 0 {
-		return false
-	}
 	return h.transportContactsUnlocked(r, providerID)
 }

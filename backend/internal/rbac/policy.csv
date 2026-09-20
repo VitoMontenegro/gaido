@@ -14,6 +14,7 @@ p, ROLE_GUIDE, /api/v1/account/guide/*, POST
 p, ROLE_GUIDE, /api/v1/account/guide/*, PUT
 p, ROLE_GUIDE, /api/v1/account/guide/*, PATCH
 p, ROLE_GUIDE, /api/v1/account/guide/*, DELETE
+p, ROLE_GUIDE, /api/v1/account/geo/cities, POST
 p, ROLE_GUIDE, /api/v1/media, POST
 p, ROLE_GUIDE, /api/v1/favorites, GET
 p, ROLE_GUIDE, /api/v1/favorites, POST
@@ -36,6 +37,35 @@ p, ROLE_PROVIDER, /api/v1/favorites/*, DELETE
 p, ROLE_PROVIDER, /api/v1/notifications, GET
 p, ROLE_PROVIDER, /api/v1/notifications/*, GET
 p, ROLE_PROVIDER, /api/v1/notifications/*, PATCH
+
+p, ROLE_CARRIER, /api/v1/account/geo/cities, POST
+p, ROLE_CARRIER, /api/v1/account/carrier, GET
+p, ROLE_CARRIER, /api/v1/account/carrier/*, GET
+p, ROLE_CARRIER, /api/v1/account/carrier/*, POST
+p, ROLE_CARRIER, /api/v1/account/carrier/*, PUT
+p, ROLE_CARRIER, /api/v1/account/carrier/*, PATCH
+p, ROLE_CARRIER, /api/v1/account/carrier/*, DELETE
+p, ROLE_CARRIER, /api/v1/account/transport/rides, GET
+p, ROLE_CARRIER, /api/v1/account/transport/rides/*, GET
+p, ROLE_CARRIER, /api/v1/account/transport/rides/*, POST
+p, ROLE_CARRIER, /api/v1/account/transport/rides/*, PUT
+p, ROLE_CARRIER, /api/v1/account/transport/rides/*, PATCH
+p, ROLE_CARRIER, /api/v1/account/transport/rides/*, DELETE
+p, ROLE_CARRIER, /api/v1/account/transport/bookings, GET
+p, ROLE_CARRIER, /api/v1/account/transport/bookings/*, GET
+p, ROLE_CARRIER, /api/v1/account/transport/bookings/*, POST
+p, ROLE_CARRIER, /api/v1/account/transport/bookings/*, PATCH
+p, ROLE_CARRIER, /api/v1/account/carrier/billing, GET
+p, ROLE_CARRIER, /api/v1/account/carrier/billing/*, GET
+p, ROLE_CARRIER, /api/v1/account/carrier/billing/*, POST
+p, ROLE_CARRIER, /api/v1/media, POST
+p, ROLE_CARRIER, /api/v1/favorites, GET
+p, ROLE_CARRIER, /api/v1/favorites, POST
+p, ROLE_CARRIER, /api/v1/favorites/*, POST
+p, ROLE_CARRIER, /api/v1/favorites/*, DELETE
+p, ROLE_CARRIER, /api/v1/notifications, GET
+p, ROLE_CARRIER, /api/v1/notifications/*, GET
+p, ROLE_CARRIER, /api/v1/notifications/*, PATCH
 
 p, ROLE_TOURIST, /api/v1/platform-reviews, POST
 p, ROLE_TOURIST, /api/v1/looking-requests, POST

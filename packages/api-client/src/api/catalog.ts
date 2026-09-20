@@ -23,5 +23,10 @@ export const catalogApi = {
   cityById: (id: number) => api<import('./types/catalog').City>(`/api/v1/geo/cities/id/${id}`),
   mapPoints: () => api<{ items: import('./types/catalog').MapPoint[] }>('/api/v1/map/points'),
   city: (slug: string) => api<import('./types/catalog').City>(`/api/v1/geo/cities/${slug}`),
+  createGeoCity: (body: { country_slug: string; name: string; latitude?: number; longitude?: number }) =>
+    api<{ id: number; name: string; created: boolean }>('/api/v1/account/geo/cities', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
   site: () => api<SitePayload>('/api/v1/site'),
 }

@@ -45,6 +45,8 @@ func (s *Seeder) RunDemo(ctx context.Context) error {
 		{"guide5", "guide5@example.com", "guide12345", "Олег", "Новиков", []string{domain.RoleTourist, domain.RoleGuide}},
 		{"moderator", "mod@example.com", "moderator123", "Марія", "Модератор", []string{domain.RoleModerator}},
 		{"admin", "admin@example.com", "admin12345", "Адмін", "Системний", []string{domain.RoleAdmin}},
+		// Перекладач: одночасно ROLE_PROVIDER (автор объявлений на servis) і ROLE_GUIDE (гід на svit)
+		{"translator1", "translator1@example.com", "translator123", "Олександр", "Перекладач", []string{domain.RoleTourist, domain.RoleProvider, domain.RoleGuide}}, // гід + автор оголошень
 	}
 	for _, a := range core {
 		if err := s.ensureUser(ctx, a.login, a.email, a.pass, a.firstName, a.lastName, a.roles); err != nil {
@@ -123,6 +125,17 @@ func (s *Seeder) RunDemo(ctx context.Context) error {
 				demoEx("oleg-draft-tour", "Чернетка екскурсії", "Не опубліковано", "INDIVIDUAL", 4, 3000, domain.ExcursionDraft),
 			},
 		},
+		{
+			login: "translator1", slug: "oleksandr-perekladach", displayName: "Олександр Перекладач",
+			guideType: domain.GuideTypeGuide,
+			about:     "Перекладач і гід: супровід українською, англійською та німецькою.",
+			phone:     "+491511000001", telegram: "@oleksandr_tr", email: "translator1@example.com",
+			active: true, hasLicense: false,
+			cities: []cityBind{{moscowID, true}},
+			excursions: []demoExcursion{
+				demoEx("ua-city-walk-translated", "Оглядова з перекладом", "Екскурсія містом з послідовним перекладом для українців.", "INDIVIDUAL", 4, 3800, domain.ExcursionPublished),
+			},
+		},
 	}
 
 	for _, d := range demos {
@@ -188,10 +201,10 @@ func demoEx(slug, title, desc, excType string, maxGuests int, price float64, sta
 
 type demoGuide struct {
 	login, slug, displayName, guideType, about string
-	phone, telegram, email                      string
-	active, hasLicense                        bool
-	cities                                      []cityBind
-	excursions                                  []demoExcursion
+	phone, telegram, email                     string
+	active, hasLicense                         bool
+	cities                                     []cityBind
+	excursions                                 []demoExcursion
 }
 
 func (s *Seeder) ensureUser(ctx context.Context, login, email, pass, firstName, lastName string, roles []string) error {

@@ -13,8 +13,14 @@ const VEZU_NAV = [
 function accountHref(roles: string[]): string {
   if (roles.includes('ROLE_ADMIN')) return '/admin'
   if (roles.includes('ROLE_MODERATOR')) return '/moderator'
-  if (roles.includes('ROLE_PROVIDER')) return '/account/rides'
+  if (roles.includes('ROLE_CARRIER')) return '/account/rides'
   return '/account/bookings'
+}
+
+function addRideTarget(me?: { roles: string[] } | null): { to: string; state?: { from?: string; next?: string } } {
+  if (!me) return { to: '/login', state: { from: '/account/rides/new' } }
+  if (me.roles.includes('ROLE_CARRIER')) return { to: '/account/rides/new' }
+  return { to: '/account/carrier', state: { next: '/account/rides/new' } }
 }
 
 function navActive(pathname: string, to: string): boolean {
@@ -44,6 +50,7 @@ export default function TransportHeader() {
   const isModerator = useHasRole('ROLE_MODERATOR')
   const isStaff = isAdmin || isModerator
   const location = useLocation()
+  const ride = addRideTarget(me)
   const [menuOpen, setMenuOpen] = useState(false)
 
   return (
@@ -76,7 +83,7 @@ export default function TransportHeader() {
               <MenuIcon open={menuOpen} />
             </button>
             {!isStaff && (
-              <Link to="/account/rides/new" className="btn-secondary hidden px-3 py-1.5 text-sm sm:inline-flex md:py-2">
+              <Link to={ride.to} state={ride.state} className="btn-secondary hidden px-3 py-1.5 text-sm sm:inline-flex md:py-2">
                 Додати рейс
               </Link>
             )}

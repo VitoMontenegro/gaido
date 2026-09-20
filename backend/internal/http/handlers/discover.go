@@ -9,6 +9,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/vitomonte/experts-tourister/internal/apperrors"
 	"github.com/vitomonte/experts-tourister/internal/domain"
+	"github.com/vitomonte/experts-tourister/internal/http/middleware"
 	"github.com/vitomonte/experts-tourister/internal/http/response"
 	"github.com/vitomonte/experts-tourister/internal/repo/postgres"
 )
@@ -90,22 +91,22 @@ func (h *Handlers) discoverRowDTO(r *http.Request, row domain.DiscoverOfferingRo
 	}
 	// Never expose user geolocation to providers via public API
 	pub := map[string]any{
-		"id":               row.Offering.ID,
-		"title":            row.Offering.Title,
-		"slug":             row.Offering.Slug,
-		"description":      row.Offering.Description,
-		"formats":          row.Offering.Formats,
-		"languages":        row.Offering.Languages,
-		"has_availability": row.Offering.HasAvailability,
-		"rating_avg":       row.Offering.RatingAvg,
-		"rating_count":     row.Offering.RatingCount,
-		"category_name":    row.CategoryName,
-		"category_slug":    row.CategorySlug,
-		"service_name":     row.ServiceName,
-		"city_name":        row.CityName,
-		"point_label":      row.PointLabel,
-		"point_district":   row.PointDistrict,
-		"distance_km":      row.DistanceKm,
+		"id":                row.Offering.ID,
+		"title":             row.Offering.Title,
+		"slug":              row.Offering.Slug,
+		"description":       row.Offering.Description,
+		"formats":           row.Offering.Formats,
+		"languages":         row.Offering.Languages,
+		"has_availability":  row.Offering.HasAvailability,
+		"rating_avg":        row.Offering.RatingAvg,
+		"rating_count":      row.Offering.RatingCount,
+		"category_name":     row.CategoryName,
+		"category_slug":     row.CategorySlug,
+		"service_name":      row.ServiceName,
+		"city_name":         row.CityName,
+		"point_label":       row.PointLabel,
+		"point_district":    row.PointDistrict,
+		"distance_km":       row.DistanceKm,
 		"has_verified_docs": row.HasVerifiedDocs,
 		"provider": map[string]any{
 			"id":             row.Provider.ID,
@@ -196,12 +197,20 @@ func (h *Handlers) GetProviderPublic(w http.ResponseWriter, r *http.Request) {
 		response.Error(w, r, apperrors.ErrNotFound)
 		return
 	}
-	if p.Status != domain.ProviderStatusVerified && p.Status != domain.ProviderStatusModeration {
+	owner := p.UserID > 0 && middleware.UserIDFromContext(r.Context()) == p.UserID
+	published := p.Status == domain.ProviderStatusVerified || p.Status == domain.ProviderStatusModeration
+	if !published && !owner {
 		response.Error(w, r, apperrors.ErrNotFound)
 		return
 	}
-	offerings, _ := h.Providers.ListOfferingsByProvider(r.Context(), p.ID, true)
+	offerings, _ := h.Providers.ListOfferingsByProvider(r.Context(), p.ID, !owner)
+	if offerings == nil {
+		offerings = []domain.ServiceOffering{}
+	}
 	points, _ := h.Providers.ListPointsByProvider(r.Context(), p.ID)
+	if points == nil {
+		points = []domain.ServicePoint{}
+	}
 	hasDocs, _ := h.Providers.HasVerifiedDocs(r.Context(), p.ID)
 
 	paymentsOn, _ := h.Settings.GetBool(r.Context(), "guide_placement_payments_enabled", false)
@@ -211,13 +220,17 @@ func (h *Handlers) GetProviderPublic(w http.ResponseWriter, r *http.Request) {
 		contactsUnlocked = ok
 	}
 
+	if owner {
+		contactsUnlocked = true
+	}
+
 	dto := map[string]any{
 		"id": p.ID, "display_name": p.DisplayName, "business_name": p.BusinessName,
 		"profession": p.Profession, "about": p.About, "website_slug": p.WebsiteSlug,
 		"avatar_url": p.AvatarURL, "rating_avg": p.RatingAvg, "rating_count": p.RatingCount,
 		"response_hours": p.ResponseHours, "status": p.Status, "languages": p.Languages,
 		"has_verified_docs": hasDocs, "offerings": offerings, "points": points,
-		"contacts_unlocked": contactsUnlocked,
+		"contacts_unlocked": contactsUnlocked, "preview": owner && !published,
 	}
 	if contactsUnlocked {
 		dto["phone"] = p.Phone
@@ -262,7 +275,7 @@ func (h *Handlers) ListLookingRequests(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) CreateLookingRequest(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value("userID").(int64)
+	userID := middleware.UserIDFromContext(r.Context())
 	var req struct {
 		CityID      *int64   `json:"city_id"`
 		RegionID    *int64   `json:"region_id"`
@@ -292,7 +305,7 @@ func (h *Handlers) CreateLookingRequest(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h *Handlers) RespondLookingRequest(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value("userID").(int64)
+	userID := middleware.UserIDFromContext(r.Context())
 	p, err := h.Providers.GetProviderByUserID(r.Context(), userID)
 	if err != nil || p == nil {
 		response.Error(w, r, apperrors.ErrForbidden)

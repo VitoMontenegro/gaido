@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 	"strings"
@@ -16,15 +17,36 @@ import (
 )
 
 func (h *Handlers) GetGuideProfile(w http.ResponseWriter, r *http.Request) {
-	g, err := h.Guides.GetByUserID(r.Context(), middleware.UserIDFromContext(r.Context()))
-	if err != nil || g == nil {
-		response.Error(w, r, apperrors.ErrNotFound)
+	userID := middleware.UserIDFromContext(r.Context())
+	g, err := h.Guides.GetByUserID(r.Context(), userID)
+	if err != nil {
+		response.Error(w, r, apperrors.ErrInternal)
+		return
+	}
+	if g == nil {
+		name, slug := h.identityHint(r.Context(), userID, "guide")
+		response.JSON(w, r, 200, map[string]any{
+			"display_name": name,
+			"website_slug": slug,
+			"status":       "",
+			"cities":       []any{},
+			"countries":    []any{},
+		})
 		return
 	}
 	if u, err := h.Users.GetByID(r.Context(), g.UserID); err == nil && u != nil {
 		fullName := domain.UserDisplayName(u.FirstName, u.LastName, u.Login)
 		if g.DisplayName == "" || g.DisplayName == u.Login {
 			g.DisplayName = fullName
+		}
+	}
+	if g.DisplayName == "" || g.WebsiteSlug == "" {
+		name, slug := h.identityHint(r.Context(), g.UserID, "guide")
+		if g.DisplayName == "" && name != "" {
+			g.DisplayName = name
+		}
+		if g.WebsiteSlug == "" {
+			g.WebsiteSlug = slug
 		}
 	}
 	response.JSON(w, r, 200, h.buildGuideAccountProfile(r.Context(), g))
@@ -82,6 +104,15 @@ func (h *Handlers) UpdateGuideProfile(w http.ResponseWriter, r *http.Request) {
 		response.Error(w, r, apperrors.ErrValidation)
 		return
 	}
+	userID := middleware.UserIDFromContext(r.Context())
+	if _, err := h.ensureGuideProfile(r, userID, req.DisplayName); err != nil {
+		if appErr, ok := err.(*apperrors.AppError); ok {
+			response.Error(w, r, appErr)
+			return
+		}
+		response.Error(w, r, apperrors.ErrInternal)
+		return
+	}
 	if req.CountryID != nil && *req.CountryID > 0 {
 		country, err := h.Geo.GetCountryByID(r.Context(), *req.CountryID)
 		if err != nil || country == nil {
@@ -91,6 +122,10 @@ func (h *Handlers) UpdateGuideProfile(w http.ResponseWriter, r *http.Request) {
 	}
 	profile, err := h.GuideSvc.UpdateProfile(r.Context(), middleware.UserIDFromContext(r.Context()), req)
 	if err != nil || profile == nil {
+		if errors.Is(err, guidesvc.ErrSlugConflict) {
+			response.Error(w, r, apperrors.ErrSlugTaken)
+			return
+		}
 		if err == nil {
 			response.Error(w, r, apperrors.ErrNotFound)
 			return
@@ -99,7 +134,39 @@ func (h *Handlers) UpdateGuideProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	g, _ := h.Guides.GetByUserID(r.Context(), middleware.UserIDFromContext(r.Context()))
+	_ = h.Users.AddRole(r.Context(), userID, domain.RoleGuide)
 	response.JSON(w, r, 200, h.buildGuideAccountProfile(r.Context(), g))
+}
+
+func (h *Handlers) ensureGuideProfile(r *http.Request, userID int64, displayName string) (*domain.GuideProfile, error) {
+	g, err := h.Guides.GetByUserID(r.Context(), userID)
+	if err != nil {
+		return nil, err
+	}
+	if g != nil {
+		return g, nil
+	}
+	name, hintSlug := h.identityHint(r.Context(), userID, "guide")
+	if strings.TrimSpace(displayName) != "" {
+		name = strings.TrimSpace(displayName)
+	}
+	if name == "" {
+		return nil, apperrors.New("VALIDATION", "Вкажіть ім'я для відображення", 400)
+	}
+	slug, err := h.uniqueGuideSlug(r.Context(), hintSlug, name, 0)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := h.Guides.CreateProfile(r.Context(), userID, domain.GuideTypeGuide, name, slug); err != nil {
+		return nil, err
+	}
+	_ = h.Users.AddRole(r.Context(), userID, domain.RoleGuide)
+	g, err = h.Guides.GetByUserID(r.Context(), userID)
+	if err != nil || g == nil {
+		return g, err
+	}
+	_ = h.GuideSvc.ActivateForCatalogFilling(r.Context(), g.ID)
+	return g, nil
 }
 func (h *Handlers) UploadDocument(w http.ResponseWriter, r *http.Request) {
 	g, _ := h.Guides.GetByUserID(r.Context(), middleware.UserIDFromContext(r.Context()))

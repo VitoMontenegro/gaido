@@ -68,7 +68,7 @@ func (r *TransportRepo) Search(ctx context.Context, p TransportSearchParams) ([]
 		argN++
 	}
 
-	joinCarrier := ""
+	joinCarrier := " LEFT JOIN carrier_profiles cp ON cp.provider_id = l.provider_id"
 	if p.CarrierType != "" || p.VerifiedUkrainian {
 		joinCarrier = " JOIN carrier_profiles cp ON cp.provider_id = l.provider_id AND cp.status = 'published'"
 	}
@@ -103,8 +103,8 @@ func (r *TransportRepo) Search(ctx context.Context, p TransportSearchParams) ([]
 			l.vehicle_photo_url, l.price_amount, l.price_currency, l.seats_total,
 			l.parcels_accepted, l.parcels_terms, l.depart_time::text, l.arrive_time_approx::text,
 			l.status, l.created_at, l.updated_at,
-			COALESCE(NULLIF(l.company_name, ''), p.display_name) AS provider_name,
-			p.website_slug
+			COALESCE(NULLIF(l.company_name, ''), NULLIF(cp.display_name, ''), p.display_name) AS provider_name,
+			COALESCE(NULLIF(cp.website_slug, ''), p.website_slug)
 		FROM transport_listings l
 		JOIN providers p ON p.id = l.provider_id%s
 		WHERE %s
@@ -161,9 +161,11 @@ func (r *TransportRepo) GetByID(ctx context.Context, id int64) (*domain.Transpor
 			l.vehicle_photo_url, l.phone, l.email, l.telegram, l.whatsapp, l.viber,
 			l.price_amount, l.price_currency, l.seats_total, l.parcels_accepted, l.parcels_terms,
 			l.depart_time::text, l.arrive_time_approx::text, l.status, l.description, l.created_at, l.updated_at,
-			COALESCE(NULLIF(l.company_name, ''), p.display_name), p.website_slug
+			COALESCE(NULLIF(l.company_name, ''), NULLIF(cp.display_name, ''), p.display_name),
+			COALESCE(NULLIF(cp.website_slug, ''), p.website_slug)
 		FROM transport_listings l
 		JOIN providers p ON p.id = l.provider_id
+		LEFT JOIN carrier_profiles cp ON cp.provider_id = p.id
 		WHERE l.id = $1`, id)
 	var item domain.TransportListing
 	var arriveTime *string
@@ -442,9 +444,11 @@ func (r *TransportRepo) ListAdmin(ctx context.Context, status string, limit int)
 			l.vehicle_photo_url, l.price_amount, l.price_currency, l.seats_total,
 			l.parcels_accepted, l.parcels_terms, l.depart_time::text, l.arrive_time_approx::text,
 			l.status, l.created_at, l.updated_at,
-			COALESCE(NULLIF(l.company_name, ''), p.display_name), p.website_slug
+			COALESCE(NULLIF(l.company_name, ''), NULLIF(cp.display_name, ''), p.display_name),
+			COALESCE(NULLIF(cp.website_slug, ''), p.website_slug)
 		FROM transport_listings l
-		JOIN providers p ON p.id = l.provider_id`
+		JOIN providers p ON p.id = l.provider_id
+		LEFT JOIN carrier_profiles cp ON cp.provider_id = p.id`
 	args := []any{}
 	if status != "" {
 		q += ` WHERE l.status = $1`

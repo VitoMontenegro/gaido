@@ -1,5 +1,6 @@
 import { Suspense, type ReactNode } from 'react'
 import { Navigate, Route, useLocation } from 'react-router-dom'
+import { useHasRole } from '@gaido/api-client/hooks/useAuth'
 import { RoleGate } from '@gaido/ui-primitives/RoleGate'
 import ExternalRedirect from '@gaido/ui-primitives/ExternalRedirect'
 import { lazyImport } from '@gaido/ui-primitives/lazyImport'
@@ -12,6 +13,11 @@ export function Lazy({ children }: { children: ReactNode }) {
 function GuidesCanonicalRedirect() {
   const location = useLocation()
   return <ExternalRedirect to={redirectToGuides(location.pathname, location.search, location.hash)} />
+}
+
+function AccountHomeRedirect() {
+  const isCarrier = useHasRole('ROLE_CARRIER')
+  return <Navigate to={isCarrier ? '/account/rides' : '/account/bookings'} replace />
 }
 
 const HomePage = lazyImport(() => import('@gaido/transport/pages/HomePage'))
@@ -69,7 +75,7 @@ export function transportAccountRoutes() {
       <Route path="/account/bookings/*" element={<Lazy><BookingsAccountPage /></Lazy>} />
       <Route path="/account/carrier/billing/*" element={<Lazy><CarrierBillingPage /></Lazy>} />
       <Route path="/account/carrier/*" element={<Lazy><CarrierAccountPage /></Lazy>} />
-      <Route path="/account" element={<Navigate to="/account/bookings" replace />} />
+      <Route path="/account" element={<AccountHomeRedirect />} />
     </>
   )
 }

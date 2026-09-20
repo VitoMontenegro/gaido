@@ -158,7 +158,7 @@ func (h *Handlers) issueSession(w http.ResponseWriter, r *http.Request, userID i
 	if err := h.Users.SaveRefreshToken(r.Context(), userID, hash, exp); err != nil {
 		return "", err
 	}
-	http.SetCookie(w, &http.Cookie{
+	cookie := &http.Cookie{
 		Name:     "refresh_token",
 		Value:    plain,
 		Path:     "/api/v1/auth",
@@ -166,7 +166,11 @@ func (h *Handlers) issueSession(w http.ResponseWriter, r *http.Request, userID i
 		SameSite: http.SameSiteLaxMode,
 		Secure:   h.Cfg.AppEnv != "development",
 		Expires:  exp,
-	})
+	}
+	if h.Cfg.CookieDomain != "" {
+		cookie.Domain = h.Cfg.CookieDomain
+	}
+	http.SetCookie(w, cookie)
 	return access, nil
 }
 
@@ -179,7 +183,7 @@ func (h *Handlers) WriteTokens(w http.ResponseWriter, r *http.Request, userID in
 	response.JSON(w, r, 200, map[string]any{"access_token": access, "user_id": userID, "roles": roles})
 }
 func (h *Handlers) clearRefreshCookie(w http.ResponseWriter) {
-	http.SetCookie(w, &http.Cookie{
+	cookie := &http.Cookie{
 		Name:     "refresh_token",
 		Value:    "",
 		Path:     "/api/v1/auth",
@@ -187,7 +191,11 @@ func (h *Handlers) clearRefreshCookie(w http.ResponseWriter) {
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
 		Secure:   h.Cfg.AppEnv != "development",
-	})
+	}
+	if h.Cfg.CookieDomain != "" {
+		cookie.Domain = h.Cfg.CookieDomain
+	}
+	http.SetCookie(w, cookie)
 }
 func (h *Handlers) refreshNoSession(w http.ResponseWriter, r *http.Request) {
 	h.clearRefreshCookie(w)

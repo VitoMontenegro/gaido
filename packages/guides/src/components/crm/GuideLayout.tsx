@@ -1,4 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom'
+import { useHasRole } from '@gaido/api-client/hooks/useAuth'
 import { Seo } from '../../lib/seo'
 import { pageTitle } from '@gaido/site-urls/brand'
 
@@ -18,16 +19,23 @@ function tabClass({ isActive }: { isActive: boolean }) {
 }
 
 export default function GuideLayout() {
+  const isGuide = useHasRole('ROLE_GUIDE')
+  const tabs = isGuide ? TABS : TABS.filter((tab) => tab.to === '/account/guide/profile')
+
   return (
     <>
-      <Seo title={pageTitle('Кабінет гіда')} path="/account/guide" noIndex />
+      <Seo title={pageTitle(isGuide ? 'Кабінет гіда' : 'Стати гідом')} path="/account/guide" noIndex />
       <div className="space-y-5">
         <div>
-          <h1 className="font-display text-2xl font-bold">Кабінет гіда</h1>
-          <p className="mt-1 text-sm text-stone-600">Керуйте профілем, екскурсіями та просуванням</p>
+          <h1 className="font-display text-2xl font-bold">{isGuide ? 'Кабінет гіда' : 'Стати гідом'}</h1>
+          <p className="mt-1 text-sm text-stone-600">
+            {isGuide
+              ? 'Керуйте профілем, екскурсіями та просуванням'
+              : 'Заповніть профіль гіда на цьому акаунті — після цього можна додати екскурсії'}
+          </p>
         </div>
         <nav className="flex flex-wrap gap-2">
-          {TABS.map((tab) => (
+          {tabs.map((tab) => (
             <NavLink key={tab.to} to={tab.to} end={'end' in tab ? tab.end : false} className={tabClass}>
               {tab.label}
             </NavLink>

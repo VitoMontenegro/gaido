@@ -420,8 +420,8 @@ func TestSmoke_touristCannotAccessGuideAPI(t *testing.T) {
 	a := newTestApp(t)
 	touristToken, _ := registerUser(t, a, uniqueLogin("rbac_t_"), false)
 	res := smokeRequest(t, a, http.MethodGet, "/api/v1/account/guide/profile", nil, touristToken, nil)
-	if res.code != http.StatusForbidden {
-		t.Fatalf("expected 403 for tourist on guide API, got %d %s", res.code, res.body)
+	if res.code != http.StatusOK {
+		t.Fatalf("expected 200 stub for tourist on guide profile, got %d %s", res.code, res.body)
 	}
 	createCity := smokeRequest(t, a, http.MethodPost, "/api/v1/account/guide/geo/cities", map[string]any{
 		"country_slug": "ua",
@@ -429,6 +429,32 @@ func TestSmoke_touristCannotAccessGuideAPI(t *testing.T) {
 	}, touristToken, nil)
 	if createCity.code != http.StatusForbidden {
 		t.Fatalf("expected 403 for tourist on guide geo create, got %d %s", createCity.code, createCity.body)
+	}
+	sharedCreate := smokeRequest(t, a, http.MethodPost, "/api/v1/account/geo/cities", map[string]any{
+		"country_slug": "ua",
+		"name":         "HackCity",
+	}, touristToken, nil)
+	if sharedCreate.code != http.StatusForbidden {
+		t.Fatalf("expected 403 for tourist on geo create, got %d %s", sharedCreate.code, sharedCreate.body)
+	}
+}
+
+func TestSmoke_userCanAttachGuideProfile(t *testing.T) {
+	a := newTestApp(t)
+	token, _ := registerUser(t, a, uniqueLogin("attach_g_"), false)
+	before := smokeRequest(t, a, http.MethodGet, "/api/v1/account/guide/dashboard", nil, token, nil)
+	if before.code != http.StatusForbidden {
+		t.Fatalf("expected 403 dashboard before guide profile, got %d %s", before.code, before.body)
+	}
+	put := smokeRequest(t, a, http.MethodPut, "/api/v1/account/guide/profile", map[string]any{
+		"display_name": "Dual Role Guide",
+	}, token, nil)
+	if put.code != http.StatusOK {
+		t.Fatalf("attach guide profile: %d %s", put.code, put.body)
+	}
+	after := smokeRequest(t, a, http.MethodGet, "/api/v1/account/guide/dashboard", nil, token, nil)
+	if after.code != http.StatusOK {
+		t.Fatalf("expected 200 dashboard after guide profile, got %d %s", after.code, after.body)
 	}
 }
 
@@ -444,7 +470,7 @@ func TestSmoke_guideCreateGeoCity(t *testing.T) {
 		t.Fatalf("expected 400 for misspelled city, got %d %s", badRes.code, badRes.body)
 	}
 
-	createRes := smokeRequest(t, a, http.MethodPost, "/api/v1/account/guide/geo/cities", map[string]any{
+	createRes := smokeRequest(t, a, http.MethodPost, "/api/v1/account/geo/cities", map[string]any{
 		"country_slug": "me",
 		"name":         "колашин",
 	}, guideToken, nil)
@@ -473,6 +499,25 @@ func TestSmoke_guideCreateGeoCity(t *testing.T) {
 	}](t, dupRes.body)
 	if dup.ID != created.ID || dup.Created {
 		t.Fatalf("expected existing city id=%d created=false, got %+v", created.ID, dup)
+	}
+}
+
+func TestSmoke_carrierCreateGeoCity(t *testing.T) {
+	a := newSeededTestApp(t)
+	token, _ := registerUser(t, a, uniqueLogin("cgeo_"), false)
+	save := smokeRequest(t, a, http.MethodPut, "/api/v1/account/carrier/profile", map[string]any{
+		"display_name": "Carrier Geo",
+		"carrier_type": "private",
+	}, token, nil)
+	if save.code != http.StatusOK {
+		t.Fatalf("save carrier: %d %s", save.code, save.body)
+	}
+	res := smokeRequest(t, a, http.MethodPost, "/api/v1/account/geo/cities", map[string]any{
+		"country_slug": "pl",
+		"name":         "Люблін",
+	}, token, nil)
+	if res.code != http.StatusCreated && res.code != http.StatusOK {
+		t.Fatalf("carrier create city: %d %s", res.code, res.body)
 	}
 }
 

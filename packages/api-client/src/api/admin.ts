@@ -90,6 +90,57 @@ export type AdminReview = {
   }
 }
 
+// Marketplace types
+export type AdminProvider = {
+  id: number
+  user_id: number
+  display_name: string
+  business_name?: string
+  profession?: string
+  website_slug: string
+  status: string
+  rating_avg: number
+  rating_count: number
+  created_at: string
+  updated_at: string
+  login: string
+  email: string
+  roles: string[]
+}
+
+export type AdminOffering = {
+  id: number
+  provider_id: number
+  category_id: number
+  service_id: number
+  title: string
+  slug: string
+  description: string
+  status: string
+  has_availability: boolean
+  event_at: string | null
+  rating_avg: number
+  rating_count: number
+  created_at: string
+  updated_at: string
+  provider_name: string
+  provider_slug: string
+  category_name?: string
+  service_name?: string
+}
+
+export type AdminComplaint = {
+  id: number
+  reporter_id: number
+  target_type: string
+  target_id: number
+  reason: string
+  status: string
+  created_at: string
+  reporter_login: string
+  reporter_email: string
+}
+
 export type MailSettings = {
   enabled: boolean
   host: string
@@ -146,6 +197,16 @@ export type AdminAnalytics = {
   pending_rides: number
   transport_bookings: number
   carrier_subscriptions: number
+  // Marketplace metrics
+  total_providers: number
+  published_providers: number
+  pending_providers: number
+  total_offerings: number
+  published_offerings: number
+  pending_offerings: number
+  total_complaints: number
+  pending_complaints: number
+  provider_subscriptions: number
   recent_payments: AdminPaymentRow[]
 }
 
@@ -290,5 +351,61 @@ export const adminApi = {
     api<{ status: string }>(`/api/v1/admin/transport/rides/${id}`, {
       method: 'PUT',
       body: JSON.stringify({ status }),
+    }),
+  // Marketplace (servis) admin API
+  providers: (params?: { status?: string }) => {
+    const q = params?.status ? `?status=${encodeURIComponent(params.status)}` : ''
+    return api<{ items: AdminProvider[] }>(`/api/v1/admin/providers${q}`)
+  },
+  updateProvider: (id: number, body: { status: string }) =>
+    api<{ items: AdminProvider[] }>(`/api/v1/admin/providers/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    }),
+  offerings: (params?: { status?: string }) => {
+    const q = params?.status ? `?status=${encodeURIComponent(params.status)}` : ''
+    return api<{ items: AdminOffering[] }>(`/api/v1/admin/offerings${q}`)
+  },
+  updateOffering: (id: number, body: { status: string }) =>
+    api<{ items: AdminOffering[] }>(`/api/v1/admin/offerings/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    }),
+  complaints: (params?: { status?: string }) => {
+    const q = params?.status ? `?status=${encodeURIComponent(params.status)}` : ''
+    return api<{ items: AdminComplaint[] }>(`/api/v1/admin/complaints${q}`)
+  },
+  updateComplaint: (id: number, body: { status: string }) =>
+    api<{ items: AdminComplaint[] }>(`/api/v1/admin/complaints/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    }),
+  // Moderator API for marketplace
+  modProviders: (params?: { status?: string }) => {
+    const q = params?.status ? `?status=${encodeURIComponent(params.status)}` : ''
+    return api<{ items: AdminProvider[] }>(`/api/v1/moderator/providers${q}`)
+  },
+  modUpdateProvider: (id: number, body: { status: string }) =>
+    api<{ items: AdminProvider[] }>(`/api/v1/moderator/providers/${id}`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  modOfferings: (params?: { status?: string }) => {
+    const q = params?.status ? `?status=${encodeURIComponent(params.status)}` : ''
+    return api<{ items: AdminOffering[] }>(`/api/v1/moderator/offerings${q}`)
+  },
+  modUpdateOffering: (id: number, body: { status: string }) =>
+    api<{ items: AdminOffering[] }>(`/api/v1/moderator/offerings/${id}`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  modComplaints: (params?: { status?: string }) => {
+    const q = params?.status ? `?status=${encodeURIComponent(params.status)}` : ''
+    return api<{ items: AdminComplaint[] }>(`/api/v1/moderator/complaints${q}`)
+  },
+  modUpdateComplaint: (id: number, body: { status: string }) =>
+    api<{ items: AdminComplaint[] }>(`/api/v1/moderator/complaints/${id}`, {
+      method: 'POST',
+      body: JSON.stringify(body),
     }),
 }

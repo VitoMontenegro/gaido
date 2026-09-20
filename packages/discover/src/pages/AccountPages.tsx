@@ -8,6 +8,7 @@ import ExcursionCard, { excursionCardPropsFromPartial } from '../components/Excu
 import GuideAvatar from '../components/GuideAvatar'
 import ApiErrorBanner from '../components/ApiErrorBanner'
 import { useHasRole, useMe } from '@gaido/api-client/hooks/useAuth'
+import { guidesUrl } from '@gaido/site-urls/site'
 import NotificationsPanel from '../components/NotificationsPanel'
 
 export default function AccountPage() {
@@ -43,9 +44,9 @@ export default function AccountPage() {
             )}
             <Link to="/account/settings" className="btn-secondary">Налаштування профілю</Link>
             {!isGuide && !isAdmin && (
-              <Link to="/register/guide" className="btn-ghost text-sm">
+              <a href={guidesUrl('/account/guide/profile')} className="btn-ghost text-sm">
                 Стати гідом
-              </Link>
+              </a>
             )}
           </div>
         </div>

@@ -78,15 +78,15 @@ export function guideAccountRoutes() {
       <Route path="/account/settings" element={<Lazy><SettingsPage /></Lazy>} />
       <Route path="/account/guide/billing" element={<GuideGate><Lazy><GuideBillingPage /></Lazy></GuideGate>} />
       <Route path="/account/guide/instructions" element={<GuideGate><Lazy><GuideInstructionsPage /></Lazy></GuideGate>} />
-      <Route path="/account/guide" element={<GuideGate><GuideLayout /></GuideGate>}>
-        <Route index element={<Lazy><GuideOverviewPage /></Lazy>} />
+      <Route path="/account/guide" element={<GuideLayout />}>
+        <Route index element={<GuideGate><Lazy><GuideOverviewPage /></Lazy></GuideGate>} />
         <Route path="profile" element={<Lazy><GuideProfilePage /></Lazy>} />
-        <Route path="documents" element={<Lazy><GuideDocumentsPage /></Lazy>} />
-        <Route path="excursions/new" element={<Lazy><CreateExcursionPage /></Lazy>} />
-        <Route path="excursions/:id/edit" element={<Lazy><EditExcursionPage /></Lazy>} />
-        <Route path="excursions" element={<Lazy><GuideExcursionsPage /></Lazy>} />
-        <Route path="articles" element={<Lazy><GuideArticlesPage /></Lazy>} />
-        <Route path="calendar" element={<Lazy><GuideCalendarPage /></Lazy>} />
+        <Route path="documents" element={<GuideGate><Lazy><GuideDocumentsPage /></Lazy></GuideGate>} />
+        <Route path="excursions/new" element={<GuideGate><Lazy><CreateExcursionPage /></Lazy></GuideGate>} />
+        <Route path="excursions/:id/edit" element={<GuideGate><Lazy><EditExcursionPage /></Lazy></GuideGate>} />
+        <Route path="excursions" element={<GuideGate><Lazy><GuideExcursionsPage /></Lazy></GuideGate>} />
+        <Route path="articles" element={<GuideGate><Lazy><GuideArticlesPage /></Lazy></GuideGate>} />
+        <Route path="calendar" element={<GuideGate><Lazy><GuideCalendarPage /></Lazy></GuideGate>} />
       </Route>
     </>
   )

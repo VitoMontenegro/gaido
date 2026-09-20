@@ -80,6 +80,12 @@ func (r *GuideRepo) GetByID(ctx context.Context, id int64) (*domain.GuideProfile
 	return scanGuide(row)
 }
 
+func (r *GuideRepo) SlugTaken(ctx context.Context, slug string, exceptID int64) (bool, error) {
+	var n int
+	err := r.db.Pool.QueryRow(ctx, `SELECT COUNT(*) FROM guide_profiles WHERE website_slug=$1 AND id<>$2`, slug, exceptID).Scan(&n)
+	return n > 0, err
+}
+
 func scanGuide(row pgx.Row) (*domain.GuideProfile, error) {
 	var g domain.GuideProfile
 	err := row.Scan(&g.ID, &g.UserID, &g.GuideType, &g.FirstName, &g.LastName, &g.DisplayName, &g.About,
@@ -109,10 +115,10 @@ func (r *GuideRepo) UpdateProfile(ctx context.Context, g *domain.GuideProfile) e
 	_, err := r.db.Pool.Exec(ctx, `
 		UPDATE guide_profiles SET guide_type=$2, first_name=$3, last_name=$4, display_name=$5, about=$6,
 			preferred_contact_method=$7, phone=$8, email=$9, telegram=$10, whatsapp=$11, viber=$12, response_hours=$13, status=$14,
-			country_id=$15, avatar_url=$16, updated_at=NOW()
+			country_id=$15, avatar_url=$16, website_slug=$17, updated_at=NOW()
 		WHERE id=$1
 	`, g.ID, g.GuideType, g.FirstName, g.LastName, g.DisplayName, g.About, g.PreferredContactMethod,
-		g.Phone, g.Email, g.Telegram, g.Whatsapp, g.Viber, g.ResponseHours, g.Status, g.CountryID, g.AvatarURL)
+		g.Phone, g.Email, g.Telegram, g.Whatsapp, g.Viber, g.ResponseHours, g.Status, g.CountryID, g.AvatarURL, g.WebsiteSlug)
 	return err
 }
 

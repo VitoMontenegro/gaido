@@ -32,8 +32,8 @@ func (r *CarrierRepo) UpsertProfile(ctx context.Context, p domain.CarrierProfile
 		INSERT INTO carrier_profiles (
 			provider_id, carrier_type, citizenship, base_city_id, about, experience_years, trips_count,
 			trust_level, identity_status, ukrainian_status, business_status, documents_status,
-			hours_text, contact_person, status, updated_at
-		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,NOW())
+			hours_text, contact_person, status, display_name, website_slug, updated_at
+		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,NOW())
 		ON CONFLICT (provider_id) DO UPDATE SET
 			carrier_type=EXCLUDED.carrier_type,
 			citizenship=EXCLUDED.citizenship,
@@ -44,10 +44,12 @@ func (r *CarrierRepo) UpsertProfile(ctx context.Context, p domain.CarrierProfile
 			hours_text=EXCLUDED.hours_text,
 			contact_person=EXCLUDED.contact_person,
 			status=EXCLUDED.status,
+			display_name=EXCLUDED.display_name,
+			website_slug=EXCLUDED.website_slug,
 			updated_at=NOW()`,
 		p.ProviderID, p.CarrierType, p.Citizenship, baseCity, p.About, p.ExperienceYears, p.TripsCount,
 		p.TrustLevel, p.IdentityStatus, p.UkrainianStatus, p.BusinessStatus, p.DocumentsStatus,
-		p.HoursText, p.ContactPerson, p.Status,
+		p.HoursText, p.ContactPerson, p.Status, p.DisplayName, p.WebsiteSlug,
 	)
 	return err
 }
@@ -56,8 +58,21 @@ func (r *CarrierRepo) GetProfileByProviderID(ctx context.Context, providerID int
 	return r.scanProfile(r.db.Pool.QueryRow(ctx, profileSelectSQL+` WHERE cp.provider_id = $1`, providerID))
 }
 
+func (r *CarrierRepo) GetProfileByUserID(ctx context.Context, userID int64) (*domain.CarrierProfile, error) {
+	return r.scanProfile(r.db.Pool.QueryRow(ctx, profileSelectSQL+` WHERE p.user_id = $1`, userID))
+}
+
 func (r *CarrierRepo) GetProfileBySlug(ctx context.Context, slug string) (*domain.CarrierProfile, error) {
-	return r.scanProfile(r.db.Pool.QueryRow(ctx, profileSelectSQL+` WHERE p.website_slug = $1`, slug))
+	return r.scanProfile(r.db.Pool.QueryRow(ctx, profileSelectSQL+`
+		WHERE COALESCE(NULLIF(cp.website_slug, ''), p.website_slug) = $1`, slug))
+}
+
+func (r *CarrierRepo) SlugTaken(ctx context.Context, slug string, exceptProviderID int64) (bool, error) {
+	var n int
+	err := r.db.Pool.QueryRow(ctx, `
+		SELECT COUNT(*) FROM carrier_profiles
+		WHERE website_slug=$1 AND provider_id<>$2`, slug, exceptProviderID).Scan(&n)
+	return n > 0, err
 }
 
 const profileSelectSQL = `
@@ -66,9 +81,10 @@ const profileSelectSQL = `
 		cp.about, cp.experience_years, cp.trips_count, cp.trust_level,
 		cp.identity_status, cp.ukrainian_status, cp.business_status, cp.documents_status,
 		cp.hours_text, cp.contact_person, cp.status, cp.created_at, cp.updated_at,
-		p.display_name, p.business_name, p.website_slug, p.avatar_url,
+		COALESCE(NULLIF(cp.display_name, ''), p.display_name), p.business_name,
+		COALESCE(NULLIF(cp.website_slug, ''), p.website_slug), p.avatar_url,
 		p.rating_avg, p.rating_count,
-		p.phone, p.email, p.telegram, p.whatsapp, p.viber
+		p.phone, p.email, p.telegram, p.whatsapp, p.viber, p.user_id
 	FROM carrier_profiles cp
 	JOIN providers p ON p.id = cp.provider_id
 	LEFT JOIN cities bc ON bc.id = cp.base_city_id`
@@ -84,7 +100,7 @@ func (r *CarrierRepo) scanProfile(row pgx.Row) (*domain.CarrierProfile, error) {
 		&p.HoursText, &p.ContactPerson, &p.Status, &p.CreatedAt, &p.UpdatedAt,
 		&p.DisplayName, &p.BusinessName, &p.WebsiteSlug, &p.AvatarURL,
 		&p.RatingAvg, &p.RatingCount,
-		&p.Phone, &p.Email, &p.Telegram, &p.Whatsapp, &p.Viber,
+		&p.Phone, &p.Email, &p.Telegram, &p.Whatsapp, &p.Viber, &p.UserID,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
@@ -136,22 +152,13 @@ func (r *CarrierRepo) ListPublished(ctx context.Context, p CarrierSearchParams) 
 	defer rows.Close()
 	var items []domain.CarrierProfile
 	for rows.Next() {
-		var prof domain.CarrierProfile
-		var baseCityID *int64
-		if err := rows.Scan(
-			&prof.ProviderID, &prof.CarrierType, &prof.Citizenship, &baseCityID,
-			&prof.BaseCityName, &prof.BaseCitySlug,
-			&prof.About, &prof.ExperienceYears, &prof.TripsCount, &prof.TrustLevel,
-			&prof.IdentityStatus, &prof.UkrainianStatus, &prof.BusinessStatus, &prof.DocumentsStatus,
-			&prof.HoursText, &prof.ContactPerson, &prof.Status, &prof.CreatedAt, &prof.UpdatedAt,
-			&prof.DisplayName, &prof.BusinessName, &prof.WebsiteSlug, &prof.AvatarURL,
-			&prof.RatingAvg, &prof.RatingCount,
-			&prof.Phone, &prof.Email, &prof.Telegram, &prof.Whatsapp, &prof.Viber,
-		); err != nil {
+		prof, err := r.scanProfile(rows)
+		if err != nil {
 			return nil, 0, err
 		}
-		prof.BaseCityID = baseCityID
-		items = append(items, prof)
+		if prof != nil {
+			items = append(items, *prof)
+		}
 	}
 	return items, total, rows.Err()
 }
@@ -178,22 +185,13 @@ func (r *CarrierRepo) ListAdmin(ctx context.Context, status string, limit int) (
 	defer rows.Close()
 	var items []domain.CarrierProfile
 	for rows.Next() {
-		var prof domain.CarrierProfile
-		var baseCityID *int64
-		if err := rows.Scan(
-			&prof.ProviderID, &prof.CarrierType, &prof.Citizenship, &baseCityID,
-			&prof.BaseCityName, &prof.BaseCitySlug,
-			&prof.About, &prof.ExperienceYears, &prof.TripsCount, &prof.TrustLevel,
-			&prof.IdentityStatus, &prof.UkrainianStatus, &prof.BusinessStatus, &prof.DocumentsStatus,
-			&prof.HoursText, &prof.ContactPerson, &prof.Status, &prof.CreatedAt, &prof.UpdatedAt,
-			&prof.DisplayName, &prof.BusinessName, &prof.WebsiteSlug, &prof.AvatarURL,
-			&prof.RatingAvg, &prof.RatingCount,
-			&prof.Phone, &prof.Email, &prof.Telegram, &prof.Whatsapp, &prof.Viber,
-		); err != nil {
+		prof, err := r.scanProfile(rows)
+		if err != nil {
 			return nil, err
 		}
-		prof.BaseCityID = baseCityID
-		items = append(items, prof)
+		if prof != nil {
+			items = append(items, *prof)
+		}
 	}
 	return items, rows.Err()
 }

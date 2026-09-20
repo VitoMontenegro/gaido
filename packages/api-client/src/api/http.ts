@@ -17,13 +17,14 @@ export class ApiClientError extends Error {
 }
 
 const API_ERROR_MESSAGES: Record<string, string> = {
-  UNAUTHORIZED: 'Увійдіть в акаунт, щоб виконати цю дію',
+  CARRIER_PROFILE_REQUIRED: 'Спочатку заповніть профіль перевізника',
   INVALID_CREDENTIALS: 'Невірний логін або пароль',
   FORBIDDEN: 'Недостатньо прав для цієї дії',
   NOT_FOUND: 'Запитаний ресурс не знайдено',
   VALIDATION: 'Перевірте правильність введених даних',
   VALIDATION_ERROR: 'Перевірте правильність введених даних',
   CONFLICT: 'Такий запис уже існує',
+  SLUG_TAKEN: 'Ця адреса профілю вже зайнята',
   EMAIL_ALREADY_EXISTS: 'Користувач з таким email вже існує',
   LOGIN_ALREADY_EXISTS: 'Такий логін уже зайнятий',
   REVIEW_ALREADY_EXISTS: 'Ви вже залишили відгук на цю екскурсію',

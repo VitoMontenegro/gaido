@@ -151,6 +151,11 @@ export default function GuidesHeader({ onLogout }: GuidesHeaderProps) {
                 />
               ) : me ? (
                 <>
+                  {!isGuide && (
+                    <Link to="/account/guide/profile" className="btn-primary hidden px-3 py-1.5 text-sm sm:inline-flex md:py-2">
+                      Стати гідом
+                    </Link>
+                  )}
                   <Link
                     to={accountHref}
                     className={cn(
@@ -237,6 +242,11 @@ export default function GuidesHeader({ onLogout }: GuidesHeaderProps) {
                 <div className="h-11 animate-pulse rounded-xl bg-sand-100/80" aria-hidden />
               ) : me ? (
                 <>
+                  {!isGuide && (
+                    <Link to="/account/guide/profile" className="flex min-h-11 items-center rounded-xl px-3 text-base font-medium text-ink transition hover:bg-sand-100">
+                      Стати гідом
+                    </Link>
+                  )}
                   <Link
                     to={accountHref}
                     className="flex min-h-11 items-center gap-3 rounded-xl px-3 text-base font-medium text-ink transition hover:bg-sand-100"

@@ -11,6 +11,7 @@ import (
 type GuideRepository interface {
 	GetByUserID(ctx context.Context, userID int64) (*domain.GuideProfile, error)
 	GetByID(ctx context.Context, id int64) (*domain.GuideProfile, error)
+	SlugTaken(ctx context.Context, slug string, exceptID int64) (bool, error)
 	UpdateProfile(ctx context.Context, g *domain.GuideProfile) error
 	SetStatus(ctx context.Context, id int64, status string) error
 	DeleteLicenseDocuments(ctx context.Context, guideID int64) error
@@ -133,6 +134,15 @@ func (s *Service) UpdateProfile(ctx context.Context, userID int64, req domain.Gu
 		req.GuideType = g.GuideType
 	}
 	s.ApplyProfileUpdate(ctx, g, req)
+	if strings.TrimSpace(req.WebsiteSlug) != "" || g.WebsiteSlug == "" {
+		slug, err := ReserveOrAllocate(req.WebsiteSlug, g.DisplayName, "guide", func(candidate string) (bool, error) {
+			return s.Guides.SlugTaken(ctx, candidate, g.ID)
+		})
+		if err != nil {
+			return nil, err
+		}
+		g.WebsiteSlug = slug
+	}
 	if err := s.Guides.UpdateProfile(ctx, g); err != nil {
 		return nil, err
 	}

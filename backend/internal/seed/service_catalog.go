@@ -22,6 +22,9 @@ var serviceCatalog = []catSeed{
 		{"barber", "Барбер", 4}, {"cosmetologist", "Косметолог", 5}, {"makeup", "Візажист", 6},
 		{"massage-beauty", "Масаж", 7}, {"beauty-other", "Інші послуги краси", 8},
 	}},
+	{slug: "translation", name: "Перекладачі", icon: "🗣", order: 14, services: []svcSeed{
+		{"translator", "Перекладач", 1}, {"interpreter", "Інтерпретатор", 2}, {"translation-other", "Інші послуги перекладу", 3},
+	}},
 	{slug: "health", name: "Здоров'я", icon: "🩺", order: 2, services: []svcSeed{
 		{"doctor", "Лікарі", 1}, {"dentist", "Стоматологи", 2}, {"psychologist", "Психологи", 3},
 		{"psychotherapist", "Психотерапевти", 4}, {"medical-specialist", "Медичні спеціалісти", 5},

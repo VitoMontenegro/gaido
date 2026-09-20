@@ -3,36 +3,44 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
-	"regexp"
 	"strings"
 
 	"github.com/vitomonte/experts-tourister/internal/apperrors"
 	"github.com/vitomonte/experts-tourister/internal/domain"
+	"github.com/vitomonte/experts-tourister/internal/http/middleware"
 	"github.com/vitomonte/experts-tourister/internal/http/response"
 )
 
-var slugRe = regexp.MustCompile(`^[a-z0-9-]+$`)
-
 func (h *Handlers) GetProviderAccount(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value("userID").(int64)
+	userID := middleware.UserIDFromContext(r.Context())
 	p, err := h.Providers.GetProviderByUserID(r.Context(), userID)
 	if err != nil {
 		response.Error(w, r, apperrors.ErrInternal)
 		return
 	}
-	if p == nil {
-		response.JSON(w, r, 200, map[string]any{"profile": nil})
+	if p == nil || !roleProvider(r.Context()) {
+		out := map[string]any{"profile": nil}
+		if hint := identityHintDTO(h.identityHint(r.Context(), userID, "provider")); hint != nil {
+			out["identity_hint"] = hint
+		}
+		response.JSON(w, r, 200, out)
 		return
 	}
 	offerings, _ := h.Providers.ListOfferingsByProvider(r.Context(), p.ID, false)
+	if offerings == nil {
+		offerings = []domain.ServiceOffering{}
+	}
 	points, _ := h.Providers.ListPointsByProvider(r.Context(), p.ID)
+	if points == nil {
+		points = []domain.ServicePoint{}
+	}
 	response.JSON(w, r, 200, map[string]any{"profile": p, "offerings": offerings, "points": points})
 }
 
 func (h *Handlers) RegisterProvider(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value("userID").(int64)
+	userID := middleware.UserIDFromContext(r.Context())
 	existing, _ := h.Providers.GetProviderByUserID(r.Context(), userID)
-	if existing != nil {
+	if existing != nil && roleProvider(r.Context()) {
 		response.Error(w, r, apperrors.ErrConflict)
 		return
 	}
@@ -45,23 +53,44 @@ func (h *Handlers) RegisterProvider(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	req.Slug = strings.ToLower(strings.TrimSpace(req.Slug))
-	if req.DisplayName == "" || !slugRe.MatchString(req.Slug) {
-		response.Error(w, r, apperrors.ErrValidation)
+	req.DisplayName = strings.TrimSpace(req.DisplayName)
+	if req.DisplayName == "" {
+		response.Error(w, r, apperrors.New("VALIDATION_ERROR", "display_name is required", 400))
 		return
 	}
-	id, err := h.Providers.CreateProvider(r.Context(), userID, req.Slug, req.DisplayName)
+	exceptID := int64(0)
+	if existing != nil {
+		exceptID = existing.ID
+	}
+	slug, err := h.uniqueProviderSlug(r.Context(), req.Slug, req.DisplayName, exceptID)
+	if err != nil {
+		response.Error(w, r, err)
+		return
+	}
+	if existing != nil {
+		existing.DisplayName = req.DisplayName
+		existing.WebsiteSlug = slug
+		if err := h.Providers.UpdateProvider(r.Context(), existing); err != nil {
+			response.Error(w, r, apperrors.ErrInternal)
+			return
+		}
+		_ = h.Users.AddRole(r.Context(), userID, domain.RoleProvider)
+		response.JSON(w, r, 201, map[string]any{"id": existing.ID, "website_slug": slug})
+		return
+	}
+	id, err := h.Providers.CreateProvider(r.Context(), userID, slug, req.DisplayName)
 	if err != nil {
 		response.Error(w, r, apperrors.ErrInternal)
 		return
 	}
 	_ = h.Users.AddRole(r.Context(), userID, domain.RoleProvider)
-	response.JSON(w, r, 201, map[string]any{"id": id})
+	response.JSON(w, r, 201, map[string]any{"id": id, "website_slug": slug})
 }
 
 func (h *Handlers) UpdateProviderAccount(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value("userID").(int64)
+	userID := middleware.UserIDFromContext(r.Context())
 	p, err := h.Providers.GetProviderByUserID(r.Context(), userID)
-	if err != nil || p == nil {
+	if err != nil || p == nil || !roleProvider(r.Context()) {
 		response.Error(w, r, apperrors.ErrNotFound)
 		return
 	}
@@ -70,31 +99,73 @@ func (h *Handlers) UpdateProviderAccount(w http.ResponseWriter, r *http.Request)
 		response.Error(w, r, apperrors.ErrValidation)
 		return
 	}
-	p.DisplayName = req.DisplayName
-	p.BusinessName = req.BusinessName
-	p.Profession = req.Profession
-	p.About = req.About
-	p.AvatarURL = req.AvatarURL
-	p.ResponseHours = req.ResponseHours
-	p.Phone = req.Phone
-	p.Email = req.Email
-	p.Telegram = req.Telegram
-	p.Whatsapp = req.Whatsapp
-	p.Viber = req.Viber
-	p.Instagram = req.Instagram
-	p.Facebook = req.Facebook
-	p.Website = req.Website
-	p.PrimaryCityID = req.PrimaryCityID
-	p.Languages = req.Languages
+	if dn := strings.TrimSpace(req.DisplayName); dn != "" {
+		p.DisplayName = dn
+	}
+	if p.DisplayName == "" {
+		response.Error(w, r, apperrors.New("VALIDATION_ERROR", "display_name is required", 400))
+		return
+	}
+	slug, err := h.uniqueProviderSlug(r.Context(), req.WebsiteSlug, p.DisplayName, p.ID)
+	if err != nil {
+		response.Error(w, r, err)
+		return
+	}
+	p.WebsiteSlug = slug
+	if req.BusinessName != "" {
+		p.BusinessName = req.BusinessName
+	}
+	if req.Profession != "" {
+		p.Profession = req.Profession
+	}
+	if req.About != "" {
+		p.About = req.About
+	}
+	if req.AvatarURL != "" {
+		p.AvatarURL = req.AvatarURL
+	}
+	if req.ResponseHours != "" {
+		p.ResponseHours = req.ResponseHours
+	}
+	if req.Phone != "" {
+		p.Phone = req.Phone
+	}
+	if req.Email != "" {
+		p.Email = req.Email
+	}
+	if req.Telegram != "" {
+		p.Telegram = req.Telegram
+	}
+	if req.Whatsapp != "" {
+		p.Whatsapp = req.Whatsapp
+	}
+	if req.Viber != "" {
+		p.Viber = req.Viber
+	}
+	if req.Instagram != "" {
+		p.Instagram = req.Instagram
+	}
+	if req.Facebook != "" {
+		p.Facebook = req.Facebook
+	}
+	if req.Website != "" {
+		p.Website = req.Website
+	}
+	if req.PrimaryCityID != nil {
+		p.PrimaryCityID = req.PrimaryCityID
+	}
+	if len(req.Languages) > 0 {
+		p.Languages = req.Languages
+	}
 	if err := h.Providers.UpdateProvider(r.Context(), p); err != nil {
 		response.Error(w, r, apperrors.ErrInternal)
 		return
 	}
-	response.JSON(w, r, 200, map[string]string{"status": "ok"})
+	response.JSON(w, r, 200, map[string]any{"status": "ok", "website_slug": slug, "display_name": p.DisplayName})
 }
 
 func (h *Handlers) UpsertProviderOffering(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value("userID").(int64)
+	userID := middleware.UserIDFromContext(r.Context())
 	p, err := h.Providers.GetProviderByUserID(r.Context(), userID)
 	if err != nil || p == nil {
 		response.Error(w, r, apperrors.ErrNotFound)
@@ -125,7 +196,7 @@ func (h *Handlers) UpsertProviderOffering(w http.ResponseWriter, r *http.Request
 }
 
 func (h *Handlers) UpsertProviderPoint(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value("userID").(int64)
+	userID := middleware.UserIDFromContext(r.Context())
 	p, err := h.Providers.GetProviderByUserID(r.Context(), userID)
 	if err != nil || p == nil {
 		response.Error(w, r, apperrors.ErrNotFound)
@@ -144,7 +215,13 @@ func (h *Handlers) UpsertProviderPoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	pt.ProviderID = p.ID
-	if pt.Label == "" || pt.Latitude == 0 && pt.Longitude == 0 {
+	if pt.Label == "" {
+		pt.Label = strings.TrimSpace(pt.AddressText)
+	}
+	if pt.Label == "" {
+		pt.Label = strings.TrimSpace(pt.District)
+	}
+	if pt.Label == "" || (pt.Latitude == 0 && pt.Longitude == 0) {
 		response.Error(w, r, apperrors.ErrValidation)
 		return
 	}
@@ -160,7 +237,7 @@ func (h *Handlers) UpsertProviderPoint(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) LinkOfferingPoint(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value("userID").(int64)
+	userID := middleware.UserIDFromContext(r.Context())
 	p, err := h.Providers.GetProviderByUserID(r.Context(), userID)
 	if err != nil || p == nil {
 		response.Error(w, r, apperrors.ErrNotFound)
@@ -182,7 +259,7 @@ func (h *Handlers) LinkOfferingPoint(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) UpsertProviderZone(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value("userID").(int64)
+	userID := middleware.UserIDFromContext(r.Context())
 	p, err := h.Providers.GetProviderByUserID(r.Context(), userID)
 	if err != nil || p == nil {
 		response.Error(w, r, apperrors.ErrNotFound)
@@ -210,7 +287,7 @@ func (h *Handlers) UpsertProviderZone(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) CreateServiceSuggestion(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value("userID").(int64)
+	userID := middleware.UserIDFromContext(r.Context())
 	p, err := h.Providers.GetProviderByUserID(r.Context(), userID)
 	if err != nil || p == nil {
 		response.Error(w, r, apperrors.ErrNotFound)
@@ -235,7 +312,7 @@ func (h *Handlers) CreateServiceSuggestion(w http.ResponseWriter, r *http.Reques
 }
 
 func (h *Handlers) CreatePlatformReview(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value("userID").(int64)
+	userID := middleware.UserIDFromContext(r.Context())
 	var req struct {
 		TargetType string `json:"target_type"`
 		TargetID   int64  `json:"target_id"`

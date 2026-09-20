@@ -365,6 +365,11 @@
     height: 520px;
   }
 
+  .leaflet-map-sm {
+    height: 280px;
+    @apply rounded-2xl;
+  }
+
   .leaflet-map--wheel-active {
     @apply ring-2 ring-teal/40 ring-offset-2;
   }

@@ -31,6 +31,21 @@ export const discoverApi = {
   provider: (slug: string) => api<PublicProvider>(`/api/v1/providers/${slug}`),
   reverseGeo: (lat: number, lng: number) =>
     api<City>(`/api/v1/geo/reverse?lat=${lat}&lng=${lng}`),
+  searchAddress: (q: string, country?: string) =>
+    api<{ lat: number; lng: number; address: string; district?: string; city_name?: string }>(
+      `/api/v1/geo/search?q=${encodeURIComponent(q)}${country ? `&country=${encodeURIComponent(country)}` : ''}`,
+    ),
+  reverseAddress: (lat: number, lng: number) =>
+    api<{
+      lat: number
+      lng: number
+      address: string
+      district?: string
+      city_name?: string
+      city_id?: number
+      city_slug?: string
+      country_slug?: string
+    }>(`/api/v1/geo/address?lat=${lat}&lng=${lng}`),
   nearbyCities: (cityId: number, radiusKm: number) =>
     api<{ items: City[] }>(`/api/v1/geo/nearby-cities?city_id=${cityId}&radius_km=${radiusKm}`),
   regions: (countrySlug: string) =>
@@ -49,16 +64,22 @@ export const discoverApi = {
 
 export const providerApi = {
   account: () =>
-    api<{ profile: PublicProvider | null; offerings: unknown[]; points: unknown[] }>(
-      '/api/v1/account/provider',
-    ),
-  register: (display_name: string, slug: string) =>
-    api<{ id: number }>('/api/v1/account/provider/register', {
+    api<{
+      profile: PublicProvider | null
+      offerings: unknown[]
+      points: unknown[]
+      identity_hint?: { display_name: string; website_slug: string }
+    }>('/api/v1/account/provider'),
+  register: (display_name: string, slug?: string) =>
+    api<{ id: number; website_slug?: string }>('/api/v1/account/provider/register', {
       method: 'POST',
-      body: JSON.stringify({ display_name, slug }),
+      body: JSON.stringify({ display_name, slug: slug || undefined }),
     }),
   updateProfile: (body: object) =>
-    api('/api/v1/account/provider/profile', { method: 'PUT', body: JSON.stringify(body) }),
+    api<{ status: string; website_slug?: string; display_name?: string }>('/api/v1/account/provider/profile', {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    }),
   upsertOffering: (body: object) =>
     api<{ id: number }>('/api/v1/account/provider/offerings', {
       method: 'POST',

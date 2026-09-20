@@ -33,7 +33,7 @@ export default function CarrierBillingPage() {
       <div className="mx-auto max-w-2xl space-y-6">
         <div>
           <h1 className="section-title-sm">Підписка Vezu</h1>
-          <p className="text-sm text-muted">Активуйте підписку, щоб показувати контакти та приймати бронювання</p>
+          <p className="text-sm text-muted">Підписка зараз не обовʼязкова: контакти та бронювання доступні без оплати.</p>
         </div>
 
         <div className="card space-y-2 p-5 text-sm">

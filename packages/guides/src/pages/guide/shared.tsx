@@ -2,6 +2,7 @@ export type GuideProfile = {
   id: number
   guide_type: string
   display_name: string
+  website_slug?: string
   about: string
   avatar_url?: string
   phone: string
@@ -47,6 +48,7 @@ export function guideProfilePayload(f: Partial<GuideProfile>, guideType?: string
   return {
     guide_type: guideType ?? f.guide_type,
     display_name: f.display_name ?? '',
+    website_slug: f.website_slug ?? '',
     about: f.about ?? '',
     avatar_url: f.avatar_url ?? '',
     phone: f.phone ?? '',

@@ -65,6 +65,9 @@ export function GuidesAccountLayout() {
               <AccountNavLink to="/account/guide/billing">Білінг</AccountNavLink>
             </>
           )}
+          {!isGuide && (
+            <AccountNavLink to="/account/guide/profile">Стати гідом</AccountNavLink>
+          )}
           <AccountNavLink to="/account/settings">Налаштування</AccountNavLink>
           {isGuide && <AccountNavLink to="/account/guide/instructions">Інструкції</AccountNavLink>}
           {(isAdmin || isModerator) && (

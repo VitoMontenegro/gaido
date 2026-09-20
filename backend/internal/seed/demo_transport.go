@@ -41,7 +41,7 @@ func (s *Seeder) ensureTransportDemo(ctx context.Context) error {
 		{"carrier-demo-bus", "carrier-demo-bus@example.com", "carrier12345", "Марія", "Шевченко"},
 	}
 	for _, u := range demoUsers {
-		if err := s.ensureUser(ctx, u.login, u.email, u.pass, u.first, u.last, []string{domain.RoleTourist, domain.RoleProvider}); err != nil {
+		if err := s.ensureUser(ctx, u.login, u.email, u.pass, u.first, u.last, []string{domain.RoleTourist, domain.RoleCarrier}); err != nil {
 			return err
 		}
 	}
@@ -49,20 +49,30 @@ func (s *Seeder) ensureTransportDemo(ctx context.Context) error {
 	carrierRepo := postgres.NewCarrierRepo(s.DB)
 	carrierSeeds := []struct {
 		login, slug, carrierType, about, contactPerson string
+		phone, telegram                                string
 		baseCity                                       string
 		experience, trips                              int
 		identity, ukrainian, business, documents       string
 		withSubscription                               bool
-		vehicles                                       []struct{ brand, model, vType string; seats int; year int }
+		vehicles                                       []struct {
+			brand, model, vType string
+			seats               int
+			year                int
+		}
 	}{
 		{
 			login: "carrier-demo-abc", slug: "abc-transport-demo", carrierType: domain.CarrierTypeCompany,
-			about: "Міжнародні пасажирські перевезення з 2015 року. Регулярні рейси PL → UA.",
-			contactPerson: "Андрій Мельник", baseCity: "warsaw", experience: 10, trips: 2400,
+			about:         "Міжнародні пасажирські перевезення з 2015 року. Регулярні рейси PL → UA.",
+			contactPerson: "Андрій Мельник", phone: "+48111222333", telegram: "@abc_transport_demo",
+			baseCity: "warsaw", experience: 10, trips: 2400,
 			identity: domain.VerificationVerified, ukrainian: domain.VerificationVerified,
 			business: domain.VerificationVerified, documents: domain.VerificationVerified,
 			withSubscription: true,
-			vehicles: []struct{ brand, model, vType string; seats int; year int }{
+			vehicles: []struct {
+				brand, model, vType string
+				seats               int
+				year                int
+			}{
 				{"Mercedes", "Sprinter", "minivan", 8, 2022},
 				{"Mercedes", "Vito", "minivan", 7, 2020},
 			},
@@ -70,22 +80,32 @@ func (s *Seeder) ensureTransportDemo(ctx context.Context) error {
 		{
 			login: "carrier-demo-fop", slug: "ivan-petrenko-demo", carrierType: domain.CarrierTypeFOP,
 			about: "ФОП, регулярні рейси Чехія — Україна.", contactPerson: "Іван Петренко",
+			phone: "+420777888999", telegram: "@ivan_petrenko_cz",
 			baseCity: "prague", experience: 6, trips: 890,
 			identity: domain.VerificationVerified, ukrainian: domain.VerificationVerified,
 			business: domain.VerificationVerified, documents: domain.VerificationPending,
 			withSubscription: true,
-			vehicles: []struct{ brand, model, vType string; seats int; year int }{
+			vehicles: []struct {
+				brand, model, vType string
+				seats               int
+				year                int
+			}{
 				{"Mercedes", "Sprinter", "minivan", 7, 2019},
 			},
 		},
 		{
 			login: "carrier-demo-private", slug: "oleksandr-kovalenko-demo", carrierType: domain.CarrierTypePrivate,
 			about: "Приватний перевізник, Берлін — Київ.", contactPerson: "Олександр Коваленко",
+			phone: "+491511998877", telegram: "@alex_berlin_rides",
 			baseCity: "berlin", experience: 4, trips: 320,
 			identity: domain.VerificationVerified, ukrainian: domain.VerificationVerified,
 			business: domain.VerificationPending, documents: domain.VerificationVerified,
 			withSubscription: true,
-			vehicles: []struct{ brand, model, vType string; seats int; year int }{
+			vehicles: []struct {
+				brand, model, vType string
+				seats               int
+				year                int
+			}{
 				{"VW", "Caravelle", "minivan", 6, 2021},
 				{"Toyota", "RAV4", "car", 4, 2018},
 			},
@@ -93,11 +113,16 @@ func (s *Seeder) ensureTransportDemo(ctx context.Context) error {
 		{
 			login: "carrier-demo-bus", slug: "baltic-ua-demo", carrierType: domain.CarrierTypeCompany,
 			about: "Автобусні лінії Балтика — Україна.", contactPerson: "Марія Шевченко",
+			phone: "+48500111222", telegram: "@baltic_ua_demo",
 			baseCity: "gdansk", experience: 12, trips: 5100,
 			identity: domain.VerificationVerified, ukrainian: domain.VerificationVerified,
 			business: domain.VerificationVerified, documents: domain.VerificationVerified,
 			withSubscription: true,
-			vehicles: []struct{ brand, model, vType string; seats int; year int }{
+			vehicles: []struct {
+				brand, model, vType string
+				seats               int
+				year                int
+			}{
 				{"Setra", "S515 HD", "bus", 49, 2021},
 			},
 		},
@@ -110,6 +135,13 @@ func (s *Seeder) ensureTransportDemo(ctx context.Context) error {
 		p, err := s.ensureTransportProvider(ctx, u.ID, cs.slug, cs.contactPerson)
 		if err != nil {
 			return err
+		}
+		if cs.phone != "" && p.Phone == "" {
+			p.Phone = cs.phone
+			p.Telegram = cs.telegram
+			if err := s.Providers.UpdateProvider(ctx, p); err != nil {
+				return err
+			}
 		}
 		var profExists int
 		_ = s.DB.Pool.QueryRow(ctx, `SELECT COUNT(*) FROM carrier_profiles WHERE provider_id=$1`, p.ID).Scan(&profExists)
@@ -196,7 +228,7 @@ func (s *Seeder) ensureTransportDemo(ctx context.Context) error {
 			vehicle: "Mercedes Sprinter 2022", kind: domain.TransportKindRegular,
 			phone: "+48111222333", telegram: "@abc_transport_demo", whatsapp: "+48111222333",
 			price: 45, currency: "EUR", seats: 8, departTime: "07:00", arriveTime: "19:30",
-			stops: []string{"warsaw", "lublin", "lviv", "kyiv"},
+			stops:   []string{"warsaw", "lublin", "lviv", "kyiv"},
 			parcels: true, parcelsTerms: "До 25 кг, від 15 EUR. Без небезпечних вантажів.",
 			departures: []domain.TransportDeparture{
 				depSeats(2, 3, 5), depSeats(5, 6, 8), depSeats(9, 10, 3), depSeats(14, 15, 6),
@@ -209,7 +241,7 @@ func (s *Seeder) ensureTransportDemo(ctx context.Context) error {
 			vehicle: "Mercedes Sprinter", kind: domain.TransportKindRegular,
 			phone: "+420777888999", telegram: "@ivan_petrenko_cz",
 			price: 40, currency: "EUR", seats: 7, departTime: "06:30", arriveTime: "18:00",
-			stops: []string{"prague", "lviv", "kyiv"},
+			stops:      []string{"prague", "lviv", "kyiv"},
 			departures: []domain.TransportDeparture{dep(3, 4), dep(7, 8), dep(12, 13), dep(21, 22)},
 		},
 		// Пример 3 — частный перевозчик (ТЗ §25)
@@ -219,7 +251,7 @@ func (s *Seeder) ensureTransportDemo(ctx context.Context) error {
 			vehicle: "VW Caravelle + Toyota RAV4", kind: domain.TransportKindRegular,
 			phone: "+491511998877", telegram: "@alex_berlin_rides", whatsapp: "+491511998877",
 			price: 50, currency: "EUR", seats: 6, departTime: "08:00", arriveTime: "21:00",
-			stops: []string{"berlin", "wroclaw", "warsaw", "lviv", "kyiv"},
+			stops:      []string{"berlin", "wroclaw", "warsaw", "lviv", "kyiv"},
 			departures: []domain.TransportDeparture{dep(4, 5), dep(11, 12), dep(18, 19)},
 		},
 		// Регулярный: Берлин → Варшава (сегмент для поиска)
@@ -229,7 +261,7 @@ func (s *Seeder) ensureTransportDemo(ctx context.Context) error {
 			vehicle: "Mercedes Vito", kind: domain.TransportKindRegular,
 			phone: "+491511234570", telegram: "@taxi_ua_berlin",
 			price: 55, currency: "EUR", seats: 6, departTime: "09:00", arriveTime: "15:00",
-			stops: []string{"berlin", "wroclaw", "warsaw"},
+			stops:      []string{"berlin", "wroclaw", "warsaw"},
 			departures: []domain.TransportDeparture{dep(1, 1), dep(8, 8), dep(15, 15)},
 		},
 		// Краков → Львів (сегмент внутри длинного маршрута)
@@ -239,7 +271,7 @@ func (s *Seeder) ensureTransportDemo(ctx context.Context) error {
 			vehicle: "Setra S515 HD", kind: domain.TransportKindRegular,
 			phone: "+48555111222", telegram: "@baltic_ua",
 			price: 38, currency: "EUR", seats: 49, departTime: "22:00", arriveTime: "08:00",
-			stops: []string{"gdansk", "warsaw", "krakow", "lviv", "kyiv"},
+			stops:   []string{"gdansk", "warsaw", "krakow", "lviv", "kyiv"},
 			parcels: true, parcelsTerms: "Посилки від 10 EUR, узгодження в Telegram",
 			departures: []domain.TransportDeparture{dep(2, 3), dep(6, 7), dep(13, 14), dep(20, 21)},
 		},
@@ -250,7 +282,7 @@ func (s *Seeder) ensureTransportDemo(ctx context.Context) error {
 			vehicle: "Setra S515 HD (нічний)", kind: domain.TransportKindRegular,
 			phone: "+48555111222", telegram: "@baltic_ua",
 			price: 42, currency: "EUR", seats: 45, departTime: "20:00", arriveTime: "12:00",
-			stops: []string{"gdansk", "warsaw", "lublin", "lviv", "kyiv"},
+			stops:      []string{"gdansk", "warsaw", "lublin", "lviv", "kyiv"},
 			departures: []domain.TransportDeparture{dep(5, 6), dep(12, 13), dep(19, 20)},
 		},
 		// Попутка разовая
@@ -260,7 +292,7 @@ func (s *Seeder) ensureTransportDemo(ctx context.Context) error {
 			vehicle: "Toyota RAV4", kind: domain.TransportKindOccasional,
 			phone: "+491511998877", telegram: "@alex_berlin_rides",
 			price: 35, currency: "EUR", seats: 3, departTime: "10:00", arriveTime: "16:00",
-			stops: []string{"wroclaw", "krakow"},
+			stops:      []string{"wroclaw", "krakow"},
 			departures: []domain.TransportDeparture{dep(6, 6)},
 		},
 		{
@@ -269,7 +301,7 @@ func (s *Seeder) ensureTransportDemo(ctx context.Context) error {
 			vehicle: "Toyota RAV4", kind: domain.TransportKindOccasional,
 			phone: "+380501112233", telegram: "@iryna_poputka",
 			price: 30, currency: "EUR", seats: 3, departTime: "11:00", arriveTime: "17:00",
-			stops: []string{"lviv", "kyiv"},
+			stops:      []string{"lviv", "kyiv"},
 			departures: []domain.TransportDeparture{dep(4, 4), dep(10, 10)},
 		},
 		// Варшава → Львів (короткий регулярный)
@@ -279,7 +311,7 @@ func (s *Seeder) ensureTransportDemo(ctx context.Context) error {
 			vehicle: "Ford Transit", kind: domain.TransportKindRegular,
 			phone: "+420777888999", telegram: "@ivan_petrenko_cz",
 			price: 25, currency: "EUR", seats: 8, departTime: "14:00", arriveTime: "20:00",
-			stops: []string{"warsaw", "lublin", "lviv"},
+			stops:      []string{"warsaw", "lublin", "lviv"},
 			departures: []domain.TransportDeparture{dep(1, 1), dep(3, 3), dep(7, 7), dep(14, 14)},
 		},
 	}
@@ -350,13 +382,14 @@ func (s *Seeder) ensureTransportProvider(ctx context.Context, userID int64, slug
 		return nil, err
 	}
 	if p != nil {
+		_ = s.Users.AddRole(ctx, userID, domain.RoleCarrier)
 		return p, nil
 	}
 	id, err := s.Providers.CreateProvider(ctx, userID, slug, displayName)
 	if err != nil {
 		return nil, err
 	}
-	_ = s.Users.AddRole(ctx, userID, domain.RoleProvider)
+	_ = s.Users.AddRole(ctx, userID, domain.RoleCarrier)
 	p, err = s.Providers.GetProviderByUserID(ctx, userID)
 	if err != nil || p == nil {
 		return &domain.Provider{ID: id, UserID: userID}, nil

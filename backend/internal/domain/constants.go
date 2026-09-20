@@ -3,7 +3,8 @@ package domain
 const (
 	RoleTourist   = "ROLE_TOURIST"
 	RoleGuide     = "ROLE_GUIDE"
-	RoleProvider  = "ROLE_PROVIDER"
+	RoleProvider  = "ROLE_PROVIDER" // marketplace author (servis)
+	RoleCarrier   = "ROLE_CARRIER"  // transport carrier (vezu)
 	RoleModerator = "ROLE_MODERATOR"
 	RoleAdmin     = "ROLE_ADMIN"
 )
@@ -15,12 +16,12 @@ const (
 )
 
 const (
-	GuideStatusDraft           = "DRAFT"
-	GuideStatusWaitingPayment  = "WAITING_PAYMENT"
-	GuideStatusActive          = "ACTIVE"
-	GuideStatusSuspended       = "SUSPENDED"
-	GuideStatusBlocked         = "BLOCKED"
-	GuideStatusExpired         = "EXPIRED"
+	GuideStatusDraft          = "DRAFT"
+	GuideStatusWaitingPayment = "WAITING_PAYMENT"
+	GuideStatusActive         = "ACTIVE"
+	GuideStatusSuspended      = "SUSPENDED"
+	GuideStatusBlocked        = "BLOCKED"
+	GuideStatusExpired        = "EXPIRED"
 )
 
 const (
@@ -30,12 +31,12 @@ const (
 )
 
 const (
-	PaymentPurposeGuidePlacement     = "GUIDE_PLACEMENT"
-	PaymentPurposeFeaturedGuide      = "FEATURED_GUIDE"
-	PaymentPurposeFeaturedExcursion  = "FEATURED_EXCURSION"
-	PaymentPaid                      = "PAID"
-	PaymentPending                   = "PENDING"
-	PaymentCreated                   = "CREATED"
+	PaymentPurposeGuidePlacement    = "GUIDE_PLACEMENT"
+	PaymentPurposeFeaturedGuide     = "FEATURED_GUIDE"
+	PaymentPurposeFeaturedExcursion = "FEATURED_EXCURSION"
+	PaymentPaid                     = "PAID"
+	PaymentPending                  = "PENDING"
+	PaymentCreated                  = "CREATED"
 )
 
 const (
@@ -77,7 +78,7 @@ const (
 )
 
 const (
-	TransportKindRegular   = "regular"
+	TransportKindRegular    = "regular"
 	TransportKindOccasional = "occasional"
 )
 
@@ -144,7 +145,13 @@ const (
 	ProviderStatusModeration = "moderation"
 	ProviderStatusVerified   = "verified"
 	ProviderStatusNeedInfo   = "need_info"
-	ProviderStatusBlocked      = "blocked"
+	ProviderStatusBlocked    = "blocked"
+)
+
+const (
+	ComplaintStatusOpen      = "open"
+	ComplaintStatusResolved  = "resolved"
+	ComplaintStatusDismissed = "dismissed"
 )
 
 const (
@@ -189,11 +196,11 @@ const (
 )
 
 const (
-	ResponseUnder30m   = "under_30m"
-	ResponseUnder1h    = "under_1h"
-	ResponseFewHours   = "few_hours"
-	ResponseWithin24h  = "within_24h"
-	Response1_2Days    = "1_2_days"
+	ResponseUnder30m  = "under_30m"
+	ResponseUnder1h   = "under_1h"
+	ResponseFewHours  = "few_hours"
+	ResponseWithin24h = "within_24h"
+	Response1_2Days   = "1_2_days"
 )
 
 const (
@@ -202,8 +209,35 @@ const (
 )
 
 const (
-	PlanTypeProviderPlacement = "PROVIDER_PLACEMENT"
+	PlanTypeProviderPlacement       = "PROVIDER_PLACEMENT"
 	PaymentPurposeProviderPlacement = "PROVIDER_PLACEMENT"
 )
 
 const FavoriteProvider = "PROVIDER"
+
+func ValidProviderStatus(s string) bool {
+	switch s {
+	case ProviderStatusNew, ProviderStatusModeration, ProviderStatusVerified, ProviderStatusNeedInfo, ProviderStatusBlocked:
+		return true
+	default:
+		return false
+	}
+}
+
+func ValidOfferingStatus(s string) bool {
+	switch s {
+	case OfferingStatusDraft, OfferingStatusPublished, OfferingStatusRejected:
+		return true
+	default:
+		return false
+	}
+}
+
+func ValidComplaintStatus(s string) bool {
+	switch s {
+	case ComplaintStatusOpen, ComplaintStatusResolved, ComplaintStatusDismissed:
+		return true
+	default:
+		return false
+	}
+}

@@ -8,74 +8,76 @@ import (
 )
 
 type Config struct {
-	AppEnv              string
-	HTTPAddr            string
-	CORSOrigins         []string
-	PublicBaseURL       string
-	DatabaseURL         string
-	RedisURL            string
-	RedisSessionURL     string
-	RedisSignalURL      string
-	JWTAccessSecret     string
-	JWTRefreshSecret    string
-	JWTAccessTTL        time.Duration
-	JWTRefreshTTL       time.Duration
-	PaymentStubEnabled  bool
-	MediaStoragePath    string
-	MediaMaxUploadBytes int64
-	SeedDemoData        bool
-	TrustProxy          bool
-	StaticDir           string
-	StaticRoot          string
-	StaticHostMap       map[string]string
-	DeployEnabled       bool
-	DeployScript        string
-	DeployLog           string
-	DeployAPILog        string
-	DeployAppSlug       string
-	GitBranch           string
-	TelegramEnabled     bool
-	TelegramBotToken    string
-	TelegramBotUsername string
-	TelegramGroupChatID int64
+	AppEnv                string
+	HTTPAddr              string
+	CORSOrigins           []string
+	PublicBaseURL         string
+	DatabaseURL           string
+	RedisURL              string
+	RedisSessionURL       string
+	RedisSignalURL        string
+	JWTAccessSecret       string
+	JWTRefreshSecret      string
+	JWTAccessTTL          time.Duration
+	JWTRefreshTTL         time.Duration
+	PaymentStubEnabled    bool
+	MediaStoragePath      string
+	MediaMaxUploadBytes   int64
+	SeedDemoData          bool
+	TrustProxy            bool
+	StaticDir             string
+	StaticRoot            string
+	StaticHostMap         map[string]string
+	DeployEnabled         bool
+	DeployScript          string
+	DeployLog             string
+	DeployAPILog          string
+	DeployAppSlug         string
+	GitBranch             string
+	TelegramEnabled       bool
+	TelegramBotToken      string
+	TelegramBotUsername   string
+	TelegramGroupChatID   int64
 	TelegramWebhookSecret string
 	GeocodeUserAgent      string
+	CookieDomain          string
 }
 
 func Load() Config {
 	return Config{
-		AppEnv:              getEnv("APP_ENV", "development"),
-		HTTPAddr:            getEnv("HTTP_ADDR", ":8081"),
-		CORSOrigins:         splitCSV(getEnv("CORS_ORIGINS", "http://localhost:5173")),
-		PublicBaseURL:       getEnv("PUBLIC_BASE_URL", "http://localhost:5173"),
-		DatabaseURL:         getEnv("DATABASE_URL", "postgres://tourister:tourister@localhost:5433/tourister?sslmode=disable"),
-		RedisURL:            getEnv("REDIS_URL", "redis://localhost:6380/0"),
-		RedisSessionURL:     getEnv("REDIS_SESSION_URL", "redis://localhost:6380/1"),
-		RedisSignalURL:      getEnv("REDIS_SIGNAL_URL", "redis://localhost:6380/2"),
-		JWTAccessSecret:     getEnv("JWT_ACCESS_SECRET", "dev-access-secret-min-32-characters!!"),
-		JWTRefreshSecret:    getEnv("JWT_REFRESH_SECRET", "dev-refresh-secret-min-32-characters!"),
-		JWTAccessTTL:        parseDuration(getEnv("JWT_ACCESS_TTL", "15m"), 15*time.Minute),
-		JWTRefreshTTL:       parseDuration(getEnv("JWT_REFRESH_TTL", "720h"), 720*time.Hour),
-		PaymentStubEnabled:  getEnv("PAYMENT_STUB_ENABLED", "true") == "true",
-		MediaStoragePath:    getEnv("MEDIA_STORAGE_PATH", "./storage"),
-		MediaMaxUploadBytes: int64(getEnvInt("MEDIA_MAX_UPLOAD_MB", 10)) * 1024 * 1024,
-		SeedDemoData:        seedDemoDataEnabled(getEnv("APP_ENV", "development"), getEnv("SEED_DEMO_DATA", "")),
-		TrustProxy:          getEnv("TRUST_PROXY", "false") == "true",
-		StaticDir:           getEnv("STATIC_DIR", "../apps/portal/dist"),
-		StaticRoot:          getEnv("STATIC_ROOT", ""),
-		StaticHostMap:       parseHostMap(getEnv("STATIC_HOST_MAP", "")),
-		DeployEnabled:       getEnv("DEPLOY_ENABLED", "false") == "true",
-		DeployScript:        getEnv("DEPLOY_SCRIPT", ""),
-		DeployLog:           getEnv("DEPLOY_LOG", ""),
-		DeployAPILog:        getEnv("API_LOG", ""),
-		DeployAppSlug:       getEnv("DEPLOY_APP_SLUG", "web-prod-2026"),
-		GitBranch:           getEnv("GIT_BRANCH", "main"),
-		TelegramEnabled:     getEnv("TELEGRAM_ENABLED", "false") == "true",
-		TelegramBotToken:    getEnv("TELEGRAM_BOT_TOKEN", ""),
-		TelegramBotUsername: getEnv("TELEGRAM_BOT_USERNAME", ""),
-		TelegramGroupChatID: int64(getEnvInt("TELEGRAM_GROUP_CHAT_ID", 0)),
+		AppEnv:                getEnv("APP_ENV", "development"),
+		HTTPAddr:              getEnv("HTTP_ADDR", ":8081"),
+		CORSOrigins:           splitCSV(getEnv("CORS_ORIGINS", "http://localhost:5173")),
+		PublicBaseURL:         getEnv("PUBLIC_BASE_URL", "http://localhost:5173"),
+		DatabaseURL:           getEnv("DATABASE_URL", "postgres://tourister:tourister@localhost:5433/tourister?sslmode=disable"),
+		RedisURL:              getEnv("REDIS_URL", "redis://localhost:6380/0"),
+		RedisSessionURL:       getEnv("REDIS_SESSION_URL", "redis://localhost:6380/1"),
+		RedisSignalURL:        getEnv("REDIS_SIGNAL_URL", "redis://localhost:6380/2"),
+		JWTAccessSecret:       getEnv("JWT_ACCESS_SECRET", "dev-access-secret-min-32-characters!!"),
+		JWTRefreshSecret:      getEnv("JWT_REFRESH_SECRET", "dev-refresh-secret-min-32-characters!"),
+		JWTAccessTTL:          parseDuration(getEnv("JWT_ACCESS_TTL", "15m"), 15*time.Minute),
+		JWTRefreshTTL:         parseDuration(getEnv("JWT_REFRESH_TTL", "720h"), 720*time.Hour),
+		PaymentStubEnabled:    getEnv("PAYMENT_STUB_ENABLED", "true") == "true",
+		MediaStoragePath:      getEnv("MEDIA_STORAGE_PATH", "./storage"),
+		MediaMaxUploadBytes:   int64(getEnvInt("MEDIA_MAX_UPLOAD_MB", 10)) * 1024 * 1024,
+		SeedDemoData:          seedDemoDataEnabled(getEnv("APP_ENV", "development"), getEnv("SEED_DEMO_DATA", "")),
+		TrustProxy:            getEnv("TRUST_PROXY", "false") == "true",
+		StaticDir:             getEnv("STATIC_DIR", "../apps/portal/dist"),
+		StaticRoot:            getEnv("STATIC_ROOT", ""),
+		StaticHostMap:         parseHostMap(getEnv("STATIC_HOST_MAP", "")),
+		DeployEnabled:         getEnv("DEPLOY_ENABLED", "false") == "true",
+		DeployScript:          getEnv("DEPLOY_SCRIPT", ""),
+		DeployLog:             getEnv("DEPLOY_LOG", ""),
+		DeployAPILog:          getEnv("API_LOG", ""),
+		DeployAppSlug:         getEnv("DEPLOY_APP_SLUG", "web-prod-2026"),
+		GitBranch:             getEnv("GIT_BRANCH", "main"),
+		TelegramEnabled:       getEnv("TELEGRAM_ENABLED", "false") == "true",
+		TelegramBotToken:      getEnv("TELEGRAM_BOT_TOKEN", ""),
+		TelegramBotUsername:   getEnv("TELEGRAM_BOT_USERNAME", ""),
+		TelegramGroupChatID:   int64(getEnvInt("TELEGRAM_GROUP_CHAT_ID", 0)),
 		TelegramWebhookSecret: getEnv("TELEGRAM_WEBHOOK_SECRET", ""),
 		GeocodeUserAgent:      getEnv("GEOCODE_USER_AGENT", "Gaido (+https://gaido-ua.com)"),
+		CookieDomain:          getEnv("COOKIE_DOMAIN", ""),
 	}
 }
 

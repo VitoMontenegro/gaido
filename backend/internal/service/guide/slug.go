@@ -1,8 +1,12 @@
 package guide
 
 import (
+	"crypto/rand"
 	"crypto/sha256"
+	"encoding/binary"
 	"encoding/hex"
+	"errors"
+	"fmt"
 	"strings"
 	"unicode"
 
@@ -10,6 +14,8 @@ import (
 	"golang.org/x/text/transform"
 	"golang.org/x/text/unicode/norm"
 )
+
+var ErrSlugConflict = errors.New("slug conflict")
 
 // CitySlug — slug для міста (латиниця, транслітерація кирилиці).
 func CitySlug(name string) string {
@@ -77,6 +83,87 @@ func ArticleSlug(raw, title string) string {
 		out = strings.Trim(out[:maxArticleSlugLen], "-")
 	}
 	return out
+}
+
+const maxWebsiteSlugLen = 140
+
+// WebsiteSlug — slug профілю: з явного значення або з відображуваного імені.
+func WebsiteSlug(raw, name string) string {
+	out := asciiSlug(normalizeCityName(strings.TrimSpace(raw)))
+	if out == "" {
+		out = asciiSlug(normalizeCityName(name))
+	}
+	if out == "" {
+		return "provider"
+	}
+	if len(out) > maxWebsiteSlugLen {
+		out = strings.Trim(out[:maxWebsiteSlugLen], "-")
+	}
+	return out
+}
+
+// ReserveOrAllocate — явний slug лише якщо вільний; порожній — AllocateUnique з імені.
+func ReserveOrAllocate(raw, name, emptyFallback string, taken func(string) (bool, error)) (string, error) {
+	if strings.TrimSpace(raw) == "" {
+		return AllocateUnique("", name, emptyFallback, taken)
+	}
+	slug := WebsiteSlug(raw, name)
+	busy, err := taken(slug)
+	if err != nil {
+		return "", err
+	}
+	if busy {
+		return "", ErrSlugConflict
+	}
+	return slug, nil
+}
+
+// AllocateUnique — slug із raw або name; якщо зайнятий, префікс з 4 випадкових цифр.
+func AllocateUnique(raw, name, emptyFallback string, taken func(string) (bool, error)) (string, error) {
+	base := asciiSlug(normalizeCityName(strings.TrimSpace(raw)))
+	if base == "" {
+		base = asciiSlug(normalizeCityName(name))
+	}
+	if base == "" {
+		if emptyFallback != "" {
+			base = emptyFallback
+		} else {
+			base = "profile"
+		}
+	}
+	if len(base) > maxWebsiteSlugLen {
+		base = strings.Trim(base[:maxWebsiteSlugLen], "-")
+	}
+	busy, err := taken(base)
+	if err != nil {
+		return "", err
+	}
+	if !busy {
+		return base, nil
+	}
+	for i := 0; i < 8; i++ {
+		n, err := randDigits4()
+		if err != nil {
+			return "", err
+		}
+		candidate := fmt.Sprintf("%d-%s", n, base)
+		busy, err = taken(candidate)
+		if err != nil {
+			return "", err
+		}
+		if !busy {
+			return candidate, nil
+		}
+	}
+	return "", ErrSlugConflict
+}
+
+func randDigits4() (int, error) {
+	var b [4]byte
+	if _, err := rand.Read(b[:]); err != nil {
+		return 0, err
+	}
+	return 1000 + int(binary.BigEndian.Uint32(b[:])%9000), nil
 }
 
 func safeArticleSlugInput(s string) bool {

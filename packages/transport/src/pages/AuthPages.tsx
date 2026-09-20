@@ -186,7 +186,7 @@ export function RegisterDriverPage() {
       <div className="container-site max-w-md py-12">
         <h1 className="section-title-sm mb-2">Реєстрація водія / перевізника</h1>
         <p className="mb-6 text-sm text-muted">
-          Після реєстрації ви зможете опублікувати рейс. Регулярні перевезення та разові попутки — одна форма.
+          Після реєстрації заповніть профіль перевізника — тоді можна буде додати рейс.
         </p>
         <RegisterForm mode="driver" />
         <p className="mt-4 text-center text-sm text-muted">

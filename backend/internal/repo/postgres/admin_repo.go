@@ -108,6 +108,49 @@ func (r *AdminRepo) DashboardStats(ctx context.Context) (domain.AdminAnalytics, 
 		return stats, err
 	}
 
+	// Marketplace (servis) — exclude carrier-only provider rows.
+	if stats.TotalProviders, err = r.countInt(ctx, `
+		SELECT COUNT(*) FROM providers pr
+		WHERE NOT EXISTS (SELECT 1 FROM carrier_profiles cp WHERE cp.provider_id = pr.id)
+		   OR EXISTS (SELECT 1 FROM service_offerings o WHERE o.provider_id = pr.id)`); err != nil {
+		return stats, err
+	}
+	if stats.PublishedProviders, err = r.countInt(ctx, `
+		SELECT COUNT(*) FROM providers pr
+		WHERE pr.status='verified'
+		  AND (NOT EXISTS (SELECT 1 FROM carrier_profiles cp WHERE cp.provider_id = pr.id)
+		    OR EXISTS (SELECT 1 FROM service_offerings o WHERE o.provider_id = pr.id))`); err != nil {
+		return stats, err
+	}
+	if stats.PendingProviders, err = r.countInt(ctx, `
+		SELECT COUNT(*) FROM providers pr
+		WHERE pr.status IN ('new','moderation','need_info')
+		  AND (NOT EXISTS (SELECT 1 FROM carrier_profiles cp WHERE cp.provider_id = pr.id)
+		    OR EXISTS (SELECT 1 FROM service_offerings o WHERE o.provider_id = pr.id))`); err != nil {
+		return stats, err
+	}
+	if stats.TotalOfferings, err = r.countInt(ctx, `SELECT COUNT(*) FROM service_offerings`); err != nil {
+		return stats, err
+	}
+	if stats.PublishedOfferings, err = r.countInt(ctx, `SELECT COUNT(*) FROM service_offerings WHERE status='published'`); err != nil {
+		return stats, err
+	}
+	if stats.PendingOfferings, err = r.countInt(ctx, `SELECT COUNT(*) FROM service_offerings WHERE status='draft'`); err != nil {
+		return stats, err
+	}
+	if stats.TotalComplaints, err = r.countInt(ctx, `SELECT COUNT(*) FROM complaints`); err != nil {
+		return stats, err
+	}
+	if stats.PendingComplaints, err = r.countInt(ctx, `SELECT COUNT(*) FROM complaints WHERE status='open'`); err != nil {
+		return stats, err
+	}
+	if stats.ProviderSubscriptions, err = r.countInt(ctx, `
+		SELECT COUNT(*) FROM provider_subscriptions ps
+		JOIN subscription_plans sp ON sp.id = ps.plan_id
+		WHERE ps.status='ACTIVE' AND ps.expires_at > NOW() AND sp.code LIKE 'provider-%'`); err != nil {
+		return stats, err
+	}
+
 	rows, err := r.db.Pool.Query(ctx, `
 		SELECT p.id, p.amount, p.currency, p.purpose, p.status, p.created_at,
 		       COALESCE(gp.display_name, u.login, '') AS payer_name

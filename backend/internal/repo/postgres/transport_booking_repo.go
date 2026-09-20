@@ -35,12 +35,14 @@ const bookingSelectSQL = `
 		b.passenger_name, b.passenger_phone, b.passenger_email, b.comment, b.status,
 		b.created_at, b.updated_at,
 		COALESCE(d.depart_on::text, ''),
-		COALESCE(NULLIF(l.company_name, ''), l.driver_names, p.display_name),
+		COALESCE(NULLIF(l.company_name, ''), l.driver_names, NULLIF(cp.display_name, ''), p.display_name),
 		l.price_amount, l.price_currency,
-		p.display_name, p.website_slug
+		COALESCE(NULLIF(cp.display_name, ''), p.display_name),
+		COALESCE(NULLIF(cp.website_slug, ''), p.website_slug)
 	FROM transport_bookings b
 	JOIN transport_listings l ON l.id = b.listing_id
 	JOIN providers p ON p.id = b.provider_id
+	LEFT JOIN carrier_profiles cp ON cp.provider_id = p.id
 	LEFT JOIN transport_listing_departures d ON d.id = b.departure_id`
 
 func (r *TransportBookingRepo) scanBooking(row pgx.Row) (*domain.TransportBooking, error) {

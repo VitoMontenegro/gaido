@@ -1,4 +1,4 @@
-import CityPicker from './CityPicker'
+import GeoCityPicker from '@gaido/ui-primitives/GeoCityPicker'
 import type { City } from '@gaido/api-client/api/types/catalog'
 
 type Props = {
@@ -8,14 +8,13 @@ type Props = {
   label?: string
 }
 
-/** Lightweight city field for account forms — search + select, country shown in option label. */
-export default function CitySelect({ value, onChange, label, placeholder }: Props) {
+/** Country + city picker used in the carrier cabinet — same form as on guides. */
+export default function CitySelect({ value, onChange, label }: Props) {
   return (
-    <CityPicker
-      label={label ?? 'Місто'}
-      value={value}
-      onChange={onChange}
-      placeholder={placeholder}
+    <GeoCityPicker
+      label={label}
+      value={value ?? 0}
+      onChange={(id) => onChange(id)}
     />
   )
 }

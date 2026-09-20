@@ -26,7 +26,7 @@ export function TransportAccountLayout() {
   const { data: me, isLoading, isError } = useMe()
   const isAdmin = useHasRole('ROLE_ADMIN')
   const isModerator = useHasRole('ROLE_MODERATOR')
-  const isProvider = useHasRole('ROLE_PROVIDER')
+  const isCarrier = useHasRole('ROLE_CARRIER')
 
   if (authLoading || isLoading) {
     return (
@@ -53,13 +53,15 @@ export function TransportAccountLayout() {
             <aside className="card h-fit space-y-1 p-3">
               <p className="px-3 py-2 text-sm font-medium text-ink">{me.first_name} {me.last_name}</p>
               <AccountNavLink to="/account/bookings">Мої бронювання</AccountNavLink>
-              {isProvider && (
+              {isCarrier ? (
                 <>
                   <AccountNavLink to="/account/carrier">Профіль перевізника</AccountNavLink>
                   <AccountNavLink to="/account/carrier/billing">Підписка Vezu</AccountNavLink>
                   <AccountNavLink to="/account/rides" end>Мої рейси</AccountNavLink>
                   <AccountNavLink to="/account/rides/new">Додати рейс</AccountNavLink>
                 </>
+              ) : (
+                <AccountNavLink to="/account/carrier">Стати перевізником</AccountNavLink>
               )}
               <Link to="/" className="block rounded-xl px-3 py-2 text-sm text-ink hover:bg-sand-100">
                 Пошук рейсів

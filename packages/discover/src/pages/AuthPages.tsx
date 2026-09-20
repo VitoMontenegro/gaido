@@ -11,10 +11,7 @@ import ResetPasswordForm, { loginConfirmMessage } from '@gaido/ui-primitives/Res
 import { legalPath } from '@gaido/ui-primitives/legalPaths'
 import PasswordInput from '@gaido/ui-primitives/PasswordInput'
 import { pageTitle } from '@gaido/site-urls/brand'
-
-function safeReturnPath(from: unknown): string {
-  return typeof from === 'string' && from.startsWith('/') && !from.startsWith('//') ? from : '/account'
-}
+import { servicesPostLoginUrl } from '@gaido/site-urls/site'
 
 const emptyRegisterForm = (): RegisterFormData => ({
   email: '',
@@ -191,8 +188,10 @@ export default function LoginPage() {
     try {
       const res = await authApi.login({ login: login.trim(), password })
       setAccessToken(res.access_token)
-      await qc.prefetchQuery({ queryKey: ['me'], queryFn: authApi.me })
-      navigate(safeReturnPath(from))
+      const me = await authApi.me()
+      await qc.setQueryData(['me'], me)
+      const fromPath = typeof from === 'string' && from.startsWith('/') && !from.startsWith('//') ? from : undefined
+      navigate(servicesPostLoginUrl(fromPath, me.roles))
     } catch (err) {
       setError(formatApiError(err, {
         UNAUTHORIZED: 'Невірний логін або пароль',

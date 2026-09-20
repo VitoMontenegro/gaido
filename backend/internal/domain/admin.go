@@ -3,33 +3,43 @@ package domain
 import "time"
 
 type AdminAnalytics struct {
-	ActiveGuides        int
-	PublishedExcursions int
-	PublishedReviews    int
-	TotalUsers          int
-	TotalGuides         int
-	PendingExcursions   int
-	DraftExcursions     int
-	PendingReviews      int
-	TotalFavorites      int
-	PaymentsTotal       int
-	PaymentsPaid        int
-	PaymentsPending     int
-	ActiveSubscriptions int
-	FeaturedGuides      int
-	FeaturedExcursions  int
-	CitiesCount         int
-	CountriesCount      int
-	RevenueTotal        float64
-	RevenueMonth        float64
-	RecentPayments      []AdminPaymentRow
-	TotalCarriers       int
-	PublishedCarriers   int
-	PendingCarriers     int
-	PublishedRides      int
-	PendingRides        int
-	TransportBookings   int
+	ActiveGuides         int
+	PublishedExcursions  int
+	PublishedReviews     int
+	TotalUsers           int
+	TotalGuides          int
+	PendingExcursions    int
+	DraftExcursions      int
+	PendingReviews       int
+	TotalFavorites       int
+	PaymentsTotal        int
+	PaymentsPaid         int
+	PaymentsPending      int
+	ActiveSubscriptions  int
+	FeaturedGuides       int
+	FeaturedExcursions   int
+	CitiesCount          int
+	CountriesCount       int
+	RevenueTotal         float64
+	RevenueMonth         float64
+	RecentPayments       []AdminPaymentRow
+	TotalCarriers        int
+	PublishedCarriers    int
+	PendingCarriers      int
+	PublishedRides       int
+	PendingRides         int
+	TransportBookings    int
 	CarrierSubscriptions int
+	// Marketplace (servis) metrics
+	TotalProviders        int
+	PublishedProviders    int
+	PendingProviders      int
+	TotalOfferings        int
+	PublishedOfferings    int
+	PendingOfferings      int
+	TotalComplaints       int
+	PendingComplaints     int
+	ProviderSubscriptions int
 }
 
 type AdminPaymentRow struct {

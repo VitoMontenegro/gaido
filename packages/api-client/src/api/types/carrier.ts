@@ -27,6 +27,7 @@ export type CarrierProfile = {
   subscription_active?: boolean
   contacts_unlocked?: boolean
   verified_ukrainian?: boolean
+  preview?: boolean
   phone?: string
   email?: string
   telegram?: string
@@ -69,6 +70,7 @@ export type CarrierProfileInput = {
   contact_person?: string
   status?: string
   display_name?: string
+  website_slug?: string
   business_name?: string
   phone?: string
   email?: string
@@ -92,6 +94,7 @@ export type CarrierAccount = {
   provider_id?: number
   website_slug?: string
   subscription_active?: boolean
+  identity_hint?: { display_name: string; website_slug: string }
   profile?: CarrierProfile | null
   vehicles?: CarrierVehicle[]
 }

@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { authApi } from '@gaido/api-client/api/auth'
-import { formatApiError, setAccessToken } from '@gaido/api-client/api/http'
+import { formatApiError, getAccessToken, setAccessToken } from '@gaido/api-client/api/http'
+import { useMe } from '@gaido/api-client/hooks/useAuth'
 import { validateRegisterForm, type RegisterFormData } from '@gaido/ui-primitives/authValidation'
 import CheckEmailNotice from '@gaido/ui-primitives/CheckEmailNotice'
 import ForgotPasswordForm from '@gaido/ui-primitives/ForgotPasswordForm'
@@ -253,6 +254,16 @@ export function RegisterTouristPage() {
 }
 
 export function RegisterGuidePage() {
+  const { data: me, isLoading } = useMe()
+
+  if (getAccessToken() && isLoading) {
+    return <div className="container-site max-w-md py-12 text-muted">Завантаження…</div>
+  }
+
+  if (me) {
+    return <Navigate to={me.roles.includes('ROLE_GUIDE') ? '/account/guide' : '/account/guide/profile'} replace />
+  }
+
   return (
     <>
       <Seo title={pageTitle('Реєстрація гіда')} path="/register/guide" noIndex />

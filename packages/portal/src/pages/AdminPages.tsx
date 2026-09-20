@@ -6,34 +6,54 @@ import StatCard, { StatGrid } from '../components/crm/StatCard'
 import { useHasRole } from '@gaido/api-client/hooks/useAuth'
 import { SiteContentEditor } from '../components/SiteContentEditor'
 import { AdminGuidesEditor } from '../components/AdminGuidesEditor'
-import { AdminExcursionsList, AdminGuidesList, AdminReviewsList, AdminUsersList, AdminCarriersList, AdminTransportRidesList } from '../components/AdminEntityLists'
+import { AdminExcursionsList, AdminGuidesList, AdminReviewsList, AdminUsersList, AdminCarriersList, AdminTransportRidesList, AdminProvidersList, AdminOfferingsList, AdminComplaintsList } from '../components/AdminEntityLists'
 import { ArticlesEditor } from '../components/ArticlesEditor'
 import { formatPrice } from '../components/excursionUi'
+import { getSiteMode, type SiteMode } from '@gaido/site-urls/site'
 
-type AdminTab = 'analytics' | 'users' | 'guides' | 'excursions' | 'reviews' | 'carriers' | 'vezu' | 'settings' | 'content' | 'journal' | 'audit' | 'cookies'
+type AdminTab = 'analytics' | 'users' | 'guides' | 'excursions' | 'reviews' | 'carriers' | 'vezu' | 'providers' | 'offerings' | 'complaints' | 'settings' | 'content' | 'journal' | 'audit' | 'cookies'
 
-const TABS: { id: AdminTab; label: string }[] = [
-  { id: 'analytics', label: 'Аналітика' },
-  { id: 'users', label: 'Користувачі' },
-  { id: 'guides', label: 'Гіди' },
-  { id: 'excursions', label: 'Екскурсії' },
-  { id: 'carriers', label: 'Перевізники' },
-  { id: 'vezu', label: 'Vezu рейси' },
-  { id: 'reviews', label: 'Відгуки' },
-  { id: 'settings', label: 'Налаштування' },
-  { id: 'content', label: 'Контент сайту' },
-  { id: 'journal', label: 'Журнал' },
-  { id: 'audit', label: 'Аудит' },
-  { id: 'cookies', label: 'Cookie-згода' },
+const TABS: { id: AdminTab; label: string; siteModes: SiteMode[] }[] = [
+  { id: 'analytics', label: 'Аналітика', siteModes: ['portal'] },
+  { id: 'users', label: 'Користувачі', siteModes: ['portal'] },
+  { id: 'guides', label: 'Гіди', siteModes: ['portal', 'guides'] },
+  { id: 'excursions', label: 'Екскурсії', siteModes: ['portal', 'guides'] },
+  { id: 'carriers', label: 'Перевізники', siteModes: ['portal', 'transport'] },
+  { id: 'vezu', label: 'Vezu рейси', siteModes: ['portal', 'transport'] },
+  { id: 'providers', label: 'Автори оголошень', siteModes: ['portal', 'services'] },
+  { id: 'offerings', label: 'Оголошення', siteModes: ['portal', 'services'] },
+  { id: 'complaints', label: 'Скарги', siteModes: ['portal', 'services'] },
+  { id: 'reviews', label: 'Відгуки', siteModes: ['portal', 'guides'] },
+  { id: 'settings', label: 'Налаштування', siteModes: ['portal'] },
+  { id: 'content', label: 'Контент сайту', siteModes: ['portal'] },
+  { id: 'journal', label: 'Журнал', siteModes: ['portal'] },
+  { id: 'audit', label: 'Аудит', siteModes: ['portal'] },
+  { id: 'cookies', label: 'Cookie-згода', siteModes: ['portal'] },
 ]
+
+function tabsFor(mode: SiteMode) {
+  return TABS.filter((t) => t.siteModes.includes(mode))
+}
 
 export default function AdminPage() {
   const isAdmin = useHasRole('ROLE_ADMIN')
   const qc = useQueryClient()
-  const [tab, setTab] = useState<AdminTab>('analytics')
+  const siteMode = getSiteMode()
+  const visibleTabs = tabsFor(siteMode)
+  const [tab, setTab] = useState<AdminTab>(() => tabsFor(getSiteMode())[0]?.id ?? 'analytics')
   const [guidesFilter, setGuidesFilter] = useState<string | undefined>()
   const [carriersFilter, setCarriersFilter] = useState<string | undefined>()
   const [vezuFilter, setVezuFilter] = useState<string | undefined>()
+  const [providersFilter, setProvidersFilter] = useState<string | undefined>()
+  const [offeringsFilter, setOfferingsFilter] = useState<string | undefined>()
+  const [complaintsFilter, setComplaintsFilter] = useState<string | undefined>()
+
+  useEffect(() => {
+    const tabs = tabsFor(siteMode)
+    if (!tabs.some((t) => t.id === tab)) {
+      setTab(tabs[0]?.id ?? 'analytics')
+    }
+  }, [siteMode, tab])
 
   const { data: analytics, isError: analyticsError, error: analyticsErr } = useQuery({
     queryKey: ['analytics'],
@@ -48,7 +68,7 @@ export default function AdminPage() {
     retry: false,
   })
 
-  const updateSetting = async (patch: Partial<{ guide_placement_payments_enabled: boolean; moderation_enabled: boolean; body_font: 'roboto' | 'rubik' }>) => {
+  const updateSetting = async (patch: Partial<AdminSettings>) => {
     await adminApi.updateSettings(patch)
     qc.invalidateQueries({ queryKey: ['settings'] })
     qc.invalidateQueries({ queryKey: ['site'] })
@@ -67,7 +87,7 @@ export default function AdminPage() {
         </div>
 
         <nav className="flex flex-wrap gap-2">
-          {TABS.map((t) => (
+          {visibleTabs.map((t) => (
             <button
               key={t.id}
               type="button"
@@ -75,6 +95,9 @@ export default function AdminPage() {
                 if (t.id === 'guides') setGuidesFilter(undefined)
                 if (t.id === 'carriers') setCarriersFilter(undefined)
                 if (t.id === 'vezu') setVezuFilter(undefined)
+                if (t.id === 'providers') setProvidersFilter(undefined)
+                if (t.id === 'offerings') setOfferingsFilter(undefined)
+                if (t.id === 'complaints') setComplaintsFilter(undefined)
                 setTab(t.id)
               }}
               className={tab === t.id
@@ -101,6 +124,9 @@ export default function AdminPage() {
             onOpenReviews={() => setTab('reviews')}
             onOpenCarriers={() => { setCarriersFilter(undefined); setTab('carriers') }}
             onOpenVezu={() => { setVezuFilter(undefined); setTab('vezu') }}
+            onOpenProviders={() => { setProvidersFilter(undefined); setTab('providers') }}
+            onOpenOfferings={() => { setOfferingsFilter(undefined); setTab('offerings') }}
+            onOpenComplaints={() => { setComplaintsFilter('open'); setTab('complaints') }}
           />
         )}
 
@@ -163,6 +189,59 @@ export default function AdminPage() {
             <AdminTransportRidesList statusFilter={vezuFilter} />
           </div>
         )}
+        {tab === 'providers' && (
+          <div className="space-y-4">
+            <div className="flex flex-wrap gap-2">
+              {[
+                { id: undefined, label: 'Усі' },
+                { id: 'new', label: 'Нові' },
+                { id: 'moderation', label: 'На модерації' },
+                { id: 'verified', label: 'Верифіковані' },
+                { id: 'need_info', label: 'Потрібні дані' },
+                { id: 'blocked', label: 'Заблоковані' },
+              ].map((f) => (
+                <button key={f.label} type="button" className={providersFilter === f.id ? 'btn-primary' : 'btn-secondary'} onClick={() => setProvidersFilter(f.id)}>
+                  {f.label}
+                </button>
+              ))}
+            </div>
+            <AdminProvidersList statusFilter={providersFilter} />
+          </div>
+        )}
+        {tab === 'offerings' && (
+          <div className="space-y-4">
+            <div className="flex flex-wrap gap-2">
+              {[
+                { id: undefined, label: 'Усі' },
+                { id: 'draft', label: 'Чернетки' },
+                { id: 'published', label: 'Опубліковані' },
+                { id: 'rejected', label: 'Відхилені' },
+              ].map((f) => (
+                <button key={f.label} type="button" className={offeringsFilter === f.id ? 'btn-primary' : 'btn-secondary'} onClick={() => setOfferingsFilter(f.id)}>
+                  {f.label}
+                </button>
+              ))}
+            </div>
+            <AdminOfferingsList statusFilter={offeringsFilter} />
+          </div>
+        )}
+        {tab === 'complaints' && (
+          <div className="space-y-4">
+            <div className="flex flex-wrap gap-2">
+              {[
+                { id: undefined, label: 'Усі' },
+                { id: 'open', label: 'Відкриті' },
+                { id: 'resolved', label: 'Вирішені' },
+                { id: 'dismissed', label: 'Відхилені' },
+              ].map((f) => (
+                <button key={f.label} type="button" className={complaintsFilter === f.id ? 'btn-primary' : 'btn-secondary'} onClick={() => setComplaintsFilter(f.id)}>
+                  {f.label}
+                </button>
+              ))}
+            </div>
+            <AdminComplaintsList statusFilter={complaintsFilter} />
+          </div>
+        )}
         {tab === 'reviews' && <AdminReviewsList />}
 
         {tab === 'settings' && (
@@ -209,10 +288,10 @@ export default function AdminPage() {
                 </p>
               </div>
               <div className="flex flex-wrap gap-3">
-                {([
+                {[
                   { id: 'rubik' as const, label: 'Rubik', hint: 'як на AUTO IZI' },
                   { id: 'roboto' as const, label: 'Roboto', hint: 'нейтральний sans' },
-                ]).map((opt) => (
+                ].map((opt) => (
                   <button
                     key={opt.id}
                     type="button"
@@ -247,6 +326,13 @@ export default function AdminPage() {
       </div>
     </>
   )
+}
+
+type AdminSettings = {
+  guide_placement_payments_enabled: boolean
+  moderation_enabled: boolean
+  body_font: 'roboto' | 'rubik'
+  mail: MailSettings
 }
 
 function MailServerSettings({ mail }: { mail?: MailSettings }) {
@@ -335,11 +421,11 @@ function MailServerSettings({ mail }: { mail?: MailSettings }) {
         <input className="input" placeholder="From name" value={form.from_name} onChange={(e) => setForm({ ...form, from_name: e.target.value })} />
       </div>
       <div className="flex flex-wrap gap-2">
-        {([
+        {[
           { id: 'starttls' as const, label: 'STARTTLS' },
           { id: 'tls' as const, label: 'TLS' },
           { id: 'none' as const, label: 'Без шифрування' },
-        ]).map((opt) => (
+        ].map((opt) => (
           <button
             key={opt.id}
             type="button"
@@ -514,6 +600,9 @@ function AnalyticsDashboard({
   onOpenReviews,
   onOpenCarriers,
   onOpenVezu,
+  onOpenProviders,
+  onOpenOfferings,
+  onOpenComplaints,
 }: {
   data: AdminAnalytics
   onOpenUsers: () => void
@@ -522,6 +611,9 @@ function AnalyticsDashboard({
   onOpenReviews: () => void
   onOpenCarriers: () => void
   onOpenVezu: () => void
+  onOpenProviders: () => void
+  onOpenOfferings: () => void
+  onOpenComplaints: () => void
 }) {
   return (
     <div className="space-y-5">
@@ -542,6 +634,16 @@ function AnalyticsDashboard({
           <StatCard label="На модерації" value={data.pending_carriers} tone={data.pending_carriers ? 'amber' : 'default'} onClick={onOpenCarriers} />
           <StatCard label="Рейси" value={data.published_rides} hint={`${data.pending_rides} на модерації`} tone="teal" onClick={onOpenVezu} />
           <StatCard label="Бронювання" value={data.transport_bookings} hint={`${data.carrier_subscriptions} підписок`} onClick={onOpenVezu} />
+        </StatGrid>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="font-display text-lg font-bold">Servis (маркетплейс)</h2>
+        <StatGrid cols={4}>
+          <StatCard label="Автори оголошень" value={data.total_providers} hint={`${data.published_providers} верифіковано`} tone="brand" onClick={onOpenProviders} />
+          <StatCard label="На модерації" value={data.pending_providers} tone={data.pending_providers ? 'amber' : 'default'} onClick={onOpenProviders} />
+          <StatCard label="Оголошення" value={data.total_offerings} hint={`${data.published_offerings} опубліковано`} tone="teal" onClick={onOpenOfferings} />
+          <StatCard label="Скарги" value={data.pending_complaints} hint={`${data.total_complaints} усього`} tone={data.pending_complaints ? 'amber' : 'default'} onClick={onOpenComplaints} />
         </StatGrid>
       </section>
 
@@ -654,12 +756,31 @@ function statusClass(status: string) {
   return 'bg-sand-100 text-stone-600'
 }
 
-type ModSection = 'excursions' | 'reviews' | 'documents' | 'geo' | 'journal' | 'transport' | 'carriers'
+type ModSection = 'excursions' | 'reviews' | 'documents' | 'geo' | 'journal' | 'transport' | 'carriers' | 'providers' | 'offerings' | 'complaints'
+
+const MOD_SECTIONS: { id: ModSection; label: string; siteModes: SiteMode[] }[] = [
+  { id: 'excursions', label: 'Екскурсії', siteModes: ['portal', 'guides'] },
+  { id: 'reviews', label: 'Відгуки', siteModes: ['portal', 'guides'] },
+  { id: 'documents', label: 'Документи', siteModes: ['portal', 'guides'] },
+  { id: 'geo', label: 'Гео', siteModes: ['portal'] },
+  { id: 'transport', label: 'Vezu рейси', siteModes: ['portal', 'transport'] },
+  { id: 'carriers', label: 'Перевізники', siteModes: ['portal', 'transport'] },
+  { id: 'providers', label: 'Автори оголошень', siteModes: ['portal', 'services'] },
+  { id: 'offerings', label: 'Оголошення', siteModes: ['portal', 'services'] },
+  { id: 'complaints', label: 'Скарги', siteModes: ['portal', 'services'] },
+  { id: 'journal', label: 'Журнал', siteModes: ['portal'] },
+]
+
+function modSectionsFor(mode: SiteMode) {
+  return MOD_SECTIONS.filter((s) => s.siteModes.includes(mode))
+}
 
 export function ModeratorPage() {
   const isModerator = useHasRole('ROLE_MODERATOR')
   const qc = useQueryClient()
-  const [section, setSection] = useState<ModSection>('excursions')
+  const siteMode = getSiteMode()
+  const visibleSections = modSectionsFor(siteMode)
+  const [section, setSection] = useState<ModSection>(() => modSectionsFor(getSiteMode())[0]?.id ?? 'excursions')
 
   const { data: excursions, isError: excErr, error: excError } = useQuery({
     queryKey: ['mod-excursions'],
@@ -692,33 +813,48 @@ export function ModeratorPage() {
     queryFn: () => api<{ items: { provider_id: number; display_name: string; carrier_type: string; status: string }[] }>('/api/v1/moderator/carriers'),
     enabled: isModerator && section === 'carriers',
   })
+  const { data: modProviders } = useQuery({
+    queryKey: ['mod-providers'],
+    queryFn: () => adminApi.modProviders(),
+    enabled: isModerator && section === 'providers',
+  })
+  const { data: modOfferings } = useQuery({
+    queryKey: ['mod-offerings'],
+    queryFn: () => adminApi.modOfferings(),
+    enabled: isModerator && section === 'offerings',
+  })
+  const { data: modComplaints } = useQuery({
+    queryKey: ['mod-complaints'],
+    queryFn: () => adminApi.modComplaints(),
+    enabled: isModerator && section === 'complaints',
+  })
 
   const [geoCountry, setGeoCountry] = useState({ slug: '', name: '' })
   const [geoRegion, setGeoRegion] = useState({ country_id: 0, slug: '', name: '' })
   const [geoCity, setGeoCity] = useState({ country_id: 0, region_id: 0, slug: '', name: '', latitude: 0, longitude: 0 })
   const [geoMsg, setGeoMsg] = useState('')
 
-  const sections: { id: ModSection; label: string }[] = [
-    { id: 'excursions', label: 'Екскурсії' },
-    { id: 'reviews', label: 'Відгуки' },
-    { id: 'documents', label: 'Документи' },
-    { id: 'geo', label: 'Гео' },
-    { id: 'transport', label: 'Vezu рейси' },
-    { id: 'carriers', label: 'Перевізники' },
-    { id: 'journal', label: 'Журнал' },
-  ]
+  useEffect(() => {
+    const sections = modSectionsFor(siteMode)
+    if (!sections.some((s) => s.id === section)) {
+      setSection(sections[0]?.id ?? 'excursions')
+    }
+  }, [siteMode, section])
 
   const refreshExc = () => qc.invalidateQueries({ queryKey: ['mod-excursions'] })
   const refreshRev = () => qc.invalidateQueries({ queryKey: ['mod-reviews'] })
   const refreshTransport = () => qc.invalidateQueries({ queryKey: ['mod-transport-rides'] })
   const refreshCarriers = () => qc.invalidateQueries({ queryKey: ['mod-carriers'] })
+  const refreshProviders = () => qc.invalidateQueries({ queryKey: ['mod-providers'] })
+  const refreshOfferings = () => qc.invalidateQueries({ queryKey: ['mod-offerings'] })
+  const refreshComplaints = () => qc.invalidateQueries({ queryKey: ['mod-complaints'] })
 
   return (
     <>
       <Helmet><title>Модератор</title></Helmet>
       <div className="space-y-4">
         <nav className="flex flex-wrap gap-2">
-          {sections.map((s) => (
+          {visibleSections.map((s) => (
             <button
               key={s.id}
               type="button"
@@ -766,6 +902,87 @@ export function ModeratorPage() {
                 </li>
               ))}
               {(modCarriers?.items ?? []).length === 0 && <p className="text-sm text-muted">Черга порожня</p>}
+            </ul>
+          </div>
+        )}
+
+        {section === 'providers' && (
+          <div className="card">
+            <h1 className="font-display mb-4 text-2xl font-bold">Модерація авторів Servis</h1>
+            <ul className="space-y-2">
+              {(modProviders?.items ?? []).map((p) => (
+                <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-sand-50 px-3 py-2">
+                  <span>{p.display_name} <span className="text-muted">({p.status})</span></span>
+                  <div className="flex gap-2">
+                    {(p.status === 'new' || p.status === 'moderation' || p.status === 'need_info') && (
+                      <>
+                        <button type="button" className="btn-primary py-1 text-xs" onClick={async () => { await adminApi.modUpdateProvider(p.id, { status: 'verified' }); refreshProviders() }}>Схвалити</button>
+                        <button type="button" className="btn-secondary py-1 text-xs" onClick={async () => { await adminApi.modUpdateProvider(p.id, { status: 'blocked' }); refreshProviders() }}>Заблокувати</button>
+                      </>
+                    )}
+                    {p.status === 'verified' && (
+                      <button type="button" className="btn-secondary py-1 text-xs" onClick={async () => { await adminApi.modUpdateProvider(p.id, { status: 'blocked' }); refreshProviders() }}>Заблокувати</button>
+                    )}
+                    {p.status === 'blocked' && (
+                      <button type="button" className="btn-primary py-1 text-xs" onClick={async () => { await adminApi.modUpdateProvider(p.id, { status: 'verified' }); refreshProviders() }}>Розблокувати</button>
+                    )}
+                  </div>
+                </li>
+              ))}
+              {(modProviders?.items ?? []).length === 0 && <p className="text-sm text-muted">Черга порожня</p>}
+            </ul>
+          </div>
+        )}
+
+        {section === 'offerings' && (
+          <div className="card">
+            <h1 className="font-display mb-4 text-2xl font-bold">Модерація оголошень Servis</h1>
+            <ul className="space-y-2">
+              {(modOfferings?.items ?? []).map((o) => (
+                <li key={o.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-sand-50 px-3 py-2">
+                  <span>{o.title} <span className="text-muted">({o.status})</span></span>
+                  <div className="flex gap-2">
+                    {o.status === 'draft' && (
+                      <>
+                        <button type="button" className="btn-primary py-1 text-xs" onClick={async () => { await adminApi.modUpdateOffering(o.id, { status: 'published' }); refreshOfferings() }}>Опублікувати</button>
+                        <button type="button" className="btn-secondary py-1 text-xs" onClick={async () => { await adminApi.modUpdateOffering(o.id, { status: 'rejected' }); refreshOfferings() }}>Відхилити</button>
+                      </>
+                    )}
+                    {o.status === 'published' && (
+                      <button type="button" className="btn-secondary py-1 text-xs" onClick={async () => { await adminApi.modUpdateOffering(o.id, { status: 'rejected' }); refreshOfferings() }}>Зняти</button>
+                    )}
+                    {o.status === 'rejected' && (
+                      <button type="button" className="btn-primary py-1 text-xs" onClick={async () => { await adminApi.modUpdateOffering(o.id, { status: 'published' }); refreshOfferings() }}>Опублікувати</button>
+                    )}
+                  </div>
+                </li>
+              ))}
+              {(modOfferings?.items ?? []).length === 0 && <p className="text-sm text-muted">Черга порожня</p>}
+            </ul>
+          </div>
+        )}
+
+        {section === 'complaints' && (
+          <div className="card">
+            <h1 className="font-display mb-4 text-2xl font-bold">Скарги Servis</h1>
+            <ul className="space-y-2">
+              {(modComplaints?.items ?? []).map((c) => (
+                <li key={c.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-sand-50 px-3 py-2">
+                  <div>
+                    <span className="font-medium">{c.reporter_login}</span>
+                    <span className="text-muted"> про {c.target_type} #{c.target_id}</span>
+                  </div>
+                  <div className="flex gap-2">
+                    {c.status === 'open' && (
+                      <>
+                        <button type="button" className="btn-primary py-1 text-xs" onClick={async () => { await adminApi.modUpdateComplaint(c.id, { status: 'resolved' }); refreshComplaints() }}>Вирішити</button>
+                        <button type="button" className="btn-secondary py-1 text-xs" onClick={async () => { await adminApi.modUpdateComplaint(c.id, { status: 'dismissed' }); refreshComplaints() }}>Відхилити</button>
+                      </>
+                    )}
+                  </div>
+                </li>
+              ))}
+              {(modComplaints?.items ?? []).length === 0 && <p className="text-sm text-muted">Черга порожня</p>}
             </ul>
           </div>
         )}

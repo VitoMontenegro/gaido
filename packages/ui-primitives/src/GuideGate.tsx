@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
-import { RoleGate } from './RoleGate'
+import { GuideRoleGate } from './RoleGate'
 
 export function GuideGate({ children }: { children: ReactNode }) {
-  return <RoleGate role="ROLE_GUIDE">{children}</RoleGate>
+  return <GuideRoleGate>{children}</GuideRoleGate>
 }

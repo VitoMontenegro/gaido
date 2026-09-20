@@ -1,6 +1,7 @@
-import { Link, Route, Routes, useNavigate, useParams } from 'react-router-dom'
+import { Link, Route, Routes, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { transportApi } from '@gaido/api-client/api/transport'
+import { carrierApi } from '@gaido/api-client/api/carrier'
 import { pageTitle } from '@gaido/site-urls/brand'
 import { Seo } from '../../lib/seo'
 import RideForm from '../../components/RideForm'
@@ -51,6 +52,16 @@ function RidesListPage() {
 function RideNewPage() {
   const navigate = useNavigate()
   const qc = useQueryClient()
+  const { data, isLoading } = useQuery({
+    queryKey: ['carrier-account'],
+    queryFn: () => carrierApi.account(),
+  })
+
+  if (isLoading) return <p className="text-muted">Завантаження…</p>
+  if (!data?.profile) {
+    return <Navigate to="/account/carrier" replace state={{ next: '/account/rides/new' }} />
+  }
+
   return (
     <>
       <Seo title={pageTitle('Новий рейс')} path="/account/rides/new" noIndex />

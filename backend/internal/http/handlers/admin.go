@@ -103,7 +103,12 @@ func (h *Handlers) AdminAnalytics(w http.ResponseWriter, r *http.Request) {
 		"pending_carriers": stats.PendingCarriers, "published_rides": stats.PublishedRides,
 		"pending_rides": stats.PendingRides, "transport_bookings": stats.TransportBookings,
 		"carrier_subscriptions": stats.CarrierSubscriptions,
-		"recent_payments":       recentPayments,
+		"total_providers":       stats.TotalProviders, "published_providers": stats.PublishedProviders,
+		"pending_providers": stats.PendingProviders, "total_offerings": stats.TotalOfferings,
+		"published_offerings": stats.PublishedOfferings, "pending_offerings": stats.PendingOfferings,
+		"total_complaints": stats.TotalComplaints, "pending_complaints": stats.PendingComplaints,
+		"provider_subscriptions": stats.ProviderSubscriptions,
+		"recent_payments":        recentPayments,
 	})
 }
 func (h *Handlers) AdminGetSettings(w http.ResponseWriter, r *http.Request) {

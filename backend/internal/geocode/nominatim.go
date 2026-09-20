@@ -198,3 +198,145 @@ func (n *Nominatim) ReverseCity(ctx context.Context, lat, lng float64) (CityResu
 	}
 	return CityResult{Lat: rLat, Lng: rLng, Name: name}, true, nil
 }
+
+type AddressResult struct {
+	Lat      float64 `json:"lat"`
+	Lng      float64 `json:"lng"`
+	Address  string  `json:"address"`
+	District string  `json:"district,omitempty"`
+	CityName string  `json:"city_name,omitempty"`
+}
+
+type placeHit struct {
+	Lat         string            `json:"lat"`
+	Lon         string            `json:"lon"`
+	DisplayName string            `json:"display_name"`
+	Address     map[string]string `json:"address"`
+}
+
+// SearchAddress шукає координати за адресою / вулицею.
+func (n *Nominatim) SearchAddress(ctx context.Context, query, countrySlug string) (AddressResult, bool, error) {
+	query = strings.TrimSpace(query)
+	if query == "" {
+		return AddressResult{}, false, nil
+	}
+	q := url.Values{}
+	q.Set("q", query)
+	q.Set("format", "json")
+	q.Set("limit", "1")
+	q.Set("addressdetails", "1")
+	if iso := CountryISO(countrySlug); iso != "" {
+		q.Set("countrycodes", iso)
+	}
+	var hits []placeHit
+	if err := n.getJSON(ctx, "/search", q, &hits); err != nil {
+		return AddressResult{}, false, err
+	}
+	if len(hits) == 0 {
+		return AddressResult{}, false, nil
+	}
+	out, ok := parsePlace(hits[0], 0, 0)
+	return out, ok, nil
+}
+
+// ReverseAddress повертає вулицю / адресу за координатами.
+func (n *Nominatim) ReverseAddress(ctx context.Context, lat, lng float64) (AddressResult, bool, error) {
+	if lat == 0 && lng == 0 {
+		return AddressResult{}, false, nil
+	}
+	q := url.Values{}
+	q.Set("lat", fmt.Sprintf("%f", lat))
+	q.Set("lon", fmt.Sprintf("%f", lng))
+	q.Set("format", "json")
+	q.Set("addressdetails", "1")
+	q.Set("zoom", "18")
+	var hit placeHit
+	if err := n.getJSON(ctx, "/reverse", q, &hit); err != nil {
+		return AddressResult{}, false, err
+	}
+	out, ok := parsePlace(hit, lat, lng)
+	return out, ok, nil
+}
+
+func (n *Nominatim) getJSON(ctx context.Context, path string, q url.Values, dest any) error {
+	base := strings.TrimRight(n.BaseURL, "/")
+	endpoint, err := url.Parse(base + path)
+	if err != nil {
+		return err
+	}
+	endpoint.RawQuery = q.Encode()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint.String(), nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("User-Agent", n.UserAgent)
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Accept-Language", "uk")
+	client := n.Client
+	if client == nil {
+		client = &http.Client{Timeout: 8 * time.Second}
+	}
+	res, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		return fmt.Errorf("nominatim: status %d", res.StatusCode)
+	}
+	return json.NewDecoder(res.Body).Decode(dest)
+}
+
+func parsePlace(p placeHit, fallbackLat, fallbackLng float64) (AddressResult, bool) {
+	lat, lng := fallbackLat, fallbackLng
+	if _, err := fmt.Sscanf(p.Lat, "%f", &lat); err != nil && lat == 0 {
+		lat = fallbackLat
+	}
+	if _, err := fmt.Sscanf(p.Lon, "%f", &lng); err != nil && lng == 0 {
+		lng = fallbackLng
+	}
+	if lat == 0 && lng == 0 {
+		return AddressResult{}, false
+	}
+	addr := p.Address
+	if addr == nil {
+		addr = map[string]string{}
+	}
+	street := formatStreet(addr)
+	if street == "" {
+		street = shortDisplayName(p.DisplayName)
+	}
+	return AddressResult{
+		Lat:      lat,
+		Lng:      lng,
+		Address:  street,
+		District: firstNonEmpty(addr["suburb"], addr["city_district"], addr["neighbourhood"]),
+		CityName: firstNonEmpty(addr["city"], addr["town"], addr["village"], addr["municipality"]),
+	}, true
+}
+
+func formatStreet(addr map[string]string) string {
+	road := firstNonEmpty(addr["road"], addr["pedestrian"], addr["street"])
+	num := strings.TrimSpace(addr["house_number"])
+	if road != "" && num != "" {
+		return road + " " + num
+	}
+	return road
+}
+
+func shortDisplayName(s string) string {
+	s = strings.TrimSpace(s)
+	if i := strings.Index(s, ","); i > 0 {
+		return strings.TrimSpace(s[:i])
+	}
+	return s
+}
+
+func firstNonEmpty(vals ...string) string {
+	for _, v := range vals {
+		if s := strings.TrimSpace(v); s != "" {
+			return s
+		}
+	}
+	return ""
+}

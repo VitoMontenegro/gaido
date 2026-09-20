@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/vitomonte/experts-tourister/internal/apperrors"
@@ -75,6 +76,55 @@ func (h *Handlers) GetCity(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	response.JSON(w, r, 200, c)
+}
+
+func (h *Handlers) GeoSearch(w http.ResponseWriter, r *http.Request) {
+	q := strings.TrimSpace(r.URL.Query().Get("q"))
+	if len(q) < 2 {
+		response.Error(w, r, apperrors.ErrValidation)
+		return
+	}
+	hit, ok, err := h.geocoder().SearchAddress(r.Context(), q, r.URL.Query().Get("country"))
+	if err != nil {
+		h.Log.Warn("geo search failed", "q", q, "err", err)
+		response.Error(w, r, apperrors.ErrInternal)
+		return
+	}
+	if !ok {
+		response.Error(w, r, apperrors.ErrNotFound)
+		return
+	}
+	response.JSON(w, r, 200, hit)
+}
+
+func (h *Handlers) GeoAddress(w http.ResponseWriter, r *http.Request) {
+	lat, err1 := strconv.ParseFloat(r.URL.Query().Get("lat"), 64)
+	lng, err2 := strconv.ParseFloat(r.URL.Query().Get("lng"), 64)
+	if err1 != nil || err2 != nil {
+		response.Error(w, r, apperrors.ErrValidation)
+		return
+	}
+	hit, ok, err := h.geocoder().ReverseAddress(r.Context(), lat, lng)
+	if err != nil {
+		h.Log.Warn("geo reverse address failed", "err", err)
+		response.Error(w, r, apperrors.ErrInternal)
+		return
+	}
+	if !ok {
+		response.Error(w, r, apperrors.ErrNotFound)
+		return
+	}
+	out := map[string]any{
+		"lat": hit.Lat, "lng": hit.Lng, "address": hit.Address,
+		"district": hit.District, "city_name": hit.CityName,
+	}
+	if city, err := h.Providers.ReverseGeocodeCity(r.Context(), lat, lng); err == nil && city != nil {
+		out["city_id"] = city.ID
+		out["city_name"] = city.Name
+		out["city_slug"] = city.Slug
+		out["country_slug"] = city.CountrySlug
+	}
+	response.JSON(w, r, 200, out)
 }
 func (h *Handlers) CreateCountry(w http.ResponseWriter, r *http.Request) {
 	var req struct{ Slug, Name string }
