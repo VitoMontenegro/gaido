@@ -43,6 +43,7 @@ func (h *Handlers) ListGuides(w http.ResponseWriter, r *http.Request) {
 		ids = append(ids, g.ID)
 	}
 	_ = h.Guides.TouchShown(r.Context(), ids)
+	h.attachGuideCities(r.Context(), out)
 	response.JSON(w, r, 200, map[string]any{"items": out, "limit": limit, "offset": offset})
 }
 func (h *Handlers) ListTopGuides(w http.ResponseWriter, r *http.Request) {
@@ -106,6 +107,7 @@ func (h *Handlers) ResolveTopGuides(ctx context.Context, limit int) []domain.Pub
 	}
 
 	_ = h.Guides.TouchShown(ctx, touchIDs)
+	h.attachGuideCities(ctx, out)
 	return out
 }
 func (h *Handlers) GetGuide(w http.ResponseWriter, r *http.Request) {
@@ -119,7 +121,9 @@ func (h *Handlers) GetGuide(w http.ResponseWriter, r *http.Request) {
 		dto.RatingAvg = avg
 		dto.RatingCount = count
 	}
-	response.JSON(w, r, 200, dto)
+	items := []domain.PublicGuideDTO{dto}
+	h.attachGuideCities(r.Context(), items)
+	response.JSON(w, r, 200, items[0])
 }
 func (h *Handlers) ListExcursions(w http.ResponseWriter, r *http.Request) {
 	limit, offset := paginate(r)

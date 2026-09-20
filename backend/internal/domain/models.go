@@ -274,6 +274,7 @@ type PublicGuideDTO struct {
 	TypeBadge   *string     `json:"type_badge,omitempty"`
 	About       string      `json:"about"`
 	AvatarURL   string      `json:"avatar_url,omitempty"`
+	CityName    string      `json:"city_name,omitempty"`
 	RatingAvg   float64     `json:"rating_avg"`
 	RatingCount int         `json:"rating_count"`
 	Status      string      `json:"status"`

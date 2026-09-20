@@ -180,6 +180,7 @@ func (h *Handlers) ResolveFeaturedGuides(ctx context.Context, limit int) []domai
 	}
 
 	_ = h.Guides.TouchShown(ctx, touchIDs)
+	h.attachGuideCities(ctx, out)
 	return out
 }
 func (h *Handlers) ResolvePopularDestinations(ctx context.Context, citySlugs []string) []domain.DestinationGroup {

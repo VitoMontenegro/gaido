@@ -31,6 +31,9 @@ export default function GuideCard({
           )}
         </div>
         <div className="flex flex-1 flex-col p-2.5">
+          {guide.city_name && (
+            <p className="line-clamp-1 text-xs text-muted-light">{guide.city_name}</p>
+          )}
           <h3 className="mt-0.5 line-clamp-2 font-semibold normal-case leading-snug text-ink group-hover:text-teal">
             {guide.display_name}
           </h3>
@@ -56,6 +59,7 @@ export default function GuideCard({
       <GuideAvatar avatar={guide.avatar_url} name={guide.display_name} className="h-20 w-20 shrink-0 rounded-2xl" />
       <div className="min-w-0">
         <h3 className="font-display font-medium uppercase text-ink group-hover:text-brand-700">{guide.display_name}</h3>
+        {guide.city_name && <p className="mt-1 text-sm text-muted-light">{guide.city_name}</p>}
         {guide.type_badge && <span className="badge-teal mt-2">{guide.type_badge}</span>}
         <p className="mt-2 line-clamp-2 text-sm text-muted">{guide.about || 'Місцевий експерт з авторськими маршрутами'}</p>
         <p className="mt-2 text-sm text-muted-light">

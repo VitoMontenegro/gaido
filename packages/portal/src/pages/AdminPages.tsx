@@ -12,9 +12,11 @@ import { getSiteMode, type SiteMode } from '@gaido/site-urls/site'
 
 type AdminTab = 'analytics' | 'users' | 'guides' | 'excursions' | 'reviews' | 'carriers' | 'vezu' | 'providers' | 'offerings' | 'complaints' | 'settings' | 'content' | 'journal' | 'audit' | 'cookies'
 
+const ALL_SITES: SiteMode[] = ['portal', 'guides', 'transport', 'services']
+
 const TABS: { id: AdminTab; label: string; siteModes: SiteMode[] }[] = [
-  { id: 'analytics', label: 'Аналітика', siteModes: ['portal'] },
-  { id: 'users', label: 'Користувачі', siteModes: ['portal'] },
+  { id: 'analytics', label: 'Аналітика', siteModes: ALL_SITES },
+  { id: 'users', label: 'Користувачі', siteModes: ALL_SITES },
   { id: 'guides', label: 'Гіди', siteModes: ['portal', 'guides'] },
   { id: 'excursions', label: 'Екскурсії', siteModes: ['portal', 'guides'] },
   { id: 'carriers', label: 'Перевізники', siteModes: ['portal', 'transport'] },
@@ -23,11 +25,11 @@ const TABS: { id: AdminTab; label: string; siteModes: SiteMode[] }[] = [
   { id: 'offerings', label: 'Оголошення', siteModes: ['portal', 'services'] },
   { id: 'complaints', label: 'Скарги', siteModes: ['portal', 'services'] },
   { id: 'reviews', label: 'Відгуки', siteModes: ['portal', 'guides'] },
-  { id: 'settings', label: 'Налаштування', siteModes: ['portal'] },
+  { id: 'settings', label: 'Налаштування', siteModes: ALL_SITES },
   { id: 'content', label: 'Контент сайту', siteModes: ['portal'] },
-  { id: 'journal', label: 'Журнал', siteModes: ['portal'] },
-  { id: 'audit', label: 'Аудит', siteModes: ['portal'] },
-  { id: 'cookies', label: 'Cookie-згода', siteModes: ['portal'] },
+  { id: 'journal', label: 'Журнал', siteModes: ['portal', 'guides'] },
+  { id: 'audit', label: 'Аудит', siteModes: ALL_SITES },
+  { id: 'cookies', label: 'Cookie-згода', siteModes: ALL_SITES },
 ]
 
 function tabsFor(mode: SiteMode) {
@@ -766,7 +768,7 @@ const MOD_SECTIONS: { id: ModSection; label: string; siteModes: SiteMode[] }[] =
   { id: 'providers', label: 'Автори оголошень', siteModes: ['portal', 'services'] },
   { id: 'offerings', label: 'Оголошення', siteModes: ['portal', 'services'] },
   { id: 'complaints', label: 'Скарги', siteModes: ['portal', 'services'] },
-  { id: 'journal', label: 'Журнал', siteModes: ['portal'] },
+  { id: 'journal', label: 'Журнал', siteModes: ['portal', 'guides'] },
 ]
 
 function modSectionsFor(mode: SiteMode) {

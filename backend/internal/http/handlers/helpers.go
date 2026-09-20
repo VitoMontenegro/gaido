@@ -103,6 +103,27 @@ func (h *Handlers) publicGuideDTO(ctx context.Context, g *domain.GuideProfile) d
 	return guidesvc.BuildPublicGuideDTO(g, sub, hasLicense, requireSub)
 }
 
+func (h *Handlers) attachGuideCities(ctx context.Context, guides []domain.PublicGuideDTO) {
+	if len(guides) == 0 {
+		return
+	}
+	ids := make([]int64, len(guides))
+	for i := range guides {
+		ids[i] = guides[i].ID
+	}
+	citiesByGuide, err := h.Guides.ListCityNamesByGuideIDs(ctx, ids)
+	if err != nil {
+		return
+	}
+	for i := range guides {
+		names := citiesByGuide[guides[i].ID]
+		if len(names) == 0 {
+			continue
+		}
+		guides[i].CityName = names[0]
+	}
+}
+
 func (h *Handlers) geocoder() *geocode.Nominatim {
 	return geocode.NewNominatim(h.Cfg.GeocodeUserAgent)
 }

@@ -17,6 +17,7 @@ export type PublicGuide = {
   type_badge?: string
   about: string
   avatar_url?: string
+  city_name?: string
   rating_avg: number
   rating_count: number
   status: string
