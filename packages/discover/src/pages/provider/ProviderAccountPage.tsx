@@ -29,18 +29,19 @@ export default function ProviderAccountPage() {
     queryFn: () => discoverApi.categories(),
   })
 
-  if (isLoading) return <div className="container-site py-12">Завантаження…</div>
+  if (isLoading || !data) return <div className="container-site py-12">Завантаження…</div>
 
-  if (!data?.profile) {
+  if (!data.profile) {
+    const hint = data.identity_hint
     return (
       <>
         <Seo title={pageTitle('Кабінет постачальника')} path="/account/provider" />
         <div className="container-site max-w-lg space-y-4 py-10">
           <h1 className="section-title">Стати постачальником</h1>
           <ProviderIdentityForm
-            key={`${data.identity_hint?.display_name ?? ''}:${data.identity_hint?.website_slug ?? ''}`}
-            displayName={data.identity_hint?.display_name ?? ''}
-            websiteSlug={data.identity_hint?.website_slug ?? ''}
+            key={`${hint?.display_name ?? ''}:${hint?.website_slug ?? ''}`}
+            displayName={hint?.display_name ?? ''}
+            websiteSlug={hint?.website_slug ?? ''}
             onSaved={() => qc.invalidateQueries({ queryKey: ['provider-account'] })}
           />
         </div>
@@ -73,7 +74,7 @@ export default function ProviderAccountPage() {
         <section>
           <h2 className="section-title-sm mb-3">Ваші послуги</h2>
           <ul className="space-y-2">
-            {(data.offerings ?? []).map((o: { id: number; title: string; status: string }) => (
+            {(data.offerings ?? []).map((o) => (
               <li key={o.id} className="card p-3 text-sm">
                 {o.title} · {o.status}
               </li>
@@ -83,7 +84,7 @@ export default function ProviderAccountPage() {
         <section>
           <h2 className="section-title-sm mb-3">Точки</h2>
           <ul className="space-y-2">
-            {(data.points ?? []).map((pt: { id: number; label: string; address_text?: string }) => (
+            {(data.points ?? []).map((pt) => (
               <li key={pt.id} className="card p-3 text-sm">
                 📍 {pt.label}
                 {pt.address_text && pt.address_text !== pt.label ? (
@@ -114,7 +115,7 @@ function ProviderIdentityForm({
   const [slugTouched, setSlugTouched] = useState(Boolean(websiteSlug))
 
   const mut = useMutation({
-    mutationFn: () =>
+    mutationFn: async (): Promise<{ website_slug?: string }> =>
       isEdit
         ? providerApi.updateProfile({ display_name: name.trim(), website_slug: slug.trim() })
         : providerApi.register(name.trim(), slug.trim()),

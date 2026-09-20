@@ -97,6 +97,25 @@ export type PublicProvider = {
   }>
 }
 
+export type ProviderAccountOffering = {
+  id: number
+  title: string
+  status: string
+}
+
+export type ProviderAccountPoint = {
+  id: number
+  label: string
+  address_text?: string
+}
+
+export type ProviderAccount = {
+  profile: PublicProvider | null
+  offerings?: ProviderAccountOffering[]
+  points?: ProviderAccountPoint[]
+  identity_hint?: { display_name: string; website_slug: string }
+}
+
 export type JobItem = {
   id: number
   title: string

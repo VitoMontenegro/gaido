@@ -4,6 +4,7 @@ import type {
   DiscoverOffering,
   JobItem,
   LookingRequestItem,
+  ProviderAccount,
   PublicProvider,
   ServiceCategory,
 } from './types/discover'
@@ -63,13 +64,7 @@ export const discoverApi = {
 }
 
 export const providerApi = {
-  account: () =>
-    api<{
-      profile: PublicProvider | null
-      offerings: unknown[]
-      points: unknown[]
-      identity_hint?: { display_name: string; website_slug: string }
-    }>('/api/v1/account/provider'),
+  account: () => api<ProviderAccount>('/api/v1/account/provider'),
   register: (display_name: string, slug?: string) =>
     api<{ id: number; website_slug?: string }>('/api/v1/account/provider/register', {
       method: 'POST',
