@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@gaido/api-client/api/client'
@@ -47,10 +47,12 @@ function ExcursionBookingPanel({
   excursion,
   compact = false,
   contacts,
+  extraActions,
 }: {
   excursion: ExcursionItem
   compact?: boolean
   contacts?: Contacts
+  extraActions?: ReactNode
 }) {
   const links = contacts ? guideContactLinks(contacts) : []
 
@@ -88,6 +90,7 @@ function ExcursionBookingPanel({
             <p className="excursion-parus-muted truncate text-xs">{excursionPriceCaption(excursion.type)}</p>
           </div>
           {favButton}
+          {extraActions}
         </div>
         {contactBlock}
         {responseHours}
@@ -368,20 +371,22 @@ export default function ExcursionPage() {
         className="fixed inset-x-0 bottom-0 z-40 border-t border-divider bg-page/95 px-5 py-3 backdrop-blur-sm lg:hidden"
         style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
       >
-        <div className="mx-auto flex max-w-365 items-center gap-3">
+        <div className="mx-auto max-w-365">
           <ExcursionBookingPanel
             excursion={excursion}
             contacts={excursion.guide_contacts}
             compact
+            extraActions={
+              <button
+                type="button"
+                className="btn-secondary shrink-0 px-3 py-2.5"
+                aria-label="Доступні дати"
+                onClick={() => setAvailabilityOpen(true)}
+              >
+                <CalendarDaysIcon className="h-5 w-5" aria-hidden />
+              </button>
+            }
           />
-          <button
-            type="button"
-            className="btn-secondary shrink-0 px-3 py-2.5"
-            aria-label="Доступні дати"
-            onClick={() => setAvailabilityOpen(true)}
-          >
-            <CalendarDaysIcon className="h-5 w-5" aria-hidden />
-          </button>
         </div>
       </div>
 
