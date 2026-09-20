@@ -1,6 +1,7 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useEffect, useState } from 'react'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { adminApi, userDisplayName, type AdminCarrier, type AdminExcursion, type AdminGuide, type AdminProvider, type AdminOffering, type AdminComplaint, type AdminReview, type AdminTransportRide, type AdminUser } from '@gaido/api-client/api/client'
+import { adminApi, catalogApi, userDisplayName, type AdminCarrier, type AdminExcursion, type AdminGuide, type AdminListParams, type AdminProvider, type AdminOffering, type AdminComplaint, type AdminReview, type AdminTransportRide, type AdminUser } from '@gaido/api-client/api/client'
 import { isTransportSite, isServicesSite, transportUrl, servicesUrl } from '@gaido/site-urls/site'
 import { useMe } from '@gaido/api-client/hooks/useAuth'
 import { formatPrice } from './excursionUi'
@@ -66,6 +67,124 @@ function guideTypeBadgeClass(guide: AdminGuide) {
 
 function guideNeedsApproval(status: string) {
   return status === 'DRAFT' || status === 'WAITING_PAYMENT' || status === 'EXPIRED'
+}
+
+const ADMIN_PAGE_SIZE = 50
+
+function useDebouncedValue<T>(value: T, delay = 300): T {
+  const [debounced, setDebounced] = useState(value)
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(value), delay)
+    return () => clearTimeout(t)
+  }, [value, delay])
+  return debounced
+}
+
+function formatAdminDate(iso?: string) {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return '—'
+  return d.toLocaleDateString('uk-UA')
+}
+
+function useAdminListQuery(statusFilter?: string) {
+  const [qInput, setQInput] = useState('')
+  const q = useDebouncedValue(qInput.trim())
+  const [countrySlug, setCountrySlug] = useState('')
+  const [order, setOrder] = useState<'asc' | 'desc'>('desc')
+  const [offset, setOffset] = useState(0)
+
+  useEffect(() => {
+    setOffset(0)
+  }, [q, countrySlug, order, statusFilter])
+
+  const params: AdminListParams = {
+    ...(statusFilter ? { status: statusFilter } : {}),
+    ...(q ? { q } : {}),
+    ...(countrySlug ? { country_slug: countrySlug } : {}),
+    order,
+    limit: ADMIN_PAGE_SIZE,
+    offset,
+  }
+  return { qInput, setQInput, countrySlug, setCountrySlug, order, setOrder, offset, setOffset, params }
+}
+
+function useAdminCountries() {
+  return useQuery({
+    queryKey: ['geo-countries'],
+    queryFn: () => catalogApi.countries(),
+    staleTime: 5 * 60 * 1000,
+  })
+}
+
+function AdminListFilters({
+  q,
+  onQ,
+  countrySlug,
+  onCountry,
+  order,
+  onOrder,
+  countries,
+  searchPlaceholder,
+}: {
+  q: string
+  onQ: (value: string) => void
+  countrySlug: string
+  onCountry: (value: string) => void
+  order: 'asc' | 'desc'
+  onOrder: (value: 'asc' | 'desc') => void
+  countries: { slug: string; name: string }[]
+  searchPlaceholder: string
+}) {
+  return (
+    <div className="flex flex-wrap gap-2 border-b border-divider px-4 py-3">
+      <input
+        className="input max-w-xs py-2"
+        value={q}
+        onChange={(e) => onQ(e.target.value)}
+        placeholder={searchPlaceholder}
+      />
+      <select className="input w-auto min-w-[12rem] py-2" value={countrySlug} onChange={(e) => onCountry(e.target.value)}>
+        <option value="">Усі країни</option>
+        {countries.map((c) => (
+          <option key={c.slug} value={c.slug}>{c.name}</option>
+        ))}
+      </select>
+      <select className="input w-auto min-w-[12rem] py-2" value={order} onChange={(e) => onOrder(e.target.value as 'asc' | 'desc')}>
+        <option value="desc">Спочатку нові</option>
+        <option value="asc">Спочатку старі</option>
+      </select>
+    </div>
+  )
+}
+
+function AdminPager({
+  total,
+  limit,
+  offset,
+  onOffset,
+}: {
+  total: number
+  limit: number
+  offset: number
+  onOffset: (offset: number) => void
+}) {
+  if (total <= limit && offset === 0) return null
+  const from = total === 0 ? 0 : offset + 1
+  const to = Math.min(offset + limit, total)
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-divider px-4 py-3 text-sm">
+      <p className="text-stone-500">{from}–{to} з {total}</p>
+      <div className="flex gap-2">
+        <button type="button" className="btn-secondary" disabled={offset <= 0} onClick={() => onOffset(Math.max(0, offset - limit))}>
+          Назад
+        </button>
+        <button type="button" className="btn-secondary" disabled={offset + limit >= total} onClick={() => onOffset(offset + limit)}>
+          Далі
+        </button>
+      </div>
+    </div>
+  )
 }
 
 export function AdminUsersList() {
@@ -168,9 +287,12 @@ export function AdminUsersList() {
 
 export function AdminGuidesList({ statusFilter }: { statusFilter?: string }) {
   const qc = useQueryClient()
+  const list = useAdminListQuery(statusFilter)
+  const { data: countries } = useAdminCountries()
   const { data, isLoading, isError, error } = useQuery({
-    queryKey: ['admin-guides', statusFilter ?? 'all'],
-    queryFn: () => adminApi.guides(statusFilter ? { status: statusFilter } : undefined),
+    queryKey: ['admin-guides', list.params],
+    queryFn: () => adminApi.guides(list.params),
+    placeholderData: keepPreviousData,
   })
   const { data: plans } = useQuery({
     queryKey: ['admin-plans'],
@@ -207,19 +329,39 @@ export function AdminGuidesList({ statusFilter }: { statusFilter?: string }) {
         ? 'Гіди — очікують активації'
         : 'Гіди'
 
-  if (isLoading) return <ListShell title={title}>Завантаження…</ListShell>
-  if (isError) return <ListShell title={title}>{error?.message ?? 'Помилка'}</ListShell>
+  const items = data?.items ?? []
+  const total = data?.total ?? items.length
+  const filters = (
+    <AdminListFilters
+      q={list.qInput}
+      onQ={list.setQInput}
+      countrySlug={list.countrySlug}
+      onCountry={list.setCountrySlug}
+      order={list.order}
+      onOrder={list.setOrder}
+      countries={countries?.items ?? []}
+      searchPlaceholder="Пошук за імʼям"
+    />
+  )
+
+  if (isLoading && !data) return <ListShell title={title} toolbar={filters}><div className="px-4 py-3">Завантаження…</div></ListShell>
+  if (isError) return <ListShell title={title} toolbar={filters}><div className="px-4 py-3">{error?.message ?? 'Помилка'}</div></ListShell>
 
   return (
-    <ListShell title={title} count={(data?.items ?? []).length}>
+    <ListShell
+      title={title}
+      count={total}
+      toolbar={filters}
+      footer={<AdminPager total={total} limit={data?.limit ?? ADMIN_PAGE_SIZE} offset={list.offset} onOffset={list.setOffset} />}
+    >
       <ul className="divide-y divide-divider">
-        {(data?.items ?? []).map((g) => (
+        {items.map((g) => (
           <li key={g.id} className="px-4 py-3">
             <div className="flex flex-wrap items-center gap-3">
               <GuideAvatar avatar={g.avatar_url} name={g.display_name} className="h-10 w-10 shrink-0 rounded-xl" />
               <div className="min-w-0 flex-1">
                 <p className="font-medium">{g.display_name}</p>
-                <p className="text-sm text-stone-500">/{g.slug}</p>
+                <p className="text-sm text-stone-500">/{g.slug} · {formatAdminDate(g.created_at)}</p>
               </div>
               <span className={`rounded-full bg-teal/10 px-2 py-0.5 text-xs font-medium ${guideTypeBadgeClass(g)}`}>
                 {guideTypeBadgeLabel(g)}
@@ -265,6 +407,9 @@ export function AdminGuidesList({ statusFilter }: { statusFilter?: string }) {
             </div>
           </li>
         ))}
+        {items.length === 0 && (
+          <li className="px-4 py-6 text-sm text-stone-500">Гідів не знайдено</li>
+        )}
       </ul>
     </ListShell>
   )
@@ -272,9 +417,12 @@ export function AdminGuidesList({ statusFilter }: { statusFilter?: string }) {
 
 export function AdminExcursionsList() {
   const qc = useQueryClient()
+  const list = useAdminListQuery()
+  const { data: countries } = useAdminCountries()
   const { data, isLoading, isError, error } = useQuery({
-    queryKey: ['admin-excursions'],
-    queryFn: () => adminApi.excursions(),
+    queryKey: ['admin-excursions', list.params],
+    queryFn: () => adminApi.excursions(list.params),
+    placeholderData: keepPreviousData,
   })
 
   const remove = useMutation({
@@ -285,24 +433,46 @@ export function AdminExcursionsList() {
     },
   })
 
-  if (isLoading) return <ListShell title="Екскурсії">Завантаження…</ListShell>
-  if (isError) return <ListShell title="Екскурсії">{error?.message ?? 'Помилка'}</ListShell>
+  const items = data?.items ?? []
+  const total = data?.total ?? items.length
+  const filters = (
+    <AdminListFilters
+      q={list.qInput}
+      onQ={list.setQInput}
+      countrySlug={list.countrySlug}
+      onCountry={list.setCountrySlug}
+      order={list.order}
+      onOrder={list.setOrder}
+      countries={countries?.items ?? []}
+      searchPlaceholder="Пошук за назвою"
+    />
+  )
+
+  if (isLoading && !data) return <ListShell title="Екскурсії" toolbar={filters}><div className="px-4 py-3">Завантаження…</div></ListShell>
+  if (isError) return <ListShell title="Екскурсії" toolbar={filters}><div className="px-4 py-3">{error?.message ?? 'Помилка'}</div></ListShell>
 
   return (
-    <ListShell title="Екскурсії" count={(data?.items ?? []).length}>
+    <ListShell
+      title="Екскурсії"
+      count={total}
+      toolbar={filters}
+      footer={<AdminPager total={total} limit={data?.limit ?? ADMIN_PAGE_SIZE} offset={list.offset} onOffset={list.setOffset} />}
+    >
       <table className="w-full min-w-[720px] text-sm">
         <thead>
           <tr className="border-b border-divider bg-sand-50 text-left text-stone-500">
             <th className="px-4 py-2 font-medium">#</th>
             <th className="px-4 py-2 font-medium">Назва</th>
             <th className="px-4 py-2 font-medium">Гід</th>
+            <th className="px-4 py-2 font-medium">Країна</th>
+            <th className="px-4 py-2 font-medium">Дата</th>
             <th className="px-4 py-2 font-medium">Ціна</th>
             <th className="px-4 py-2 font-medium">Статус</th>
             <th className="px-4 py-2 font-medium" />
           </tr>
         </thead>
         <tbody>
-          {(data?.items ?? []).map((e: AdminExcursion) => (
+          {items.map((e: AdminExcursion) => (
             <tr key={e.id} className="border-b border-divider last:border-0">
               <td className="px-4 py-2.5">{e.id}</td>
               <td className="px-4 py-2.5">
@@ -310,6 +480,8 @@ export function AdminExcursionsList() {
                 <p className="text-xs text-stone-500">/{e.slug}</p>
               </td>
               <td className="px-4 py-2.5 text-stone-600">{e.guide_name || `#${e.guide_id}`}</td>
+              <td className="px-4 py-2.5 text-stone-600">{e.country_name || '—'}</td>
+              <td className="px-4 py-2.5 text-stone-600">{formatAdminDate(e.created_at)}</td>
               <td className="px-4 py-2.5">{formatPrice(e.price_from, e.currency)}</td>
               <td className="px-4 py-2.5">
                 <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusBadge(e.status)}`}>
@@ -337,6 +509,11 @@ export function AdminExcursionsList() {
               </td>
             </tr>
           ))}
+          {items.length === 0 && (
+            <tr>
+              <td colSpan={8} className="px-4 py-6 text-sm text-stone-500">Екскурсій не знайдено</td>
+            </tr>
+          )}
         </tbody>
       </table>
     </ListShell>
@@ -988,7 +1165,19 @@ export function AdminComplaintsList({ statusFilter }: { statusFilter?: string })
   )
 }
 
-function ListShell({ title, count, children }: { title: string; count?: number; children: React.ReactNode }) {
+function ListShell({
+  title,
+  count,
+  toolbar,
+  footer,
+  children,
+}: {
+  title: string
+  count?: number
+  toolbar?: React.ReactNode
+  footer?: React.ReactNode
+  children: React.ReactNode
+}) {
   return (
     <section className="card overflow-hidden p-0">
       <div className="border-b border-divider px-4 py-3">
@@ -997,9 +1186,11 @@ function ListShell({ title, count, children }: { title: string; count?: number; 
           {count != null && <span className="ml-2 text-base font-normal text-stone-500">({count})</span>}
         </h2>
       </div>
+      {toolbar}
       <div className="overflow-x-auto">
         {children}
       </div>
+      {footer}
     </section>
   )
 }

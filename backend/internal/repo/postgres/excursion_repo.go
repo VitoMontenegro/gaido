@@ -321,44 +321,53 @@ func (r *ExcursionRepo) DeleteAllByGuide(ctx context.Context, guideID int64) err
 }
 
 type AdminExcursionRow struct {
-	ID        int64   `json:"id"`
-	GuideID   int64   `json:"guide_id"`
-	GuideName string  `json:"guide_name"`
-	Title     string  `json:"title"`
-	Slug      string  `json:"slug"`
-	Status    string  `json:"status"`
-	PriceFrom float64 `json:"price_from"`
-	Currency  string  `json:"currency"`
+	ID          int64     `json:"id"`
+	GuideID     int64     `json:"guide_id"`
+	GuideName   string    `json:"guide_name"`
+	Title       string    `json:"title"`
+	Slug        string    `json:"slug"`
+	Status      string    `json:"status"`
+	PriceFrom   float64   `json:"price_from"`
+	Currency    string    `json:"currency"`
+	CountryName string    `json:"country_name"`
+	CountrySlug string    `json:"country_slug"`
+	CreatedAt   time.Time `json:"created_at"`
 }
 
-func (r *ExcursionRepo) ListAdmin(ctx context.Context, status string, limit int) ([]AdminExcursionRow, error) {
-	if limit <= 0 || limit > 200 {
-		limit = 100
-	}
-	q := `
-		SELECT e.id, e.guide_id, gp.display_name, e.title, e.slug, e.status, e.price_from, e.currency
+func (r *ExcursionRepo) ListAdmin(ctx context.Context, q AdminListQuery) ([]AdminExcursionRow, int, error) {
+	q.Limit, q.Offset = ClampAdminPage(q.Limit, q.Offset)
+	where, args := adminExcursionWhere(q)
+	from := `
 		FROM excursions e
-		INNER JOIN guide_profiles gp ON gp.id = e.guide_id`
-	args := []any{}
-	if status != "" {
-		q += ` WHERE e.status=$1`
-		args = append(args, status)
+		INNER JOIN guide_profiles gp ON gp.id = e.guide_id
+		LEFT JOIN cities c ON c.id = e.city_id
+		LEFT JOIN countries co ON co.id = c.country_id` + where
+	var total int
+	if err := r.db.Pool.QueryRow(ctx, `SELECT COUNT(*)`+from, args...).Scan(&total); err != nil {
+		return nil, 0, err
 	}
-	q += ` ORDER BY e.id DESC LIMIT ` + fmt.Sprintf("%d", limit)
-	rows, err := r.db.Pool.Query(ctx, q, args...)
+	order := adminOrderSQL(q.OrderAsc)
+	n := len(args) + 1
+	sql := fmt.Sprintf(`
+		SELECT e.id, e.guide_id, gp.display_name, e.title, e.slug, e.status, e.price_from, e.currency,
+			COALESCE(co.name, ''), COALESCE(co.slug, ''), e.created_at
+		%s
+		ORDER BY e.created_at %s, e.id %s
+		LIMIT $%d OFFSET $%d`, from, order, order, n, n+1)
+	rows, err := r.db.Pool.Query(ctx, sql, append(args, q.Limit, q.Offset)...)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 	out := make([]AdminExcursionRow, 0)
 	for rows.Next() {
 		var row AdminExcursionRow
-		if err := rows.Scan(&row.ID, &row.GuideID, &row.GuideName, &row.Title, &row.Slug, &row.Status, &row.PriceFrom, &row.Currency); err != nil {
-			return nil, err
+		if err := rows.Scan(&row.ID, &row.GuideID, &row.GuideName, &row.Title, &row.Slug, &row.Status, &row.PriceFrom, &row.Currency, &row.CountryName, &row.CountrySlug, &row.CreatedAt); err != nil {
+			return nil, 0, err
 		}
 		out = append(out, row)
 	}
-	return out, rows.Err()
+	return out, total, rows.Err()
 }
 
 func (r *ExcursionRepo) ListByGuideEnriched(ctx context.Context, guideID int64) ([]domain.ExcursionView, error) {
@@ -366,7 +375,7 @@ func (r *ExcursionRepo) ListByGuideEnriched(ctx context.Context, guideID int64) 
 		SELECT `+excursionSelectColsAliased+`,
 			`+excursionCityCols+`
 		FROM excursions e
-		` + excursionCityJoins + `
+		`+excursionCityJoins+`
 		WHERE e.guide_id=$1
 		ORDER BY e.id DESC
 	`, guideID)
@@ -382,7 +391,7 @@ func (r *ExcursionRepo) ListPublishedByGuide(ctx context.Context, guideID int64)
 		SELECT `+excursionSelectColsAliased+`,
 			`+excursionCityCols+excursionReviewRatingCols+`
 		FROM excursions e
-		` + excursionCityJoins + `
+		`+excursionCityJoins+`
 		WHERE e.guide_id=$1 AND e.status=$2
 		ORDER BY e.id DESC
 	`, guideID, domain.ExcursionPublished)
@@ -433,7 +442,7 @@ func (r *ExcursionRepo) GetViewByID(ctx context.Context, id int64) (*domain.Excu
 			g.website_slug,
 			COALESCE(g.avatar_url, '')`+excursionReviewRatingCols+`
 		FROM excursions e
-		` + excursionCityJoins + `
+		`+excursionCityJoins+`
 		JOIN guide_profiles g ON g.id = e.guide_id
 		WHERE e.id=$1 AND e.status=$2 AND g.status=$3
 	`, id, domain.ExcursionPublished, domain.GuideStatusActive)

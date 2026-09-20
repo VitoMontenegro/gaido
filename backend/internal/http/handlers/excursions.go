@@ -6,7 +6,6 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
@@ -160,8 +159,8 @@ func (h *Handlers) RejectExcursion(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, r, 200, map[string]string{"status": "rejected"})
 }
 func (h *Handlers) AdminListExcursions(w http.ResponseWriter, r *http.Request) {
-	status := strings.TrimSpace(r.URL.Query().Get("status"))
-	items, err := h.Exc.ListAdmin(r.Context(), status, 100)
+	q := adminListQuery(r)
+	items, total, err := h.Exc.ListAdmin(r.Context(), q)
 	if err != nil {
 		response.Error(w, r, apperrors.ErrInternal)
 		return
@@ -169,7 +168,7 @@ func (h *Handlers) AdminListExcursions(w http.ResponseWriter, r *http.Request) {
 	if items == nil {
 		items = []postgres.AdminExcursionRow{}
 	}
-	response.JSON(w, r, 200, map[string]any{"items": items})
+	response.JSON(w, r, 200, map[string]any{"items": items, "total": total, "limit": q.Limit, "offset": q.Offset})
 }
 func (h *Handlers) AdminDeleteExcursion(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)

@@ -122,22 +122,30 @@ func (r *GuideRepo) UpdateProfile(ctx context.Context, g *domain.GuideProfile) e
 	return err
 }
 
-func (r *GuideRepo) ListAdmin(ctx context.Context) ([]domain.GuideProfile, error) {
-	rows, err := r.db.Pool.Query(ctx, `
-		SELECT `+guideProfileSelect+` FROM guide_profiles ORDER BY display_name, id`)
+func (r *GuideRepo) ListAdmin(ctx context.Context, q AdminListQuery) ([]domain.GuideProfile, int, error) {
+	q.Limit, q.Offset = ClampAdminPage(q.Limit, q.Offset)
+	where, args := adminGuideWhere(q)
+	var total int
+	if err := r.db.Pool.QueryRow(ctx, `SELECT COUNT(*) FROM guide_profiles`+where, args...).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+	order := adminOrderSQL(q.OrderAsc)
+	n := len(args) + 1
+	sql := fmt.Sprintf(`SELECT `+guideProfileSelect+` FROM guide_profiles%s ORDER BY created_at %s, id %s LIMIT $%d OFFSET $%d`, where, order, order, n, n+1)
+	rows, err := r.db.Pool.Query(ctx, sql, append(args, q.Limit, q.Offset)...)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
-	var out []domain.GuideProfile
+	out := make([]domain.GuideProfile, 0)
 	for rows.Next() {
 		g, err := scanGuideRow(rows)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		out = append(out, g)
 	}
-	return out, rows.Err()
+	return out, total, rows.Err()
 }
 
 func (r *GuideRepo) ActivateAllForCatalogFilling(ctx context.Context) (int64, error) {
@@ -365,9 +373,21 @@ func (r *GuideRepo) GetDocumentByID(ctx context.Context, id int64) (*domain.Guid
 }
 
 func (r *GuideRepo) ListAllDocuments(ctx context.Context) ([]domain.GuideDocument, error) {
-	rows, err := r.db.Pool.Query(ctx, `
-		SELECT id, guide_id, type, storage_key, mime_type, size, checksum
-		FROM guide_documents ORDER BY guide_id, type`)
+	return r.ListDocumentsByGuideIDs(ctx, nil)
+}
+
+func (r *GuideRepo) ListDocumentsByGuideIDs(ctx context.Context, ids []int64) ([]domain.GuideDocument, error) {
+	q := `SELECT id, guide_id, type, storage_key, mime_type, size, checksum FROM guide_documents`
+	var args []any
+	if ids != nil {
+		if len(ids) == 0 {
+			return []domain.GuideDocument{}, nil
+		}
+		q += ` WHERE guide_id = ANY($1)`
+		args = append(args, ids)
+	}
+	q += ` ORDER BY guide_id, type`
+	rows, err := r.db.Pool.Query(ctx, q, args...)
 	if err != nil {
 		return nil, err
 	}

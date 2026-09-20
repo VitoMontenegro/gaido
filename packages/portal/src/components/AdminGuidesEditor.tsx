@@ -1,26 +1,41 @@
 import { useEffect, useState } from 'react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { adminApi } from '@gaido/api-client/api/client'
+import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query'
+import { adminApi, type AdminGuide, type AdminListParams } from '@gaido/api-client/api/client'
 import GuideAvatar from './GuideAvatar'
 import { ImageUrlField } from './ImageUrlField'
 
-type AdminGuide = {
-  id: number
-  display_name: string
-  slug: string
-  status: string
-  avatar_url: string
-}
+const PAGE_SIZE = 50
 
 export function AdminGuidesEditor() {
   const qc = useQueryClient()
-  const [items, setItems] = useState<AdminGuide[]>([])
-  const [loading, setLoading] = useState(true)
+  const [qInput, setQInput] = useState('')
+  const [q, setQ] = useState('')
+  const [offset, setOffset] = useState(0)
   const [savingId, setSavingId] = useState<number | null>(null)
   const [bypassId, setBypassId] = useState<number | null>(null)
   const [message, setMessage] = useState('')
   const [drafts, setDrafts] = useState<Record<number, string>>({})
 
+  useEffect(() => {
+    const t = setTimeout(() => setQ(qInput.trim()), 300)
+    return () => clearTimeout(t)
+  }, [qInput])
+
+  useEffect(() => {
+    setOffset(0)
+  }, [q])
+
+  const params: AdminListParams = {
+    ...(q.trim() ? { q: q.trim() } : {}),
+    limit: PAGE_SIZE,
+    offset,
+  }
+
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['admin-guides', params],
+    queryFn: () => adminApi.guides(params),
+    placeholderData: keepPreviousData,
+  })
   const { data: plans } = useQuery({
     queryKey: ['admin-plans'],
     queryFn: () => adminApi.plans(),
@@ -28,25 +43,19 @@ export function AdminGuidesEditor() {
   const placementPlanId = (plans?.items ?? []).find((p) => p.plan_type === 'GUIDE_PLACEMENT')?.id
     ?? plans?.items?.[0]?.id
 
-  useEffect(() => {
-    adminApi.guides()
-      .then((res) => {
-        setItems(res.items)
-        setDrafts(Object.fromEntries(res.items.map((g) => [g.id, g.avatar_url ?? ''])))
-      })
-      .catch(() => setMessage('Не вдалося завантажити гідів'))
-      .finally(() => setLoading(false))
-  }, [])
+  const items = data?.items ?? []
+  const total = data?.total ?? items.length
 
   const save = async (guide: AdminGuide) => {
-    const avatar_url = drafts[guide.id] ?? ''
+    const avatar_url = drafts[guide.id] ?? guide.avatar_url ?? ''
     setSavingId(guide.id)
     setMessage('')
     try {
       const updated = await adminApi.updateGuide(guide.id, { avatar_url })
-      setItems((prev) => prev.map((g) => (g.id === guide.id ? updated : g)))
+      qc.invalidateQueries({ queryKey: ['admin-guides'] })
       qc.invalidateQueries({ queryKey: ['guides'] })
       qc.invalidateQueries({ queryKey: ['site'] })
+      setDrafts((prev) => ({ ...prev, [guide.id]: updated.avatar_url ?? '' }))
       setMessage(`Збережено: ${guide.display_name}`)
     } catch (e) {
       setMessage(e instanceof Error ? e.message : 'Помилка збереження')
@@ -64,7 +73,6 @@ export function AdminGuidesEditor() {
     setMessage('')
     try {
       await adminApi.approveGuide(guide.id, placementPlanId)
-      setItems((prev) => prev.map((g) => (g.id === guide.id ? { ...g, status: 'ACTIVE' } : g)))
       qc.invalidateQueries({ queryKey: ['admin-guides'] })
       qc.invalidateQueries({ queryKey: ['guides'] })
       qc.invalidateQueries({ queryKey: ['site'] })
@@ -76,8 +84,11 @@ export function AdminGuidesEditor() {
     }
   }
 
-  if (loading) {
+  if (isLoading && !data) {
     return <div className="card text-muted">Завантаження гідів…</div>
+  }
+  if (isError) {
+    return <div className="card text-muted">Не вдалося завантажити гідів</div>
   }
 
   return (
@@ -89,13 +100,20 @@ export function AdminGuidesEditor() {
         </p>
       </div>
 
+      <input
+        className="input max-w-xs py-2"
+        value={qInput}
+        onChange={(e) => setQInput(e.target.value)}
+        placeholder="Пошук за імʼям"
+      />
+
       {message && <p className="text-sm text-muted">{message}</p>}
 
       <ul className="space-y-4">
         {items.map((guide) => (
           <li key={guide.id} className="rounded-2xl border border-divider p-4">
             <div className="flex flex-wrap items-start gap-4">
-              <GuideAvatar avatar={drafts[guide.id]} name={guide.display_name} className="h-20 w-20 shrink-0 rounded-2xl" />
+              <GuideAvatar avatar={drafts[guide.id] ?? guide.avatar_url} name={guide.display_name} className="h-20 w-20 shrink-0 rounded-2xl" />
               <div className="min-w-0 flex-1 space-y-3">
                 <div>
                   <p className="font-display font-medium uppercase text-ink">{guide.display_name}</p>
@@ -103,7 +121,7 @@ export function AdminGuidesEditor() {
                 </div>
                 <ImageUrlField
                   label="Фото профілю"
-                  value={drafts[guide.id] ?? ''}
+                  value={drafts[guide.id] ?? guide.avatar_url ?? ''}
                   cropAspect={1}
                   outputFormat="webp"
                   maxBytes={150 * 1024}
@@ -134,6 +152,15 @@ export function AdminGuidesEditor() {
           </li>
         ))}
       </ul>
+      {total > PAGE_SIZE && (
+        <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
+          <p className="text-muted">{Math.min(offset + 1, total)}–{Math.min(offset + PAGE_SIZE, total)} з {total}</p>
+          <div className="flex gap-2">
+            <button type="button" className="btn-secondary" disabled={offset <= 0} onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}>Назад</button>
+            <button type="button" className="btn-secondary" disabled={offset + PAGE_SIZE >= total} onClick={() => setOffset(offset + PAGE_SIZE)}>Далі</button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

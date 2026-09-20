@@ -17,12 +17,17 @@ import (
 )
 
 func (h *Handlers) AdminListGuides(w http.ResponseWriter, r *http.Request) {
-	items, err := h.Guides.ListAdmin(r.Context())
+	q := adminListQuery(r)
+	items, total, err := h.Guides.ListAdmin(r.Context(), q)
 	if err != nil {
 		response.Error(w, r, apperrors.ErrInternal)
 		return
 	}
-	allDocs, err := h.Guides.ListAllDocuments(r.Context())
+	ids := make([]int64, 0, len(items))
+	for _, g := range items {
+		ids = append(ids, g.ID)
+	}
+	allDocs, err := h.Guides.ListDocumentsByGuideIDs(r.Context(), ids)
 	if err != nil {
 		response.Error(w, r, apperrors.ErrInternal)
 		return
@@ -40,12 +45,8 @@ func (h *Handlers) AdminListGuides(w http.ResponseWriter, r *http.Request) {
 			hasLicenseByGuide[d.GuideID] = true
 		}
 	}
-	statusFilter := strings.TrimSpace(r.URL.Query().Get("status"))
 	out := make([]map[string]any, 0, len(items))
 	for _, g := range items {
-		if statusFilter != "" && g.Status != statusFilter {
-			continue
-		}
 		profile := guidesvc.BuildGuideAccountProfile(&g, hasLicenseByGuide[g.ID])
 		docs := docsByGuide[g.ID]
 		if docs == nil {
@@ -59,6 +60,7 @@ func (h *Handlers) AdminListGuides(w http.ResponseWriter, r *http.Request) {
 			"avatar_url":     g.AvatarURL,
 			"guide_type":     profile.GuideType,
 			"catalog_status": profile.CatalogStatus,
+			"created_at":     g.CreatedAt,
 			"documents":      docs,
 		}
 		if profile.TypeBadge != nil {
@@ -66,7 +68,7 @@ func (h *Handlers) AdminListGuides(w http.ResponseWriter, r *http.Request) {
 		}
 		out = append(out, row)
 	}
-	response.JSON(w, r, 200, map[string]any{"items": out})
+	response.JSON(w, r, 200, map[string]any{"items": out, "total": total, "limit": q.Limit, "offset": q.Offset})
 }
 
 func (h *Handlers) AdminServeGuideDocument(w http.ResponseWriter, r *http.Request) {

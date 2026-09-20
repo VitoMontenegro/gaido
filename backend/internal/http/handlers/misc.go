@@ -18,8 +18,8 @@ import (
 	"github.com/vitomonte/experts-tourister/internal/http/middleware"
 	"github.com/vitomonte/experts-tourister/internal/http/response"
 	"github.com/vitomonte/experts-tourister/internal/repo/postgres"
-	guidesvc "github.com/vitomonte/experts-tourister/internal/service/guide"
 	"github.com/vitomonte/experts-tourister/internal/sanitize"
+	guidesvc "github.com/vitomonte/experts-tourister/internal/service/guide"
 )
 
 type registerReq struct {
@@ -50,6 +50,26 @@ func paginate(r *http.Request) (int, int) {
 	}
 	return limit, offset
 }
+
+func paginateAdmin(r *http.Request) (int, int) {
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	offset, _ := strconv.Atoi(r.URL.Query().Get("offset"))
+	return postgres.ClampAdminPage(limit, offset)
+}
+
+func adminListQuery(r *http.Request) postgres.AdminListQuery {
+	limit, offset := paginateAdmin(r)
+	order := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("order")))
+	return postgres.AdminListQuery{
+		Status:      strings.TrimSpace(r.URL.Query().Get("status")),
+		Q:           strings.TrimSpace(r.URL.Query().Get("q")),
+		CountrySlug: strings.TrimSpace(r.URL.Query().Get("country_slug")),
+		OrderAsc:    order == "asc",
+		Limit:       limit,
+		Offset:      offset,
+	}
+}
+
 func hasRole(ctx context.Context, role string) bool {
 	roles, _ := ctx.Value(middleware.RolesKey).([]string)
 	for _, r := range roles {

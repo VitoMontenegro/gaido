@@ -18,6 +18,7 @@ export type AdminGuide = {
   guide_type: string
   type_badge?: string
   catalog_status: string
+  created_at?: string
   documents: AdminGuideDocument[]
 }
 
@@ -41,6 +42,9 @@ export type AdminExcursion = {
   status: string
   price_from: number | null
   currency: string
+  country_name?: string
+  country_slug?: string
+  created_at?: string
 }
 
 export type AdminCarrier = {
@@ -244,6 +248,33 @@ export type DeployLogs = {
   content: string
 }
 
+export type AdminListParams = {
+  status?: string
+  q?: string
+  country_slug?: string
+  order?: 'asc' | 'desc'
+  limit?: number
+  offset?: number
+}
+
+export type AdminPaged<T> = {
+  items: T[]
+  total: number
+  limit: number
+  offset: number
+}
+
+function adminListQuery(params?: AdminListParams): string {
+  if (!params) return ''
+  const sp = new URLSearchParams()
+  for (const [key, value] of Object.entries(params)) {
+    if (value === undefined || value === '') continue
+    sp.set(key, String(value))
+  }
+  const q = sp.toString()
+  return q ? `?${q}` : ''
+}
+
 export const adminApi = {
   analytics: () => api<AdminAnalytics>('/api/v1/admin/analytics'),
   settings: () => api<AdminSettings>('/api/v1/admin/settings'),
@@ -259,10 +290,8 @@ export const adminApi = {
     }),
   uploadMedia: (file: File | UploadFile) =>
     api<{ public_key: string }>('/api/v1/media', { method: 'POST', body: buildUploadForm(file) }),
-  guides: (params?: { status?: string }) => {
-    const q = params?.status ? `?status=${encodeURIComponent(params.status)}` : ''
-    return api<{ items: AdminGuide[] }>(`/api/v1/admin/guides${q}`)
-  },
+  guides: (params?: AdminListParams) =>
+    api<AdminPaged<AdminGuide>>(`/api/v1/admin/guides${adminListQuery(params)}`),
   fetchGuideDocument: (id: number) => apiBlob(`/api/v1/admin/guides/documents/${id}`),
   updateGuide: (id: number, body: { avatar_url: string }) =>
     api<AdminGuide>(`/api/v1/admin/guides/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
@@ -271,10 +300,8 @@ export const adminApi = {
   users: () => api<{ items: AdminUser[] }>('/api/v1/admin/users'),
   deleteUser: (id: number) =>
     api<{ status: string }>(`/api/v1/admin/users/${id}`, { method: 'DELETE' }),
-  excursions: (params?: { status?: string }) => {
-    const q = params?.status ? `?status=${encodeURIComponent(params.status)}` : ''
-    return api<{ items: AdminExcursion[] }>(`/api/v1/admin/excursions${q}`)
-  },
+  excursions: (params?: AdminListParams) =>
+    api<AdminPaged<AdminExcursion>>(`/api/v1/admin/excursions${adminListQuery(params)}`),
   deleteExcursion: (id: number) =>
     api<{ status: string }>(`/api/v1/admin/excursions/${id}`, { method: 'DELETE' }),
   reviews: (params?: { status?: string }) => {
