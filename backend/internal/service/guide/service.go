@@ -66,7 +66,7 @@ func (s *Service) AccountProfile(ctx context.Context, g *domain.GuideProfile) do
 	return BuildGuideAccountProfile(g, s.HasUploadedLicense(ctx, g))
 }
 
-func (s *Service) ApplyProfileUpdate(ctx context.Context, g *domain.GuideProfile, req domain.GuideProfile) {
+func (s *Service) ApplyProfileUpdate(ctx context.Context, g *domain.GuideProfile, req domain.GuideProfile) error {
 	if req.GuideType == domain.GuideTypeCompanion {
 		g.GuideType = domain.GuideTypeCompanion
 	} else if g.GuideType == domain.GuideTypeCompanion {
@@ -75,7 +75,11 @@ func (s *Service) ApplyProfileUpdate(ctx context.Context, g *domain.GuideProfile
 	g.FirstName = req.FirstName
 	g.LastName = req.LastName
 	g.DisplayName = req.DisplayName
-	g.About = sanitize.Text(req.About)
+	about, err := domain.AcceptGuideAbout(sanitize.Text(req.About), g.About)
+	if err != nil {
+		return err
+	}
+	g.About = about
 	g.PreferredContactMethod = req.PreferredContactMethod
 	g.Phone = req.Phone
 	g.Email = req.Email
@@ -97,6 +101,7 @@ func (s *Service) ApplyProfileUpdate(ctx context.Context, g *domain.GuideProfile
 			g.Status = domain.GuideStatusActive
 		}
 	}
+	return nil
 }
 
 func (s *Service) PaymentsEnabled(ctx context.Context) bool {
@@ -133,7 +138,9 @@ func (s *Service) UpdateProfile(ctx context.Context, userID int64, req domain.Gu
 	if req.GuideType == domain.GuideTypeCompanion && s.HasUploadedLicense(ctx, g) {
 		req.GuideType = g.GuideType
 	}
-	s.ApplyProfileUpdate(ctx, g, req)
+	if err := s.ApplyProfileUpdate(ctx, g, req); err != nil {
+		return nil, err
+	}
 	if strings.TrimSpace(req.WebsiteSlug) != "" || g.WebsiteSlug == "" {
 		slug, err := ReserveOrAllocate(req.WebsiteSlug, g.DisplayName, "guide", func(candidate string) (bool, error) {
 			return s.Guides.SlugTaken(ctx, candidate, g.ID)

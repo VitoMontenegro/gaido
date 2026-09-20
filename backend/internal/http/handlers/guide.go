@@ -126,6 +126,10 @@ func (h *Handlers) UpdateGuideProfile(w http.ResponseWriter, r *http.Request) {
 			response.Error(w, r, apperrors.ErrSlugTaken)
 			return
 		}
+		if errors.Is(err, domain.ErrGuideAboutTooLong) {
+			response.Error(w, r, apperrors.New("VALIDATION_ERROR", err.Error(), 400))
+			return
+		}
 		if err == nil {
 			response.Error(w, r, apperrors.ErrNotFound)
 			return

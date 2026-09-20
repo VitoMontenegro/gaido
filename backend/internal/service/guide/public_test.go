@@ -1,6 +1,7 @@
 package guide_test
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -61,6 +62,20 @@ func TestTypeBadgeLicenseOverridesCompanion(t *testing.T) {
 	dto := guidesvc.BuildPublicGuideDTO(g, nil, true, true)
 	if dto.TypeBadge == nil || *dto.TypeBadge != "Гід" {
 		t.Fatal("license should override companion badge")
+	}
+}
+
+func TestPublicGuideDTOHidesAboutLinks(t *testing.T) {
+	g := &domain.GuideProfile{
+		Status: domain.GuideStatusDraft,
+		About:  "Гід по Празі. Telegram https://t.me/ivan_guide",
+	}
+	dto := guidesvc.BuildPublicGuideDTO(g, nil, false, true)
+	if strings.Contains(dto.About, "t.me") || strings.Contains(dto.About, "http") {
+		t.Fatalf("public about still has a link: %q", dto.About)
+	}
+	if !strings.Contains(dto.About, "Гід по Празі") {
+		t.Fatalf("public about lost the text: %q", dto.About)
 	}
 }
 

@@ -1,9 +1,10 @@
 import { Link, useParams } from 'react-router-dom'
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { catalogApi } from '@gaido/api-client/api/client'
+import { catalogApi, placePagesApi } from '@gaido/api-client/api/client'
 import Breadcrumbs from '../components/Breadcrumbs'
 import ExcursionCard, { ExcursionCardGrid } from '../components/ExcursionCard'
+import { PlaceBody, PlaceExcerpt } from '../components/PlacePageBlocks'
 import SeoFaqSection from '../components/SeoFaqSection'
 import type { ExcursionItem } from '../components/excursionUi'
 import { buildExcursionListingJsonLd, buildPlaceJsonLd } from '../lib/excursionListingSchema'
@@ -11,6 +12,10 @@ import { Seo } from '../lib/seo'
 import {
   buildFaqPageJsonLd,
   countryExcursionFaq,
+  defaultCountryIntro,
+  placeFaqOrDefault,
+  placeSeoDescription,
+  placeSeoTitle,
   seoCountryExcursionsDescription,
   seoCountryExcursionsTitle,
 } from '../lib/seoTemplates'
@@ -31,17 +36,35 @@ export default function CountryExcursionsPage() {
     queryFn: () => catalogApi.countries(),
   })
   const country = (countries?.items ?? []).find((c) => c.slug === countrySlug)
+  const { data: guides, isLoading: guidesLoading } = useQuery({
+    queryKey: ['guides', 'country', countrySlug],
+    queryFn: () => catalogApi.guides({ country_slug: countrySlug, limit: '50' }),
+    enabled: !!countrySlug,
+  })
   const { data: excursions, isLoading } = useQuery({
     queryKey: ['excursions', 'country', countrySlug],
     queryFn: () =>
       catalogApi.excursions({ country_slug: countrySlug, limit: '50' }) as Promise<{ items: ExcursionItem[] }>,
     enabled: !!countrySlug,
   })
+  const { data: placePage } = useQuery({
+    queryKey: ['place-page', 'country', countrySlug],
+    queryFn: () => placePagesApi.public('country', countrySlug),
+    enabled: !!countrySlug,
+    retry: false,
+  })
 
   const title = country?.name ?? countrySlug
+  const guideItems = guides?.items ?? []
   const items = excursions?.items ?? []
-  const faqItems = countryExcursionFaq(title)
-  const seoDescription = seoCountryExcursionsDescription(title, items.length)
+  const faqItems = placeFaqOrDefault(
+    placePage?.faq,
+    !isLoading && items.length > 0 ? countryExcursionFaq(title) : [],
+  )
+  const seoDescription = placeSeoDescription(placePage?.seo_description, seoCountryExcursionsDescription(title, items.length))
+  const excerptFallback = (!guidesLoading && !isLoading && (guideItems.length > 0 || items.length > 0))
+    ? defaultCountryIntro(title)
+    : ''
 
   const jsonLd = useMemo(() => {
     const schemas = buildExcursionListingJsonLd(items, {
@@ -49,16 +72,17 @@ export default function CountryExcursionsPage() {
       description: seoDescription,
     })
     schemas.push(buildPlaceJsonLd({ name: title, path: `/countries/${countrySlug}` }))
-    schemas.push(buildFaqPageJsonLd(faqItems))
+    if (faqItems.length > 0) schemas.push(buildFaqPageJsonLd(faqItems))
     return schemas
   }, [items, title, countrySlug, seoDescription, faqItems])
 
   return (
     <>
       <Seo
-        title={seoCountryExcursionsTitle(title)}
+        title={placeSeoTitle(placePage?.seo_title, seoCountryExcursionsTitle(title))}
         description={seoDescription}
         path={`/countries/${countrySlug}`}
+        image={placePage?.seo_image_url || undefined}
         jsonLd={jsonLd.length > 0 ? jsonLd : undefined}
       />
       <Breadcrumbs
@@ -73,7 +97,7 @@ export default function CountryExcursionsPage() {
           ← Усі екскурсії
         </Link>
         <h1 className={cn('section-title mb-1 text-2xl md:text-[28px]', !country && 'capitalize')}>
-          Екскурсії в {title}
+          Екскурсії {title}
         </h1>
         <p className="mb-4 text-sm text-muted md:mb-6 md:text-base">
           {isLoading
@@ -83,26 +107,40 @@ export default function CountryExcursionsPage() {
               : 'Екскурсії за країною'}
         </p>
 
-        {!isLoading && items.length > 0 && (
-          <p className="mb-6 max-w-3xl text-sm leading-relaxed text-muted md:text-base">
-            Оберіть авторську екскурсію в {title} від місцевих гідів українською або англійською.
-            Порівняйте ціни, перегляньте маршрути та напишіть гіду напряму для бронювання дати.
-          </p>
-        )}
+        <PlaceExcerpt value={placePage?.excerpt} fallback={excerptFallback} />
 
-        {isLoading ? (
-          <p className="text-sm text-muted">Завантаження…</p>
-        ) : items.length === 0 ? (
-          <p className="text-sm text-muted">У цій країні поки немає опублікованих екскурсій.</p>
-        ) : (
-          <ExcursionCardGrid>
-            {items.map((e) => (
-              <ExcursionCard key={e.id} e={e} compact />
-            ))}
-          </ExcursionCardGrid>
-        )}
+        <section className="min-h-[80px]">
+          <h2 className="mb-4 text-xl font-semibold">Гіди</h2>
+          {guidesLoading ? (
+            <p className="text-sm text-muted">Завантаження…</p>
+          ) : guideItems.length === 0 ? (
+            <p className="text-sm text-muted">Поки немає гідів у цій країні.</p>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {guideItems.map((g) => (
+                <Link key={g.id} to={`/guide/${g.slug}`} className="card hover:shadow-md">{g.display_name}</Link>
+              ))}
+            </div>
+          )}
+        </section>
 
-        {!isLoading && items.length > 0 && <SeoFaqSection items={faqItems} />}
+        <section className="mt-10 min-h-[120px]">
+          <h2 className="mb-4 text-xl font-semibold">Екскурсії</h2>
+          {isLoading ? (
+            <p className="text-sm text-muted">Завантаження…</p>
+          ) : items.length === 0 ? (
+            <p className="text-sm text-muted">У цій країні поки немає опублікованих екскурсій.</p>
+          ) : (
+            <ExcursionCardGrid>
+              {items.map((e) => (
+                <ExcursionCard key={e.id} e={e} compact />
+              ))}
+            </ExcursionCardGrid>
+          )}
+        </section>
+
+        <PlaceBody html={placePage?.intro_html} />
+        {faqItems.length > 0 && <SeoFaqSection items={faqItems} />}
       </div>
     </>
   )

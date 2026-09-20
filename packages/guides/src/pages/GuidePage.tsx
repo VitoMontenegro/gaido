@@ -17,6 +17,7 @@ import { getApiErrorCode } from '@gaido/api-client/api/http'
 import CatalogNotFound from '../components/CatalogNotFound'
 import { pageTitle } from '@gaido/site-urls/brand'
 import { buildExcursionItemListJsonLd, buildPersonJsonLd } from '../lib/excursionListingSchema'
+import { displayGuideAbout } from '../lib/guideAbout'
 import { Seo } from '../lib/seo'
 
 export default function GuidePage() {
@@ -69,11 +70,13 @@ export default function GuidePage() {
   const excursionItems = excursions?.items ?? []
   const countryFromExcursion = excursionItems.find((e) => e.country_slug && e.country_name)
 
+  const about = displayGuideAbout(guide.about)
+
   const jsonLd = [
     buildPersonJsonLd({
       display_name: guide.display_name,
       slug: guide.slug,
-      about: guide.about,
+      about,
       avatar_url: guide.avatar_url,
       rating_avg: guide.rating_avg,
       rating_count: guide.rating_count,
@@ -88,7 +91,7 @@ export default function GuidePage() {
     <>
       <Seo
         title={pageTitle(guide.display_name)}
-        description={guide.about ?? ''}
+        description={about}
         path={`/guide/${guide.slug}`}
         image={guide.avatar_url}
         jsonLd={jsonLd.length > 0 ? jsonLd : undefined}
@@ -189,7 +192,7 @@ function GuideHero({ guide, excursionCount }: { guide: PublicGuide; excursionCou
           <span>{guide.rating_avg.toFixed(1)} · {guide.rating_count} відгуків · {excursionCount} екскурсій</span>
         </p>
         <p className="mt-6 max-w-3xl whitespace-pre-wrap leading-relaxed text-stone-700">
-          {guide.about || 'Опис профілю поки не заповнено.'}
+          {displayGuideAbout(guide.about) || 'Опис профілю поки не заповнено.'}
         </p>
       </div>
     </div>

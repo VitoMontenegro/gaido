@@ -111,7 +111,7 @@ func (h *Handlers) attachGuideCities(ctx context.Context, guides []domain.Public
 	for i := range guides {
 		ids[i] = guides[i].ID
 	}
-	citiesByGuide, err := h.Guides.ListCityNamesByGuideIDs(ctx, ids)
+	citiesByGuide, err := h.Guides.ListPreviewCityNamesByGuideIDs(ctx, ids)
 	if err != nil {
 		return
 	}
@@ -120,7 +120,7 @@ func (h *Handlers) attachGuideCities(ctx context.Context, guides []domain.Public
 		if len(names) == 0 {
 			continue
 		}
-		guides[i].CityName = names[0]
+		guides[i].CityName = strings.Join(names, " · ")
 	}
 }
 

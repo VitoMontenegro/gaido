@@ -1,17 +1,22 @@
 import { Link, useParams } from 'react-router-dom'
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { catalogApi } from '@gaido/api-client/api/client'
+import { catalogApi, placePagesApi } from '@gaido/api-client/api/client'
 import Breadcrumbs from '../components/Breadcrumbs'
 import CitiesMap from '../components/CitiesMap'
 import MapDestinationsList from '../components/MapDestinationsList'
 import ExcursionCard from '../components/ExcursionCard'
+import { PlaceBody, PlaceExcerpt } from '../components/PlacePageBlocks'
 import SeoFaqSection from '../components/SeoFaqSection'
 import { buildExcursionListingJsonLd, buildPlaceJsonLd } from '../lib/excursionListingSchema'
 import { Seo } from '../lib/seo'
 import {
   buildFaqPageJsonLd,
   cityExcursionFaq,
+  defaultCityIntro,
+  placeFaqOrDefault,
+  placeSeoDescription,
+  placeSeoTitle,
   seoCityExcursionsDescription,
   seoCityExcursionsTitle,
 } from '../lib/seoTemplates'
@@ -69,6 +74,12 @@ export default function CityPage() {
     queryFn: () => catalogApi.excursions(city ? { city_id: String(city.id) } : undefined),
     enabled: !!city?.id,
   })
+  const { data: placePage } = useQuery({
+    queryKey: ['place-page', 'city', slug],
+    queryFn: () => placePagesApi.public('city', slug),
+    enabled: !!slug,
+    retry: false,
+  })
 
   const { data: countries } = useQuery({
     queryKey: ['countries'],
@@ -78,8 +89,16 @@ export default function CityPage() {
 
   const guideItems = guides?.items ?? []
   const excursionItems = excursions?.items ?? []
-  const faqItems = city ? cityExcursionFaq(city.name, countryName) : []
-  const seoDescription = city ? seoCityExcursionsDescription(city.name, countryName) : undefined
+  const faqItems = placeFaqOrDefault(
+    placePage?.faq,
+    city && !excursionsLoading && excursionItems.length > 0 ? cityExcursionFaq(city.name, countryName) : [],
+  )
+  const seoDescription = city
+    ? placeSeoDescription(placePage?.seo_description, seoCityExcursionsDescription(city.name, countryName))
+    : undefined
+  const excerptFallback = city && !guidesLoading && !excursionsLoading && (guideItems.length > 0 || excursionItems.length > 0)
+    ? defaultCityIntro(city.name, countryName)
+    : ''
 
   const jsonLd = useMemo(() => {
     if (!city) return []
@@ -108,9 +127,10 @@ export default function CityPage() {
   return (
     <>
       <Seo
-        title={city ? seoCityExcursionsTitle(city.name) : pageTitle('Місто')}
+        title={city ? placeSeoTitle(placePage?.seo_title, seoCityExcursionsTitle(city.name)) : pageTitle('Місто')}
         description={seoDescription}
         path={city ? `/city/${slug}` : undefined}
+        image={placePage?.seo_image_url || undefined}
         jsonLd={jsonLd.length > 0 ? jsonLd : undefined}
       />
       {city ? (
@@ -129,12 +149,7 @@ export default function CityPage() {
 
         {city && (
           <>
-            {excursionItems.length > 0 && (
-              <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted md:text-base">
-                Авторські тури в {city.name}{countryName ? `, ${countryName}` : ''} від місцевих гідів.
-                Оберіть маршрут, перегляньте ціни та напишіть гіду для підтвердження дати.
-              </p>
-            )}
+            <PlaceExcerpt value={placePage?.excerpt} fallback={excerptFallback} />
 
             <section className="mt-8 min-h-[120px]">
               <h2 className="mb-4 text-xl font-semibold">Гіди</h2>
@@ -166,7 +181,8 @@ export default function CityPage() {
               )}
             </section>
 
-            {excursionItems.length > 0 && <SeoFaqSection items={faqItems} />}
+            <PlaceBody html={placePage?.intro_html} />
+            {faqItems.length > 0 && <SeoFaqSection items={faqItems} />}
           </>
         )}
 

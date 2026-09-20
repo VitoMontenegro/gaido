@@ -80,7 +80,7 @@
   }
 
   .btn-accent {
-    @apply inline-flex min-h-10 items-center justify-center rounded-xl bg-teal px-3 py-1 text-base font-medium text-white transition hover:bg-teal-dark focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:ring-offset-2;
+    @apply inline-flex min-h-10 items-center justify-center rounded-xl bg-teal px-3 py-1 text-base font-medium text-white transition hover:bg-teal-dark focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-teal;
     letter-spacing: -0.02em;
   }
 

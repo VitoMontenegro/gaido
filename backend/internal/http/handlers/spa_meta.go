@@ -179,7 +179,7 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 		if err != nil || g == nil || g.Status != domain.GuideStatusActive {
 			return nil
 		}
-		desc := truncateDesc(g.About, 160)
+		desc := truncateDesc(domain.PublicGuideAbout(g.About), 160)
 		if desc == "" {
 			desc = "Профіль гіда " + g.DisplayName
 		}
@@ -203,13 +203,19 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 		if err != nil || c == nil {
 			return nil
 		}
-		return &SpaPageMeta{
+		var page *domain.PlacePage
+		if h.PlacePages != nil {
+			page, _ = h.PlacePages.GetBySlug(ctx, domain.PlaceTypeCountry, c.Slug)
+		}
+		meta := &SpaPageMeta{
 			Title:       pageTitleSuffix(fmt.Sprintf("Екскурсії в %s", c.Name)),
 			Description: truncateDesc(fmt.Sprintf("Екскурсії в %s — ціни, гіди, авторські маршрути для українців", c.Name), 160),
 			Canonical:   base + "/countries/" + c.Slug,
 			OgImage:     defaultImage,
-			JsonLd:      h.countryPageJsonLd(ctx, c, base),
+			JsonLd:      h.countryPageJsonLd(ctx, c, base, page),
 		}
+		h.applyPlacePageMeta(meta, page, defaultImage)
+		return meta
 
 	case "city":
 		if len(parts) != 2 {
@@ -219,13 +225,19 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 		if err != nil || city == nil {
 			return nil
 		}
-		return &SpaPageMeta{
+		var page *domain.PlacePage
+		if h.PlacePages != nil {
+			page, _ = h.PlacePages.GetBySlug(ctx, domain.PlaceTypeCity, city.Slug)
+		}
+		meta := &SpaPageMeta{
 			Title:       pageTitleSuffix(fmt.Sprintf("Екскурсії в %s", city.Name)),
 			Description: truncateDesc(fmt.Sprintf("Гіди та авторські екскурсії в %s — бронювання напряму з гідом", city.Name), 160),
 			Canonical:   base + "/city/" + city.Slug,
 			OgImage:     defaultImage,
-			JsonLd:      h.cityPageJsonLd(ctx, city, base),
+			JsonLd:      h.cityPageJsonLd(ctx, city, base, page),
 		}
+		h.applyPlacePageMeta(meta, page, defaultImage)
+		return meta
 
 	case "guides":
 		if len(parts) == 3 && parts[1] == "countries" {

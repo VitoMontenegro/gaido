@@ -20,6 +20,37 @@ export function seoCityExcursionsDescription(cityName: string, countryName?: str
   return `Гіди та авторські екскурсії в ${place} — бронювання напряму з гідом`
 }
 
+export function defaultCountryIntro(countryName: string) {
+  return `Оберіть авторську екскурсію в ${countryName} від місцевих гідів українською або англійською. Порівняйте ціни, перегляньте маршрути та напишіть гіду напряму для бронювання дати.`
+}
+
+export function defaultCityIntro(cityName: string, countryName?: string) {
+  const place = countryName ? `${cityName}, ${countryName}` : cityName
+  return `Авторські тури в ${place} від місцевих гідів. Оберіть маршрут, перегляньте ціни та напишіть гіду для підтвердження дати.`
+}
+
+export function isBlankHtml(html?: string) {
+  return (html ?? '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim().length === 0
+}
+
+export function placeFaqOrDefault(custom: FaqItem[] | undefined, fallback: FaqItem[]): FaqItem[] {
+  const items = (custom ?? []).filter((item) => item.question.trim() && item.answer.trim())
+  return items.length > 0 ? items : fallback
+}
+
+export function placeSeoTitle(custom: string | undefined, fallback: string) {
+  const t = (custom ?? '').trim()
+  return t ? pageTitle(t) : fallback
+}
+
+export function placeSeoDescription(custom: string | undefined, fallback: string) {
+  return (custom ?? '').trim() || fallback
+}
+
 export function seoGuidesCountryTitle(countryName: string) {
   return pageTitle(`Гіди в ${countryName}`)
 }

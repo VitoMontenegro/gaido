@@ -189,6 +189,50 @@ func (r *GuideRepo) ListCityNamesByGuideIDs(ctx context.Context, ids []int64) (m
 	return out, rows.Err()
 }
 
+func (r *GuideRepo) ListPreviewCityNamesByGuideIDs(ctx context.Context, ids []int64) (map[int64][]string, error) {
+	out := make(map[int64][]string, len(ids))
+	if len(ids) == 0 {
+		return out, nil
+	}
+	rows, err := r.db.Pool.Query(ctx, `
+		WITH excursion_cities AS (
+			SELECT DISTINCT e.guide_id, c.name
+			FROM excursions e
+			JOIN cities c ON c.id = e.city_id AND c.is_active = true
+			WHERE e.guide_id = ANY($1)
+			  AND e.status = $2
+			  AND COALESCE(TRIM(c.name), '') <> ''
+		),
+		profile_cities AS (
+			SELECT DISTINCT ON (gc.guide_id) gc.guide_id, c.name
+			FROM guide_cities gc
+			JOIN cities c ON c.id = gc.city_id AND c.is_active = true
+			WHERE gc.guide_id = ANY($1)
+			  AND gc.is_active = true
+			  AND COALESCE(TRIM(c.name), '') <> ''
+			  AND NOT EXISTS (SELECT 1 FROM excursion_cities ec WHERE ec.guide_id = gc.guide_id)
+			ORDER BY gc.guide_id, gc.is_primary DESC, c.name
+		)
+		SELECT guide_id, name FROM excursion_cities
+		UNION ALL
+		SELECT guide_id, name FROM profile_cities
+		ORDER BY guide_id, name
+	`, ids, domain.ExcursionPublished)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var guideID int64
+		var name string
+		if err := rows.Scan(&guideID, &name); err != nil {
+			return nil, err
+		}
+		out[guideID] = append(out[guideID], name)
+	}
+	return out, rows.Err()
+}
+
 func (r *GuideRepo) ListAdmin(ctx context.Context, q AdminListQuery) ([]domain.GuideProfile, int, error) {
 	q.Limit, q.Offset = ClampAdminPage(q.Limit, q.Offset)
 	where, args := adminGuideWhere(q)

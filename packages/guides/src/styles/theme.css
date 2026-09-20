@@ -84,7 +84,7 @@
   }
 
   .btn-accent {
-    @apply inline-flex min-h-10 items-center justify-center rounded-xl bg-teal px-3 py-1 text-base font-medium text-white transition hover:bg-teal-dark focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:ring-offset-2;
+    @apply inline-flex min-h-10 items-center justify-center rounded-xl bg-teal px-3 py-1 text-base font-medium text-white transition hover:bg-teal-dark focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-teal;
     letter-spacing: -0.02em;
   }
 
@@ -440,6 +440,48 @@
     body :is(.prose :not(:where([class~='not-prose'], [class~='not-prose'] *))):where(h4) {
       font-size: 18px;
     }
+  }
+
+  .place-intro,
+  .place-content {
+    @apply max-w-3xl text-sm leading-relaxed md:text-base;
+  }
+
+  .place-intro {
+    @apply mb-6 text-muted;
+  }
+
+  .place-content {
+    @apply mt-10 text-ink md:mt-12;
+  }
+
+  .place-intro p,
+  .place-content p {
+    @apply mb-3 last:mb-0;
+  }
+
+  .place-intro h2,
+  .place-intro h3,
+  .place-content h2,
+  .place-content h3 {
+    @apply mb-2 mt-5 font-display text-lg font-semibold normal-case tracking-normal text-ink first:mt-0;
+  }
+
+  .place-intro ul,
+  .place-intro ol,
+  .place-content ul,
+  .place-content ol {
+    @apply mb-3 list-disc space-y-1 pl-5;
+  }
+
+  .place-intro ol,
+  .place-content ol {
+    @apply list-decimal;
+  }
+
+  .place-intro a,
+  .place-content a {
+    @apply text-teal underline underline-offset-2;
   }
 
   .excursion-body {

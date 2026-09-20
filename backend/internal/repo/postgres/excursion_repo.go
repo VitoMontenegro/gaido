@@ -555,7 +555,7 @@ func (r *ExcursionRepo) ListPublicEnriched(ctx context.Context, cityID *int64, c
 	return out, rows.Err()
 }
 
-func (r *ExcursionRepo) ListPublicEnrichedRandom(ctx context.Context, limit int, exclude []int64) ([]domain.ExcursionView, error) {
+func (r *ExcursionRepo) ListPublicEnrichedNewest(ctx context.Context, limit int) ([]domain.ExcursionView, error) {
 	sql := `SELECT ` + excursionSelectColsAliased + `,
 			` + excursionCityCols + `,
 			g.display_name,
@@ -564,17 +564,10 @@ func (r *ExcursionRepo) ListPublicEnrichedRandom(ctx context.Context, limit int,
 		FROM excursions e
 		JOIN guide_profiles g ON g.id=e.guide_id
 		` + excursionCityJoins + `
-		WHERE e.status=$1 AND g.status=$2`
-	args := []any{domain.ExcursionPublished, domain.GuideStatusActive}
-	n := 3
-	if len(exclude) > 0 {
-		sql += fmt.Sprintf(` AND NOT (e.id = ANY($%d))`, n)
-		args = append(args, exclude)
-		n++
-	}
-	sql += fmt.Sprintf(` ORDER BY RANDOM() LIMIT $%d`, n)
-	args = append(args, limit)
-	rows, err := r.db.Pool.Query(ctx, sql, args...)
+		WHERE e.status=$1 AND g.status=$2
+		ORDER BY e.created_at DESC, e.id DESC
+		LIMIT $3`
+	rows, err := r.db.Pool.Query(ctx, sql, domain.ExcursionPublished, domain.GuideStatusActive, limit)
 	if err != nil {
 		return nil, err
 	}

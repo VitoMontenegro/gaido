@@ -51,6 +51,7 @@ function RegisterForm({ mode }: { mode: 'tourist' | 'driver' }) {
   const [error, setError] = useState('')
   const [pendingEmail, setPendingEmail] = useState('')
   const isDriver = mode === 'driver'
+  const canSubmit = validateRegisterForm(form, 'tourist') === null
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -105,7 +106,7 @@ function RegisterForm({ mode }: { mode: 'tourist' | 'driver' }) {
         </ConsentCheckbox>
       </div>
       {error && <p className="text-sm text-red-600">{error}</p>}
-      <button type="submit" className="btn-accent w-full">
+      <button type="submit" className="btn-accent w-full" disabled={!canSubmit}>
         {isDriver ? 'Зареєструватися як водій' : 'Створити акаунт'}
       </button>
     </form>
@@ -145,7 +146,7 @@ export default function LoginPage() {
         <h1 className="section-title-sm mb-6">Вхід</h1>
         <form onSubmit={submit} className="card space-y-4" autoComplete="off">
           <input className="input" placeholder="Логін або email" value={login} onChange={(e) => setLogin(e.target.value)} />
-          <input className="input" type="password" placeholder="Пароль" value={password} onChange={(e) => setPassword(e.target.value)} />
+          <PasswordInput autoComplete="current-password" placeholder="Пароль" value={password} onChange={setPassword} />
           {confirmHint && <p className="text-sm text-red-600">{confirmHint}</p>}
           {error && <p className="text-sm text-red-600">{error}</p>}
           <button type="submit" className="btn-accent w-full">Увійти</button>

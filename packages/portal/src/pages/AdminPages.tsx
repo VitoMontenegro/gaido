@@ -7,10 +7,11 @@ import { useHasRole } from '@gaido/api-client/hooks/useAuth'
 import { SiteContentEditor } from '../components/SiteContentEditor'
 import { AdminExcursionsList, AdminGuidesList, AdminReviewsList, AdminUsersList, AdminCarriersList, AdminTransportRidesList, AdminProvidersList, AdminOfferingsList, AdminComplaintsList } from '../components/AdminEntityLists'
 import { ArticlesEditor } from '../components/ArticlesEditor'
+import { PlacePagesEditor } from '../components/PlacePagesEditor'
 import { formatPrice } from '../components/excursionUi'
 import { getSiteMode, type SiteMode } from '@gaido/site-urls/site'
 
-type AdminTab = 'analytics' | 'users' | 'guides' | 'excursions' | 'reviews' | 'carriers' | 'vezu' | 'providers' | 'offerings' | 'complaints' | 'settings' | 'content' | 'journal' | 'audit' | 'cookies'
+type AdminTab = 'analytics' | 'users' | 'guides' | 'excursions' | 'reviews' | 'carriers' | 'vezu' | 'providers' | 'offerings' | 'complaints' | 'settings' | 'content' | 'journal' | 'places' | 'audit' | 'cookies'
 
 const ALL_SITES: SiteMode[] = ['portal', 'guides', 'transport', 'services']
 
@@ -28,6 +29,7 @@ const TABS: { id: AdminTab; label: string; siteModes: SiteMode[] }[] = [
   { id: 'settings', label: 'Налаштування', siteModes: ALL_SITES },
   { id: 'content', label: 'Контент сайту', siteModes: ['portal'] },
   { id: 'journal', label: 'Журнал', siteModes: ['portal', 'guides'] },
+  { id: 'places', label: 'Сторінки', siteModes: ['portal', 'guides'] },
   { id: 'audit', label: 'Аудит', siteModes: ALL_SITES },
   { id: 'cookies', label: 'Cookie-згода', siteModes: ALL_SITES },
 ]
@@ -321,6 +323,7 @@ export default function AdminPage() {
 
         {tab === 'content' && <SiteContentEditor />}
         {tab === 'journal' && <ArticlesEditor apiBase="admin" />}
+        {tab === 'places' && <PlacePagesEditor />}
         {tab === 'audit' && <AdminAuditLog />}
         {tab === 'cookies' && <AdminCookieConsents />}
       </div>

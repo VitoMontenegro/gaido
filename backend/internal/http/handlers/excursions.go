@@ -199,39 +199,9 @@ func (h *Handlers) AdminDeleteExcursion(w http.ResponseWriter, r *http.Request) 
 	response.JSON(w, r, 200, map[string]string{"status": "deleted"})
 }
 func (h *Handlers) ResolveFeaturedExcursions(ctx context.Context, limit int) []domain.ExcursionView {
-	out := make([]domain.ExcursionView, 0, limit)
-	seen := map[int64]bool{}
-
-	placements, _ := h.Featured.ListActiveBySlotType(ctx, domain.FeaturedSlotExcursion, limit)
-	for _, p := range placements {
-		if len(out) >= limit || p.ExcursionID == nil {
-			continue
-		}
-		v, _ := h.Exc.GetViewByID(ctx, *p.ExcursionID)
-		if v == nil || seen[v.ID] {
-			continue
-		}
-		seen[v.ID] = true
-		out = append(out, *v)
+	items, err := h.Exc.ListPublicEnrichedNewest(ctx, limit)
+	if err != nil || items == nil {
+		return []domain.ExcursionView{}
 	}
-
-	if len(out) < limit {
-		exclude := make([]int64, 0, len(seen))
-		for id := range seen {
-			exclude = append(exclude, id)
-		}
-		randomItems, _ := h.Exc.ListPublicEnrichedRandom(ctx, limit-len(out), exclude)
-		for i := range randomItems {
-			if seen[randomItems[i].ID] {
-				continue
-			}
-			seen[randomItems[i].ID] = true
-			out = append(out, randomItems[i])
-			if len(out) >= limit {
-				break
-			}
-		}
-	}
-
-	return out
+	return items
 }

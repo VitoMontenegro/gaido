@@ -3,6 +3,7 @@ import type { Contacts } from '@gaido/api-client/api/types/catalog'
 import GuideAvatar from './GuideAvatar'
 import GuideContactPills, { guideContactLinks } from './GuideContactPills'
 import StarRating from './reviews/StarRating'
+import { displayGuideAbout } from '../lib/guideAbout'
 
 type Props = {
   open: boolean
@@ -17,7 +18,7 @@ type Props = {
 }
 
 function organizerAbout(about?: string) {
-  const line = about?.trim().split('\n').find(Boolean)?.trim()
+  const line = displayGuideAbout(about).trim().split('\n').find(Boolean)?.trim()
   return line ?? ''
 }
 

@@ -57,6 +57,7 @@ const VALIDATION_MESSAGE_UA: Record<string, string> = {
   'upload failed': 'Не вдалося завантажити файл',
   'unsupported image format': 'Формат зображення не підтримується',
   'file too large': 'Файл занадто великий',
+  'about must be at most 1000 characters': 'Про себе — максимум 1000 символів',
 }
 
 export function formatApiError(error: unknown, hints?: string | ApiErrorHints): string {

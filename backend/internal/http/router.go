@@ -92,6 +92,7 @@ func NewRouter(cfg config.Config, log *slog.Logger, h *handlers.Handlers) http.H
 
 		api.Get("/articles", h.ListArticlesPublic)
 		api.Get("/articles/{slug}", h.GetArticlePublic)
+		api.Get("/place-pages/{type}/{slug}", h.GetPlacePagePublic)
 
 		api.Get("/reviews", h.ListReviewsPublic)
 		api.Get("/reviews/photos", h.ListReviewPhotosPublic)
@@ -260,6 +261,10 @@ func NewRouter(cfg config.Config, log *slog.Logger, h *handlers.Handlers) http.H
 			ar.Put("/admin/complaints/{id}", h.AdminUpdateComplaint)
 
 			h.RegisterAdminArticleRoutes(ar)
+			ar.Get("/admin/place-pages", h.AdminListPlacePages)
+			ar.Get("/admin/place-pages/{type}/{id}", h.AdminGetPlacePage)
+			ar.Put("/admin/place-pages/{type}/{id}", h.AdminSavePlacePage)
+			ar.Delete("/admin/place-pages/{type}/{id}", h.AdminDeletePlacePage)
 			ar.Post("/payments/{id}/confirm", h.ConfirmPayment)
 			ar.Get("/admin/deploy/info", h.AdminDeployInfo)
 			ar.Get("/admin/deploy/status", h.AdminDeployStatus)

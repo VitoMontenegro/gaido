@@ -80,6 +80,7 @@ func New(ctx context.Context, cfg config.Config, log *slog.Logger) (*App, error)
 		Calendar:          postgres.NewCalendarRepo(db),
 		Featured:          postgres.NewFeaturedPlacementRepo(db),
 		Articles:          postgres.NewArticleRepo(db),
+		PlacePages:        postgres.NewPlacePageRepo(db),
 		Admin:             postgres.NewAdminRepo(db),
 		CookieConsents:    postgres.NewCookieConsentRepo(db),
 		Media:             store,

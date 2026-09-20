@@ -168,7 +168,7 @@ export function GuidesByCountryPage() {
           ← Усі країни
         </Link>
         <h1 className={cn('section-title mb-1 text-2xl md:text-[28px]', !country && 'capitalize')}>
-          Гіди в {title}
+          Гіди {title}
         </h1>
         <p className="mb-4 text-sm text-muted md:mb-6 md:text-base">
           {country

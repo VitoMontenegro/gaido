@@ -138,6 +138,7 @@ const (
 )
 
 const MaxGuestsCap = 100
+const GuideAboutMaxLen = 1000
 
 // Provider platform
 const (

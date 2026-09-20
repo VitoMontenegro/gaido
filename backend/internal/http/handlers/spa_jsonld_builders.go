@@ -294,7 +294,7 @@ func buildPersonJSON(g *domain.GuideProfile, base string) map[string]any {
 		"@type":       "Person",
 		"name":        g.DisplayName,
 		"url":         url,
-		"description": truncateDesc(g.About, 500),
+		"description": truncateDesc(domain.PublicGuideAbout(g.About), 500),
 	}
 	if img := strings.TrimSpace(g.AvatarURL); img != "" {
 		person["image"] = base + "/api/v1/media/public/" + img

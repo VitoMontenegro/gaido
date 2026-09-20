@@ -9,6 +9,7 @@ import GuideGeoSection from '../../components/guide/GuideGeoSection'
 import { ImageUrlField } from '../../components/ImageUrlField'
 import type { GuideCity, GuideCountry, GuideProfile } from './shared'
 import { CatalogStatusBanner, guideProfilePayload } from './shared'
+import { GUIDE_ABOUT_MAX_LEN, guideAboutLen, nextGuideAbout } from '../../lib/guideAbout'
 
 export function GuideProfilePage() {
   return <GuideProfileForm />
@@ -104,6 +105,8 @@ function GuideProfileForm() {
   const f = { ...data, ...form }
   const countries = geoCountries ?? resolveCountries(data)
   const cities = geoCities ?? f.cities ?? []
+  const aboutValue = f.about ?? ''
+  const aboutLen = guideAboutLen(aboutValue)
 
   return (
     <div className="card space-y-3">
@@ -160,12 +163,19 @@ function GuideProfileForm() {
           {f.website_slug ? `/guide/${f.website_slug}` : 'Якщо порожньо — з імені. Якщо зайнято в гідах, збереження не пройде.'}
         </span>
       </label>
-      <textarea
-        className="input min-h-24"
-        placeholder="Про себе"
-        value={f.about ?? ''}
-        onChange={(e) => patch({ about: e.target.value })}
-      />
+      <label className="block space-y-1 text-sm">
+        <span className="text-stone-500">Про себе</span>
+        <textarea
+          className="input min-h-24"
+          placeholder="Про себе"
+          maxLength={aboutLen > GUIDE_ABOUT_MAX_LEN ? undefined : GUIDE_ABOUT_MAX_LEN}
+          value={aboutValue}
+          onChange={(e) => patch({ about: nextGuideAbout(aboutValue, e.target.value) })}
+        />
+        <span className={aboutLen > GUIDE_ABOUT_MAX_LEN ? 'text-red-600' : 'text-stone-500'}>
+          {aboutLen}/{GUIDE_ABOUT_MAX_LEN}. Посилання на публічних сторінках не показуються.
+        </span>
+      </label>
       <GuideGeoSection
         countries={countries}
         cities={cities}

@@ -252,7 +252,7 @@ export function createAppViteConfig({
       config.optimizeDeps = { include: ['leaflet'] }
     }
 
-    const deferModulePreload = /lazyRichTextEditor|LegalContentEditor|RichTextEditor|tinymce|AdminPage|ModeratorPage|DeployPage|ExcursionForm|CreateExcursion|EditExcursion|GuideOverview|GuideProfile|GuideBilling|GuideDocuments|GuideExcursions|GuideCalendar|GuideArticles|GuideInstructions|AvailabilityCalendar|ImageUrlField|ArticlesEditor/i
+    const deferModulePreload = /lazyRichTextEditor|LegalContentEditor|RichTextEditor|tinymce|AdminPage|ModeratorPage|DeployPage|ExcursionForm|CreateExcursion|EditExcursion|GuideOverview|GuideProfile|GuideBilling|GuideDocuments|GuideExcursions|GuideCalendar|GuideArticles|GuideInstructions|AvailabilityCalendar|ImageUrlField|ArticlesEditor|PlacePagesEditor/i
 
     config.build = {
       modulePreload: {

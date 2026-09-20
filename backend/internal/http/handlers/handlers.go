@@ -38,6 +38,7 @@ type Handlers struct {
 	Calendar          *postgres.CalendarRepo
 	Featured          *postgres.FeaturedPlacementRepo
 	Articles          *postgres.ArticleRepo
+	PlacePages        *postgres.PlacePageRepo
 	Admin             *postgres.AdminRepo
 	Billing           *billing.Service
 	ExcSvc            *excsvc.Service

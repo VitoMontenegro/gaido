@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import type { PublicGuide } from '@gaido/api-client/api/client'
 import GuideAvatar from './GuideAvatar'
+import { displayGuideAbout } from '../lib/guideAbout'
 import { cn } from '@gaido/ui-primitives/cn'
 
 export default function GuideCard({
@@ -61,7 +62,7 @@ export default function GuideCard({
         <h3 className="font-display font-medium uppercase text-ink group-hover:text-brand-700">{guide.display_name}</h3>
         {guide.city_name && <p className="mt-1 text-sm text-muted-light">{guide.city_name}</p>}
         {guide.type_badge && <span className="badge-teal mt-2">{guide.type_badge}</span>}
-        <p className="mt-2 line-clamp-2 text-sm text-muted">{guide.about || 'Місцевий експерт з авторськими маршрутами'}</p>
+        <p className="mt-2 line-clamp-2 text-sm text-muted">{displayGuideAbout(guide.about) || 'Місцевий експерт з авторськими маршрутами'}</p>
         <p className="mt-2 text-sm text-muted-light">
           ★ {guide.rating_avg.toFixed(1)} · {guide.rating_count} відгуків
         </p>

@@ -155,7 +155,7 @@ func (h *Handlers) GetExcursion(w http.ResponseWriter, r *http.Request) {
 	e.MapEmbedURL = guidesvc.ResolveMapEmbed(e.MapEmbedURL)
 	if g, err := h.Guides.GetByID(r.Context(), e.GuideID); err == nil && g != nil {
 		e.GuideContacts = h.publicGuideDTO(r.Context(), g).Contacts
-		e.GuideAbout = g.About
+		e.GuideAbout = domain.PublicGuideAbout(g.About)
 	}
 	if avg, count, err := h.Reviews.GuideRatingStats(r.Context(), e.GuideID); err == nil {
 		e.GuideRatingAvg = avg

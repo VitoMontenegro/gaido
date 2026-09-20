@@ -64,9 +64,6 @@ export function GuidesAccountLayout() {
               <AccountNavLink to="/account/guide/billing">Білінг</AccountNavLink>
             </>
           )}
-          {!isGuide && (
-            <AccountNavLink to="/account/guide/profile">Стати гідом</AccountNavLink>
-          )}
           <AccountNavLink to="/account/settings">Налаштування</AccountNavLink>
           {isGuide && <AccountNavLink to="/account/guide/instructions">Інструкції</AccountNavLink>}
           {(isAdmin || isModerator) && (
@@ -85,6 +82,9 @@ export function GuidesAccountLayout() {
           <button type="button" onClick={logout} className="mt-3 w-full rounded-xl px-3 py-2 text-left text-red-600 transition hover:bg-red-50">
             Вийти
           </button>
+          {!isGuide && (
+              <AccountNavLink to="/account/guide/profile">Стати гідом</AccountNavLink>
+          )}
         </aside>
         <div><Outlet /></div>
       </div>

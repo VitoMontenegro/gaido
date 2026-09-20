@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/vitomonte/experts-tourister/internal/domain"
 	"github.com/vitomonte/experts-tourister/internal/repo/postgres"
@@ -30,16 +31,23 @@ func (h *Handlers) homePageJsonLd(ctx context.Context, base string, content doma
 	return appendJsonLd(nil, blocks...)
 }
 
-func (h *Handlers) countryPageJsonLd(ctx context.Context, c *postgres.Country, base string) []string {
+func (h *Handlers) countryPageJsonLd(ctx context.Context, c *postgres.Country, base string, page *domain.PlacePage) []string {
 	items, _ := h.Exc.ListPublicEnriched(ctx, nil, c.Slug, "", nil, 50, 0)
 	listName := fmt.Sprintf("Екскурсії в %s", c.Name)
 	desc := fmt.Sprintf("Екскурсії в %s — ціни, гіди, авторські маршрути для українців", c.Name)
+	if page != nil && strings.TrimSpace(page.SEODescription) != "" {
+		desc = page.SEODescription
+	}
 	path := "/countries/" + c.Slug
+	faq := placeFAQItems(page)
+	if len(faq) == 0 {
+		faq = countryExcursionFaq(c.Name)
+	}
 
 	blocks := excursionListingBlocks(items, base, listName, desc)
 	blocks = append(blocks,
 		buildPlaceJSON(base, c.Name, path, ""),
-		buildFaqPageJSON(countryExcursionFaq(c.Name)),
+		buildFaqPageJSON(faq),
 		buildBreadcrumbJSON(base, [][2]string{
 			{"Головна", base + "/"},
 			{"Екскурсії", base + "/search"},
@@ -49,7 +57,7 @@ func (h *Handlers) countryPageJsonLd(ctx context.Context, c *postgres.Country, b
 	return appendJsonLd(nil, blocks...)
 }
 
-func (h *Handlers) cityPageJsonLd(ctx context.Context, city *postgres.City, base string) []string {
+func (h *Handlers) cityPageJsonLd(ctx context.Context, city *postgres.City, base string, page *domain.PlacePage) []string {
 	cityID := city.ID
 	items, _ := h.Exc.ListPublicEnriched(ctx, &cityID, "", "", nil, 50, 0)
 
@@ -60,7 +68,14 @@ func (h *Handlers) cityPageJsonLd(ctx context.Context, city *postgres.City, base
 
 	listName := fmt.Sprintf("Екскурсії в %s", city.Name)
 	desc := fmt.Sprintf("Гіди та авторські екскурсії в %s — бронювання напряму з гідом", city.Name)
+	if page != nil && strings.TrimSpace(page.SEODescription) != "" {
+		desc = page.SEODescription
+	}
 	path := "/city/" + city.Slug
+	faq := placeFAQItems(page)
+	if len(faq) == 0 {
+		faq = cityExcursionFaq(city.Name, countryName)
+	}
 
 	crumbs := [][2]string{
 		{"Головна", base + "/"},
@@ -74,7 +89,7 @@ func (h *Handlers) cityPageJsonLd(ctx context.Context, city *postgres.City, base
 	blocks := excursionListingBlocks(items, base, listName, desc)
 	blocks = append(blocks,
 		buildPlaceJSON(base, city.Name, path, countryName),
-		buildFaqPageJSON(cityExcursionFaq(city.Name, countryName)),
+		buildFaqPageJSON(faq),
 		buildBreadcrumbJSON(base, crumbs),
 	)
 	return appendJsonLd(nil, blocks...)

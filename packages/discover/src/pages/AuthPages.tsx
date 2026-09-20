@@ -52,6 +52,7 @@ function RegisterForm({ mode }: { mode: 'tourist' | 'guide' }) {
   const [error, setError] = useState('')
   const [pendingEmail, setPendingEmail] = useState('')
   const isGuide = mode === 'guide'
+  const canSubmit = validateRegisterForm(form, mode) === null
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -166,7 +167,7 @@ function RegisterForm({ mode }: { mode: 'tourist' | 'guide' }) {
       </div>
 
       {error && <p className="text-sm text-red-600">{error}</p>}
-      <button type="submit" className="btn-accent w-full">
+      <button type="submit" className="btn-accent w-full" disabled={!canSubmit}>
         {isGuide ? 'Створити акаунт гіда' : 'Створити акаунт'}
       </button>
     </form>
@@ -215,7 +216,7 @@ export default function LoginPage() {
             value={login}
             onChange={(e) => setLogin(e.target.value)}
           />
-          <input className="input" type="password" name="password" autoComplete="current-password" placeholder="Пароль" value={password} onChange={(e) => setPassword(e.target.value)} />
+          <PasswordInput name="password" autoComplete="current-password" placeholder="Пароль" value={password} onChange={setPassword} />
           {confirmHint && <p className="text-sm text-red-600">{confirmHint}</p>}
           {error && <p className="text-sm text-red-600">{error}</p>}
           <button type="submit" className="btn-accent w-full">Увійти</button>

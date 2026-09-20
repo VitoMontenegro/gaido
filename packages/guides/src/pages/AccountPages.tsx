@@ -35,11 +35,6 @@ export default function AccountPage() {
               </>
             )}
             <Link to="/account/settings" className="btn-secondary">Налаштування профілю</Link>
-            {!isAdmin && !isGuide && (
-              <Link to="/account/guide/profile" className="btn-ghost text-sm">
-                Стати гідом
-              </Link>
-            )}
           </div>
         </div>
 
