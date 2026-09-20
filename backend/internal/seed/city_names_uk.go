@@ -98,7 +98,7 @@ func (s *Seeder) syncCityNamesFromNominatim(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	geo := geocode.NewNominatim("GaidoTop Seed (+https://gaido.top)")
+	geo := geocode.NewNominatim("Gaido Seed (+https://gaido-ua.com)")
 	for _, row := range rows {
 		if err := ctx.Err(); err != nil {
 			return err

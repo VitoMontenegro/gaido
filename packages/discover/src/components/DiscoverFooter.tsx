@@ -13,7 +13,7 @@ export default function DiscoverFooter() {
               <p className="text-sm text-muted">{SITE_TAGLINE}</p>
             </div>
             <nav className="flex flex-col gap-2 text-sm">
-              <a href={portalUrl()} className="link-accent">gaido.top</a>
+              <a href={portalUrl()} className="link-accent">gaido-ua.com</a>
               <a href={guidesUrl('/')} className="link-accent">Gaido Світ — гіди</a>
             </nav>
           </div>

@@ -42,7 +42,7 @@ type CityResult struct {
 func NewNominatim(userAgent string) *Nominatim {
 	ua := strings.TrimSpace(userAgent)
 	if ua == "" {
-		ua = "GaidoTop/1.0"
+		ua = "Gaido/1.0"
 	}
 	return &Nominatim{
 		BaseURL:   defaultBaseURL,

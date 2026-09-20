@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Поддомены gaido.top: nginx + certbot + CORS.
+# Поддомены gaido-ua.com: nginx + certbot + CORS.
 #   ./deploy/configure-subdomains.sh
 #   SUBDOMAINS="vezu servis" ./deploy/configure-subdomains.sh
 set -euo pipefail
 
-DOMAIN="${DOMAIN:-gaido.top}"
+DOMAIN="${DOMAIN:-gaido-ua.com}"
 SUBDOMAINS="${SUBDOMAINS:-svit vezu servis}"
 APP_ROOT="${APP_ROOT:-/var/www/tourister}"
 ENV_FILE="${ENV_FILE:-$APP_ROOT/.env}"

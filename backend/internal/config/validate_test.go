@@ -71,7 +71,7 @@ func TestValidate_productionLocalPostgresSSLDisableOK(t *testing.T) {
 		SeedDemoData:       false,
 		JWTAccessSecret:    "prod-access-secret-that-is-long-enough-32",
 		JWTRefreshSecret:   "prod-refresh-secret-that-is-long-enough-32",
-		CORSOrigins:        []string{"https://gaido.top"},
+		CORSOrigins:        []string{"https://gaido-ua.com"},
 		DatabaseURL:        "postgres://tourister:x@127.0.0.1:5432/tourister?sslmode=disable",
 	}
 	if err := Validate(cfg); err != nil {

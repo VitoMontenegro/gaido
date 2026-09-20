@@ -1,9 +1,9 @@
 export type SiteMode = 'portal' | 'guides' | 'transport' | 'services'
 
-export const PORTAL_HOST = 'gaido.top'
-export const GUIDES_HOST = 'svit.gaido.top'
-export const TRANSPORT_HOST = 'vezu.gaido.top'
-export const SERVICES_HOST = 'servis.gaido.top'
+export const PORTAL_HOST = 'gaido-ua.com'
+export const GUIDES_HOST = 'svit.gaido-ua.com'
+export const TRANSPORT_HOST = 'vezu.gaido-ua.com'
+export const SERVICES_HOST = 'servis.gaido-ua.com'
 
 const GUIDE_PATH_RE = /^\/(guides|map|search|journal|guide|excursion|city|ukrainians-in)(\/|$)/
 
@@ -129,7 +129,7 @@ function isPortalPostLoginPath(path: string): boolean {
   return PORTAL_POST_LOGIN_PATHS.some((prefix) => path === prefix || path.startsWith(`${prefix}/`) || path.startsWith(`${prefix}?`))
 }
 
-/** Куди вести після входу на vezu.gaido.top */
+/** Куди вести після входу на vezu.gaido-ua.com */
 export function transportPostLoginUrl(from: string | undefined, roles: string[]): string {
   if (from?.startsWith('/admin') || from?.startsWith('/moderator') || from?.startsWith('/downloads')) {
     if (roles.includes('ROLE_ADMIN') || roles.includes('ROLE_MODERATOR')) return from
@@ -140,7 +140,7 @@ export function transportPostLoginUrl(from: string | undefined, roles: string[])
   return from?.startsWith('/account') ? from : '/account/bookings'
 }
 
-/** Куди вести після входу на gaido.top (portal). */
+/** Куди вести після входу на gaido-ua.com (portal). */
 export function portalPostLoginUrl(from: unknown, roles: string[]): string {
   const fromPath =
     typeof from === 'string' && from.startsWith('/') && !from.startsWith('//') ? from : null

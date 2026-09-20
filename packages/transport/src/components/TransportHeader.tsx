@@ -118,7 +118,7 @@ export default function TransportHeader() {
               </li>
               <li>
                 <a href={portalUrl('/')} className="block rounded-lg px-3 py-2 text-sm text-muted hover:bg-sand-100">
-                  gaido.top
+                  gaido-ua.com
                 </a>
               </li>
             </ul>

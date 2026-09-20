@@ -61,7 +61,7 @@ export default function TransportFooter() {
           <div className="mt-8 flex flex-wrap items-center gap-4 border-t border-divider pt-6 text-sm text-muted">
             <a href={guidesUrl('/')} className="hover:underline">Гіди</a>
             <a href={servicesUrl('/')} className="hover:underline">Сервіси</a>
-            <a href={portalUrl('/')} className="hover:underline">gaido.top</a>
+            <a href={portalUrl('/')} className="hover:underline">gaido-ua.com</a>
             <p className="ml-auto text-xs text-muted-light">© {new Date().getFullYear()} {SITE_NAME}</p>
           </div>
         </div>

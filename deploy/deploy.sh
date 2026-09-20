@@ -86,7 +86,7 @@ cd "$REPO"
 npm ci
 BUILD_ID="$(git -C "$REPO" rev-parse --short HEAD 2>/dev/null || date +%s)"
 echo "→ build id: $BUILD_ID"
-PROD_DOMAIN="${PROD_DOMAIN:-gaido.top}"
+PROD_DOMAIN="${PROD_DOMAIN:-gaido-ua.com}"
 declare -A APP_ORIGINS=(
   [portal]="https://${PROD_DOMAIN}"
   [svit]="https://svit.${PROD_DOMAIN}"

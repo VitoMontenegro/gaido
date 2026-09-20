@@ -319,7 +319,7 @@ func (h *Handlers) resolveAuthOrigin(r *http.Request, hinted string) string {
 	if origin, ok := h.normalizeAllowedOrigin(h.Cfg.PublicBaseURL); ok {
 		return origin
 	}
-	return "https://gaido.top"
+	return "https://gaido-ua.com"
 }
 
 func originFromReferer(ref string) string {

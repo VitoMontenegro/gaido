@@ -3,13 +3,13 @@ import { pageTitle, SITE_TAGLINE } from '@gaido/site-urls/brand'
 import { guidesUrl } from '@gaido/site-urls/site'
 import { Seo } from '../lib/seo'
 
-/** Root gaido.top — no “coming soon”; point visitors to the live guides product. */
+/** Root gaido-ua.com — no “coming soon”; point visitors to the live guides product. */
 export default function PortalStubPage() {
   return (
     <>
       <Seo
         title={pageTitle('Gaido')}
-        description="Українські гіди та авторські екскурсії — каталог на svit.gaido.top."
+        description="Українські гіди та авторські екскурсії — каталог на svit.gaido-ua.com."
         path="/"
       />
 
@@ -32,7 +32,7 @@ export default function PortalStubPage() {
             </a>
           </div>
           <p className="mt-8 text-sm text-white/60">
-            <a href={guidesUrl('/')} className="underline transition hover:text-white">svit.gaido.top</a>
+            <a href={guidesUrl('/')} className="underline transition hover:text-white">svit.gaido-ua.com</a>
           </p>
         </div>
       </section>

@@ -75,7 +75,7 @@ func Load() Config {
 		TelegramBotUsername: getEnv("TELEGRAM_BOT_USERNAME", ""),
 		TelegramGroupChatID: int64(getEnvInt("TELEGRAM_GROUP_CHAT_ID", 0)),
 		TelegramWebhookSecret: getEnv("TELEGRAM_WEBHOOK_SECRET", ""),
-		GeocodeUserAgent:      getEnv("GEOCODE_USER_AGENT", "GaidoTop (+https://gaido.top)"),
+		GeocodeUserAgent:      getEnv("GEOCODE_USER_AGENT", "Gaido (+https://gaido-ua.com)"),
 	}
 }
 
@@ -130,11 +130,11 @@ func seedDemoDataEnabled(appEnv, explicit string) bool {
 
 func parseHostMap(raw string) map[string]string {
 	defaults := map[string]string{
-		"gaido.top":        "portal",
-		"www.gaido.top":    "portal",
-		"svit.gaido.top":   "svit",
-		"servis.gaido.top": "servis",
-		"vezu.gaido.top":   "vezu",
+		"gaido-ua.com":        "portal",
+		"www.gaido-ua.com":    "portal",
+		"svit.gaido-ua.com":   "svit",
+		"servis.gaido-ua.com": "servis",
+		"vezu.gaido-ua.com":   "vezu",
 		"localhost":        "portal",
 		"127.0.0.1":        "portal",
 	}

@@ -7,8 +7,8 @@ func TestArticleSlug(t *testing.T) {
 		raw, title, want string
 	}{
 		{"", "Чому Прагу вважають містичним містом?", "chomu-prahu-vvazhaiut-mistychnym-mistom"},
-		{"https://svit.gaido.top/account/guide/articles", "Чому Прагу вважають містичним містом?", "chomu-prahu-vvazhaiut-mistychnym-mistom"},
-		{"https:/svit.gaido.top/account/guide/articles", "Допомога туристу", "dopomoha-turystu"},
+		{"https://svit.gaido-ua.com/account/guide/articles", "Чому Прагу вважають містичним містом?", "chomu-prahu-vvazhaiut-mistychnym-mistom"},
+		{"https:/svit.gaido-ua.com/account/guide/articles", "Допомога туристу", "dopomoha-turystu"},
 		{"yak-obraty-gida", "Інший заголовок", "yak-obraty-gida"},
 		{"dopomoga-turystu", "", "dopomoga-turystu"},
 		{"", "Hello World", "hello-world"},

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# SSH на production gaido.top (алиас: ssh gaido).
+# SSH на production gaido-ua.com (алиас: ssh gaido).
 #   ./scripts/ssh-prod.sh
 #   ./scripts/ssh-prod.sh 'hostname; uptime'
 set -euo pipefail

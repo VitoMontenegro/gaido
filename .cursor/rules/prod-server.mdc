@@ -1,9 +1,9 @@
 ---
-description: Production SSH gaido.top — как заходить на сервер
+description: Production SSH gaido-ua.com — как заходить на сервер
 alwaysApply: true
 ---
 
-# Production: gaido.top
+# Production: gaido-ua.com
 
 Прод-ВМ уже настроена. Секреты только в `.local/prod.env` (не в git).
 
@@ -12,7 +12,7 @@ alwaysApply: true
 | Алиас | `ssh gaido` |
 | Скрипт | `./scripts/ssh-prod.sh` или `./scripts/ssh-prod.sh 'uptime'` |
 | IP | `77.239.127.163` |
-| Домен | `gaido.top` · `svit.gaido.top` · `vezu.gaido.top` · `servis.gaido.top` |
+| Домен | `gaido-ua.com` · `svit.gaido-ua.com` · `vezu.gaido-ua.com` · `servis.gaido-ua.com` |
 | User | `root` |
 | VM | `vm265150` @ vm.it-garage.pro |
 | ОС | AlmaLinux 8.10 |

@@ -81,8 +81,8 @@ export default function HomePage() {
             <h3 className="font-display text-lg font-medium text-ink">Екскурсії та гіди</h3>
             <p className="mt-2 text-sm text-muted">
               Авторські маршрути, місцеві експерти та подорожі українською — як на{' '}
-              <a href="https://gaido.top/" className="link-accent" target="_blank" rel="noreferrer">
-                gaido.top
+              <a href="https://gaido-ua.com/" className="link-accent" target="_blank" rel="noreferrer">
+                gaido-ua.com
               </a>
               .
             </p>

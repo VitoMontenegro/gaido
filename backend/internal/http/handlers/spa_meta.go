@@ -298,7 +298,7 @@ func isGuidesHost(host string) bool {
 		h = h[:i]
 	}
 	h = strings.TrimSuffix(h, ".")
-	return h == "svit.gaido.top" || h == "localhost" || strings.HasPrefix(h, "127.0.0.1")
+	return h == "svit.gaido-ua.com" || h == "localhost" || strings.HasPrefix(h, "127.0.0.1")
 }
 
 // HTMLEscapeAttr escapes text for HTML attribute values.

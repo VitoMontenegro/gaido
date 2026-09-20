@@ -7,10 +7,10 @@ import { defineConfig, loadEnv, type Plugin, type UserConfig } from 'vite'
 const DEFAULT_OG_IMAGE_KEY = 'd2b27d81f09874a08b4dc3293fe67f2e.webp'
 
 const PRODUCTION_ORIGINS: Record<SiteMode, string> = {
-  portal: 'https://gaido.top',
-  guides: 'https://svit.gaido.top',
-  transport: 'https://vezu.gaido.top',
-  services: 'https://servis.gaido.top',
+  portal: 'https://gaido-ua.com',
+  guides: 'https://svit.gaido-ua.com',
+  transport: 'https://vezu.gaido-ua.com',
+  services: 'https://servis.gaido-ua.com',
 }
 
 /** Canonical Vite dev ports (see defaultPort in each app vite.config). */

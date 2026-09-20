@@ -46,7 +46,7 @@ export function PortalAdminLayout() {
       <div className="container-site py-12">
         <div className="card space-y-2">
           <h1 className="font-display text-xl font-bold">Доступ заборонено</h1>
-          <p className="text-sm text-muted">Ця сторінка доступна лише адміністраторам gaido.top.</p>
+          <p className="text-sm text-muted">Ця сторінка доступна лише адміністраторам gaido-ua.com.</p>
           <Link to="/" className="link-accent text-sm">
             На головну
           </Link>

@@ -27,10 +27,10 @@ Docker Compose (`docker-compose.yml`) остаётся **только для л�
 ```
 experts-tourister/
 ├── apps/
-│   ├── portal/                  # gaido.top — stub + admin + deploy
-│   ├── svit/                    # svit.gaido.top — гіди
-│   ├── servis/                  # servis.gaido.top — discover
-│   └── vezu/                    # vezu.gaido.top — заглушка міжнар. перевезень
+│   ├── portal/                  # gaido-ua.com — stub + admin + deploy
+│   ├── svit/                    # svit.gaido-ua.com — гіди
+│   ├── servis/                  # servis.gaido-ua.com — discover
+│   └── vezu/                    # vezu.gaido-ua.com — заглушка міжнар. перевезень
 ├── packages/
 │   ├── shared/                  # api, hooks, ui, styles
 │   └── discover-ui/             # DiscoverPage, map (servis)
@@ -81,10 +81,10 @@ Redis 7        → 127.0.0.1:6379
 
 | App | Домен | Статика |
 |-----|-------|---------|
-| portal | gaido.top, www.gaido.top | `$STATIC_ROOT/portal/` |
-| svit | svit.gaido.top | `$STATIC_ROOT/svit/` |
-| servis | servis.gaido.top | `$STATIC_ROOT/servis/` |
-| vezu | vezu.gaido.top | `$STATIC_ROOT/vezu/` |
+| portal | gaido-ua.com, www.gaido-ua.com | `$STATIC_ROOT/portal/` |
+| svit | svit.gaido-ua.com | `$STATIC_ROOT/svit/` |
+| servis | servis.gaido-ua.com | `$STATIC_ROOT/servis/` |
+| vezu | vezu.gaido-ua.com | `$STATIC_ROOT/vezu/` |
 
 Локально: `LOCAL_APP=svit ./run-local.sh` (portal|svit|servis|vezu), порты 5173–5176.
 
@@ -104,7 +104,7 @@ Redis 7        → 127.0.0.1:6379
 ## Фаза 0 — переменные (заполнить до старта)
 
 ```bash
-DOMAIN=gaido.top
+DOMAIN=gaido-ua.com
 GIT_REPO=https://github.com/VitoMontenegro/gaido.git
 GIT_BRANCH=main
 SERVER_IP=77.239.127.163

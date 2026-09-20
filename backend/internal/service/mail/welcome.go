@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-const GuideInstructionsURL = "https://svit.gaido.top/account/guide/instructions"
+const GuideInstructionsURL = "https://svit.gaido-ua.com/account/guide/instructions"
 
 type Letter struct {
 	Subject string
@@ -43,7 +43,7 @@ func welcomeGuide(name string) Letter {
 }
 
 func welcomeUser(name string) Letter {
-	catalog := "https://svit.gaido.top/"
+	catalog := "https://svit.gaido-ua.com/"
 	subject := "Вітаємо! Ви зареєстровані на Gaido"
 	text := "Вітаємо, " + name + "!\n\n" +
 		"Ви успішно зареєстровані на Gaido. Можна шукати гідів та екскурсії.\n\n" +
@@ -108,7 +108,7 @@ func brandedHTML(preheader, heading, body, buttonLabel, buttonURL, note string) 
           <tr>
             <td style="padding:16px 28px;background:#fafafa;border-top:1px solid #f0f0f0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.5;color:#979797;">
               Лист надіслано, бо ви підтвердили реєстрацію на
-              <a href="https://svit.gaido.top/" style="color:#239a94;text-decoration:none;">svit.gaido.top</a>
+              <a href="https://svit.gaido-ua.com/" style="color:#239a94;text-decoration:none;">svit.gaido-ua.com</a>
             </td>
           </tr>
         </table>

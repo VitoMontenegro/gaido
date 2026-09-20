@@ -33,27 +33,27 @@ type spaSocialProfile struct {
 
 func spaSocialProfileForHost(host string) (spaSocialProfile, bool) {
 	switch normalizeHost(host) {
-	case "gaido.top", "www.gaido.top":
+	case "gaido-ua.com", "www.gaido-ua.com":
 		return spaSocialProfile{
-			origin:      "https://gaido.top",
+			origin:      "https://gaido-ua.com",
 			title:       "Gaido",
 			description: "Для українців — від українців",
 		}, true
-	case "svit.gaido.top":
+	case "svit.gaido-ua.com":
 		return spaSocialProfile{
-			origin:      "https://svit.gaido.top",
+			origin:      "https://svit.gaido-ua.com",
 			title:       "Gaido",
 			description: "Гіди та екскурсії для українців за кордоном",
 		}, true
-	case "servis.gaido.top":
+	case "servis.gaido-ua.com":
 		return spaSocialProfile{
-			origin:      "https://servis.gaido.top",
+			origin:      "https://servis.gaido-ua.com",
 			title:       "Gaido Servis",
 			description: "Послуги для українців за кордоном",
 		}, true
-	case "vezu.gaido.top":
+	case "vezu.gaido-ua.com":
 		return spaSocialProfile{
-			origin:      "https://vezu.gaido.top",
+			origin:      "https://vezu.gaido-ua.com",
 			title:       "Gaido Vezu",
 			description: "Транспорт для українців за кордоном",
 		}, true

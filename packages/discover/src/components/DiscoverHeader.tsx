@@ -10,7 +10,7 @@ export default function DiscoverHeader() {
           <BrandLogo compactOnMobile homeTo="/" />
           <div className="flex items-center gap-2">
             <a href={portalUrl()} className="btn-ghost hidden px-2.5 py-1.5 text-sm sm:inline-flex md:py-2">
-              gaido.top
+              gaido-ua.com
             </a>
             <Link to="/account" className="btn-secondary px-3 py-1.5 text-sm md:py-2">
               Кабінет

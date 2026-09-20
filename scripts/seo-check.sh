@@ -3,7 +3,7 @@
 # Usage: ./scripts/seo-check.sh [base_url]
 set -euo pipefail
 
-BASE="${1:-https://svit.gaido.top}"
+BASE="${1:-https://svit.gaido-ua.com}"
 
 echo "== robots.txt =="
 curl -fsSL "$BASE/robots.txt" | head -20

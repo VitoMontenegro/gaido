@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Первичная настройка AlmaLinux 8 для Experts Tourister / gaido.top
+# Первичная настройка AlmaLinux 8 для Experts Tourister / gaido-ua.com
 set -euo pipefail
 
-DOMAIN="${DOMAIN:-gaido.top}"
+DOMAIN="${DOMAIN:-gaido-ua.com}"
 APP_ROOT="${APP_ROOT:-/var/www/tourister}"
 DB_PASS="${DB_PASS:?DB_PASS required}"
 JWT_ACCESS="${JWT_ACCESS:?JWT_ACCESS required}"
