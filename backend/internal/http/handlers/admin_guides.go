@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/vitomonte/experts-tourister/internal/domain"
 	"github.com/vitomonte/experts-tourister/internal/http/middleware"
 	"github.com/vitomonte/experts-tourister/internal/http/response"
+	"github.com/vitomonte/experts-tourister/internal/repo/postgres"
 	guidesvc "github.com/vitomonte/experts-tourister/internal/service/guide"
 )
 
@@ -32,6 +34,16 @@ func (h *Handlers) AdminListGuides(w http.ResponseWriter, r *http.Request) {
 		response.Error(w, r, apperrors.ErrInternal)
 		return
 	}
+	countries, err := h.Guides.ListAdminCountries(r.Context(), q.Status)
+	if err != nil {
+		response.Error(w, r, apperrors.ErrInternal)
+		return
+	}
+	citiesByGuide, err := h.Guides.ListCityNamesByGuideIDs(r.Context(), ids)
+	if err != nil {
+		response.Error(w, r, apperrors.ErrInternal)
+		return
+	}
 	docsByGuide := make(map[int64][]map[string]any)
 	hasLicenseByGuide := make(map[int64]bool)
 	for _, d := range allDocs {
@@ -40,6 +52,7 @@ func (h *Handlers) AdminListGuides(w http.ResponseWriter, r *http.Request) {
 			"type":      d.Type,
 			"mime_type": d.MimeType,
 			"size":      d.Size,
+			"filename":  documentFilename(d.StorageKey),
 		})
 		if d.Type == domain.DocTypeGuideLicense || d.Type == domain.DocTypeEntertainerLicense {
 			hasLicenseByGuide[d.GuideID] = true
@@ -52,6 +65,10 @@ func (h *Handlers) AdminListGuides(w http.ResponseWriter, r *http.Request) {
 		if docs == nil {
 			docs = []map[string]any{}
 		}
+		cities := citiesByGuide[g.ID]
+		if cities == nil {
+			cities = []string{}
+		}
 		row := map[string]any{
 			"id":             g.ID,
 			"display_name":   g.DisplayName,
@@ -61,6 +78,7 @@ func (h *Handlers) AdminListGuides(w http.ResponseWriter, r *http.Request) {
 			"guide_type":     profile.GuideType,
 			"catalog_status": profile.CatalogStatus,
 			"created_at":     g.CreatedAt,
+			"cities":         cities,
 			"documents":      docs,
 		}
 		if profile.TypeBadge != nil {
@@ -68,7 +86,18 @@ func (h *Handlers) AdminListGuides(w http.ResponseWriter, r *http.Request) {
 		}
 		out = append(out, row)
 	}
-	response.JSON(w, r, 200, map[string]any{"items": out, "total": total, "limit": q.Limit, "offset": q.Offset})
+	if countries == nil {
+		countries = []postgres.AdminCountry{}
+	}
+	response.JSON(w, r, 200, map[string]any{"items": out, "total": total, "limit": q.Limit, "offset": q.Offset, "countries": countries})
+}
+
+func documentFilename(storageKey string) string {
+	name := filepath.Base(strings.ReplaceAll(storageKey, "\\", "/"))
+	if name == "" || name == "." || name == string(filepath.Separator) {
+		return "document"
+	}
+	return name
 }
 
 func (h *Handlers) AdminServeGuideDocument(w http.ResponseWriter, r *http.Request) {
@@ -92,7 +121,7 @@ func (h *Handlers) AdminServeGuideDocument(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	w.Header().Set("Content-Type", doc.MimeType)
-	w.Header().Set("Content-Disposition", "inline")
+	w.Header().Set("Content-Disposition", `inline; filename="`+strings.ReplaceAll(documentFilename(doc.StorageKey), `"`, "")+`"`)
 	http.ServeFile(w, r, path)
 }
 func (h *Handlers) AdminUpdateGuide(w http.ResponseWriter, r *http.Request) {

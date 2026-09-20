@@ -5,7 +5,6 @@ import { adminApi, api, type AdminAnalytics, type AdminPaymentRow, type CookieCo
 import StatCard, { StatGrid } from '../components/crm/StatCard'
 import { useHasRole } from '@gaido/api-client/hooks/useAuth'
 import { SiteContentEditor } from '../components/SiteContentEditor'
-import { AdminGuidesEditor } from '../components/AdminGuidesEditor'
 import { AdminExcursionsList, AdminGuidesList, AdminReviewsList, AdminUsersList, AdminCarriersList, AdminTransportRidesList, AdminProvidersList, AdminOfferingsList, AdminComplaintsList } from '../components/AdminEntityLists'
 import { ArticlesEditor } from '../components/ArticlesEditor'
 import { formatPrice } from '../components/excursionUi'
@@ -151,7 +150,6 @@ export default function AdminPage() {
               ))}
             </div>
             <AdminGuidesList statusFilter={guidesFilter} />
-            <AdminGuidesEditor />
           </div>
         )}
         {tab === 'excursions' && <AdminExcursionsList />}

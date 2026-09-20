@@ -168,7 +168,15 @@ func (h *Handlers) AdminListExcursions(w http.ResponseWriter, r *http.Request) {
 	if items == nil {
 		items = []postgres.AdminExcursionRow{}
 	}
-	response.JSON(w, r, 200, map[string]any{"items": items, "total": total, "limit": q.Limit, "offset": q.Offset})
+	countries, err := h.Exc.ListAdminCountries(r.Context(), q.Status)
+	if err != nil {
+		response.Error(w, r, apperrors.ErrInternal)
+		return
+	}
+	if countries == nil {
+		countries = []postgres.AdminCountry{}
+	}
+	response.JSON(w, r, 200, map[string]any{"items": items, "total": total, "limit": q.Limit, "offset": q.Offset, "countries": countries})
 }
 func (h *Handlers) AdminDeleteExcursion(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)

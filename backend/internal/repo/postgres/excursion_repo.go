@@ -334,6 +334,35 @@ type AdminExcursionRow struct {
 	CreatedAt   time.Time `json:"created_at"`
 }
 
+func (r *ExcursionRepo) ListAdminCountries(ctx context.Context, status string) ([]AdminCountry, error) {
+	q := `
+		SELECT DISTINCT co.slug, co.name
+		FROM excursions e
+		JOIN cities c ON c.id = e.city_id AND c.is_active = true
+		JOIN countries co ON co.id = c.country_id AND co.is_active = true
+		WHERE co.slug <> ''`
+	args := []any{}
+	if status != "" {
+		q += ` AND e.status=$1`
+		args = append(args, status)
+	}
+	q += ` ORDER BY co.name`
+	rows, err := r.db.Pool.Query(ctx, q, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := make([]AdminCountry, 0)
+	for rows.Next() {
+		var c AdminCountry
+		if err := rows.Scan(&c.Slug, &c.Name); err != nil {
+			return nil, err
+		}
+		out = append(out, c)
+	}
+	return out, rows.Err()
+}
+
 func (r *ExcursionRepo) ListAdmin(ctx context.Context, q AdminListQuery) ([]AdminExcursionRow, int, error) {
 	q.Limit, q.Offset = ClampAdminPage(q.Limit, q.Offset)
 	where, args := adminExcursionWhere(q)

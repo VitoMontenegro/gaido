@@ -7,6 +7,7 @@ export type AdminGuideDocument = {
   type: string
   mime_type: string
   size: number
+  filename?: string
 }
 
 export type AdminGuide = {
@@ -19,6 +20,7 @@ export type AdminGuide = {
   type_badge?: string
   catalog_status: string
   created_at?: string
+  cities?: string[]
   documents: AdminGuideDocument[]
 }
 
@@ -257,11 +259,17 @@ export type AdminListParams = {
   offset?: number
 }
 
+export type AdminCountryOption = {
+  slug: string
+  name: string
+}
+
 export type AdminPaged<T> = {
   items: T[]
   total: number
   limit: number
   offset: number
+  countries?: AdminCountryOption[]
 }
 
 function adminListQuery(params?: AdminListParams): string {

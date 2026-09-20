@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { adminApi, catalogApi, userDisplayName, type AdminCarrier, type AdminExcursion, type AdminGuide, type AdminListParams, type AdminProvider, type AdminOffering, type AdminComplaint, type AdminReview, type AdminTransportRide, type AdminUser } from '@gaido/api-client/api/client'
+import { adminApi, userDisplayName, type AdminCarrier, type AdminExcursion, type AdminGuide, type AdminListParams, type AdminProvider, type AdminOffering, type AdminComplaint, type AdminReview, type AdminTransportRide, type AdminUser } from '@gaido/api-client/api/client'
 import { isTransportSite, isServicesSite, transportUrl, servicesUrl } from '@gaido/site-urls/site'
 import { useMe } from '@gaido/api-client/hooks/useAuth'
 import { formatPrice } from './excursionUi'
@@ -98,6 +98,10 @@ function useAdminListQuery(statusFilter?: string) {
     setOffset(0)
   }, [q, countrySlug, order, statusFilter])
 
+  useEffect(() => {
+    setCountrySlug('')
+  }, [statusFilter])
+
   const params: AdminListParams = {
     ...(statusFilter ? { status: statusFilter } : {}),
     ...(q ? { q } : {}),
@@ -107,14 +111,6 @@ function useAdminListQuery(statusFilter?: string) {
     offset,
   }
   return { qInput, setQInput, countrySlug, setCountrySlug, order, setOrder, offset, setOffset, params }
-}
-
-function useAdminCountries() {
-  return useQuery({
-    queryKey: ['geo-countries'],
-    queryFn: () => catalogApi.countries(),
-    staleTime: 5 * 60 * 1000,
-  })
 }
 
 function AdminListFilters({
@@ -288,7 +284,6 @@ export function AdminUsersList() {
 export function AdminGuidesList({ statusFilter }: { statusFilter?: string }) {
   const qc = useQueryClient()
   const list = useAdminListQuery(statusFilter)
-  const { data: countries } = useAdminCountries()
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['admin-guides', list.params],
     queryFn: () => adminApi.guides(list.params),
@@ -339,7 +334,7 @@ export function AdminGuidesList({ statusFilter }: { statusFilter?: string }) {
       onCountry={list.setCountrySlug}
       order={list.order}
       onOrder={list.setOrder}
-      countries={countries?.items ?? []}
+      countries={data?.countries ?? []}
       searchPlaceholder="Пошук за імʼям"
     />
   )
@@ -361,7 +356,11 @@ export function AdminGuidesList({ statusFilter }: { statusFilter?: string }) {
               <GuideAvatar avatar={g.avatar_url} name={g.display_name} className="h-10 w-10 shrink-0 rounded-xl" />
               <div className="min-w-0 flex-1">
                 <p className="font-medium">{g.display_name}</p>
-                <p className="text-sm text-stone-500">/{g.slug} · {formatAdminDate(g.created_at)}</p>
+                <p className="text-sm text-stone-500">
+                  /{g.slug}
+                  {(g.cities ?? []).length > 0 ? ` · ${(g.cities ?? []).join(', ')}` : ''}
+                  {` · ${formatAdminDate(g.created_at)}`}
+                </p>
               </div>
               <span className={`rounded-full bg-teal/10 px-2 py-0.5 text-xs font-medium ${guideTypeBadgeClass(g)}`}>
                 {guideTypeBadgeLabel(g)}
@@ -402,9 +401,11 @@ export function AdminGuidesList({ statusFilter }: { statusFilter?: string }) {
                 </button>
               </div>
             </div>
-            <div className="mt-3 pl-[52px]">
-              <AdminGuideDocuments documents={g.documents ?? []} />
-            </div>
+            {(g.documents ?? []).length > 0 && (
+              <div className="mt-3 pl-[52px]">
+                <AdminGuideDocuments documents={g.documents ?? []} />
+              </div>
+            )}
           </li>
         ))}
         {items.length === 0 && (
@@ -418,7 +419,6 @@ export function AdminGuidesList({ statusFilter }: { statusFilter?: string }) {
 export function AdminExcursionsList() {
   const qc = useQueryClient()
   const list = useAdminListQuery()
-  const { data: countries } = useAdminCountries()
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['admin-excursions', list.params],
     queryFn: () => adminApi.excursions(list.params),
@@ -443,7 +443,7 @@ export function AdminExcursionsList() {
       onCountry={list.setCountrySlug}
       order={list.order}
       onOrder={list.setOrder}
-      countries={countries?.items ?? []}
+      countries={data?.countries ?? []}
       searchPlaceholder="Пошук за назвою"
     />
   )

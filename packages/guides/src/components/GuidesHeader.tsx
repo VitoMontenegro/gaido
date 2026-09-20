@@ -19,10 +19,6 @@ const GUIDES_NAV = [
   { to: '/journal', label: 'Журнал' },
 ] as const
 
-type GuidesHeaderProps = {
-  onLogout: () => void
-}
-
 function MenuIcon({ open }: { open: boolean }) {
   return (
     <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
@@ -46,7 +42,7 @@ function navActive(pathname: string, to: string): boolean {
   return pathname === to || pathname.startsWith(`${to}/`)
 }
 
-export default function GuidesHeader({ onLogout }: GuidesHeaderProps) {
+export default function GuidesHeader() {
   const { data: me, isLoading } = useMe()
   const location = useLocation()
   const [menuOpen, setMenuOpen] = useState(false)
@@ -151,11 +147,6 @@ export default function GuidesHeader({ onLogout }: GuidesHeaderProps) {
                 />
               ) : me ? (
                 <>
-                  {!isGuide && (
-                    <Link to="/account/guide/profile" className="btn-primary hidden px-3 py-1.5 text-sm sm:inline-flex md:py-2">
-                      Стати гідом
-                    </Link>
-                  )}
                   <Link
                     to={accountHref}
                     className={cn(
@@ -175,29 +166,17 @@ export default function GuidesHeader({ onLogout }: GuidesHeaderProps) {
                   >
                     Кабінет
                   </Link>
-                  <button
-                    type="button"
-                    onClick={onLogout}
-                    className={cn('hidden py-2 sm:inline-flex', solidHeader ? 'btn-ghost' : 'btn-ghost text-white hover:bg-white/10')}
-                  >
-                    Вийти
-                  </button>
                 </>
               ) : (
-                <>
-                  <Link
-                    to="/login"
-                    className={cn(
-                      'px-2.5 py-1.5 text-sm md:py-2',
-                      solidHeader ? 'btn-ghost' : 'btn-ghost text-white hover:bg-white/10',
-                    )}
-                  >
-                    Вхід
-                  </Link>
-                  <Link to="/register/guide" className="btn-primary  px-3 py-1.5 text-sm md:py-2">
-                    Стати гідом
-                  </Link>
-                </>
+                <Link
+                  to="/login"
+                  className={cn(
+                    'px-2.5 py-1.5 text-sm md:py-2',
+                    solidHeader ? 'btn-ghost' : 'btn-ghost text-white hover:bg-white/10',
+                  )}
+                >
+                  Вхід
+                </Link>
               )}
               <button
                 type="button"
@@ -242,11 +221,6 @@ export default function GuidesHeader({ onLogout }: GuidesHeaderProps) {
                 <div className="h-11 animate-pulse rounded-xl bg-sand-100/80" aria-hidden />
               ) : me ? (
                 <>
-                  {!isGuide && (
-                    <Link to="/account/guide/profile" className="flex min-h-11 items-center rounded-xl px-3 text-base font-medium text-ink transition hover:bg-sand-100">
-                      Стати гідом
-                    </Link>
-                  )}
                   <Link
                     to={accountHref}
                     className="flex min-h-11 items-center gap-3 rounded-xl px-3 text-base font-medium text-ink transition hover:bg-sand-100"
@@ -255,26 +229,11 @@ export default function GuidesHeader({ onLogout }: GuidesHeaderProps) {
                     <span>Особистий кабінет</span>
                   </Link>
                   <p className="px-3 text-xs text-muted-light">{me.login}</p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMenuOpen(false)
-                      void onLogout()
-                    }}
-                    className="flex min-h-11 w-full items-center rounded-xl px-3 text-base font-medium text-red-600 transition hover:bg-red-50"
-                  >
-                    Вийти
-                  </button>
                 </>
               ) : (
-                <>
-                  <Link to="/login" className="flex min-h-11 items-center rounded-xl px-3 text-base font-medium text-ink transition hover:bg-sand-100">
-                    Вхід
-                  </Link>
-                  <Link to="/register/guide" className="flex min-h-11 items-center rounded-xl px-3 text-base font-medium text-ink transition hover:bg-sand-100">
-                    Стати гідом
-                  </Link>
-                </>
+                <Link to="/login" className="flex min-h-11 items-center rounded-xl px-3 text-base font-medium text-ink transition hover:bg-sand-100">
+                  Вхід
+                </Link>
               )}
             </div>
           </nav>

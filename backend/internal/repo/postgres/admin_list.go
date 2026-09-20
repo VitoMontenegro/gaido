@@ -16,6 +16,11 @@ type AdminListQuery struct {
 	Offset      int
 }
 
+type AdminCountry struct {
+	Slug string `json:"slug"`
+	Name string `json:"name"`
+}
+
 func ClampAdminPage(limit, offset int) (int, int) {
 	if limit <= 0 || limit > adminPageSize {
 		limit = adminPageSize

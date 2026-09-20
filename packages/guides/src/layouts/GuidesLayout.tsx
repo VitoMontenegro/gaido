@@ -10,12 +10,11 @@ import { useTelegramBotURL } from '../hooks/useTelegramBotURL'
 import AccountNavLink from '../components/crm/AccountNavLink'
 
 export function GuidesPublicLayout() {
-  const logout = useLogout()
   useTelegramBotURL()
 
   return (
     <div className="flex min-h-screen flex-col bg-page">
-      <GuidesHeader onLogout={logout} />
+      <GuidesHeader />
       <main className="flex-1">
         <ErrorBoundary>
           <Outlet />
@@ -50,7 +49,7 @@ export function GuidesAccountLayout() {
 
   return (
     <div className="min-h-screen bg-page">
-      <GuidesHeader onLogout={logout} />
+      <GuidesHeader />
       <div className="container-site grid gap-6 py-8 md:grid-cols-[240px_1fr]">
         <aside className="card h-fit space-y-1 p-4">
           <Link to="/" className="mb-3 block font-display text-lg font-medium text-ink transition hover:opacity-75">
@@ -115,7 +114,7 @@ export function GuidesAdminLayout() {
   if (!isAdmin && !isModerator) {
     return (
       <div className="min-h-screen bg-page">
-        <GuidesHeader onLogout={logout} />
+        <GuidesHeader />
         <div className="container-site py-12">
           <div className="card space-y-2">
             <h1 className="font-display text-xl font-bold">Доступ заборонено</h1>
@@ -131,7 +130,7 @@ export function GuidesAdminLayout() {
 
   return (
     <div className="admin-ui min-h-screen bg-page">
-      <GuidesHeader onLogout={logout} />
+      <GuidesHeader />
       <div className="container-site grid gap-6 py-8 md:grid-cols-[240px_1fr]">
         <aside className="card h-fit space-y-1 p-4">
           <Link to="/" className="mb-3 block font-display text-lg font-medium text-ink transition hover:opacity-75">

@@ -122,6 +122,73 @@ func (r *GuideRepo) UpdateProfile(ctx context.Context, g *domain.GuideProfile) e
 	return err
 }
 
+func (r *GuideRepo) ListAdminCountries(ctx context.Context, status string) ([]AdminCountry, error) {
+	q := `
+		SELECT DISTINCT co.slug, co.name
+		FROM countries co
+		JOIN (` + catalogCountryGuidesUnion + `) ccg ON ccg.country_id = co.id
+		JOIN guide_profiles gp ON gp.id = ccg.guide_id
+		WHERE co.is_active = true`
+	args := []any{}
+	if status != "" {
+		q += ` AND gp.status=$1`
+		args = append(args, status)
+	}
+	q += ` ORDER BY co.name`
+	rows, err := r.db.Pool.Query(ctx, q, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := make([]AdminCountry, 0)
+	for rows.Next() {
+		var c AdminCountry
+		if err := rows.Scan(&c.Slug, &c.Name); err != nil {
+			return nil, err
+		}
+		out = append(out, c)
+	}
+	return out, rows.Err()
+}
+
+func (r *GuideRepo) ListCityNamesByGuideIDs(ctx context.Context, ids []int64) (map[int64][]string, error) {
+	out := make(map[int64][]string, len(ids))
+	if len(ids) == 0 {
+		return out, nil
+	}
+	rows, err := r.db.Pool.Query(ctx, `
+		SELECT guide_id, name FROM (
+			SELECT DISTINCT ON (guide_id, name) guide_id, name, is_primary
+			FROM (
+				SELECT gc.guide_id, c.name, CASE WHEN gc.is_primary THEN 1 ELSE 0 END AS is_primary
+				FROM guide_cities gc
+				JOIN cities c ON c.id = gc.city_id AND c.is_active = true
+				WHERE gc.guide_id = ANY($1) AND gc.is_active = true
+				UNION ALL
+				SELECT e.guide_id, c.name, 0
+				FROM excursions e
+				JOIN cities c ON c.id = e.city_id AND c.is_active = true
+				WHERE e.guide_id = ANY($1)
+			) src
+			ORDER BY guide_id, name, is_primary DESC
+		) d
+		ORDER BY guide_id, is_primary DESC, name
+	`, ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var guideID int64
+		var name string
+		if err := rows.Scan(&guideID, &name); err != nil {
+			return nil, err
+		}
+		out[guideID] = append(out[guideID], name)
+	}
+	return out, rows.Err()
+}
+
 func (r *GuideRepo) ListAdmin(ctx context.Context, q AdminListQuery) ([]domain.GuideProfile, int, error) {
 	q.Limit, q.Offset = ClampAdminPage(q.Limit, q.Offset)
 	where, args := adminGuideWhere(q)
