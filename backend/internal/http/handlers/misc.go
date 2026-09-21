@@ -278,8 +278,11 @@ const (
 
 func defaultHomeContent() domain.HomeContent {
 	return domain.HomeContent{
-		HeroTitle:    "Знайди свій спосіб мандрувати",
-		HeroSubtitle: "Авторські маршрути від місцевих гідів — обирайте програму та звʼязуйтеся напряму",
+		HeroTitle:        "Знайди свій спосіб мандрувати",
+		HeroSubtitle:     "Авторські маршрути від місцевих гідів — обирайте програму та звʼязуйтеся напряму",
+		SEOTitle:         "Гіди та екскурсії",
+		SEODescription:   "Авторські маршрути від місцевих гідів — обирайте програму та звʼязуйтеся напряму",
+		SEOImageURL:      "d2b27d81f09874a08b4dc3293fe67f2e.webp",
 		CategoryTiles: []domain.HomeCategoryTile{
 			{Label: "Пошук", URL: "/search", ImageURL: "/images/home/search.jpg"},
 			{Label: "Карта", URL: "/map", ImageURL: "/images/home/map.jpg"},
@@ -322,6 +325,18 @@ func mergeHomeContent(stored domain.HomeContent) domain.HomeContent {
 	}
 	if stored.HeroSubtitle == "" {
 		stored.HeroSubtitle = def.HeroSubtitle
+	}
+	if stored.SEOTitle == "" {
+		stored.SEOTitle = def.SEOTitle
+	}
+	if stored.SEODescription == "" {
+		stored.SEODescription = stored.HeroSubtitle
+		if stored.SEODescription == "" {
+			stored.SEODescription = def.SEODescription
+		}
+	}
+	if stored.SEOImageURL == "" {
+		stored.SEOImageURL = def.SEOImageURL
 	}
 	if len(stored.CategoryTiles) == 0 {
 		stored.CategoryTiles = def.CategoryTiles

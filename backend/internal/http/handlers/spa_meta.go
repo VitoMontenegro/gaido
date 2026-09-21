@@ -51,6 +51,21 @@ func (h *Handlers) mediaPublicURL(key string) string {
 	return h.publicBaseURL() + "/api/v1/media/public/" + key
 }
 
+func (h *Handlers) resolveSEOImage(img, fallback string) string {
+	img = strings.TrimSpace(img)
+	if img == "" {
+		return fallback
+	}
+	switch {
+	case strings.HasPrefix(img, "http://"), strings.HasPrefix(img, "https://"):
+		return img
+	case strings.HasPrefix(img, "/"):
+		return h.publicBaseURL() + img
+	default:
+		return h.mediaPublicURL(img)
+	}
+}
+
 func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *SpaPageMeta {
 	if !isGuidesHost(host) {
 		return nil
@@ -67,15 +82,22 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 	switch {
 	case path == "/":
 		content := h.LoadHomeContent(ctx)
-		desc := truncateDesc(content.HeroSubtitle, 160)
+		title := strings.TrimSpace(content.SEOTitle)
+		if title == "" {
+			title = "Гіди та екскурсії"
+		}
+		desc := truncateDesc(content.SEODescription, 160)
+		if desc == "" {
+			desc = truncateDesc(content.HeroSubtitle, 160)
+		}
 		if desc == "" {
 			desc = "Гіди та екскурсії для українців за кордоном"
 		}
 		return &SpaPageMeta{
-			Title:       pageTitleSuffix("Гіди та екскурсії"),
+			Title:       pageTitleSuffix(title),
 			Description: desc,
 			Canonical:   base + "/",
-			OgImage:     defaultImage,
+			OgImage:     h.resolveSEOImage(content.SEOImageURL, defaultImage),
 			JsonLd:      h.homePageJsonLd(ctx, base, content),
 		}
 	case path == "/search":

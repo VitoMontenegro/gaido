@@ -215,14 +215,7 @@ func (h *Handlers) applyPlacePageMeta(meta *SpaPageMeta, page *domain.PlacePage,
 		meta.Description = truncateDesc(d, 160)
 	}
 	if img := strings.TrimSpace(page.SEOImageURL); img != "" {
-		switch {
-		case strings.HasPrefix(img, "http://"), strings.HasPrefix(img, "https://"):
-			meta.OgImage = img
-		case strings.HasPrefix(img, "/"):
-			meta.OgImage = h.publicBaseURL() + img
-		default:
-			meta.OgImage = h.mediaPublicURL(img)
-		}
+		meta.OgImage = h.resolveSEOImage(img, defaultImage)
 	} else if defaultImage != "" && meta.OgImage == "" {
 		meta.OgImage = defaultImage
 	}

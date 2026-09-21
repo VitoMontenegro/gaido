@@ -17,6 +17,9 @@ export type HomeCta = {
 export type HomeContent = {
   hero_title: string
   hero_subtitle: string
+  seo_title: string
+  seo_description: string
+  seo_image_url: string
   category_tiles: HomeCategoryTile[]
   about_title: string
   about_text: string

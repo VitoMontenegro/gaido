@@ -51,6 +51,16 @@ export function placeSeoDescription(custom: string | undefined, fallback: string
   return (custom ?? '').trim() || fallback
 }
 
+export const DEFAULT_HOME_SEO_TITLE = 'Гіди та екскурсії'
+
+export function homeSeoTitle(custom?: string) {
+  return placeSeoTitle(custom, pageTitle(DEFAULT_HOME_SEO_TITLE))
+}
+
+export function homeSeoDescription(custom?: string, heroSubtitle?: string) {
+  return placeSeoDescription(custom, (heroSubtitle ?? '').trim() || 'Гіди та екскурсії для українців за кордоном')
+}
+
 export function seoGuidesCountryTitle(countryName: string) {
   return pageTitle(`Гіди в ${countryName}`)
 }

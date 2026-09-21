@@ -9,10 +9,9 @@ import HorizontalSwiper from '../components/HorizontalSwiper'
 import HomeHero from '../components/HomeHero'
 import CountryNameLink from '../components/CountryNameLink'
 import ApiErrorBanner from '../components/ApiErrorBanner'
-import { pageTitle } from '@gaido/site-urls/brand'
 import { Seo } from '../lib/seo'
 import { buildExcursionListingJsonLd } from '../lib/excursionListingSchema'
-import { buildFaqPageJsonLd, buildWebSiteJsonLd } from '../lib/seoTemplates'
+import { buildFaqPageJsonLd, buildWebSiteJsonLd, homeSeoDescription, homeSeoTitle } from '../lib/seoTemplates'
 import { normalizeCategoryTiles } from '../lib/categoryTiles'
 import type { ExcursionItem } from '../components/excursionUi'
 import { useRecentViews, validateRecentViews, type RecentView } from '../hooks/useRecentViews'
@@ -99,7 +98,7 @@ function CategoryTile({ tile }: { tile: HomeCategoryTile }) {
 function HomePageLoading() {
   return (
     <>
-      <Seo title={pageTitle()} path="/" />
+      <Seo title={homeSeoTitle()} path="/" />
       <div
         className="home-hero relative min-h-[min(78vh,720px)] animate-pulse bg-ink"
         aria-busy="true"
@@ -168,9 +167,10 @@ export default function GuidesHomePage() {
   return (
     <>
       <Seo
-        title={pageTitle('Гіди та екскурсії')}
-        description={content.hero_subtitle}
+        title={homeSeoTitle(content.seo_title)}
+        description={homeSeoDescription(content.seo_description, content.hero_subtitle)}
         path="/"
+        image={content.seo_image_url || undefined}
         jsonLd={homeJsonLd.length > 0 ? homeJsonLd : undefined}
       />
 

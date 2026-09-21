@@ -11,7 +11,10 @@ import (
 
 func (h *Handlers) homePageJsonLd(ctx context.Context, base string, content domain.HomeContent) []string {
 	featured := h.ResolveFeaturedExcursions(ctx, 6)
-	desc := content.HeroSubtitle
+	desc := strings.TrimSpace(content.SEODescription)
+	if desc == "" {
+		desc = content.HeroSubtitle
+	}
 	if desc == "" {
 		desc = "Гіди та екскурсії для українців за кордоном"
 	}

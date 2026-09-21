@@ -11,7 +11,7 @@ const defaultOgImageKey = "d2b27d81f09874a08b4dc3293fe67f2e.webp"
 
 var (
 	localhostOriginRe = regexp.MustCompile(`https?://localhost:\d+`)
-	titleRe           = regexp.MustCompile(`(?i)<title>[^<]*</title>`)
+	titleRe           = regexp.MustCompile(`(?i)<title[^>]*>[^<]*</title>`)
 	metaTagRe         = regexp.MustCompile(`(?m)^\s*<meta[^>]+>\s*$`)
 	canonicalRe       = regexp.MustCompile(`(?i)<link[^>]+rel=["']canonical["'][^>]*>`)
 )
@@ -137,7 +137,7 @@ func patchIndexHTML(html, host string, meta *PageMeta) string {
 		title = meta.Title
 	}
 	if titleRe.MatchString(html) {
-		html = titleRe.ReplaceAllString(html, "<title>"+escapeAttr(title)+"</title>")
+		html = titleRe.ReplaceAllString(html, `<title data-rh="true">`+escapeAttr(title)+`</title>`)
 	}
 
 	// Remove previously injected social/canonical meta to avoid duplicates on re-patch.

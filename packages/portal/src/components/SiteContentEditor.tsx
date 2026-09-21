@@ -8,6 +8,7 @@ import {
   type HomeCta,
   type LegalContent,
 } from '@gaido/api-client/api/client'
+import { DEFAULT_OG_IMAGE_KEY } from '@gaido/site-urls/brand'
 import { ImageUrlField } from './ImageUrlField'
 import { LegalPageEditor } from './LegalContentEditor'
 import { normalizeAboutContent } from '../lib/aboutPageContent'
@@ -34,6 +35,9 @@ const DEFAULT_CTA: HomeCta = {
 function normalizeHome(home: HomeContent): HomeContent {
   return {
     ...home,
+    seo_title: home.seo_title || 'Гіди та екскурсії',
+    seo_description: home.seo_description || home.hero_subtitle || '',
+    seo_image_url: home.seo_image_url || DEFAULT_OG_IMAGE_KEY,
     category_tiles: normalizeCategoryTiles(home.category_tiles),
     cta: home.cta?.title ? home.cta : DEFAULT_CTA,
     stats_title: home.stats_title || 'З нами подорожують мільйони',
@@ -103,6 +107,47 @@ export function SiteContentEditor() {
           Тексти, зображення плиток категорій, FAQ, статистика та контакти в футері.
         </p>
       </div>
+
+      <section className="space-y-3 rounded-xl border border-border p-4">
+        <h3 className="font-medium text-ink">SEO головної сторінки</h3>
+        <p className="text-sm text-muted">
+          Title, description і картинка для Google та соцмереж (Open Graph) на svit.gaido-ua.com.
+        </p>
+        <label className="block text-sm text-muted">
+          Title
+          <input
+            className="input mt-1"
+            maxLength={120}
+            value={home.seo_title}
+            onChange={(e) => updateHome({ seo_title: e.target.value })}
+            placeholder="Гіди та екскурсії"
+          />
+          <span className="mt-1 block text-xs text-muted-light">
+            У вкладці браузера додамо «— Gaido». Зараз: {home.seo_title ? `${home.seo_title} — Gaido` : 'Gaido'}. {home.seo_title.length}/120
+          </span>
+        </label>
+        <label className="block text-sm text-muted">
+          Description
+          <textarea
+            className="input mt-1 min-h-20"
+            maxLength={320}
+            value={home.seo_description}
+            onChange={(e) => updateHome({ seo_description: e.target.value })}
+            placeholder="Короткий опис для Google і соцмереж"
+          />
+          <span className="mt-1 block text-xs text-muted-light">
+            {home.seo_description.length}/320 · у снипеті до 160 символів
+          </span>
+        </label>
+        <ImageUrlField
+          label="OG image"
+          hint="Обкладинка для соцмереж (Open Graph). Рекомендовано 1200×630."
+          value={home.seo_image_url}
+          cropAspect={1200 / 630}
+          maxBytes={250 * 1024}
+          onChange={(seo_image_url) => updateHome({ seo_image_url })}
+        />
+      </section>
 
       <section className="space-y-3">
         <h3 className="font-medium text-ink">Hero</h3>

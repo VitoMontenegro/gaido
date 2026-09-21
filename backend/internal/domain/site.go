@@ -34,6 +34,9 @@ type HomeCta struct {
 type HomeContent struct {
 	HeroTitle              string             `json:"hero_title"`
 	HeroSubtitle           string             `json:"hero_subtitle"`
+	SEOTitle               string             `json:"seo_title"`
+	SEODescription         string             `json:"seo_description"`
+	SEOImageURL            string             `json:"seo_image_url"`
 	CategoryTiles          []HomeCategoryTile `json:"category_tiles"`
 	AboutTitle             string             `json:"about_title"`
 	AboutText              string             `json:"about_text"`

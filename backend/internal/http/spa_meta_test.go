@@ -31,7 +31,7 @@ func TestPatchIndexHTML_pageMeta(t *testing.T) {
 
 	got := patchIndexHTML(html, "svit.gaido-ua.com", meta)
 	for _, part := range []string{
-		"<title>Екскурсії в Туреччині — Gaido</title>",
+		`<title data-rh="true">Екскурсії в Туреччині — Gaido</title>`,
 		`rel="canonical" href="https://svit.gaido-ua.com/countries/turkey"`,
 		`property="og:title" content="Екскурсії в Туреччині — Gaido"`,
 		`property="og:image" content="https://svit.gaido-ua.com/api/v1/media/public/cover.webp"`,
@@ -63,5 +63,16 @@ func TestPatchIndexHTML_noIndex(t *testing.T) {
 	got := patchIndexHTML(html, "svit.gaido-ua.com", &PageMeta{NoIndex: true, Title: "Login — Gaido"})
 	if !strings.Contains(got, `name="robots" content="noindex, nofollow"`) {
 		t.Fatalf("expected noindex in %q", got)
+	}
+}
+
+func TestPatchIndexHTML_replacesExistingDataRhTitle(t *testing.T) {
+	html := `<!doctype html><html><head><title data-rh="true">Gaido</title></head><body></body></html>`
+	got := patchIndexHTML(html, "svit.gaido-ua.com", &PageMeta{Title: "Головна — Gaido"})
+	if strings.Count(got, "<title") != 1 {
+		t.Fatalf("expected 1 title tag, got %q", got)
+	}
+	if !strings.Contains(got, `<title data-rh="true">Головна — Gaido</title>`) {
+		t.Fatalf("expected replaced title in %q", got)
 	}
 }

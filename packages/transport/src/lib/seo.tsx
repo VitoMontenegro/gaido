@@ -31,6 +31,7 @@ export function DefaultSocialMeta() {
 
   return (
     <Helmet>
+      <title>{SITE_NAME}</title>
       {ogImage && <meta property="og:image" content={ogImage} />}
       <meta name="twitter:card" content="summary_large_image" />
       {ogImage && <meta name="twitter:image" content={ogImage} />}
@@ -45,7 +46,7 @@ export function Seo({ title, description, path, image, noIndex, jsonLd }: SeoPro
   const scripts = Array.isArray(jsonLd) ? jsonLd : jsonLd ? [jsonLd] : []
 
   return (
-    <Helmet>
+    <Helmet prioritizeSeoTags>
       <title>{title}</title>
       {noIndex && <meta name="robots" content="noindex, nofollow" />}
       {desc && <meta name="description" content={desc} />}
