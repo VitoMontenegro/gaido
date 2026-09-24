@@ -1,6 +1,7 @@
 import { Helmet } from 'react-helmet-async'
 import { resolveMediaUrl } from '@gaido/api-client/api/http'
 import { DEFAULT_OG_IMAGE_KEY, SITE_NAME } from '@gaido/site-urls/brand'
+import { useDocumentTitle } from '@gaido/ui-primitives/useDocumentTitle'
 
 const SITE_ORIGIN = (import.meta.env.VITE_PUBLIC_SITE_URL as string | undefined)?.replace(/\/$/, '')
   || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173')
@@ -31,7 +32,6 @@ export function DefaultSocialMeta() {
 
   return (
     <Helmet>
-      <title>{SITE_NAME}</title>
       {ogImage && <meta property="og:image" content={ogImage} />}
       <meta name="twitter:card" content="summary_large_image" />
       {ogImage && <meta name="twitter:image" content={ogImage} />}
@@ -44,10 +44,10 @@ export function Seo({ title, description, path, image, noIndex, jsonLd }: SeoPro
   const desc = (description ?? '').replace(/\s+/g, ' ').trim().slice(0, 160)
   const ogImage = resolveOgImage(image)
   const scripts = Array.isArray(jsonLd) ? jsonLd : jsonLd ? [jsonLd] : []
+  useDocumentTitle(title)
 
   return (
     <Helmet prioritizeSeoTags>
-      <title>{title}</title>
       {noIndex && <meta name="robots" content="noindex, nofollow" />}
       {desc && <meta name="description" content={desc} />}
       {url && <link rel="canonical" href={url} />}

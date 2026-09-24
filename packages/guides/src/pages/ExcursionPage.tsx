@@ -2,6 +2,7 @@ import { useState, useEffect, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@gaido/api-client/api/client'
+import { reviewsApi } from '@gaido/api-client/api/reviews'
 import type { ExcursionItem } from '../components/excursionUi'
 import {
   excursionPriceCaption,
@@ -136,6 +137,12 @@ export default function ExcursionPage() {
     enabled: isGuideRole,
   })
 
+  const { data: reviewSchema } = useQuery({
+    queryKey: ['reviews', 'excursion', excursion?.id, 'jsonld'],
+    queryFn: () => reviewsApi.list({ excursion_id: excursion!.id, limit: 8, offset: 0 }),
+    enabled: !!excursion?.id && excursion.status === 'PUBLISHED',
+  })
+
   const { data: datesData } = useQuery({
     queryKey: ['excursion-dates-public', slug, 'schema'],
     queryFn: () =>
@@ -190,7 +197,9 @@ export default function ExcursionPage() {
 
   const upcomingDates = datesData?.items ?? []
   const nearestSlot = upcomingDates.find((d) => new Date(d.starts_at).getTime() > Date.now()) ?? upcomingDates[0]
-  const detailJsonLd = isUnpublished ? [] : buildExcursionDetailJsonLd(excursion, nearestSlot)
+  const detailJsonLd = isUnpublished
+    ? []
+    : buildExcursionDetailJsonLd(excursion, nearestSlot, reviewSchema?.items ?? [])
 
   const breadcrumbItems = [
     { label: 'Екскурсії', to: '/search' },

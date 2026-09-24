@@ -1,6 +1,7 @@
+import type { Review } from '@gaido/api-client/api/types/reviews'
 import type { ExcursionItem } from '../components/excursionUi'
 import { excursionPreviewText } from '../components/excursionUi'
-import { buildExcursionEventJsonLd } from './excursionEventSchema'
+import { buildExcursionEventJsonLd, excursionSchemaImages } from './excursionEventSchema'
 import { absoluteUrl, resolveOgImage } from './seo'
 
 type ListingItem = Pick<
@@ -19,7 +20,32 @@ type ListingItem = Pick<
   | 'country_name'
   | 'guide_name'
   | 'guide_slug'
+  | 'structured_content'
 >
+
+function reviewJsonLd(reviews: Review[]) {
+  return reviews
+    .filter((review) => review.rating >= 1)
+    .slice(0, 8)
+    .map((review) => {
+      const body = review.text?.trim()
+      return {
+        '@type': 'Review',
+        author: {
+          '@type': 'Person',
+          name: review.author_name?.trim() || 'Мандрівник',
+        },
+        ...(body ? { reviewBody: body.slice(0, 500) } : {}),
+        ...(review.created_at ? { datePublished: review.created_at } : {}),
+        reviewRating: {
+          '@type': 'Rating',
+          ratingValue: review.rating,
+          bestRating: 5,
+          worstRating: 1,
+        },
+      }
+    })
+}
 
 export function buildExcursionItemListJsonLd(items: ListingItem[], listName: string) {
   const published = items.filter((e) => !e.status || e.status === 'PUBLISHED')
@@ -101,12 +127,13 @@ export function buildExcursionListingJsonLd(
 }
 
 /** Product schema for a single excursion detail page. */
-export function buildExcursionProductJsonLd(excursion: ListingItem) {
+export function buildExcursionProductJsonLd(excursion: ListingItem, reviews: Review[] = []) {
   if (excursion.status && excursion.status !== 'PUBLISHED') return null
 
   const url = absoluteUrl(`/excursion/${excursion.slug}`)
   const description = excursion.description?.trim() || excursionPreviewText(excursion)
-  const image = excursion.cover_image_url ? resolveOgImage(excursion.cover_image_url) : undefined
+  const images = excursionSchemaImages(excursion)
+  const review = reviewJsonLd(reviews)
 
   const product: Record<string, unknown> = {
     '@context': 'https://schema.org',
@@ -115,7 +142,8 @@ export function buildExcursionProductJsonLd(excursion: ListingItem) {
     name: excursion.title,
     ...(description ? { description } : {}),
     url,
-    ...(image ? { image: [image] } : {}),
+    ...(images.length > 0 ? { image: images } : {}),
+    ...(review.length > 0 ? { review } : {}),
     offers: {
       '@type': 'Offer',
       price: excursion.price_from,
@@ -152,9 +180,10 @@ export function buildExcursionProductJsonLd(excursion: ListingItem) {
 export function buildExcursionDetailJsonLd(
   excursion: ListingItem,
   nearestSlot?: { starts_at: string; ends_at: string },
+  reviews: Review[] = [],
 ) {
   const schemas: Record<string, unknown>[] = []
-  const product = buildExcursionProductJsonLd(excursion)
+  const product = buildExcursionProductJsonLd(excursion, reviews)
   if (product) schemas.push(product)
 
   if (nearestSlot?.starts_at && nearestSlot?.ends_at) {

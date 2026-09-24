@@ -1,8 +1,7 @@
-import { resolveMediaUrl } from '@gaido/api-client/api/http'
 import { SITE_NAME } from '@gaido/site-urls/brand'
 import type { ExcursionItem } from '../components/excursionUi'
 import { excursionPreviewText } from '../components/excursionUi'
-import { absoluteUrl } from './seo'
+import { absoluteUrl, resolveOgImage } from './seo'
 
 const COUNTRY_SLUG_TO_ISO: Record<string, string> = {
   russia: 'RU',
@@ -51,12 +50,32 @@ type ExcursionEventSource = Pick<
   | 'guide_slug'
   | 'rating_avg'
   | 'rating_count'
+  | 'structured_content'
 >
 
 export type ExcursionEventSchemaOptions = {
   dateFilter?: string
   startsAt?: string
   endsAt?: string
+}
+
+export function excursionSchemaImages(excursion: {
+  cover_image_url?: string
+  structured_content?: { gallery?: string[]; gallery_mobile_cover?: string }
+}): string[] {
+  const refs: string[] = []
+  const push = (value?: string) => {
+    const src = value?.trim()
+    if (!src || refs.includes(src) || refs.length >= 8) return
+    refs.push(src)
+  }
+  push(excursion.cover_image_url)
+  for (const img of excursion.structured_content?.gallery ?? []) push(img)
+  push(excursion.structured_content?.gallery_mobile_cover)
+  const urls = refs.map((src) => resolveOgImage(src)).filter((src): src is string => !!src)
+  if (urls.length > 0) return urls
+  const fallback = resolveOgImage()
+  return fallback ? [fallback] : []
 }
 
 function countryIsoFromSlug(slug?: string) {
@@ -102,8 +121,7 @@ export function buildExcursionEventJsonLd(
   if (excursion.status && excursion.status !== 'PUBLISHED') return null
 
   const url = absoluteUrl(`/excursion/${excursion.slug}`)
-  const imageSrc = excursion.cover_image_url ? resolveMediaUrl(excursion.cover_image_url) : undefined
-  const image = imageSrc ? absoluteUrl(imageSrc) : undefined
+  const images = excursionSchemaImages(excursion)
   const { startDate, endDate } = eventDates(excursion, options)
   const locality = excursion.city_name || excursion.country_name || ''
   const countryCode = countryIsoFromSlug(excursion.country_slug)
@@ -129,7 +147,7 @@ export function buildExcursionEventJsonLd(
     startDate,
     endDate,
     url,
-    ...(image ? { image: [image] } : {}),
+    ...(images.length > 0 ? { image: images } : {}),
     eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
     eventStatus: 'https://schema.org/EventScheduled',
     inLanguage: schemaLanguage(excursion.language),

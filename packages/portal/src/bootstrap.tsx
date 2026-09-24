@@ -9,6 +9,7 @@ import BodyFontSync from '@gaido/ui-primitives/BodyFontSync'
 import { applyBodyFont } from '@gaido/ui-primitives/bodyFont'
 import { initTelegramButtons } from './lib/telegramButtons'
 import { DefaultSocialMeta } from './lib/seo'
+import { UniqueDocumentTitle } from '@gaido/ui-primitives/useDocumentTitle'
 import './styles/theme.css'
 
 const queryClient = new QueryClient({
@@ -39,6 +40,7 @@ export function mountApp(App: ComponentType) {
           <QueryClientProvider client={queryClient}>
             <BrowserRouter>
               <BodyFontSync />
+              <UniqueDocumentTitle />
               <DefaultSocialMeta />
               <App />
             </BrowserRouter>

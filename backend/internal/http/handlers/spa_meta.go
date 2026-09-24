@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"html"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/vitomonte/experts-tourister/internal/domain"
 )
@@ -37,10 +38,14 @@ func pageTitleSuffix(name string) string {
 
 func truncateDesc(s string, max int) string {
 	s = strings.Join(strings.Fields(strings.TrimSpace(s)), " ")
-	if len(s) <= max {
+	if max <= 0 || len(s) <= max {
 		return s
 	}
-	return s[:max]
+	cut := s[:max]
+	for len(cut) > 0 && !utf8.ValidString(cut) {
+		cut = cut[:len(cut)-1]
+	}
+	return strings.TrimSpace(cut)
 }
 
 func (h *Handlers) mediaPublicURL(key string) string {

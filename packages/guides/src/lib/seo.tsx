@@ -1,6 +1,8 @@
+import { useEffect } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { resolveMediaUrl } from '@gaido/api-client/api/http'
 import { DEFAULT_OG_IMAGE_KEY, SITE_NAME } from '@gaido/site-urls/brand'
+import { useDocumentTitle } from '@gaido/ui-primitives/useDocumentTitle'
 
 const SITE_ORIGIN = (import.meta.env.VITE_PUBLIC_SITE_URL as string | undefined)?.replace(/\/$/, '')
   || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173')
@@ -58,7 +60,6 @@ export function DefaultSocialMeta() {
 
   return (
     <Helmet>
-      <title>{SITE_NAME}</title>
       {ogImage && <meta property="og:image" content={ogImage} />}
       <meta name="twitter:card" content="summary_large_image" />
       {ogImage && <meta name="twitter:image" content={ogImage} />}
@@ -72,10 +73,17 @@ export function Seo({ title, description, path, image, noIndex, jsonLd }: SeoPro
   const ogImage = resolveOgImage(image)
   const rawScripts = Array.isArray(jsonLd) ? jsonLd : jsonLd ? [jsonLd] : []
   const scripts = rawScripts.map((obj) => normalizeJsonLd(obj) as Record<string, unknown>)
+  useDocumentTitle(title)
+
+  useEffect(() => {
+    if (scripts.length === 0) return
+    document.querySelectorAll('script[type="application/ld+json"]').forEach((node) => {
+      if (!node.hasAttribute('data-rh')) node.remove()
+    })
+  }, [path, scripts.length, title])
 
   return (
     <Helmet prioritizeSeoTags>
-      <title>{title}</title>
       {noIndex && <meta name="robots" content="noindex, nofollow" />}
       {desc && <meta name="description" content={desc} />}
       {url && <link rel="canonical" href={url} />}

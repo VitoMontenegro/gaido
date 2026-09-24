@@ -1,4 +1,3 @@
-import { Helmet } from 'react-helmet-async'
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { adminApi, api, type AdminAnalytics, type AdminPaymentRow, type CookieConsentRecord, type MailSettings } from '@gaido/api-client/api/client'
@@ -10,6 +9,7 @@ import { ArticlesEditor } from '../components/ArticlesEditor'
 import { PlacePagesEditor } from '../components/PlacePagesEditor'
 import { formatPrice } from '../components/excursionUi'
 import { getSiteMode, type SiteMode } from '@gaido/site-urls/site'
+import { useDocumentTitle } from '@gaido/ui-primitives/useDocumentTitle'
 
 type AdminTab = 'analytics' | 'users' | 'guides' | 'excursions' | 'reviews' | 'carriers' | 'vezu' | 'providers' | 'offerings' | 'complaints' | 'settings' | 'content' | 'journal' | 'places' | 'audit' | 'cookies'
 
@@ -79,10 +79,10 @@ export default function AdminPage() {
 
   const loadError = analyticsError || settingsError
   const errorMessage = (analyticsErr ?? settingsErr)?.message
+  useDocumentTitle('Адмін — аналітика')
 
   return (
     <>
-      <Helmet><title>Адмін — аналітика</title></Helmet>
       <div className="space-y-5">
         <div>
           <h1 className="font-display text-2xl font-bold">Адмін-панель</h1>
@@ -851,10 +851,10 @@ export function ModeratorPage() {
   const refreshProviders = () => qc.invalidateQueries({ queryKey: ['mod-providers'] })
   const refreshOfferings = () => qc.invalidateQueries({ queryKey: ['mod-offerings'] })
   const refreshComplaints = () => qc.invalidateQueries({ queryKey: ['mod-complaints'] })
+  useDocumentTitle('Модератор')
 
   return (
     <>
-      <Helmet><title>Модератор</title></Helmet>
       <div className="space-y-4">
         <nav className="flex flex-wrap gap-2">
           {visibleSections.map((s) => (

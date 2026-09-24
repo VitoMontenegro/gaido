@@ -78,7 +78,12 @@ func (h *Handlers) excursionDetailJsonLd(ctx context.Context, e *domain.Excursio
 	url := base + "/excursion/" + e.Slug
 	var out []string
 
-	if raw := marshalJSONLD(buildExcursionProductJSON(e, base, url)); raw != "" {
+	var reviews []domain.Review
+	if h.Reviews != nil {
+		reviews, _ = h.Reviews.ListByExcursion(ctx, e.ID, 8, 0)
+	}
+
+	if raw := marshalJSONLD(buildExcursionProductJSON(e, base, url, reviews)); raw != "" {
 		out = append(out, raw)
 	}
 	if slot := h.nearestExcursionSlot(ctx, e); slot != nil {
@@ -100,7 +105,78 @@ func marshalJSONLD(v any) string {
 	return string(b)
 }
 
-func buildExcursionProductJSON(e *domain.ExcursionView, base, url string) map[string]any {
+const fallbackOgImageKey = "d2b27d81f09874a08b4dc3293fe67f2e.webp"
+
+func excursionSchemaImages(e *domain.ExcursionView, base string) []string {
+	seen := map[string]struct{}{}
+	var out []string
+	add := func(raw string) {
+		raw = strings.TrimSpace(raw)
+		if raw == "" || len(out) >= 8 {
+			return
+		}
+		if _, ok := seen[raw]; ok {
+			return
+		}
+		seen[raw] = struct{}{}
+		if strings.HasPrefix(raw, "http://") || strings.HasPrefix(raw, "https://") {
+			out = append(out, raw)
+			return
+		}
+		out = append(out, base+"/api/v1/media/public/"+strings.TrimPrefix(raw, "/"))
+	}
+	add(e.CoverImageURL)
+	for _, img := range e.StructuredContent.Gallery {
+		add(img)
+	}
+	add(e.StructuredContent.GalleryMobileCover)
+	if len(out) == 0 {
+		out = append(out, base+"/api/v1/media/public/"+fallbackOgImageKey)
+	}
+	return out
+}
+
+func buildReviewJSON(items []domain.Review) []map[string]any {
+	if len(items) == 0 {
+		return nil
+	}
+	out := make([]map[string]any, 0, len(items))
+	for _, rv := range items {
+		if rv.Rating < 1 {
+			continue
+		}
+		name := strings.TrimSpace(rv.AuthorName)
+		if name == "" {
+			name = "Мандрівник"
+		}
+		item := map[string]any{
+			"@type": "Review",
+			"author": map[string]any{
+				"@type": "Person",
+				"name":  name,
+			},
+			"reviewRating": map[string]any{
+				"@type":       "Rating",
+				"ratingValue": rv.Rating,
+				"bestRating":  5,
+				"worstRating": 1,
+			},
+		}
+		if text := truncateDesc(rv.Text, 500); text != "" {
+			item["reviewBody"] = text
+		}
+		if rv.CreatedAt != "" {
+			item["datePublished"] = rv.CreatedAt
+		}
+		out = append(out, item)
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
+}
+
+func buildExcursionProductJSON(e *domain.ExcursionView, base, url string, reviews []domain.Review) map[string]any {
 	desc := truncateDesc(e.Description, 500)
 	if desc == "" {
 		desc = truncateDesc(e.Title, 500)
@@ -123,8 +199,9 @@ func buildExcursionProductJSON(e *domain.ExcursionView, base, url string) map[st
 	if desc != "" {
 		product["description"] = desc
 	}
-	if img := strings.TrimSpace(e.CoverImageURL); img != "" {
-		product["image"] = []string{base + "/api/v1/media/public/" + img}
+	product["image"] = excursionSchemaImages(e, base)
+	if rev := buildReviewJSON(reviews); len(rev) > 0 {
+		product["review"] = rev
 	}
 	if e.GuideName != "" {
 		product["brand"] = map[string]any{
@@ -226,9 +303,7 @@ func buildExcursionEventJSON(e *domain.ExcursionView, base, url string, startsAt
 	if desc != "" {
 		event["description"] = desc
 	}
-	if img := strings.TrimSpace(e.CoverImageURL); img != "" {
-		event["image"] = []string{base + "/api/v1/media/public/" + img}
-	}
+	event["image"] = excursionSchemaImages(e, base)
 	return event
 }
 

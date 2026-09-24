@@ -21,7 +21,7 @@ func TestPatchIndexSocialMeta_replacesLocalhost(t *testing.T) {
 }
 
 func TestPatchIndexHTML_pageMeta(t *testing.T) {
-	html := `<!doctype html><html><head><title>Gaido</title></head><body></body></html>`
+	html := `<!doctype html><html><head><title>Gaido</title></head><body><div id="root"></div></body></html>`
 	meta := &PageMeta{
 		Title:       "Екскурсії в Туреччині — Gaido",
 		Description: "Екскурсії в Туреччині — ціни, гіди",
@@ -35,6 +35,7 @@ func TestPatchIndexHTML_pageMeta(t *testing.T) {
 		`rel="canonical" href="https://svit.gaido-ua.com/countries/turkey"`,
 		`property="og:title" content="Екскурсії в Туреччині — Gaido"`,
 		`property="og:image" content="https://svit.gaido-ua.com/api/v1/media/public/cover.webp"`,
+		`<div id="root"><article><h1>Екскурсії в Туреччині</h1><p>Екскурсії в Туреччині — ціни, гіди</p></article></div>`,
 	} {
 		if !strings.Contains(got, part) {
 			t.Fatalf("expected %q in %q", part, got)
@@ -63,6 +64,9 @@ func TestPatchIndexHTML_noIndex(t *testing.T) {
 	got := patchIndexHTML(html, "svit.gaido-ua.com", &PageMeta{NoIndex: true, Title: "Login — Gaido"})
 	if !strings.Contains(got, `name="robots" content="noindex, nofollow"`) {
 		t.Fatalf("expected noindex in %q", got)
+	}
+	if strings.Contains(got, "<article>") {
+		t.Fatalf("noindex pages should keep an empty root, got %q", got)
 	}
 }
 

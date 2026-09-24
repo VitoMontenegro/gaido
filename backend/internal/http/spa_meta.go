@@ -1,6 +1,7 @@
 package httpx
 
 import (
+	"html"
 	"net/http"
 	"os"
 	"regexp"
@@ -14,6 +15,7 @@ var (
 	titleRe           = regexp.MustCompile(`(?i)<title[^>]*>[^<]*</title>`)
 	metaTagRe         = regexp.MustCompile(`(?m)^\s*<meta[^>]+>\s*$`)
 	canonicalRe       = regexp.MustCompile(`(?i)<link[^>]+rel=["']canonical["'][^>]*>`)
+	rootDivRe         = regexp.MustCompile(`<div id="root"></div>`)
 )
 
 type PageMeta struct {
@@ -157,7 +159,35 @@ func patchIndexHTML(html, host string, meta *PageMeta) string {
 	if headEnd == -1 {
 		return html
 	}
-	return html[:headEnd] + pageMetaHeadHTML(profile, meta) + html[headEnd:]
+	html = html[:headEnd] + pageMetaHeadHTML(profile, meta) + html[headEnd:]
+	return rootDivRe.ReplaceAllString(html, crawlableRootHTML(meta))
+}
+
+// crawlableRootHTML gives each URL unique body text before JS runs.
+// Google otherwise treats the empty SPA shell as one document and picks another URL as canonical.
+func crawlableRootHTML(meta *PageMeta) string {
+	if meta == nil || meta.NoIndex {
+		return `<div id="root"></div>`
+	}
+	title := strings.TrimSpace(strings.TrimSuffix(meta.Title, " — Gaido"))
+	desc := strings.TrimSpace(meta.Description)
+	if title == "" && desc == "" {
+		return `<div id="root"></div>`
+	}
+	var b strings.Builder
+	b.WriteString(`<div id="root"><article>`)
+	if title != "" {
+		b.WriteString(`<h1>`)
+		b.WriteString(html.EscapeString(title))
+		b.WriteString(`</h1>`)
+	}
+	if desc != "" {
+		b.WriteString(`<p>`)
+		b.WriteString(html.EscapeString(desc))
+		b.WriteString(`</p>`)
+	}
+	b.WriteString(`</article></div>`)
+	return b.String()
 }
 
 func patchIndexSocialMeta(html, host string) string {
