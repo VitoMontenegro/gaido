@@ -2,6 +2,7 @@ import { Helmet } from 'react-helmet-async'
 import { resolveMediaUrl } from '@gaido/api-client/api/http'
 import { DEFAULT_OG_IMAGE_KEY, SITE_NAME } from '@gaido/site-urls/brand'
 import { useDocumentTitle } from '@gaido/ui-primitives/useDocumentTitle'
+import { useJsonLd } from '@gaido/ui-primitives/useJsonLd'
 
 const SITE_ORIGIN = (import.meta.env.VITE_PUBLIC_SITE_URL as string | undefined)?.replace(/\/$/, '')
   || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173')
@@ -45,6 +46,7 @@ export function Seo({ title, description, path, image, noIndex, jsonLd }: SeoPro
   const ogImage = resolveOgImage(image)
   const scripts = Array.isArray(jsonLd) ? jsonLd : jsonLd ? [jsonLd] : []
   useDocumentTitle(title)
+  useJsonLd(scripts)
 
   return (
     <Helmet prioritizeSeoTags>
@@ -61,9 +63,6 @@ export function Seo({ title, description, path, image, noIndex, jsonLd }: SeoPro
       <meta name="twitter:title" content={title} />
       {desc && <meta name="twitter:description" content={desc} />}
       {ogImage && <meta name="twitter:image" content={ogImage} />}
-      {scripts.map((obj, i) => (
-        <script key={i} type="application/ld+json">{JSON.stringify(obj)}</script>
-      ))}
     </Helmet>
   )
 }

@@ -1,5 +1,5 @@
-import { Helmet } from 'react-helmet-async'
 import { Link } from 'react-router-dom'
+import { useJsonLd } from '@gaido/ui-primitives/useJsonLd'
 import { absoluteUrl } from '../lib/seo'
 
 export type BreadcrumbItem = {
@@ -38,16 +38,14 @@ function buildSchema(items: BreadcrumbItem[], currentPath?: string) {
 }
 
 export default function Breadcrumbs({ items, currentPath }: Props) {
+  const schema = items.length === 0 ? null : buildSchema(items, currentPath)
+  useJsonLd(schema ? [schema] : [])
   if (items.length === 0) return null
 
-  const schema = buildSchema(items, currentPath)
   const trail: BreadcrumbItem[] = [{ label: 'Головна', to: '/' }, ...items]
 
   return (
     <>
-      <Helmet>
-        <script type="application/ld+json">{JSON.stringify(schema)}</script>
-      </Helmet>
       <div className="border-b border-divider bg-page">
         <nav className="container-site py-4 text-sm text-stone-500" aria-label="Навігаційний ланцюжок">
           <ol className="flex flex-wrap items-center">
