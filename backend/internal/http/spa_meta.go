@@ -175,7 +175,9 @@ func crawlableRootHTML(meta *PageMeta) string {
 		return `<div id="root"></div>`
 	}
 	var b strings.Builder
-	b.WriteString(`<div id="root"><article>`)
+	// Hidden until React replaces #root. The text stays in the HTML for crawlers
+	// and does not flash as unstyled content on first paint.
+	b.WriteString(`<div id="root"><article style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0">`)
 	if title != "" {
 		b.WriteString(`<h1>`)
 		b.WriteString(html.EscapeString(title))

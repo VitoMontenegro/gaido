@@ -35,7 +35,7 @@ func TestPatchIndexHTML_pageMeta(t *testing.T) {
 		`rel="canonical" href="https://svit.gaido-ua.com/countries/turkey"`,
 		`property="og:title" content="Екскурсії в Туреччині — Gaido"`,
 		`property="og:image" content="https://svit.gaido-ua.com/api/v1/media/public/cover.webp"`,
-		`<div id="root"><article><h1>Екскурсії в Туреччині</h1><p>Екскурсії в Туреччині — ціни, гіди</p></article></div>`,
+		`<div id="root"><article style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0"><h1>Екскурсії в Туреччині</h1><p>Екскурсії в Туреччині — ціни, гіди</p></article></div>`,
 	} {
 		if !strings.Contains(got, part) {
 			t.Fatalf("expected %q in %q", part, got)

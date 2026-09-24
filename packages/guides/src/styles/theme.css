@@ -444,7 +444,7 @@
 
   .place-intro,
   .place-content {
-    @apply max-w-3xl text-sm leading-relaxed md:text-base;
+    @apply text-sm leading-relaxed md:text-base;
   }
 
   .place-intro {
@@ -464,8 +464,20 @@
   .place-intro h3,
   .place-content h2,
   .place-content h3 {
-    @apply mb-2 mt-5 font-display text-lg font-semibold normal-case tracking-normal text-ink first:mt-0;
+    @apply mb-2 mt-5 font-display font-semibold normal-case tracking-normal text-ink first:mt-0;
   }
+
+  .place-intro h2,
+  .place-content h2 {
+    @apply text-xl md:text-2xl;
+  }
+
+  .place-intro h3,
+  .place-content h3 {
+    @apply text-xl md:text-2xl;
+  }
+
+
 
   .place-intro ul,
   .place-intro ol,
