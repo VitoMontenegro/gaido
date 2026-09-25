@@ -6,6 +6,7 @@ import Breadcrumbs from '../components/Breadcrumbs'
 import ArticleAuthorByline from '../components/ArticleAuthorByline'
 import JournalArticleCard, { formatArticleDate } from '../components/JournalArticleCard'
 import { buildArticleJsonLd } from '../lib/excursionListingSchema'
+import { SEO_JOURNAL_DESCRIPTION, SEO_JOURNAL_HEADING } from '../lib/seoTemplates'
 import { pageTitle } from '@gaido/site-urls/brand'
 import { sanitizeHtml } from '../lib/html'
 
@@ -19,8 +20,8 @@ export function JournalListPage() {
   return (
     <>
       <Seo
-        title={pageTitle('Журнал')}
-        description="Поради мандрівникам: як обрати гіда, підготуватися до екскурсії та користуватися каталогом."
+        title={pageTitle(SEO_JOURNAL_HEADING)}
+        description={SEO_JOURNAL_DESCRIPTION}
         path="/journal"
       />
 
@@ -30,10 +31,10 @@ export function JournalListPage() {
         <div className="container-site py-10 md:py-14">
           <p className="section-title-sm mb-3">Журнал</p>
           <h1 className="font-display text-3xl font-bold normal-case tracking-normal md:text-4xl">
-            Корисне для мандрівників
+            {SEO_JOURNAL_HEADING}
           </h1>
           <p className="mt-3 max-w-2xl text-base text-muted">
-            Поради з вибору гіда, підготовки до подорожі та історії від місцевих експертів.
+            {SEO_JOURNAL_DESCRIPTION}
           </p>
         </div>
       </section>

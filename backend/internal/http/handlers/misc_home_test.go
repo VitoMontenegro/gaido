@@ -8,7 +8,7 @@ import (
 
 func TestMergeHomeContent_fillsSEOFromCurrentHome(t *testing.T) {
 	got := mergeHomeContent(domain.HomeContent{HeroSubtitle: "Hero text"})
-	if got.SEOTitle != "Гіди та екскурсії" {
+	if got.SEOTitle != seoHomeTitle {
 		t.Fatalf("seo title: %q", got.SEOTitle)
 	}
 	if got.SEODescription != "Hero text" {

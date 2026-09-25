@@ -278,11 +278,11 @@ const (
 
 func defaultHomeContent() domain.HomeContent {
 	return domain.HomeContent{
-		HeroTitle:        "Знайди свій спосіб мандрувати",
-		HeroSubtitle:     "Авторські маршрути від місцевих гідів — обирайте програму та звʼязуйтеся напряму",
-		SEOTitle:         "Гіди та екскурсії",
-		SEODescription:   "Авторські маршрути від місцевих гідів — обирайте програму та звʼязуйтеся напряму",
-		SEOImageURL:      "d2b27d81f09874a08b4dc3293fe67f2e.webp",
+		HeroTitle:      "Знайди свій спосіб мандрувати",
+		HeroSubtitle:   "Авторські маршрути від місцевих гідів — обирайте програму та звʼязуйтеся напряму",
+		SEOTitle:       seoHomeTitle,
+		SEODescription: seoHomeDescription,
+		SEOImageURL:    "d2b27d81f09874a08b4dc3293fe67f2e.webp",
 		CategoryTiles: []domain.HomeCategoryTile{
 			{Label: "Пошук", URL: "/search", ImageURL: "/images/home/search.jpg"},
 			{Label: "Карта", URL: "/map", ImageURL: "/images/home/map.jpg"},
@@ -326,12 +326,12 @@ func mergeHomeContent(stored domain.HomeContent) domain.HomeContent {
 	if stored.HeroSubtitle == "" {
 		stored.HeroSubtitle = def.HeroSubtitle
 	}
-	if stored.SEOTitle == "" {
+	if stored.SEOTitle == "" || stored.SEOTitle == legacyHomeSEOTitle {
 		stored.SEOTitle = def.SEOTitle
 	}
-	if stored.SEODescription == "" {
+	if stored.SEODescription == "" || stored.SEODescription == legacyHomeSEODescription {
 		stored.SEODescription = stored.HeroSubtitle
-		if stored.SEODescription == "" {
+		if stored.SEODescription == "" || stored.SEODescription == legacyHomeSEODescription {
 			stored.SEODescription = def.SEODescription
 		}
 	}

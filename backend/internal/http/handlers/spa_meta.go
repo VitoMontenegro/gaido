@@ -88,15 +88,15 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 	case path == "/":
 		content := h.LoadHomeContent(ctx)
 		title := strings.TrimSpace(content.SEOTitle)
-		if title == "" {
-			title = "Гіди та екскурсії"
+		if title == "" || title == legacyHomeSEOTitle {
+			title = seoHomeTitle
 		}
 		desc := truncateDesc(content.SEODescription, 160)
-		if desc == "" {
+		if desc == "" || desc == legacyHomeSEODescription {
 			desc = truncateDesc(content.HeroSubtitle, 160)
 		}
-		if desc == "" {
-			desc = "Гіди та екскурсії для українців за кордоном"
+		if desc == "" || desc == legacyHomeSEODescription {
+			desc = seoHomeDescription
 		}
 		return &SpaPageMeta{
 			Title:       pageTitleSuffix(title),
@@ -107,32 +107,32 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 		}
 	case path == "/search":
 		return &SpaPageMeta{
-			Title:       pageTitleSuffix("Пошук"),
-			Description: "Знайдіть екскурсію за містом, темою, назвою або датою",
+			Title:       pageTitleSuffix(seoSearchHeading),
+			Description: seoSearchDescription,
 			Canonical:   base + "/search",
 			OgImage:     defaultImage,
 			JsonLd:      h.searchPageJsonLd(base),
 		}
 	case path == "/map":
 		return &SpaPageMeta{
-			Title:       pageTitleSuffix("Карта"),
-			Description: "Міста з опублікованими екскурсіями — оберіть на карті або в списку",
+			Title:       pageTitleSuffix(seoMapHeading),
+			Description: seoMapDescription,
 			Canonical:   base + "/map",
 			OgImage:     defaultImage,
 			JsonLd:      h.simpleBreadcrumbJsonLd(base, "Карта", "/map"),
 		}
 	case path == "/guides":
 		return &SpaPageMeta{
-			Title:       pageTitleSuffix("Гіди"),
-			Description: "Оберіть країну — побачите місцевих експертів із авторськими маршрутами",
+			Title:       pageTitleSuffix(seoGuidesListHeading),
+			Description: seoGuidesListDescription,
 			Canonical:   base + "/guides",
 			OgImage:     defaultImage,
 			JsonLd:      h.guidesListPageJsonLd(ctx, base),
 		}
 	case path == "/journal":
 		return &SpaPageMeta{
-			Title:       pageTitleSuffix("Журнал"),
-			Description: "Статті про подорожі, міста та екскурсії для українців за кордоном",
+			Title:       pageTitleSuffix(seoJournalHeading),
+			Description: seoJournalDescription,
 			Canonical:   base + "/journal",
 			OgImage:     defaultImage,
 			JsonLd:      h.simpleBreadcrumbJsonLd(base, "Журнал", "/journal"),
@@ -145,7 +145,7 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 		}
 		desc := about.HeroLead
 		if desc == "" {
-			desc = "Каталог українських гідів та авторських екскурсій для українців за кордоном"
+			desc = seoAboutFallbackDescription
 		}
 		return &SpaPageMeta{
 			Title:       pageTitleSuffix(title),
@@ -188,7 +188,7 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 		}
 		title := pageTitleSuffix(e.Title)
 		if e.CityName != "" {
-			title = pageTitleSuffix(fmt.Sprintf("%s — екскурсія в %s", e.Title, e.CityName))
+			title = pageTitleSuffix(fmt.Sprintf("%s — екскурсія %s", e.Title, ukInLocative(e.CityName)))
 		}
 		return &SpaPageMeta{
 			Title:       title,
@@ -206,16 +206,23 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 		if err != nil || g == nil || g.Status != domain.GuideStatusActive {
 			return nil
 		}
+		cityName := ""
+		if names, err := h.Guides.ListPreviewCityNamesByGuideIDs(ctx, []int64{g.ID}); err == nil {
+			if list := names[g.ID]; len(list) > 0 {
+				cityName = list[0]
+			}
+		}
+		heading := seoGuideHeading(g.DisplayName, cityName)
 		desc := truncateDesc(domain.PublicGuideAbout(g.About), 160)
 		if desc == "" {
-			desc = "Профіль гіда " + g.DisplayName
+			desc = heading
 		}
 		img := defaultImage
 		if g.AvatarURL != "" {
 			img = h.mediaPublicURL(g.AvatarURL)
 		}
 		return &SpaPageMeta{
-			Title:       pageTitleSuffix(g.DisplayName),
+			Title:       pageTitleSuffix(heading),
 			Description: desc,
 			Canonical:   base + "/guide/" + g.WebsiteSlug,
 			OgImage:     img,
@@ -235,8 +242,8 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 			page, _ = h.PlacePages.GetBySlug(ctx, domain.PlaceTypeCountry, c.Slug)
 		}
 		meta := &SpaPageMeta{
-			Title:       pageTitleSuffix(fmt.Sprintf("Екскурсії в %s", c.Name)),
-			Description: truncateDesc(fmt.Sprintf("Екскурсії в %s — ціни, гіди, авторські маршрути для українців", c.Name), 160),
+			Title:       pageTitleSuffix(seoCountryExcursionsHeading(c.Name)),
+			Description: truncateDesc(seoCountryExcursionsDescription(c.Name), 160),
 			Canonical:   base + "/countries/" + c.Slug,
 			OgImage:     defaultImage,
 			JsonLd:      h.countryPageJsonLd(ctx, c, base, page),
@@ -256,9 +263,13 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 		if h.PlacePages != nil {
 			page, _ = h.PlacePages.GetBySlug(ctx, domain.PlaceTypeCity, city.Slug)
 		}
+		countryName := ""
+		if country, err := h.Geo.GetCountryBySlug(ctx, city.CountrySlug); err == nil && country != nil {
+			countryName = country.Name
+		}
 		meta := &SpaPageMeta{
-			Title:       pageTitleSuffix(fmt.Sprintf("Екскурсії в %s", city.Name)),
-			Description: truncateDesc(fmt.Sprintf("Гіди та авторські екскурсії в %s — бронювання напряму з гідом", city.Name), 160),
+			Title:       pageTitleSuffix(seoCityExcursionsHeading(city.Name)),
+			Description: truncateDesc(seoCityExcursionsDescription(city.Name, countryName), 160),
 			Canonical:   base + "/city/" + city.Slug,
 			OgImage:     defaultImage,
 			JsonLd:      h.cityPageJsonLd(ctx, city, base, page),
@@ -273,8 +284,8 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 				return nil
 			}
 			return &SpaPageMeta{
-				Title:       pageTitleSuffix(fmt.Sprintf("Гіди в %s", c.Name)),
-				Description: truncateDesc(fmt.Sprintf("Місцеві гіди в %s — авторські маршрути українською", c.Name), 160),
+				Title:       pageTitleSuffix(seoGuidesCountryHeading(c.Name)),
+				Description: truncateDesc(seoGuidesCountryDescription(c.Name), 160),
 				Canonical:   base + "/guides/countries/" + c.Slug,
 				OgImage:     defaultImage,
 				JsonLd:      h.guidesCountryPageJsonLd(ctx, c, base),
@@ -315,8 +326,8 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 			name = city.Name
 		}
 		return &SpaPageMeta{
-			Title:       pageTitleSuffix("Українці в " + name),
-			Description: truncateDesc("Українські послуги та ресурси в "+name+" та поруч.", 160),
+			Title:       pageTitleSuffix("Українці " + ukInLocative(name)),
+			Description: truncateDesc("Українські послуги та ресурси "+ukInLocative(name)+" та поруч.", 160),
 			Canonical:   base + "/ukrainians-in/" + parts[1],
 			NoIndex:     true,
 		}

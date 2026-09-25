@@ -8,6 +8,7 @@ import { DateFilterStrip } from '../components/PublicDateCalendar'
 import type { ExcursionItem } from '../components/excursionUi'
 import { buildExcursionListingJsonLd } from '../lib/excursionListingSchema'
 import { Seo } from '../lib/seo'
+import { SEO_SEARCH_DESCRIPTION, SEO_SEARCH_HEADING } from '../lib/seoTemplates'
 import { pageTitle } from '@gaido/site-urls/brand'
 
 export default function SearchPage() {
@@ -53,7 +54,7 @@ export default function SearchPage() {
     () =>
       buildExcursionListingJsonLd(items, {
         name: q ? `Екскурсії: ${q}` : 'Пошук екскурсій',
-        description: 'Каталог екскурсій для українців за кордоном',
+        description: SEO_SEARCH_DESCRIPTION,
       }),
     [items, q],
   )
@@ -61,15 +62,15 @@ export default function SearchPage() {
   return (
     <>
       <Seo
-        title={pageTitle('Пошук')}
-        description="Знайдіть екскурсію за містом, темою, назвою або датою"
+        title={pageTitle(SEO_SEARCH_HEADING)}
+        description={SEO_SEARCH_DESCRIPTION}
         path="/search"
         jsonLd={listingJsonLd.length > 0 ? listingJsonLd : undefined}
       />
       <Breadcrumbs items={[{ label: 'Пошук' }]} currentPath="/search" />
       <div className="container-site py-5 md:py-8">
-        <h1 className="section-title mb-1 text-2xl md:text-[28px]">Пошук</h1>
-        <p className="mb-4 text-sm text-muted md:mb-6 md:text-base">Знайдіть екскурсію за містом, темою, назвою або датою</p>
+        <h1 className="section-title mb-1 text-2xl md:text-[28px]">{SEO_SEARCH_HEADING}</h1>
+        <p className="mb-4 text-sm text-muted md:mb-6 md:text-base">{SEO_SEARCH_DESCRIPTION}</p>
         <input
           className="input mb-4 max-w-xl md:mb-6"
           placeholder="Місто, тема, назва..."

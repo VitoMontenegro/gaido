@@ -17,6 +17,7 @@ import {
   placeSeoDescription,
   placeSeoTitle,
   seoCountryExcursionsDescription,
+  seoCountryExcursionsHeading,
   seoCountryExcursionsTitle,
 } from '../lib/seoTemplates'
 import { cn } from '@gaido/ui-primitives/cn'
@@ -68,7 +69,7 @@ export default function CountryExcursionsPage() {
 
   const jsonLd = useMemo(() => {
     const schemas = buildExcursionListingJsonLd(items, {
-      name: `Екскурсії в ${title}`,
+      name: seoCountryExcursionsHeading(title),
       description: seoDescription,
     })
     schemas.push(buildPlaceJsonLd({ name: title, path: `/countries/${countrySlug}` }))
@@ -97,7 +98,7 @@ export default function CountryExcursionsPage() {
           ← Усі екскурсії
         </Link>
         <h1 className={cn('section-title mb-1 text-2xl md:text-[28px]', !country && 'capitalize')}>
-          Екскурсії {title}
+          {seoCountryExcursionsHeading(title)}
         </h1>
         <p className="mb-4 text-sm text-muted md:mb-6 md:text-base">
           {isLoading
@@ -110,7 +111,7 @@ export default function CountryExcursionsPage() {
         <PlaceExcerpt value={placePage?.excerpt} fallback={excerptFallback} />
 
         <section className="min-h-[80px]">
-          <h2 className="mb-4 text-xl font-semibold">Гіди</h2>
+          <h2 className="mb-4 text-xl font-semibold">Гіди українською</h2>
           {guidesLoading ? (
             <p className="text-sm text-muted">Завантаження…</p>
           ) : guideItems.length === 0 ? (

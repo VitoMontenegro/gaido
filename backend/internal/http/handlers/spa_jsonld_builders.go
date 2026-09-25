@@ -66,7 +66,7 @@ func buildFaqPageJSON(items []faqItem) map[string]any {
 func countryExcursionFaq(countryName string) []faqItem {
 	return []faqItem{
 		{
-			question: "Як знайти екскурсію в " + countryName + "?",
+			question: "Як знайти екскурсію українською " + ukInLocative(countryName) + "?",
 			answer:   "Оберіть екскурсію в каталозі, перегляньте опис і дати, потім напишіть гіду напряму — він підтвердить час і деталі.",
 		},
 		{
@@ -81,14 +81,14 @@ func countryExcursionFaq(countryName string) []faqItem {
 }
 
 func cityExcursionFaq(cityName, countryName string) []faqItem {
-	place := cityName
+	place := ukInLocative(cityName)
 	if countryName != "" {
-		place = cityName + " (" + countryName + ")"
+		place = place + " (" + countryName + ")"
 	}
 	return []faqItem{
 		{
-			question: "Які екскурсії є в " + place + "?",
-			answer:   "У каталозі — групові та індивідуальні тури: пішохідні прогулянки, оглядові маршрути та тематичні екскурсії від місцевих гідів.",
+			question: "Які екскурсії українською є " + place + "?",
+			answer:   "У каталозі — групові та індивідуальні екскурсії українською: пішохідні прогулянки, оглядові маршрути та тематичні тури від місцевих гідів.",
 		},
 		{
 			question: "Як обрати дату?",
@@ -195,10 +195,10 @@ func buildExcursionAggregateProductJSON(items []domain.ExcursionView, base, name
 		"@type":    "Product",
 		"name":     name,
 		"offers": map[string]any{
-			"@type":        "AggregateOffer",
+			"@type":         "AggregateOffer",
 			"priceCurrency": currency,
-			"offerCount":   len(items),
-			"availability": "https://schema.org/InStock",
+			"offerCount":    len(items),
+			"availability":  "https://schema.org/InStock",
 		},
 	}
 	if description != "" {
@@ -281,7 +281,7 @@ func buildCountryGuideItemListJSON(countries []countryGuideEntry, base string) m
 	return map[string]any{
 		"@context":        "https://schema.org",
 		"@type":           "ItemList",
-		"name":            "Гіди за країнами",
+		"name":            "Україномовні гіди за країнами",
 		"numberOfItems":   len(countries),
 		"itemListElement": elements,
 	}
@@ -293,6 +293,7 @@ func buildPersonJSON(g *domain.GuideProfile, base string) map[string]any {
 		"@context":    "https://schema.org",
 		"@type":       "Person",
 		"name":        g.DisplayName,
+		"jobTitle":    "Гід",
 		"url":         url,
 		"description": truncateDesc(domain.PublicGuideAbout(g.About), 500),
 	}

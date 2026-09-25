@@ -45,7 +45,7 @@ func spaSocialProfileForHost(host string) (spaSocialProfile, bool) {
 		return spaSocialProfile{
 			origin:      "https://svit.gaido-ua.com",
 			title:       "Gaido",
-			description: "Гіди та екскурсії для українців за кордоном",
+			description: "Каталог приватних гідів і екскурсій українською за кордоном",
 		}, true
 	case "servis.gaido-ua.com":
 		return spaSocialProfile{

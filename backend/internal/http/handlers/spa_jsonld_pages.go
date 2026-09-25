@@ -16,7 +16,7 @@ func (h *Handlers) homePageJsonLd(ctx context.Context, base string, content doma
 		desc = content.HeroSubtitle
 	}
 	if desc == "" {
-		desc = "Гіди та екскурсії для українців за кордоном"
+		desc = seoHomeDescription
 	}
 
 	var faq []faqItem
@@ -36,8 +36,8 @@ func (h *Handlers) homePageJsonLd(ctx context.Context, base string, content doma
 
 func (h *Handlers) countryPageJsonLd(ctx context.Context, c *postgres.Country, base string, page *domain.PlacePage) []string {
 	items, _ := h.Exc.ListPublicEnriched(ctx, nil, c.Slug, "", nil, 50, 0)
-	listName := fmt.Sprintf("Екскурсії в %s", c.Name)
-	desc := fmt.Sprintf("Екскурсії в %s — ціни, гіди, авторські маршрути для українців", c.Name)
+	listName := seoCountryExcursionsHeading(c.Name)
+	desc := seoCountryExcursionsDescription(c.Name)
 	if page != nil && strings.TrimSpace(page.SEODescription) != "" {
 		desc = page.SEODescription
 	}
@@ -69,8 +69,8 @@ func (h *Handlers) cityPageJsonLd(ctx context.Context, city *postgres.City, base
 		countryName = country.Name
 	}
 
-	listName := fmt.Sprintf("Екскурсії в %s", city.Name)
-	desc := fmt.Sprintf("Гіди та авторські екскурсії в %s — бронювання напряму з гідом", city.Name)
+	listName := seoCityExcursionsHeading(city.Name)
+	desc := seoCityExcursionsDescription(city.Name, countryName)
 	if page != nil && strings.TrimSpace(page.SEODescription) != "" {
 		desc = page.SEODescription
 	}
@@ -134,7 +134,7 @@ func (h *Handlers) guidesCountryPageJsonLd(ctx context.Context, c *postgres.Coun
 	path := "/guides/countries/" + c.Slug
 
 	var blocks []any
-	if list := buildGuideItemListJSON(guides, base, fmt.Sprintf("Гіди в %s", c.Name)); list != nil {
+	if list := buildGuideItemListJSON(guides, base, seoGuidesCountryHeading(c.Name)); list != nil {
 		blocks = append(blocks, list)
 	}
 	blocks = append(blocks,

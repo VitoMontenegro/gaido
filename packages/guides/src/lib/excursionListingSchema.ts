@@ -231,6 +231,7 @@ export function buildPersonJsonLd(guide: {
     '@context': 'https://schema.org',
     '@type': 'Person',
     name: guide.display_name,
+    jobTitle: 'Гід',
     description: guide.about,
     url: absoluteUrl(`/guide/${guide.slug}`),
   }

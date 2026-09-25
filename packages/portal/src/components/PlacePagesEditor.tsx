@@ -264,7 +264,7 @@ function PlacePageForm({
             className="input w-full"
             maxLength={120}
             value={draft.seo_title}
-            placeholder={`Екскурсії в ${draft.name}`}
+            placeholder={`Екскурсії українською в ${draft.name}`}
             onChange={(e) => patch({ seo_title: e.target.value })}
           />
           <span className="text-xs text-stone-500">У вкладці браузера додамо «— Gaido». {draft.seo_title.length}/120</span>

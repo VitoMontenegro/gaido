@@ -43,7 +43,7 @@ function localCrossSiteUrl(
 
 const SITE_SOCIAL: Record<SiteMode, { title: string; description: string }> = {
   portal: { title: 'Gaido', description: 'Для українців — від українців' },
-  guides: { title: 'Gaido', description: 'Гіди та екскурсії для українців за кордоном' },
+  guides: { title: 'Gaido', description: 'Каталог приватних гідів і екскурсій українською за кордоном' },
   transport: { title: 'Gaido Vezu', description: 'Транспорт для українців за кордоном' },
   services: { title: 'Gaido Servis', description: 'Послуги для українців за кордоном' },
 }

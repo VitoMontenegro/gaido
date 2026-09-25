@@ -7,10 +7,13 @@ import GuideCard, { GuideCardGrid } from '../components/GuideCard'
 import { buildPlaceJsonLd } from '../lib/excursionListingSchema'
 import { Seo } from '../lib/seo'
 import {
+  SEO_GUIDES_LIST_DESCRIPTION,
+  SEO_GUIDES_LIST_HEADING,
   seoGuidesCountryDescription,
+  seoGuidesCountryHeading,
   seoGuidesCountryTitle,
+  seoGuidesListTitle,
 } from '../lib/seoTemplates'
-import { pageTitle } from '@gaido/site-urls/brand'
 import { cn } from '@gaido/ui-primitives/cn'
 
 function CountryTile({ slug, name, guideCount }: { slug: string; name: string; guideCount: number }) {
@@ -46,7 +49,7 @@ export default function GuidesListPage() {
         ? [{
             '@context': 'https://schema.org',
             '@type': 'ItemList',
-            name: 'Гіди за країнами',
+            name: 'Україномовні гіди за країнами',
             numberOfItems: countryItems.length,
             itemListElement: countryItems.map((c, index) => ({
               '@type': 'ListItem',
@@ -62,16 +65,16 @@ export default function GuidesListPage() {
   return (
     <>
       <Seo
-        title={pageTitle('Гіди')}
-        description="Оберіть країну — побачите місцевих експертів із авторськими маршрутами"
+        title={seoGuidesListTitle()}
+        description={SEO_GUIDES_LIST_DESCRIPTION}
         path="/guides"
         jsonLd={jsonLd.length > 0 ? jsonLd : undefined}
       />
       <Breadcrumbs items={[{ label: 'Гіди' }]} currentPath="/guides" />
       <div className="container-site py-5 md:py-8">
-        <h1 className="section-title mb-1 text-2xl md:text-[28px]">Гіди</h1>
+        <h1 className="section-title mb-1 text-2xl md:text-[28px]">{SEO_GUIDES_LIST_HEADING}</h1>
         <p className="mb-6 text-sm text-muted md:mb-8 md:text-base">
-          Оберіть країну — побачите місцевих експертів із авторськими маршрутами
+          {SEO_GUIDES_LIST_DESCRIPTION}
         </p>
 
         <section>
@@ -135,7 +138,7 @@ export function GuidesByCountryPage() {
       schemas.unshift({
         '@context': 'https://schema.org',
         '@type': 'ItemList',
-        name: `Гіди в ${title}`,
+        name: seoGuidesCountryHeading(title),
         numberOfItems: guideItems.length,
         itemListElement: guideItems.map((g, index) => ({
           '@type': 'ListItem',
@@ -168,7 +171,7 @@ export function GuidesByCountryPage() {
           ← Усі країни
         </Link>
         <h1 className={cn('section-title mb-1 text-2xl md:text-[28px]', !country && 'capitalize')}>
-          Гіди {title}
+          {seoGuidesCountryHeading(title)}
         </h1>
         <p className="mb-4 text-sm text-muted md:mb-6 md:text-base">
           {country

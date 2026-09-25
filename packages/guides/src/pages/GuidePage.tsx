@@ -15,7 +15,7 @@ import { useHasRole, useMe } from '@gaido/api-client/hooks/useAuth'
 // import { useTelegramBotURL } from '../hooks/useTelegramBotURL'
 import { getApiErrorCode } from '@gaido/api-client/api/http'
 import CatalogNotFound from '../components/CatalogNotFound'
-import { pageTitle } from '@gaido/site-urls/brand'
+import { seoGuideHeading, seoGuideSubtitle, seoGuideTitle } from '../lib/seoTemplates'
 import { buildExcursionItemListJsonLd, buildPersonJsonLd } from '../lib/excursionListingSchema'
 import { displayGuideAbout } from '../lib/guideAbout'
 import { Seo } from '../lib/seo'
@@ -90,8 +90,8 @@ export default function GuidePage() {
   return (
     <>
       <Seo
-        title={pageTitle(guide.display_name)}
-        description={about}
+        title={seoGuideTitle(guide.display_name, guide.city_name)}
+        description={about || seoGuideHeading(guide.display_name, guide.city_name)}
         path={`/guide/${guide.slug}`}
         image={guide.avatar_url}
         jsonLd={jsonLd.length > 0 ? jsonLd : undefined}
@@ -187,6 +187,7 @@ function GuideHero({ guide, excursionCount }: { guide: PublicGuide; excursionCou
           </span>
         )}
         <h1 className="font-display mt-3 text-4xl font-bold text-stone-900 md:text-5xl">{guide.display_name}</h1>
+        <p className="mt-2 text-lg text-stone-600">{seoGuideSubtitle(guide.city_name)}</p>
         <p className="mt-3 flex flex-wrap items-center gap-2 text-lg text-stone-600">
           <StarRating value={guide.rating_avg} size="md" />
           <span>{guide.rating_avg.toFixed(1)} · {guide.rating_count} відгуків · {excursionCount} екскурсій</span>

@@ -35,7 +35,7 @@ const DEFAULT_CTA: HomeCta = {
 function normalizeHome(home: HomeContent): HomeContent {
   return {
     ...home,
-    seo_title: home.seo_title || 'Гіди та екскурсії',
+    seo_title: home.seo_title || 'Україномовні гіди та екскурсії за кордоном',
     seo_description: home.seo_description || home.hero_subtitle || '',
     seo_image_url: home.seo_image_url || DEFAULT_OG_IMAGE_KEY,
     category_tiles: normalizeCategoryTiles(home.category_tiles),
@@ -120,7 +120,7 @@ export function SiteContentEditor() {
             maxLength={120}
             value={home.seo_title}
             onChange={(e) => updateHome({ seo_title: e.target.value })}
-            placeholder="Гіди та екскурсії"
+            placeholder="Україномовні гіди та екскурсії за кордоном"
           />
           <span className="mt-1 block text-xs text-muted-light">
             У вкладці браузера додамо «— Gaido». Зараз: {home.seo_title ? `${home.seo_title} — Gaido` : 'Gaido'}. {home.seo_title.length}/120

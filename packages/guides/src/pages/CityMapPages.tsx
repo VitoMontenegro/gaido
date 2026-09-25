@@ -18,7 +18,10 @@ import {
   placeSeoDescription,
   placeSeoTitle,
   seoCityExcursionsDescription,
+  seoCityExcursionsHeading,
   seoCityExcursionsTitle,
+  SEO_MAP_DESCRIPTION,
+  SEO_MAP_HEADING,
 } from '../lib/seoTemplates'
 import { pageTitle } from '@gaido/site-urls/brand'
 
@@ -103,7 +106,7 @@ export default function CityPage() {
   const jsonLd = useMemo(() => {
     if (!city) return []
     const schemas = buildExcursionListingJsonLd(excursionItems, {
-      name: seoCityExcursionsTitle(city.name),
+      name: seoCityExcursionsHeading(city.name),
       description: seoDescription ?? '',
     })
     schemas.push(buildPlaceJsonLd({
@@ -140,7 +143,7 @@ export default function CityPage() {
       )}
       <div className="container-site py-8">
         {city ? (
-          <h1 className="font-display text-3xl font-bold">Екскурсії в {city.name}</h1>
+          <h1 className="font-display text-3xl font-bold">{seoCityExcursionsHeading(city.name)}</h1>
         ) : cityLoading ? (
           <div className="h-9 w-64 max-w-full animate-pulse rounded bg-sand-100" aria-label="Завантаження" />
         ) : (
@@ -152,7 +155,7 @@ export default function CityPage() {
             <PlaceExcerpt value={placePage?.excerpt} fallback={excerptFallback} />
 
             <section className="mt-8 min-h-[120px]">
-              <h2 className="mb-4 text-xl font-semibold">Гіди</h2>
+              <h2 className="mb-4 text-xl font-semibold">Гіди українською</h2>
               {guidesLoading ? (
                 <GuideGridSkeleton />
               ) : guideItems.length === 0 ? (
@@ -204,11 +207,11 @@ export function MapPage() {
 
   return (
     <>
-      <Seo title={pageTitle('Карта')} description="Міста з опублікованими екскурсіями" path="/map" />
+      <Seo title={pageTitle(SEO_MAP_HEADING)} description={SEO_MAP_DESCRIPTION} path="/map" />
       <Breadcrumbs items={[{ label: 'Карта' }]} currentPath="/map" />
       <div className="container-site py-8">
-        <h1 className="font-display text-3xl font-bold">Карта напрямків</h1>
-        <p className="mt-2 text-stone-600">Міста з опублікованими екскурсіями — оберіть на карті або в списку</p>
+        <h1 className="font-display text-3xl font-bold">{SEO_MAP_HEADING}</h1>
+        <p className="mt-2 text-stone-600">{SEO_MAP_DESCRIPTION}</p>
 
         {isLoading ? (
           <div className="mt-6 min-h-[420px] animate-pulse rounded-2xl bg-sand-100" aria-label="Завантаження карти" />

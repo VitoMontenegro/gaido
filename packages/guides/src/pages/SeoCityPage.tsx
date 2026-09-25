@@ -5,6 +5,7 @@ import { catalogApi } from '@gaido/api-client/api/catalog'
 import { servicesUrl } from '@gaido/site-urls/site'
 import { Seo } from '../lib/seo'
 import { pageTitle } from '@gaido/site-urls/brand'
+import { ukInLocative } from '../lib/ukLocative'
 
 export default function SeoCityPage() {
   const { citySlug = '' } = useParams()
@@ -23,8 +24,8 @@ export default function SeoCityPage() {
   return (
     <>
       <Seo
-        title={pageTitle(`Українці в ${city?.name ?? citySlug}`)}
-        description={`Українські послуги та ресурси в ${city?.name ?? citySlug} та поруч.`}
+        title={pageTitle(`Українці ${ukInLocative(city?.name ?? citySlug)}`)}
+        description={`Українські послуги та ресурси ${ukInLocative(city?.name ?? citySlug)} та поруч.`}
         path={`/ukrainians-in/${citySlug}`}
         noIndex
       />
