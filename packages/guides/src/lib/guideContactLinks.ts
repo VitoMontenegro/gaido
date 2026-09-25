@@ -1,24 +1,36 @@
 import type { Contacts } from '@gaido/api-client/api/types/catalog'
+import { GUIDES_HOST } from '@gaido/site-urls/site'
+
+const CONTACT_PREFILL = `Вітаю, я пишу вам із сайту ${GUIDES_HOST}`
 
 function digitsOnly(value: string) {
   return value.replace(/\D/g, '')
 }
 
+function withPrefill(href: string, key: string) {
+  const url = new URL(href)
+  if (url.searchParams.has(key)) return href
+  const sep = href.includes('?') ? '&' : '?'
+  return `${href}${sep}${key}=${encodeURIComponent(CONTACT_PREFILL)}`
+}
+
 export function telegramHref(value: string) {
   const trimmed = value.trim()
   if (!trimmed) return ''
-  if (/^https?:\/\//i.test(trimmed)) return trimmed.replace(/\/$/, '')
-  return `https://t.me/${trimmed.replace(/^@/, '')}`
+  const href = /^https?:\/\//i.test(trimmed)
+    ? trimmed.replace(/\/$/, '')
+    : `https://t.me/${trimmed.replace(/^@/, '')}`
+  return withPrefill(href, 'text')
 }
 
 export function whatsappHref(value: string) {
   const digits = digitsOnly(value)
-  return digits ? `https://wa.me/${digits}` : ''
+  return digits ? withPrefill(`https://wa.me/${digits}`, 'text') : ''
 }
 
 export function viberHref(value: string) {
   const digits = digitsOnly(value)
-  return digits ? `viber://chat?number=%2B${digits}` : ''
+  return digits ? withPrefill(`viber://chat?number=%2B${digits}`, 'draft') : ''
 }
 
 export function emailHref(value: string) {
