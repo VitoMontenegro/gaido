@@ -7,7 +7,7 @@ export function ukInLocative(name: string) {
   return `${startsWithVowel(loc) ? 'в' : 'у'} ${loc}`
 }
 
-export function ukLocative(name: string) {
+export function ukLocative(name: string): string {
   const trimmed = name.trim().replace(/\s+/g, ' ')
   if (!trimmed) return ''
   if (isAbbreviation(trimmed)) return trimmed
