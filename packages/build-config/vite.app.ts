@@ -110,6 +110,21 @@ function socialMetaHtmlPlugin(siteOrigin: string, siteMode: SiteMode): Plugin {
   }
 }
 
+/** leaflet.markercluster is a UMD plugin that expects a free `L` binding. */
+function leafletMarkerClusterPlugin(): Plugin {
+  return {
+    name: 'gaido-leaflet-markercluster',
+    enforce: 'pre',
+    transform(code, id) {
+      const normalized = id.replace(/\\/g, '/')
+      if (!normalized.includes('/leaflet.markercluster/')) return null
+      if (normalized.endsWith('.css')) return null
+      if (code.includes("from 'leaflet'")) return null
+      return { code: `import L from 'leaflet';\n${code}`, map: null }
+    },
+  }
+}
+
 function buildIdPlugin(buildId: string): Plugin {
   return {
     name: 'gaido-build-id',
@@ -249,7 +264,8 @@ export function createAppViteConfig({
     }
 
     if (leaflet) {
-      config.optimizeDeps = { include: ['leaflet'] }
+      config.plugins?.push(leafletMarkerClusterPlugin())
+      config.optimizeDeps = { include: ['leaflet', 'leaflet.markercluster'] }
     }
 
     const deferModulePreload = /lazyRichTextEditor|LegalContentEditor|RichTextEditor|tinymce|AdminPage|ModeratorPage|DeployPage|ExcursionForm|CreateExcursion|EditExcursion|GuideOverview|GuideProfile|GuideBilling|GuideDocuments|GuideExcursions|GuideCalendar|GuideArticles|GuideInstructions|AvailabilityCalendar|ImageUrlField|ArticlesEditor|PlacePagesEditor/i

@@ -1,5 +1,6 @@
 import L from 'leaflet'
 import { useEffect, useRef } from 'react'
+import { createMarkerClusterGroup } from '../../lib/leafletCluster'
 import {
   OSM_ATTRIBUTION,
   OSM_TILE_URL,
@@ -38,6 +39,7 @@ export default function LeafletMap<T extends LatLngPoint>({
 }: LeafletMapProps<T>) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
+  const clusterRef = useRef<L.MarkerClusterGroup | null>(null)
   const onMarkerClickRef = useRef(onMarkerClick)
   const getTooltipRef = useRef(getTooltip)
   const renderPopupRef = useRef(renderPopup)
@@ -83,6 +85,7 @@ export default function LeafletMap<T extends LatLngPoint>({
       unbindWheel()
       map.remove()
       mapRef.current = null
+      clusterRef.current = null
     }
   }, [])
 
@@ -90,12 +93,9 @@ export default function LeafletMap<T extends LatLngPoint>({
     const map = mapRef.current
     if (!map) return
 
-    map.eachLayer((layer) => {
-      if (layer instanceof L.Marker) map.removeLayer(layer)
-    })
-
-    points.forEach((p) => {
-      const marker = L.marker([p.lat, p.lng]).addTo(map)
+    const cluster = createMarkerClusterGroup()
+    const markers = points.map((p) => {
+      const marker = L.marker([p.lat, p.lng])
 
       const tooltip = getTooltipRef.current?.(p)
       if (tooltip) {
@@ -110,7 +110,12 @@ export default function LeafletMap<T extends LatLngPoint>({
       if (onMarkerClickRef.current) {
         marker.on('click', () => onMarkerClickRef.current?.(p))
       }
+
+      return marker
     })
+    cluster.addLayers(markers)
+    cluster.addTo(map)
+    clusterRef.current = cluster
 
     const fitPoints: LatLngPoint[] = [...points]
     if (center) fitPoints.push(center)
@@ -124,6 +129,11 @@ export default function LeafletMap<T extends LatLngPoint>({
     }
 
     requestAnimationFrame(() => map.invalidateSize())
+
+    return () => {
+      map.removeLayer(cluster)
+      if (clusterRef.current === cluster) clusterRef.current = null
+    }
   }, [points, center?.lat, center?.lng, fitOptions?.singleZoom, fitOptions?.maxZoom, fitOptions?.padding])
 
   return (

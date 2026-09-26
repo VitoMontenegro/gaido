@@ -365,7 +365,7 @@
   }
 
   .leaflet-map {
-    @apply w-full rounded-3xl border border-border h-65 sm:h-130;
+    @apply w-full rounded-3xl border border-border h-96 sm:h-130;
   }
 
   .leaflet-map--wheel-active {
@@ -843,6 +843,31 @@
   .excursion-parus-organizer__pill--email {
     @apply bg-[#e7e5e5] text-[#0F1A28];
   }
+}
+
+.leaflet-div-icon.gaido-cluster {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--color-teal);
+  color: #fff;
+  font-weight: 700;
+  line-height: 1;
+  border: 3px solid rgb(255 255 255 / 0.92);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.22);
+}
+
+.leaflet-div-icon.gaido-cluster--sm {
+  font-size: 13px;
+}
+
+.leaflet-div-icon.gaido-cluster--md {
+  font-size: 14px;
+}
+
+.leaflet-div-icon.gaido-cluster--lg {
+  font-size: 15px;
 }
 
 .calendar-month-header-sticky {
