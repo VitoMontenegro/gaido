@@ -79,7 +79,7 @@ export function seoGuidesListTitle() {
 }
 
 export function seoGuidesCountryHeading(countryName: string) {
-  return `Гіди українською ${ukInLocative(countryName)}`
+  return `Україномовні гіди ${ukInLocative(countryName)}`
 }
 
 export function seoGuidesCountryTitle(countryName: string) {
@@ -88,7 +88,7 @@ export function seoGuidesCountryTitle(countryName: string) {
 
 export function seoGuidesCountryDescription(countryName: string, count?: number) {
   if (count && count > 0) {
-    return `${count} гідів українською ${ukInLocative(countryName)} — авторські маршрути`
+    return `${count} україномовних гідів ${ukInLocative(countryName)} — авторські маршрути`
   }
   return `Україномовні гіди ${ukInLocative(countryName)} — авторські маршрути та екскурсії`
 }
@@ -99,14 +99,14 @@ export function primaryCityName(cityName?: string) {
 
 export function seoGuideSubtitle(cityName?: string) {
   const city = primaryCityName(cityName)
-  if (city) return `Гід українською ${ukInLocative(city)}`
-  return 'Гід українською'
+  if (city) return `Україномовний гід ${ukInLocative(city)}`
+  return 'Україномовний гід'
 }
 
 export function seoGuideHeading(name: string, cityName?: string) {
   const city = primaryCityName(cityName)
-  if (city) return `${name} — гід українською ${ukInLocative(city)}`
-  return `${name} — гід українською`
+  if (city) return `${name} — україномовний гід ${ukInLocative(city)}`
+  return `${name} — україномовний гід`
 }
 
 export function seoGuideTitle(name: string, cityName?: string) {

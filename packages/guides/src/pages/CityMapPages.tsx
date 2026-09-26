@@ -155,7 +155,7 @@ export default function CityPage() {
             <PlaceExcerpt value={placePage?.excerpt} fallback={excerptFallback} />
 
             <section className="mt-8 min-h-[120px]">
-              <h2 className="mb-4 text-xl font-semibold">Гіди українською</h2>
+              <h2 className="mb-4 text-xl font-semibold">Україномовні гіди</h2>
               {guidesLoading ? (
                 <GuideGridSkeleton />
               ) : guideItems.length === 0 ? (

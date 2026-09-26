@@ -48,7 +48,7 @@ func seoCityExcursionsDescription(city, country string) string {
 }
 
 func seoGuidesCountryHeading(name string) string {
-	return "Гіди українською " + ukInLocative(name)
+	return "Україномовні гіди " + ukInLocative(name)
 }
 
 func seoGuidesCountryDescription(name string) string {
@@ -58,9 +58,9 @@ func seoGuidesCountryDescription(name string) string {
 func seoGuideHeading(name, city string) string {
 	city = primaryCityName(city)
 	if city == "" {
-		return name + " — гід українською"
+		return name + " — україномовний гід"
 	}
-	return fmt.Sprintf("%s — гід українською %s", name, ukInLocative(city))
+	return fmt.Sprintf("%s — україномовний гід %s", name, ukInLocative(city))
 }
 
 func primaryCityName(joined string) string {
