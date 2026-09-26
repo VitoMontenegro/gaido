@@ -128,6 +128,31 @@ func (r *GeoRepo) ListCountriesWithGuideCount(ctx context.Context) ([]CountryWit
 	return out, rows.Err()
 }
 
+func (r *GeoRepo) ListCountriesWithExcursions(ctx context.Context) ([]Country, error) {
+	rows, err := r.db.Pool.Query(ctx, `
+		SELECT DISTINCT co.id, co.slug, co.name, co.is_active
+		FROM countries co
+		JOIN cities c ON c.country_id = co.id AND c.is_active = true
+		JOIN excursions e ON e.city_id = c.id AND e.status = $1
+		JOIN guide_profiles g ON g.id = e.guide_id AND g.status = $2
+		WHERE co.is_active = true AND co.slug <> ''
+		ORDER BY co.name
+	`, domain.ExcursionPublished, domain.GuideStatusActive)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := make([]Country, 0)
+	for rows.Next() {
+		var c Country
+		if err := rows.Scan(&c.ID, &c.Slug, &c.Name, &c.IsActive); err != nil {
+			return nil, err
+		}
+		out = append(out, c)
+	}
+	return out, rows.Err()
+}
+
 func (r *GeoRepo) ListCities(ctx context.Context) ([]City, error) {
 	rows, err := r.db.Pool.Query(ctx, `SELECT id, country_id, region_id, slug, name, COALESCE(latitude,0), COALESCE(longitude,0) FROM cities WHERE is_active=true ORDER BY name`)
 	if err != nil {

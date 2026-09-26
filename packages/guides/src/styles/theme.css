@@ -365,7 +365,7 @@
   }
 
   .leaflet-map {
-    @apply w-full rounded-3xl border border-border h-96 sm:h-130;
+    @apply w-full rounded-3xl border border-border h-80 sm:h-130;
   }
 
   .leaflet-map--wheel-active {
@@ -843,6 +843,13 @@
   .excursion-parus-organizer__pill--email {
     @apply bg-[#e7e5e5] text-[#0F1A28];
   }
+}
+
+.leaflet-map .leaflet-control-zoom {
+  margin: 14px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 8px;
 }
 
 .leaflet-div-icon.gaido-cluster {

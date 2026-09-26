@@ -22,6 +22,15 @@ func (h *Handlers) ListCountries(w http.ResponseWriter, r *http.Request) {
 		response.JSON(w, r, 200, map[string]any{"items": items})
 		return
 	}
+	if r.URL.Query().Get("with_excursions") == "1" {
+		items, err := h.Geo.ListCountriesWithExcursions(r.Context())
+		if err != nil {
+			response.Error(w, r, apperrors.ErrInternal)
+			return
+		}
+		response.JSON(w, r, 200, map[string]any{"items": items})
+		return
+	}
 	items, err := h.Geo.ListCountries(r.Context())
 	if err != nil {
 		response.Error(w, r, apperrors.ErrInternal)

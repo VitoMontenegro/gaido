@@ -6,11 +6,11 @@ const CLUSTER_DISABLE_ZOOM = 11
 
 function clusterRadiusForZoom(zoom: number): number {
   const mobile = window.matchMedia('(max-width: 639px)').matches
-  if (zoom <= 3) return mobile ? 80 : 64
-  if (zoom <= 5) return mobile ? 64 : 52
-  if (zoom <= 7) return mobile ? 52 : 40
-  if (zoom <= 9) return mobile ? 44 : 32
-  return mobile ? 40 : 28
+  if (zoom <= 3) return mobile ? 56 : 64
+  if (zoom <= 5) return mobile ? 44 : 52
+  if (zoom <= 7) return mobile ? 36 : 40
+  if (zoom <= 9) return mobile ? 32 : 32
+  return mobile ? 28 : 28
 }
 
 function clusterIcon(cluster: L.MarkerCluster): L.DivIcon {

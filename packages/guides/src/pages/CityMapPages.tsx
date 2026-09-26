@@ -209,12 +209,12 @@ export function MapPage() {
     <>
       <Seo title={pageTitle(SEO_MAP_HEADING)} description={SEO_MAP_DESCRIPTION} path="/map" />
       <Breadcrumbs items={[{ label: 'Карта' }]} currentPath="/map" />
-      <div className="container-site py-8">
-        <h1 className="font-display text-3xl font-bold">{SEO_MAP_HEADING}</h1>
-        <p className="mt-2 text-stone-600">{SEO_MAP_DESCRIPTION}</p>
+      <div className="container-site py-5 sm:py-8">
+        <h1 className="font-display text-xl font-bold leading-tight break-normal sm:text-3xl">{SEO_MAP_HEADING}</h1>
+        <p className="mt-1.5 text-sm text-stone-600 sm:mt-2 sm:text-base">{SEO_MAP_DESCRIPTION}</p>
 
         {isLoading ? (
-          <div className="mt-6 min-h-[420px] animate-pulse rounded-2xl bg-sand-100" aria-label="Завантаження карти" />
+          <div className="mt-6 min-h-80 animate-pulse rounded-2xl bg-sand-100 sm:min-h-130" aria-label="Завантаження карти" />
         ) : points.length === 0 ? (
           <p className="mt-6 text-stone-500">Поки немає опублікованих екскурсій на карті.</p>
         ) : (

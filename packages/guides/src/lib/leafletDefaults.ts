@@ -27,6 +27,29 @@ export const MAP_DEFAULT_ZOOM = 2
 
 export type LatLngPoint = { lat: number; lng: number }
 
+/** Drop far outliers so a narrow map starts on the dense region, not the whole world. */
+export function denseFitPoints<T extends LatLngPoint>(points: T[]): T[] {
+  if (points.length < 8) return points
+  const lngs = points.map((p) => p.lng).sort((a, b) => a - b)
+  const lats = points.map((p) => p.lat).sort((a, b) => a - b)
+  const medLng = lngs[Math.floor(lngs.length / 2)]
+  const medLat = lats[Math.floor(lats.length / 2)]
+  const cos = Math.cos((medLat * Math.PI) / 180)
+  const dist2 = (p: LatLngPoint) => {
+    const dLng = (p.lng - medLng) * cos
+    const dLat = p.lat - medLat
+    return dLng * dLng + dLat * dLat
+  }
+  const keep = Math.max(5, Math.ceil(points.length * 0.75))
+  return [...points].sort((a, b) => dist2(a) - dist2(b)).slice(0, keep)
+}
+
+export const MAP_MOBILE_FIT = {
+  singleZoom: 5,
+  maxZoom: 6,
+  padding: [32, 32] as [number, number],
+}
+
 export function fitLeafletMapToPoints(
   map: L.Map,
   points: LatLngPoint[],

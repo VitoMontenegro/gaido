@@ -17,6 +17,8 @@ export const catalogApi = {
   countries: () => api<{ items: import('./types/catalog').Country[] }>('/api/v1/geo/countries'),
   countriesWithGuides: () =>
     api<{ items: import('./types/catalog').CountryWithGuides[] }>('/api/v1/geo/countries?with_guides=1'),
+  countriesWithExcursions: () =>
+    api<{ items: import('./types/catalog').Country[] }>('/api/v1/geo/countries?with_excursions=1'),
   cities: () => api<{ items: import('./types/catalog').City[] }>('/api/v1/geo/cities'),
   citiesByCountry: (countrySlug: string) =>
     api<{ items: import('./types/catalog').City[] }>(`/api/v1/geo/countries/${countrySlug}/cities`),

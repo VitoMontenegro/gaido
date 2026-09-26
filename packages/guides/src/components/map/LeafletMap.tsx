@@ -6,9 +6,11 @@ import {
   OSM_TILE_URL,
   ensureLeafletIcons,
   bindPageFriendlyWheelZoom,
+  denseFitPoints,
   fitLeafletMapToPoints,
   MAP_DEFAULT_CENTER,
   MAP_DEFAULT_ZOOM,
+  MAP_MOBILE_FIT,
   type LatLngPoint,
 } from '../../lib/leafletDefaults'
 
@@ -117,11 +119,12 @@ export default function LeafletMap<T extends LatLngPoint>({
     cluster.addTo(map)
     clusterRef.current = cluster
 
-    const fitPoints: LatLngPoint[] = [...points]
+    const mobile = window.matchMedia('(max-width: 639px)').matches
+    const fitPoints: LatLngPoint[] = [...(mobile && !center ? denseFitPoints(points) : points)]
     if (center) fitPoints.push(center)
 
     if (fitPoints.length) {
-      fitLeafletMapToPoints(map, fitPoints, fitOptions)
+      fitLeafletMapToPoints(map, fitPoints, mobile && !center ? MAP_MOBILE_FIT : fitOptions)
     } else if (center) {
       map.setView([center.lat, center.lng], fitOptions?.singleZoom ?? 13)
     } else {
@@ -140,7 +143,7 @@ export default function LeafletMap<T extends LatLngPoint>({
     <div className="map-wrap">
       <div ref={containerRef} className="leaflet-map" />
       {showAttribution && (
-        <p className="mt-2 text-xs text-stone-500">
+        <p className="mt-2 hidden text-xs text-stone-500 sm:block">
           Клікніть на карту, щоб масштабувати колесом · OpenStreetMap
         </p>
       )}

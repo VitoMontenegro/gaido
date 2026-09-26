@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { catalogApi } from '@gaido/api-client/api/client'
 import Breadcrumbs from '../components/Breadcrumbs'
@@ -42,6 +42,13 @@ export default function SearchPage() {
     queryFn: () => catalogApi.excursions(queryParams) as Promise<{ items: ExcursionItem[] }>,
   })
 
+  const { data: countriesData } = useQuery({
+    queryKey: ['countries-with-excursions'],
+    queryFn: () => catalogApi.countriesWithExcursions(),
+    staleTime: 60_000,
+  })
+  const countries = countriesData?.items ?? []
+
   const setDate = (value: string) => {
     const next: Record<string, string> = {}
     if (q) next.q = q
@@ -78,6 +85,22 @@ export default function SearchPage() {
           onChange={(e) => setInput(e.target.value)}
           autoComplete="off"
         />
+        {countries.length > 0 && (
+          <nav aria-label="Країни" className="mb-3 flex items-center gap-2">
+            <span className="shrink-0 text-sm text-muted">Країни</span>
+            <div className="flex min-w-0 gap-1.5 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {countries.map((c) => (
+                <Link
+                  key={c.id}
+                  to={`/countries/${c.slug}`}
+                  className="shrink-0 rounded-full border border-border bg-surface px-3 py-1 text-sm text-ink transition hover:border-teal hover:text-teal"
+                >
+                  {c.name}
+                </Link>
+              ))}
+            </div>
+          </nav>
+        )}
         <div className="mb-6 md:mb-8">
           <DateFilterStrip
             selected={date || null}
