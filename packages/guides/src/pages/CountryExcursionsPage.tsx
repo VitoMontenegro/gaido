@@ -37,11 +37,6 @@ export default function CountryExcursionsPage() {
     queryFn: () => catalogApi.countries(),
   })
   const country = (countries?.items ?? []).find((c) => c.slug === countrySlug)
-  const { data: guides, isLoading: guidesLoading } = useQuery({
-    queryKey: ['guides', 'country', countrySlug],
-    queryFn: () => catalogApi.guides({ country_slug: countrySlug, limit: '50' }),
-    enabled: !!countrySlug,
-  })
   const { data: excursions, isLoading } = useQuery({
     queryKey: ['excursions', 'country', countrySlug],
     queryFn: () =>
@@ -56,16 +51,21 @@ export default function CountryExcursionsPage() {
   })
 
   const title = country?.name ?? countrySlug
-  const guideItems = guides?.items ?? []
   const items = excursions?.items ?? []
+  const cities = useMemo(() => {
+    const bySlug = new Map<string, { slug: string; name: string }>()
+    for (const item of items) {
+      if (!item.city_slug || !item.city_name) continue
+      if (!bySlug.has(item.city_slug)) bySlug.set(item.city_slug, { slug: item.city_slug, name: item.city_name })
+    }
+    return [...bySlug.values()].sort((a, b) => a.name.localeCompare(b.name, 'uk'))
+  }, [items])
   const faqItems = placeFaqOrDefault(
     placePage?.faq,
     !isLoading && items.length > 0 ? countryExcursionFaq(title) : [],
   )
   const seoDescription = placeSeoDescription(placePage?.seo_description, seoCountryExcursionsDescription(title, items.length))
-  const excerptFallback = (!guidesLoading && !isLoading && (guideItems.length > 0 || items.length > 0))
-    ? defaultCountryIntro(title)
-    : ''
+  const excerptFallback = !isLoading && items.length > 0 ? defaultCountryIntro(title) : ''
 
   const jsonLd = useMemo(() => {
     const schemas = buildExcursionListingJsonLd(items, {
@@ -110,20 +110,18 @@ export default function CountryExcursionsPage() {
 
         <PlaceExcerpt value={placePage?.excerpt} fallback={excerptFallback} />
 
-        <section className="min-h-[80px]">
-          <h2 className="mb-4 text-xl font-semibold">Гіди українською</h2>
-          {guidesLoading ? (
-            <p className="text-sm text-muted">Завантаження…</p>
-          ) : guideItems.length === 0 ? (
-            <p className="text-sm text-muted">Поки немає гідів у цій країні.</p>
-          ) : (
+        {!isLoading && cities.length > 0 && (
+          <section>
+            <h2 className="mb-4 text-xl font-semibold">Міста</h2>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {guideItems.map((g) => (
-                <Link key={g.id} to={`/guide/${g.slug}`} className="card hover:shadow-md">{g.display_name}</Link>
+              {cities.map((city) => (
+                <Link key={city.slug} to={`/city/${city.slug}`} className="card hover:shadow-md">
+                  {city.name}
+                </Link>
               ))}
             </div>
-          )}
-        </section>
+          </section>
+        )}
 
         <section className="mt-10 min-h-[120px]">
           <h2 className="mb-4 text-xl font-semibold">Екскурсії</h2>
