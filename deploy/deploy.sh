@@ -75,9 +75,11 @@ set +a
 STATIC_ROOT="${STATIC_ROOT:-$APP_ROOT/www}"
 
 # Manual copies / Mac rsyncs can leave www owned by another uid — deploy user cannot rsync --delete.
+# sudoers does not allow chown; never prompt for a password (breaks unattended deploy).
 if [ ! -O "$STATIC_ROOT" ] 2>/dev/null || find "$STATIC_ROOT" -mindepth 1 -maxdepth 2 ! -writable 2>/dev/null | grep -q .; then
-  echo "→ fix ownership $STATIC_ROOT"
-  sudo chown -R "$(id -un):$(id -gn)" "$STATIC_ROOT"
+  echo "ERROR: $STATIC_ROOT has files not writable by $(id -un)."
+  echo "Fix as root: chown -R $DEPLOY_USER:$DEPLOY_USER $STATIC_ROOT"
+  exit 255
 fi
 mkdir -p "$STATIC_ROOT"
 
