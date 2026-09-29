@@ -270,10 +270,11 @@ func formatTimeISO(t time.Time) any {
 }
 
 const (
-	keyHomeContent   = "home_content"
-	keyFooterContent = "footer_content"
-	keyLegalContent  = "legal_content"
-	keyAboutContent  = "about_content"
+	keyHomeContent      = "home_content"
+	keyPortalHubContent = "portal_hub_content"
+	keyFooterContent    = "footer_content"
+	keyLegalContent     = "legal_content"
+	keyAboutContent     = "about_content"
 )
 
 func defaultHomeContent() domain.HomeContent {
@@ -285,7 +286,7 @@ func defaultHomeContent() domain.HomeContent {
 		SEOImageURL:    "d2b27d81f09874a08b4dc3293fe67f2e.webp",
 		CategoryTiles: []domain.HomeCategoryTile{
 			{Label: "Пошук", URL: "/search", ImageURL: "/images/home/search.jpg"},
-			{Label: "Карта", URL: "/map", ImageURL: "/images/home/map.jpg"},
+			{Label: "Країни", URL: "/map", ImageURL: "/images/home/map.jpg"},
 			{Label: "Гіди", URL: "/guides", ImageURL: "/images/home/guides.jpg"},
 			{Label: "Журнал", URL: "/journal", ImageURL: "/images/home/journal.jpg"},
 		},
@@ -400,12 +401,73 @@ func mergeHomeContent(stored domain.HomeContent) domain.HomeContent {
 	}
 	return stored
 }
+
+func defaultPortalHubContent() domain.PortalHubContent {
+	return domain.PortalHubContent{
+		Title: seoPortalHomeTitle,
+		Lead:  seoPortalHomeLead,
+		Cards: []domain.PortalHubCard{
+			{
+				ID:       "guides",
+				Title:    "Гіди та екскурсії",
+				ImageURL: "/images/home/guides.jpg",
+				Text:     portalHubGuidesText,
+			},
+			{
+				ID:       "transport",
+				Title:    "Перевезення",
+				ImageURL: "/images/home/transport.jpg",
+				Text:     portalHubTransportText,
+			},
+			{
+				ID:       "services",
+				Title:    "Послуги",
+				ImageURL: "/images/home/services.jpg",
+				Text:     portalHubServicesText,
+			},
+		},
+	}
+}
+
+func mergePortalHubContent(stored domain.PortalHubContent) domain.PortalHubContent {
+	def := defaultPortalHubContent()
+	if strings.TrimSpace(stored.Title) == "" {
+		stored.Title = def.Title
+	}
+	if strings.TrimSpace(stored.Lead) == "" {
+		stored.Lead = def.Lead
+	}
+	byID := map[string]domain.PortalHubCard{}
+	for _, card := range stored.Cards {
+		if card.ID != "" {
+			byID[card.ID] = card
+		}
+	}
+	out := make([]domain.PortalHubCard, 0, len(def.Cards))
+	for _, card := range def.Cards {
+		if found, ok := byID[card.ID]; ok {
+			if strings.TrimSpace(found.Title) != "" {
+				card.Title = found.Title
+			}
+			if strings.TrimSpace(found.Text) != "" {
+				card.Text = found.Text
+			}
+			if strings.TrimSpace(found.ImageURL) != "" {
+				card.ImageURL = found.ImageURL
+			}
+		}
+		out = append(out, card)
+	}
+	stored.Cards = out
+	return stored
+}
+
 func defaultFooterContent() domain.FooterContent {
 	return domain.FooterContent{
 		Phone:       "+380 44 000 00 00",
 		Email:       "hello@gaido.example",
 		Description: "Каталог гідів та авторських екскурсій. Прямий контакт без посередників.",
-		Copyright:   "Gaido",
+		Copyright:   "Gaido UA",
 	}
 }
 func defaultLegalContent() domain.LegalContent {

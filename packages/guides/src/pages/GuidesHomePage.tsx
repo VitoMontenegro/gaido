@@ -144,7 +144,9 @@ export default function GuidesHomePage() {
 
   const content = site.home.content
   const featuredGuides = site.home.featured_guides ?? []
-  const featuredExcursions = (site.home.featured_excursions ?? []) as ExcursionItem[]
+  const featuredExcursions = ((site.home.latest_excursions?.length
+    ? site.home.latest_excursions
+    : site.home.featured_excursions) ?? []) as ExcursionItem[]
   const homeFaq = content.faq.map((item) => ({ question: item.question, answer: item.answer }))
   const homeJsonLd = [
     buildWebSiteJsonLd(),

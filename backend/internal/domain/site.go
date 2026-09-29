@@ -119,11 +119,26 @@ type SiteHomePayload struct {
 	Content              HomeContent        `json:"content"`
 	FeaturedGuides       []PublicGuideDTO   `json:"featured_guides"`
 	FeaturedExcursions   []ExcursionView    `json:"featured_excursions"`
+	LatestExcursions     []ExcursionView    `json:"latest_excursions"`
 	PopularDestinations  []DestinationGroup `json:"popular_destinations"`
+}
+
+type PortalHubCard struct {
+	ID       string `json:"id"`
+	Title    string `json:"title"`
+	Text     string `json:"text"`
+	ImageURL string `json:"image_url"`
+}
+
+type PortalHubContent struct {
+	Title string          `json:"title"`
+	Lead  string          `json:"lead"`
+	Cards []PortalHubCard `json:"cards"`
 }
 
 type SitePayload struct {
 	Home           SiteHomePayload  `json:"home"`
+	PortalHub      PortalHubContent `json:"portal_hub"`
 	Footer         FooterContent    `json:"footer"`
 	Legal          LegalContent     `json:"legal"`
 	About          AboutPageContent `json:"about"`

@@ -13,26 +13,35 @@ func (h *Handlers) RobotsTxt(w http.ResponseWriter, r *http.Request) {
 	lines := []string{
 		"User-agent: *",
 		"Allow: /",
-		"Disallow: /account",
-		"Disallow: /account/",
-		"Disallow: /login",
-		"Disallow: /register",
-		"Disallow: /forgot-password",
-		"Disallow: /reset-password",
-		"Disallow: /admin",
-		"Disallow: /moderator",
-		"Disallow: /downloads",
-		"Disallow: /favorites",
-		"Disallow: /search?",
-		"Disallow: /ukrainians-in/",
-		fmt.Sprintf("Sitemap: %s/sitemap.xml", base),
 	}
+	private := []string{
+		"/account",
+		"/login",
+		"/register",
+		"/forgot-password",
+		"/reset-password",
+		"/admin",
+		"/moderator",
+		"/downloads",
+		"/favorites",
+	}
+	for _, prefix := range []string{"", "/svit", "/servis", "/vezu"} {
+		for _, path := range private {
+			lines = append(lines, "Disallow: "+prefix+path)
+		}
+		lines = append(lines, "Disallow: "+prefix+"/search?")
+	}
+	lines = append(lines,
+		"Disallow: /ukrainians-in/",
+		"Disallow: /svit/ukrainians-in/",
+		fmt.Sprintf("Sitemap: %s/sitemap.xml", base),
+	)
 	_, _ = fmt.Fprint(w, strings.Join(lines, "\n")+"\n")
 }
 
 func (h *Handlers) SitemapXML(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	base := h.publicBaseURL()
+	base := h.publicBaseURL() + "/svit"
 	var b strings.Builder
 	b.WriteString(`<?xml version="1.0" encoding="UTF-8"?>`)
 	b.WriteString(`<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`)
@@ -50,6 +59,9 @@ func (h *Handlers) SitemapXML(w http.ResponseWriter, r *http.Request) {
 	}
 
 	today := time.Now().UTC().Format("2006-01-02")
+	for _, loc := range sitemapHubLocations(h.publicBaseURL()) {
+		writeURL(loc, today)
+	}
 	for _, path := range []string{"/", "/search", "/map", "/guides", "/journal", "/about"} {
 		writeURL(base+path, today)
 	}
@@ -154,6 +166,11 @@ func (h *Handlers) SitemapXML(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/xml; charset=utf-8")
 	w.Header().Set("Cache-Control", "public, max-age=300")
 	_, _ = w.Write([]byte(b.String()))
+}
+
+func sitemapHubLocations(apex string) []string {
+	apex = strings.TrimRight(apex, "/")
+	return []string{apex + "/", apex + "/vezu/", apex + "/servis/"}
 }
 
 func xmlEscape(s string) string {

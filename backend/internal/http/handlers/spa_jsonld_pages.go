@@ -9,8 +9,59 @@ import (
 	"github.com/vitomonte/experts-tourister/internal/repo/postgres"
 )
 
+func portalHomeFAQ() []faqItem {
+	return []faqItem{
+		{question: portalFaqGuidesQ, answer: portalFaqGuidesA},
+		{question: portalFaqSearchQ, answer: portalFaqSearchA},
+		{question: portalFaqTransportQ, answer: portalFaqTransportA},
+		{question: portalFaqServicesQ, answer: portalFaqServicesA},
+		{question: portalFaqJoinQ, answer: portalFaqJoinA},
+	}
+}
+
+func buildPortalHomeJSON(apex, guidesBase string, guides []domain.PublicGuideDTO, excursions []domain.ExcursionView, countries []countryGuideEntry) []string {
+	apex = strings.TrimRight(apex, "/") + "/"
+	search := strings.TrimRight(guidesBase, "/") + "/search?q={search_term_string}"
+	blocks := []any{
+		buildOrganizationJSON(apex),
+		buildWebSiteSearchJSON(apex, search),
+	}
+	blocks = append(blocks, excursionListingBlocks(excursions, guidesBase, "Екскурсії українською на Gaido", seoPortalHomeDescription)...)
+	if list := buildPublicGuideItemListJSON(guides, guidesBase, "Україномовні гіди"); list != nil {
+		blocks = append(blocks, list)
+	}
+	if list := buildCountryGuideItemListJSON(countries, guidesBase); list != nil {
+		blocks = append(blocks, list)
+	}
+	if faq := buildFaqPageJSON(portalHomeFAQ()); faq != nil {
+		blocks = append(blocks, faq)
+	}
+	return appendJsonLd(nil, blocks...)
+}
+
+func (h *Handlers) portalHomePageJsonLd(ctx context.Context, apex, guidesBase string) []string {
+	var guides []domain.PublicGuideDTO
+	var featured []domain.ExcursionView
+	if h.Featured != nil && h.Guides != nil {
+		guides = h.ResolveFeaturedGuides(ctx, 4)
+	}
+	if h.Exc != nil {
+		featured = h.ResolveLatestExcursions(ctx, 8)
+	}
+	var countries []countryGuideEntry
+	if h.Geo != nil {
+		rows, _ := h.Geo.ListCountriesWithGuideCount(ctx)
+		for _, c := range rows {
+			if c.GuideCount > 0 {
+				countries = append(countries, countryGuideEntry{Name: c.Name, Slug: c.Slug})
+			}
+		}
+	}
+	return buildPortalHomeJSON(apex, guidesBase, guides, featured, countries)
+}
+
 func (h *Handlers) homePageJsonLd(ctx context.Context, base string, content domain.HomeContent) []string {
-	featured := h.ResolveFeaturedExcursions(ctx, 6)
+	featured := h.ResolveLatestExcursions(ctx, 6)
 	desc := strings.TrimSpace(content.SEODescription)
 	if desc == "" {
 		desc = content.HeroSubtitle
@@ -34,12 +85,18 @@ func (h *Handlers) homePageJsonLd(ctx context.Context, base string, content doma
 	return appendJsonLd(nil, blocks...)
 }
 
-func (h *Handlers) countryPageJsonLd(ctx context.Context, c *postgres.Country, base string, page *domain.PlacePage) []string {
-	items, _ := h.Exc.ListPublicEnriched(ctx, nil, c.Slug, "", nil, 50, 0)
+func (h *Handlers) countryPageJsonLd(ctx context.Context, c *postgres.Country, base string, page *domain.PlacePage, items []domain.ExcursionView) []string {
+	if items == nil {
+		items, _ = h.Exc.ListPublicEnriched(ctx, nil, c.Slug, "", nil, 50, 0)
+	}
+	priceLabel, coverKey := countryListingOffer(items)
 	listName := seoCountryExcursionsHeading(c.Name)
-	desc := seoCountryExcursionsDescription(c.Name)
+	desc := seoCountryExcursionsDescription(c.Name, priceLabel)
 	if page != nil && strings.TrimSpace(page.SEODescription) != "" {
-		desc = page.SEODescription
+		desc = strings.TrimSpace(page.SEODescription)
+		if priceLabel != "" && !strings.Contains(desc, priceLabel) {
+			desc = strings.TrimSpace(desc + " " + priceLabel)
+		}
 	}
 	path := "/countries/" + c.Slug
 	faq := placeFAQItems(page)
@@ -47,8 +104,16 @@ func (h *Handlers) countryPageJsonLd(ctx context.Context, c *postgres.Country, b
 		faq = countryExcursionFaq(c.Name)
 	}
 
-	blocks := excursionListingBlocks(items, base, listName, desc)
+	image := ""
+	if coverKey != "" {
+		image = h.mediaPublicURL(coverKey)
+	}
+	var blocks []any
+	if list := buildExcursionItemListJSON(items, base, listName); list != nil {
+		blocks = append(blocks, list)
+	}
 	blocks = append(blocks,
+		buildWebPageJSON(base, path, listName, desc, image),
 		buildPlaceJSON(base, c.Name, path, ""),
 		buildFaqPageJSON(faq),
 		buildBreadcrumbJSON(base, [][2]string{
@@ -123,7 +188,7 @@ func (h *Handlers) guidesListPageJsonLd(ctx context.Context, base string) []stri
 	}
 	blocks = append(blocks, buildBreadcrumbJSON(base, [][2]string{
 		{"Головна", base + "/"},
-		{"Гіди", base + "/guides"},
+		{"Екскурсії", base + "/guides"},
 	}))
 	return appendJsonLd(nil, blocks...)
 }
@@ -141,7 +206,7 @@ func (h *Handlers) guidesCountryPageJsonLd(ctx context.Context, c *postgres.Coun
 		buildPlaceJSON(base, c.Name, path, ""),
 		buildBreadcrumbJSON(base, [][2]string{
 			{"Головна", base + "/"},
-			{"Гіди", base + "/guides"},
+			{"Екскурсії", base + "/guides"},
 			{c.Name, base + path},
 		}),
 	)
@@ -159,7 +224,7 @@ func (h *Handlers) guidePageJsonLd(ctx context.Context, g *domain.GuideProfile, 
 	}
 	blocks = append(blocks, buildBreadcrumbJSON(base, [][2]string{
 		{"Головна", base + "/"},
-		{"Гіди", base + "/guides"},
+		{"Екскурсії", base + "/guides"},
 		{g.DisplayName, url},
 	}))
 	return appendJsonLd(nil, blocks...)

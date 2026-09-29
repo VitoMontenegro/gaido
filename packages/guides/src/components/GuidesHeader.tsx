@@ -8,13 +8,14 @@ import { useMe, useHasRole } from '@gaido/api-client/hooks/useAuth'
 import BrandLogo from './BrandLogo'
 import UserAvatar from './UserAvatar'
 import { cn } from '@gaido/ui-primitives/cn'
+import { SectionTopNav } from '@gaido/ui-primitives/SectionTopNav'
 import { HeartIcon as HeartOutline } from '@heroicons/react/24/outline'
 import { HeartIcon as HeartSolid } from '@heroicons/react/24/solid'
 import { useFavorites, useSyncGuestFavorites } from '../hooks/useFavorites'
 
 const GUIDES_NAV = [
   { to: '/search', label: 'Пошук' },
-  { to: '/map', label: 'Карта' },
+  { to: '/map', label: 'Країни' },
   { to: '/guides', label: 'Гіди' },
   { to: '/journal', label: 'Журнал' },
 ] as const
@@ -93,6 +94,7 @@ export default function GuidesHeader() {
         )}
       >
         <div className="container-site">
+          {!solidHeader && <SectionTopNav current="guides" />}
           <div className="flex h-14 items-center gap-3 md:h-18 md:gap-6">
             <BrandLogo compactOnMobile homeTo="/" variant={solidHeader ? 'default' : 'inverse'} />
             <nav className="ml-auto hidden items-center gap-1 md:flex" aria-label="Головна навігація">
@@ -201,11 +203,17 @@ export default function GuidesHeader() {
       {menuOpen && (
         <div className="fixed inset-0 z-40 md:hidden" role="presentation">
           <button type="button" className="absolute inset-0 bg-ink/25 backdrop-blur-[2px]" aria-label="Закрити меню" onClick={() => setMenuOpen(false)} />
-          <nav id="mobile-nav" className="absolute inset-x-0 top-14 max-h-[calc(100dvh-3.5rem)] overflow-y-auto border-b border-divider bg-page px-5 py-4 shadow-[0_16px_40px_rgba(0,0,0,0.08)]" aria-label="Мобільна навігація">
+          <nav id="mobile-nav" className={cn('absolute inset-x-0 overflow-y-auto border-b border-divider bg-page px-5 py-4 shadow-[0_16px_40px_rgba(0,0,0,0.08)]', solidHeader ? 'top-14 max-h-[calc(100dvh-3.5rem)]' : 'top-[5.5rem] max-h-[calc(100dvh-5.5rem)]')} aria-label="Мобільна навігація">
             <ul className="space-y-1">
               {GUIDES_NAV.map((item) => (
                 <li key={item.to}>
-                  <Link to={item.to} className={cn('flex min-h-11 items-center rounded-xl px-3 text-base font-medium transition', navActive(location.pathname, item.to) ? 'bg-ink text-white' : 'text-ink hover:bg-sand-100')}>
+                  <Link
+                    to={item.to}
+                    className={cn(
+                      'flex min-h-11 items-center rounded-xl px-3 text-base font-medium transition',
+                      navActive(location.pathname, item.to) ? 'bg-ink text-white' : 'text-ink hover:bg-sand-100',
+                    )}
+                  >
                     {item.label}
                   </Link>
                 </li>

@@ -271,7 +271,14 @@ local_print_urls() {
   echo "──────────────────────────────────────────────"
   echo " API:       http://localhost:${backend_port}"
   echo " Health:    http://localhost:${backend_port}/healthz"
-  echo " Frontend:  http://localhost:${frontend_port}"
+  local section_path="/"
+  case "${LOCAL_APP:-portal}" in
+    svit) section_path="/svit/" ;;
+    servis) section_path="/servis/" ;;
+    vezu) section_path="/vezu/" ;;
+  esac
+  echo " Frontend:  http://localhost:${frontend_port}${section_path}"
+  echo " Sections:  :5173/  :5174/svit/  :5175/servis/  :5176/vezu/"
   echo " Postgres:  localhost:${pg_port}"
   echo " Redis:     localhost:${redis_port}"
   echo "──────────────────────────────────────────────"

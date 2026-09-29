@@ -1,6 +1,6 @@
 import { Link, useParams } from 'react-router-dom'
 import { useMemo } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { catalogApi } from '@gaido/api-client/api/client'
 import Breadcrumbs from '../components/Breadcrumbs'
 import GuideCard, { GuideCardGrid } from '../components/GuideCard'
@@ -16,16 +16,22 @@ import {
 } from '../lib/seoTemplates'
 import { cn } from '@gaido/ui-primitives/cn'
 
+const GUIDES_PAGE_SIZE = 15
+
+function compareUkName(a: string, b: string) {
+  return a.localeCompare(b, 'uk', { sensitivity: 'base' })
+}
+
 function CountryTile({ slug, name, guideCount }: { slug: string; name: string; guideCount: number }) {
   return (
     <Link
       to={`/guides/countries/${slug}`}
-      className="group flex min-h-22 flex-col justify-between rounded-2xl border border-border bg-surface p-4 transition hover:border-brand-300 hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)] md:min-h-24 md:p-5"
+      className="group flex min-h-17 flex-col justify-between rounded-2xl border border-border bg-surface p-3 transition hover:border-brand-300 hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)]"
     >
       <p className="font-display text-base font-medium normal-case text-ink group-hover:text-brand-700 md:text-lg">
         {name}
       </p>
-      <p className="mt-2 text-sm text-muted">
+      <p className="text-sm text-muted">
         {guideCount} {guideCount === 1 ? 'гід' : guideCount < 5 ? 'гіди' : 'гідів'}
       </p>
     </Link>
@@ -42,7 +48,28 @@ export default function GuidesListPage() {
     queryFn: () => catalogApi.topGuides(10),
   })
 
-  const countryItems = countries?.items ?? []
+  const countryItems = useMemo(
+    () => [...(countries?.items ?? [])].sort((a, b) => compareUkName(a.name, b.name)),
+    [countries?.items],
+  )
+  const {
+    data: allGuides,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading: allGuidesLoading,
+  } = useInfiniteQuery({
+    queryKey: ['guides-all'],
+    queryFn: ({ pageParam }) =>
+      catalogApi.guides({ sort: 'name', limit: String(GUIDES_PAGE_SIZE), offset: String(pageParam) }),
+    initialPageParam: 0,
+    getNextPageParam: (last) => {
+      const next = last.offset + last.items.length
+      if (typeof last.total === 'number') return next < last.total ? next : undefined
+      return last.items.length >= GUIDES_PAGE_SIZE ? next : undefined
+    },
+  })
+  const allGuideItems = allGuides?.pages.flatMap((page) => page.items) ?? []
   const jsonLd = useMemo(
     () =>
       countryItems.length > 0
@@ -107,6 +134,35 @@ export default function GuidesListPage() {
             </GuideCardGrid>
           </section>
         )}
+
+        <section className="mt-10 border-t border-divider pt-8 md:mt-12 md:pt-10">
+          <h2 className="mb-5 font-display text-lg font-medium normal-case text-ink md:text-xl">Усі гіди</h2>
+          {allGuidesLoading ? (
+            <p className="text-sm text-muted">Завантаження…</p>
+          ) : allGuideItems.length === 0 ? (
+            <p className="text-sm text-muted">Поки немає опублікованих гідів.</p>
+          ) : (
+            <>
+              <GuideCardGrid>
+                {allGuideItems.map((g) => (
+                  <GuideCard key={g.id} guide={g} compact />
+                ))}
+              </GuideCardGrid>
+              {hasNextPage && (
+                <div className="pt-6 text-center">
+                  <button
+                    type="button"
+                    className="btn-secondary px-6"
+                    disabled={isFetchingNextPage}
+                    onClick={() => fetchNextPage()}
+                  >
+                    {isFetchingNextPage ? 'Завантаження…' : 'Ще'}
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </section>
       </div>
     </>
   )

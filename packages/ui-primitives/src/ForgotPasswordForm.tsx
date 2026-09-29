@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { authApi } from '@gaido/api-client/api/auth'
 import { formatApiError } from '@gaido/api-client/api/http'
+import { authReturnOrigin } from '@gaido/site-urls/site'
 
 export default function ForgotPasswordForm() {
   const [email, setEmail] = useState('')
@@ -16,7 +17,7 @@ export default function ForgotPasswordForm() {
     try {
       await authApi.forgotPassword({
         email: email.trim(),
-        return_origin: window.location.origin,
+        return_origin: authReturnOrigin(),
       })
       setSent(true)
     } catch (err) {

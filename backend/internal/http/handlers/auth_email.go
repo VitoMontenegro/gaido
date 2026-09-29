@@ -114,7 +114,7 @@ func (h *Handlers) ResendRegister(w http.ResponseWriter, r *http.Request) {
 	if origin == "" {
 		origin = h.resolveAuthOrigin(r, req.ReturnOrigin)
 	}
-	link := origin + "/api/v1/auth/register/confirm?token=" + plain
+	link := authAPIBase(origin) + "/api/v1/auth/register/confirm?token=" + plain
 	if err := h.sendAuthMail(r.Context(), email, "Підтвердіть реєстрацію на Gaido", registerMailBody(link)); err != nil {
 		response.Error(w, r, err)
 		return
@@ -346,7 +346,26 @@ func (h *Handlers) normalizeAllowedOrigin(raw string) (string, bool) {
 	if !h.originAllowed(origin) {
 		return "", false
 	}
-	return origin, true
+	return origin + authSectionPrefix(u.Path), true
+}
+
+func authSectionPrefix(path string) string {
+	path = strings.TrimSuffix(path, "/")
+	for _, prefix := range []string{"/svit", "/servis", "/vezu"} {
+		if path == prefix || strings.HasPrefix(path, prefix+"/") {
+			return prefix
+		}
+	}
+	return ""
+}
+
+func authAPIBase(pageBase string) string {
+	for _, prefix := range []string{"/svit", "/servis", "/vezu"} {
+		if strings.HasSuffix(pageBase, prefix) {
+			return strings.TrimSuffix(pageBase, prefix)
+		}
+	}
+	return pageBase
 }
 
 func (h *Handlers) originAllowed(origin string) bool {

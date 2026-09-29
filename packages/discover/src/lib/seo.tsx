@@ -1,17 +1,11 @@
 import { Helmet } from 'react-helmet-async'
 import { resolveMediaUrl } from '@gaido/api-client/api/http'
 import { DEFAULT_OG_IMAGE_KEY, SITE_NAME } from '@gaido/site-urls/brand'
+import { absoluteUrl } from '@gaido/site-urls/site'
 import { useDocumentTitle } from '@gaido/ui-primitives/useDocumentTitle'
 import { useJsonLd } from '@gaido/ui-primitives/useJsonLd'
 
-const SITE_ORIGIN = (import.meta.env.VITE_PUBLIC_SITE_URL as string | undefined)?.replace(/\/$/, '')
-  || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173')
-
-export function absoluteUrl(path: string) {
-  if (path.startsWith('http://') || path.startsWith('https://')) return path
-  const p = path.startsWith('/') ? path : `/${path}`
-  return `${SITE_ORIGIN}${p}`
-}
+export { absoluteUrl }
 
 export function resolveOgImage(image?: string) {
   const src = image?.trim() || DEFAULT_OG_IMAGE_KEY

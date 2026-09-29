@@ -22,3 +22,17 @@ func TestOriginAllowed(t *testing.T) {
 		t.Fatal("unknown host must be rejected")
 	}
 }
+
+func TestNormalizeAllowedOrigin_keepsSection(t *testing.T) {
+	h := &Handlers{Cfg: config.Config{
+		AppEnv:        "production",
+		StaticHostMap: map[string]string{"gaido-ua.com": "portal"},
+	}}
+	got, ok := h.normalizeAllowedOrigin("https://gaido-ua.com/svit/register")
+	if !ok || got != "https://gaido-ua.com/svit" {
+		t.Fatalf("got %q ok=%v", got, ok)
+	}
+	if api := authAPIBase(got); api != "https://gaido-ua.com" {
+		t.Fatalf("api base %q", api)
+	}
+}

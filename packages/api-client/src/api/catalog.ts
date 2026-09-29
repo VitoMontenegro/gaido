@@ -5,7 +5,7 @@ import type { SitePayload } from './types/site'
 export const catalogApi = {
   guides: (params?: Record<string, string>) => {
     const q = params ? '?' + new URLSearchParams(params).toString() : ''
-    return api<{ items: PublicGuide[] }>(`/api/v1/guides${q}`)
+    return api<{ items: PublicGuide[]; limit: number; offset: number; total?: number }>(`/api/v1/guides${q}`)
   },
   topGuides: (limit = 10) =>
     api<{ items: PublicGuide[] }>(`/api/v1/guides/top?limit=${limit}`),

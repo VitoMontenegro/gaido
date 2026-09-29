@@ -4,10 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/vitomonte/experts-tourister/internal/domain"
+	"github.com/vitomonte/experts-tourister/internal/locale"
 	"github.com/vitomonte/experts-tourister/internal/sanitize"
 )
 
@@ -304,8 +307,8 @@ func (r *GuideRepo) AdminDelete(ctx context.Context, id int64) error {
 	return tx.Commit(ctx)
 }
 
-func (r *GuideRepo) ListPublic(ctx context.Context, cityID, countryID *int64, guideType string, limit, offset int) ([]domain.GuideProfile, error) {
-	q := `SELECT ` + guideProfileSelect + ` FROM guide_profiles WHERE status=$1`
+func publicGuideFilter(cityID, countryID *int64, guideType string) (string, []any) {
+	q := ` FROM guide_profiles WHERE status=$1`
 	args := []any{domain.GuideStatusActive}
 	n := 2
 	if cityID != nil {
@@ -326,11 +329,22 @@ func (r *GuideRepo) ListPublic(ctx context.Context, cityID, countryID *int64, gu
 	if guideType != "" {
 		q += fmt.Sprintf(` AND guide_type=$%d`, n)
 		args = append(args, guideType)
-		n++
 	}
-	q += fmt.Sprintf(` ORDER BY rating_avg DESC, rating_count DESC, last_shown_at ASC NULLS FIRST LIMIT $%d OFFSET $%d`, n, n+1)
-	args = append(args, limit, offset)
-	rows, err := r.db.Pool.Query(ctx, q, args...)
+	return q, args
+}
+
+func guideSortName(displayName, firstName, lastName string) string {
+	if name := strings.TrimSpace(displayName); name != "" {
+		return name
+	}
+	return strings.TrimSpace(firstName + " " + lastName)
+}
+
+func (r *GuideRepo) ListPublic(ctx context.Context, cityID, countryID *int64, guideType string, limit, offset int) ([]domain.GuideProfile, error) {
+	where, args := publicGuideFilter(cityID, countryID, guideType)
+	n := len(args) + 1
+	q := `SELECT ` + guideProfileSelect + where + fmt.Sprintf(` ORDER BY rating_avg DESC, rating_count DESC, last_shown_at ASC NULLS FIRST LIMIT $%d OFFSET $%d`, n, n+1)
+	rows, err := r.db.Pool.Query(ctx, q, append(args, limit, offset)...)
 	if err != nil {
 		return nil, err
 	}
@@ -344,6 +358,81 @@ func (r *GuideRepo) ListPublic(ctx context.Context, cityID, countryID *int64, gu
 		out = append(out, g)
 	}
 	return out, rows.Err()
+}
+
+func (r *GuideRepo) ListPublicByName(ctx context.Context, cityID, countryID *int64, guideType string, limit, offset int) ([]domain.GuideProfile, int, error) {
+	where, args := publicGuideFilter(cityID, countryID, guideType)
+	rows, err := r.db.Pool.Query(ctx, `SELECT id, first_name, last_name, display_name`+where, args...)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+	type nameRow struct {
+		id          int64
+		firstName   string
+		lastName    string
+		displayName string
+	}
+	list := make([]nameRow, 0)
+	for rows.Next() {
+		var row nameRow
+		if err := rows.Scan(&row.id, &row.firstName, &row.lastName, &row.displayName); err != nil {
+			return nil, 0, err
+		}
+		list = append(list, row)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
+	}
+	sort.Slice(list, func(i, j int) bool { return list[i].id < list[j].id })
+	locale.SortByName(list, func(row nameRow) string {
+		return guideSortName(row.displayName, row.firstName, row.lastName)
+	})
+	total := len(list)
+	if offset < 0 {
+		offset = 0
+	}
+	if offset > total {
+		offset = total
+	}
+	if limit < 0 {
+		limit = 0
+	}
+	end := offset + limit
+	if end > total {
+		end = total
+	}
+	page := list[offset:end]
+	if len(page) == 0 {
+		return []domain.GuideProfile{}, total, nil
+	}
+	ids := make([]int64, len(page))
+	for i, row := range page {
+		ids[i] = row.id
+	}
+	loaded, err := r.db.Pool.Query(ctx, `SELECT `+guideProfileSelect+` FROM guide_profiles WHERE id = ANY($1)`, ids)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer loaded.Close()
+	byID := make(map[int64]domain.GuideProfile, len(ids))
+	for loaded.Next() {
+		g, err := scanGuideRow(loaded)
+		if err != nil {
+			return nil, 0, err
+		}
+		byID[g.ID] = g
+	}
+	if err := loaded.Err(); err != nil {
+		return nil, 0, err
+	}
+	out := make([]domain.GuideProfile, 0, len(ids))
+	for _, id := range ids {
+		if g, ok := byID[id]; ok {
+			out = append(out, g)
+		}
+	}
+	return out, total, nil
 }
 
 func (r *GuideRepo) ListTopRated(ctx context.Context, limit int, exclude []int64, catalogOnly bool) ([]domain.GuideProfile, error) {

@@ -1,9 +1,9 @@
 @import "tailwindcss";
 
 @source "../**/*.{ts,tsx}";
-@source "../../api-client/src/**/*.{ts,tsx}";
-@source "../../ui-primitives/src/**/*.{ts,tsx}";
-@source "../../../apps/portal/src/**/*.{ts,tsx}";
+@source "../../../api-client/src/**/*.{ts,tsx}";
+@source "../../../ui-primitives/src/**/*.{ts,tsx}";
+@source "../../../../apps/portal/src/**/*.{ts,tsx}";
 
 /* MTS Extended — заголовки (font-display) */
 @font-face {
@@ -361,8 +361,11 @@
   }
 
   .leaflet-map {
-    @apply w-full rounded-3xl border border-border;
-    height: 520px;
+    @apply isolate z-0 h-full w-full;
+  }
+
+  .leaflet-map--wheel-active {
+    @apply ring-2 ring-teal/40 ring-offset-2;
   }
 
   /* Rich text content (legal pages etc.) — not nav/menu */
@@ -808,6 +811,38 @@
 .excursion-parus-section {
   background: #fff;
   border-radius: 24px;
+}
+
+.leaflet-map .leaflet-control-zoom {
+  margin: 14px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 8px;
+}
+
+.leaflet-div-icon.gaido-cluster {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--color-teal);
+  color: #fff;
+  font-weight: 700;
+  line-height: 1;
+  border: 3px solid rgb(255 255 255 / 0.92);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.22);
+}
+
+.leaflet-div-icon.gaido-cluster--sm {
+  font-size: 13px;
+}
+
+.leaflet-div-icon.gaido-cluster--md {
+  font-size: 14px;
+}
+
+.leaflet-div-icon.gaido-cluster--lg {
+  font-size: 15px;
 }
 
 button {

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { authApi } from '@gaido/api-client/api/auth'
 import { formatApiError } from '@gaido/api-client/api/http'
+import { authReturnOrigin } from '@gaido/site-urls/site'
 
 export default function CheckEmailNotice({ email }: { email: string }) {
   const [message, setMessage] = useState('')
@@ -14,7 +15,7 @@ export default function CheckEmailNotice({ email }: { email: string }) {
     try {
       await authApi.resendRegister({
         email,
-        return_origin: window.location.origin,
+        return_origin: authReturnOrigin(),
       })
       setMessage('Лист надіслано повторно')
     } catch (err) {

@@ -1,7 +1,8 @@
 import { resolveMediaUrl } from '@gaido/api-client/api/client'
+import { staticAssetUrl } from '@gaido/site-urls/staticAsset'
 import { cn } from '@gaido/ui-primitives/cn'
 
-export const GUIDE_DEFAULT_AVATAR = '/images/guide-default.svg'
+export const GUIDE_DEFAULT_AVATAR = staticAssetUrl('/images/guide-default.svg')
 
 export function guideAvatarSrc(avatar?: string | null) {
   const url = avatar?.trim()

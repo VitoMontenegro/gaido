@@ -50,7 +50,7 @@ export function buildWebSiteJsonLd() {
   return {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
-    name: 'Gaido Vezu',
+    name: 'Gaido UA',
     url: '/',
     potentialAction: {
       '@type': 'SearchAction',

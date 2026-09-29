@@ -1,10 +1,11 @@
 import { Link } from 'react-router-dom'
 import { SITE_NAME, SITE_TAGLINE } from '@gaido/site-urls/brand'
+import { staticAssetUrl } from '@gaido/site-urls/staticAsset'
 import { cn } from '@gaido/ui-primitives/cn'
 
 const LOGO = {
-  light: '/images/black_logo.png',
-  dark: '/images/white_logo.png',
+  light: staticAssetUrl('/images/black_logo.png'),
+  dark: staticAssetUrl('/images/white_logo.png'),
 } as const
 
 type Props = {

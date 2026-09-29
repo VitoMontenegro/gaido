@@ -107,6 +107,15 @@ func marshalJSONLD(v any) string {
 
 const fallbackOgImageKey = "d2b27d81f09874a08b4dc3293fe67f2e.webp"
 
+func jsonLdAssetBase(pageBase string) string {
+	for _, prefix := range []string{"/svit", "/servis", "/vezu"} {
+		if strings.HasSuffix(pageBase, prefix) {
+			return strings.TrimSuffix(pageBase, prefix)
+		}
+	}
+	return pageBase
+}
+
 func excursionSchemaImages(e *domain.ExcursionView, base string) []string {
 	seen := map[string]struct{}{}
 	var out []string
@@ -123,7 +132,7 @@ func excursionSchemaImages(e *domain.ExcursionView, base string) []string {
 			out = append(out, raw)
 			return
 		}
-		out = append(out, base+"/api/v1/media/public/"+strings.TrimPrefix(raw, "/"))
+		out = append(out, jsonLdAssetBase(base)+"/api/v1/media/public/"+strings.TrimPrefix(raw, "/"))
 	}
 	add(e.CoverImageURL)
 	for _, img := range e.StructuredContent.Gallery {
@@ -131,7 +140,7 @@ func excursionSchemaImages(e *domain.ExcursionView, base string) []string {
 	}
 	add(e.StructuredContent.GalleryMobileCover)
 	if len(out) == 0 {
-		out = append(out, base+"/api/v1/media/public/"+fallbackOgImageKey)
+		out = append(out, jsonLdAssetBase(base)+"/api/v1/media/public/"+fallbackOgImageKey)
 	}
 	return out
 }
@@ -286,7 +295,7 @@ func buildExcursionEventJSON(e *domain.ExcursionView, base, url string, startsAt
 		"inLanguage":          schemaLanguage(e.Language),
 		"organizer": map[string]any{
 			"@type": "Organization",
-			"name":  "Gaido",
+			"name":  "Gaido UA",
 			"url":   base + "/",
 		},
 		"performer": performer,

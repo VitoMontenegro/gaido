@@ -31,7 +31,15 @@ func (h *Handlers) ListGuides(w http.ResponseWriter, r *http.Request) {
 		countryID = &country.ID
 	}
 	guideType := r.URL.Query().Get("guide_type")
-	items, err := h.Guides.ListPublic(r.Context(), cityID, countryID, guideType, limit, offset)
+	byName := r.URL.Query().Get("sort") == "name"
+	var items []domain.GuideProfile
+	var total int
+	var err error
+	if byName {
+		items, total, err = h.Guides.ListPublicByName(r.Context(), cityID, countryID, guideType, limit, offset)
+	} else {
+		items, err = h.Guides.ListPublic(r.Context(), cityID, countryID, guideType, limit, offset)
+	}
 	if err != nil {
 		response.Error(w, r, apperrors.ErrInternal)
 		return
@@ -42,9 +50,15 @@ func (h *Handlers) ListGuides(w http.ResponseWriter, r *http.Request) {
 		out = append(out, h.publicGuideDTO(r.Context(), &g))
 		ids = append(ids, g.ID)
 	}
-	_ = h.Guides.TouchShown(r.Context(), ids)
+	if !byName {
+		_ = h.Guides.TouchShown(r.Context(), ids)
+	}
 	h.attachGuideCities(r.Context(), out)
-	response.JSON(w, r, 200, map[string]any{"items": out, "limit": limit, "offset": offset})
+	payload := map[string]any{"items": out, "limit": limit, "offset": offset}
+	if byName {
+		payload["total"] = total
+	}
+	response.JSON(w, r, 200, payload)
 }
 func (h *Handlers) ListTopGuides(w http.ResponseWriter, r *http.Request) {
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))

@@ -25,16 +25,30 @@ func appendJsonLd(out []string, blocks ...any) []string {
 }
 
 func buildWebSiteJSON(base string) map[string]any {
+	return buildWebSiteSearchJSON(base+"/", base+"/search?q={search_term_string}")
+}
+
+func buildOrganizationJSON(base string) map[string]any {
+	return map[string]any{
+		"@context":    "https://schema.org",
+		"@type":       "Organization",
+		"name":        "Gaido UA",
+		"url":         strings.TrimRight(base, "/") + "/",
+		"description": seoPortalHomeDescription,
+	}
+}
+
+func buildWebSiteSearchJSON(siteURL, searchTemplate string) map[string]any {
 	return map[string]any{
 		"@context": "https://schema.org",
 		"@type":    "WebSite",
-		"name":     "Gaido",
-		"url":      base + "/",
+		"name":     "Gaido UA",
+		"url":      siteURL,
 		"potentialAction": map[string]any{
 			"@type": "SearchAction",
 			"target": map[string]any{
 				"@type":       "EntryPoint",
-				"urlTemplate": base + "/search?q={search_term_string}",
+				"urlTemplate": searchTemplate,
 			},
 			"query-input": "required name=search_term_string",
 		},
@@ -182,7 +196,7 @@ func buildExcursionAggregateProductJSON(items []domain.ExcursionView, base, name
 			currency = e.Currency
 		}
 		if img := strings.TrimSpace(e.CoverImageURL); img != "" && len(images) < 8 {
-			images = append(images, base+"/api/v1/media/public/"+img)
+			images = append(images, jsonLdAssetBase(base)+"/api/v1/media/public/"+img)
 		}
 		if e.RatingCount > 0 {
 			totalReviews += e.RatingCount
@@ -251,11 +265,39 @@ func buildGuideItemListJSON(guides []domain.GuideProfile, base, listName string)
 			"url":      base + "/guide/" + g.WebsiteSlug,
 		}
 	}
+	return urlItemListJSON(listName, elements)
+}
+
+func buildPublicGuideItemListJSON(guides []domain.PublicGuideDTO, base, listName string) map[string]any {
+	if len(guides) == 0 {
+		return nil
+	}
+	limit := len(guides)
+	if limit > 50 {
+		limit = 50
+	}
+	elements := make([]map[string]any, limit)
+	for i := 0; i < limit; i++ {
+		g := guides[i]
+		elements[i] = map[string]any{
+			"@type":    "ListItem",
+			"position": i + 1,
+			"name":     g.DisplayName,
+			"url":      base + "/guide/" + g.Slug,
+		}
+	}
+	return urlItemListJSON(listName, elements)
+}
+
+func urlItemListJSON(listName string, elements []map[string]any) map[string]any {
+	if len(elements) == 0 {
+		return nil
+	}
 	return map[string]any{
 		"@context":        "https://schema.org",
 		"@type":           "ItemList",
 		"name":            listName,
-		"numberOfItems":   limit,
+		"numberOfItems":   len(elements),
 		"itemListElement": elements,
 	}
 }
@@ -278,13 +320,7 @@ func buildCountryGuideItemListJSON(countries []countryGuideEntry, base string) m
 			"url":      base + "/guides/countries/" + c.Slug,
 		}
 	}
-	return map[string]any{
-		"@context":        "https://schema.org",
-		"@type":           "ItemList",
-		"name":            "Україномовні гіди за країнами",
-		"numberOfItems":   len(countries),
-		"itemListElement": elements,
-	}
+	return urlItemListJSON("Україномовні гіди за країнами", elements)
 }
 
 func buildPersonJSON(g *domain.GuideProfile, base string) map[string]any {
@@ -298,7 +334,7 @@ func buildPersonJSON(g *domain.GuideProfile, base string) map[string]any {
 		"description": truncateDesc(domain.PublicGuideAbout(g.About), 500),
 	}
 	if img := strings.TrimSpace(g.AvatarURL); img != "" {
-		person["image"] = base + "/api/v1/media/public/" + img
+		person["image"] = jsonLdAssetBase(base) + "/api/v1/media/public/" + img
 	}
 	if g.RatingCount > 0 {
 		person["aggregateRating"] = map[string]any{
@@ -322,19 +358,38 @@ func buildArticleJSON(a *domain.Article, base string) map[string]any {
 		"url":         url,
 		"publisher": map[string]any{
 			"@type": "Organization",
-			"name":  "Gaido",
+			"name":  "Gaido UA",
 		},
 	}
 	if a.Excerpt == "" {
 		article["description"] = truncateDesc(a.Title, 500)
 	}
 	if img := strings.TrimSpace(a.CoverImageURL); img != "" {
-		article["image"] = base + "/api/v1/media/public/" + img
+		article["image"] = jsonLdAssetBase(base) + "/api/v1/media/public/" + img
 	}
 	if a.PublishedAt != nil {
 		article["datePublished"] = a.PublishedAt.UTC().Format("2006-01-02T15:04:05Z07:00")
 	}
 	return article
+}
+
+func buildWebPageJSON(base, path, name, description, image string) map[string]any {
+	page := map[string]any{
+		"@context": "https://schema.org",
+		"@type":    "WebPage",
+		"name":     name,
+		"url":      base + path,
+	}
+	if description != "" {
+		page["description"] = description
+	}
+	if image != "" {
+		page["primaryImageOfPage"] = map[string]any{
+			"@type": "ImageObject",
+			"url":   image,
+		}
+	}
+	return page
 }
 
 func excursionListingBlocks(items []domain.ExcursionView, base, name, description string) []any {

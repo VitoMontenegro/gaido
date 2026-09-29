@@ -7,7 +7,8 @@ import ExcursionCard, { ExcursionCardGrid } from '../components/ExcursionCard'
 import { PlaceBody, PlaceExcerpt } from '../components/PlacePageBlocks'
 import SeoFaqSection from '../components/SeoFaqSection'
 import type { ExcursionItem } from '../components/excursionUi'
-import { buildExcursionListingJsonLd, buildPlaceJsonLd } from '../lib/excursionListingSchema'
+import { formatPrice } from '../components/excursionUi'
+import { buildExcursionItemListJsonLd, buildPlaceJsonLd, buildWebPageJsonLd } from '../lib/excursionListingSchema'
 import { Seo } from '../lib/seo'
 import {
   buildFaqPageJsonLd,
@@ -19,8 +20,22 @@ import {
   seoCountryExcursionsDescription,
   seoCountryExcursionsHeading,
   seoCountryExcursionsTitle,
+  seoCountryPriceLine,
 } from '../lib/seoTemplates'
 import { cn } from '@gaido/ui-primitives/cn'
+
+function lowestOffer(items: ExcursionItem[]) {
+  let price = 0
+  let currency = 'EUR'
+  for (const item of items) {
+    if (item.price_from <= 0) continue
+    if (price === 0 || item.price_from < price) {
+      price = item.price_from
+      if (item.currency) currency = item.currency
+    }
+  }
+  return price > 0 ? { price, currency } : null
+}
 
 function excursionWord(n: number) {
   const mod10 = n % 10
@@ -60,22 +75,36 @@ export default function CountryExcursionsPage() {
     }
     return [...bySlug.values()].sort((a, b) => a.name.localeCompare(b.name, 'uk'))
   }, [items])
+  const offer = useMemo(() => lowestOffer(items), [items])
+  const priceLabel = offer ? formatPrice(offer.price, offer.currency) : undefined
+  const coverImage = items.find((item) => item.cover_image_url)?.cover_image_url
   const faqItems = placeFaqOrDefault(
     placePage?.faq,
     !isLoading && items.length > 0 ? countryExcursionFaq(title) : [],
   )
-  const seoDescription = placeSeoDescription(placePage?.seo_description, seoCountryExcursionsDescription(title, items.length))
+  const generatedDescription = seoCountryExcursionsDescription(title, items.length, priceLabel)
+  let seoDescription = placeSeoDescription(placePage?.seo_description, generatedDescription)
+  if (priceLabel && !seoDescription.includes(priceLabel) && !/від\s+\d/.test(seoDescription)) {
+    seoDescription = `${seoDescription.replace(/[.\s]+$/, '')} ${priceLabel}`
+  }
   const excerptFallback = !isLoading && items.length > 0 ? defaultCountryIntro(title) : ''
+  const priceLine = seoCountryPriceLine(title, priceLabel)
+  const pageHeading = seoCountryExcursionsHeading(title)
 
   const jsonLd = useMemo(() => {
-    const schemas = buildExcursionListingJsonLd(items, {
-      name: seoCountryExcursionsHeading(title),
+    const schemas: Record<string, unknown>[] = []
+    const list = buildExcursionItemListJsonLd(items, pageHeading)
+    if (list) schemas.push(list)
+    schemas.push(buildWebPageJsonLd({
+      name: pageHeading,
+      path: `/countries/${countrySlug}`,
       description: seoDescription,
-    })
+      image: coverImage,
+    }))
     schemas.push(buildPlaceJsonLd({ name: title, path: `/countries/${countrySlug}` }))
     if (faqItems.length > 0) schemas.push(buildFaqPageJsonLd(faqItems))
     return schemas
-  }, [items, title, countrySlug, seoDescription, faqItems])
+  }, [items, title, countrySlug, seoDescription, faqItems, pageHeading, coverImage])
 
   return (
     <>
@@ -83,7 +112,8 @@ export default function CountryExcursionsPage() {
         title={placeSeoTitle(placePage?.seo_title, seoCountryExcursionsTitle(title))}
         description={seoDescription}
         path={`/countries/${countrySlug}`}
-        image={placePage?.seo_image_url || undefined}
+        image={coverImage || placePage?.seo_image_url || undefined}
+        largeImagePreview
         jsonLd={jsonLd.length > 0 ? jsonLd : undefined}
       />
       <Breadcrumbs
@@ -98,14 +128,16 @@ export default function CountryExcursionsPage() {
           ← Усі екскурсії
         </Link>
         <h1 className={cn('section-title mb-1 text-2xl md:text-[28px]', !country && 'capitalize')}>
-          {seoCountryExcursionsHeading(title)}
+          {pageHeading}
         </h1>
         <p className="mb-4 text-sm text-muted md:mb-6 md:text-base">
           {isLoading
             ? 'Екскурсії за країною'
-            : items.length > 0
-              ? `${items.length} ${excursionWord(items.length)}`
-              : 'Екскурсії за країною'}
+            : priceLine
+              ? priceLine
+              : items.length > 0
+                ? `${items.length} ${excursionWord(items.length)}`
+                : 'Екскурсії за країною'}
         </p>
 
         <PlaceExcerpt value={placePage?.excerpt} fallback={excerptFallback} />

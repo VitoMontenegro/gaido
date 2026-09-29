@@ -114,6 +114,29 @@ export function buildExcursionAggregateProductJsonLd(
   return product
 }
 
+export function buildWebPageJsonLd(options: {
+  name: string
+  path: string
+  description?: string
+  image?: string
+}) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'WebPage',
+    name: options.name,
+    url: absoluteUrl(options.path),
+    ...(options.description ? { description: options.description } : {}),
+    ...(options.image
+      ? {
+          primaryImageOfPage: {
+            '@type': 'ImageObject',
+            url: resolveOgImage(options.image),
+          },
+        }
+      : {}),
+  }
+}
+
 export function buildExcursionListingJsonLd(
   items: ListingItem[],
   options: { name: string; description: string },
@@ -214,7 +237,7 @@ export function buildArticleJsonLd(article: {
     ...(article.published_at ? { datePublished: article.published_at } : {}),
     publisher: {
       '@type': 'Organization',
-      name: 'Gaido',
+      name: 'Gaido UA',
     },
   }
 }

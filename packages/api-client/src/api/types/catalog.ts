@@ -42,6 +42,7 @@ export type Excursion = {
   country_slug?: string
   guide_name?: string
   guide_slug?: string
+  cover_image_url?: string
   rating_avg?: number
   rating_count?: number
 }

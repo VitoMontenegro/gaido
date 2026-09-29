@@ -347,7 +347,7 @@ function MailServerSettings({ mail }: { mail?: MailSettings }) {
     username: '',
     password: '',
     from_email: '',
-    from_name: 'Gaido',
+    from_name: 'Gaido UA',
     encryption: 'starttls' as MailSettings['encryption'],
   })
   const [testTo, setTestTo] = useState('')
@@ -363,7 +363,7 @@ function MailServerSettings({ mail }: { mail?: MailSettings }) {
       username: mail.username,
       password: '',
       from_email: mail.from_email,
-      from_name: mail.from_name || 'Gaido',
+      from_name: mail.from_name || 'Gaido UA',
       encryption: mail.encryption || 'starttls',
     })
     setHydrated(true)

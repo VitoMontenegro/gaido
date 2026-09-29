@@ -17,7 +17,7 @@ export default function DiscoverFooter() {
               <a href={guidesUrl('/')} className="link-accent">Gaido Світ — гіди</a>
             </nav>
           </div>
-          <p className="mt-8 text-xs text-muted-light">© {new Date().getFullYear()} Gaido Servis</p>
+          <p className="mt-8 text-xs text-muted-light">© {new Date().getFullYear()} Gaido UA</p>
         </div>
       </div>
     </footer>

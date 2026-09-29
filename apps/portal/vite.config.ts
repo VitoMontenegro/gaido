@@ -6,4 +6,5 @@ export default createAppViteConfig({
   defaultPort: 5173,
   siteMode: 'portal',
   verticalPackage: 'portal',
+  leaflet: true,
 })

@@ -11,7 +11,7 @@ import ResetPasswordForm, { loginConfirmMessage } from '@gaido/ui-primitives/Res
 import { legalPath } from '@gaido/ui-primitives/legalPaths'
 import PasswordInput from '@gaido/ui-primitives/PasswordInput'
 import { pageTitle } from '@gaido/site-urls/brand'
-import { servicesPostLoginUrl } from '@gaido/site-urls/site'
+import { authReturnOrigin, servicesPostLoginUrl } from '@gaido/site-urls/site'
 
 const emptyRegisterForm = (): RegisterFormData => ({
   email: '',
@@ -72,7 +72,7 @@ function RegisterForm({ mode }: { mode: 'tourist' | 'guide' }) {
         accept_privacy: form.accept_privacy,
         accept_site_rules: form.accept_site_rules,
         accept_placement_rules: form.accept_placement_rules,
-        return_origin: window.location.origin,
+        return_origin: authReturnOrigin(),
       })
       setPendingEmail(res.email)
     } catch (err) {

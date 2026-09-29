@@ -1,10 +1,11 @@
 import { Link } from 'react-router-dom'
 import { SITE_NAME, SITE_TAGLINE } from '@gaido/site-urls/brand'
+import { staticAssetUrl } from '@gaido/site-urls/staticAsset'
 import { cn } from '@gaido/ui-primitives/cn'
 
 const LOGO = {
-  light: '/images/black_logo.png',
-  dark: '/images/white_logo.png',
+  light: staticAssetUrl('/images/black_logo.png'),
+  dark: staticAssetUrl('/images/white_logo.png'),
 } as const
 
 type Props = {
@@ -16,6 +17,7 @@ type Props = {
   homeTo?: string
   /** Компактний розмір на мобільних, повний — від md (для хедера). */
   compactOnMobile?: boolean
+  name?: string
 }
 
 function BrandMark({ className, dark = false }: { className?: string; dark?: boolean }) {
@@ -37,6 +39,7 @@ export default function BrandLogo({
   compact = false,
   compactOnMobile = false,
   homeTo = '/',
+  name = SITE_NAME,
 }: Props) {
   const dark = variant === 'inverse' || variant === 'hero'
   const markSize = compactOnMobile
@@ -47,7 +50,10 @@ export default function BrandLogo({
         ? 'h-10 w-10 md:h-11 md:w-11'
         : 'h-9 w-9'
   const nameClass = compactOnMobile
-    ? 'font-display text-base font-bold normal-case tracking-tight text-ink md:text-2xl'
+    ? cn(
+        'font-display text-base font-bold normal-case tracking-tight md:text-2xl',
+        dark ? 'text-white' : 'text-ink',
+      )
     : compact
       ? 'font-display text-base font-bold normal-case tracking-tight text-ink'
       : variant === 'hero'
@@ -66,7 +72,7 @@ export default function BrandLogo({
     <>
       <BrandMark className={markSize} dark={dark} />
       <span className="min-w-0">
-        <span className={nameClass}>{SITE_NAME}</span>
+        <span className={nameClass}>{name}</span>
         {showTagline && (
           <span
             className={cn(

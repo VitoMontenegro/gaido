@@ -19,7 +19,7 @@ fi
 
 TELEGRAM_BOT_USERNAME="${TELEGRAM_BOT_USERNAME:-gaido_ua_bot}"
 TELEGRAM_WEBHOOK_SECRET="${TELEGRAM_WEBHOOK_SECRET:-$(openssl rand -hex 32)}"
-PUBLIC_BASE_URL="${PUBLIC_BASE_URL:-https://svit.gaido-ua.com}"
+PUBLIC_BASE_URL="${PUBLIC_BASE_URL:-https://gaido-ua.com}"
 FOOTER_ONLY=false
 if [[ "${1:-}" == "--footer-only" ]] || [[ -z "${TELEGRAM_GROUP_CHAT_ID:-}" ]]; then
   FOOTER_ONLY=true

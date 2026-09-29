@@ -89,7 +89,7 @@ func defaultSettings() domain.MailSettings {
 	return domain.MailSettings{
 		Port:       587,
 		Encryption: domain.MailEncryptionSTARTTLS,
-		FromName:   "Gaido",
+		FromName:   "Gaido UA",
 	}
 }
 
@@ -104,7 +104,7 @@ func normalize(in domain.MailSettings, keepPassword string) domain.MailSettings 
 	out.FromEmail = strings.TrimSpace(in.FromEmail)
 	out.FromName = strings.TrimSpace(in.FromName)
 	if out.FromName == "" {
-		out.FromName = "Gaido"
+		out.FromName = "Gaido UA"
 	}
 	switch strings.ToLower(strings.TrimSpace(in.Encryption)) {
 	case domain.MailEncryptionTLS, domain.MailEncryptionNone, domain.MailEncryptionSTARTTLS:

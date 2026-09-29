@@ -101,7 +101,7 @@ func (h *Handlers) Register(w http.ResponseWriter, r *http.Request) {
 		response.Error(w, r, apperrors.ErrInternal)
 		return
 	}
-	link := origin + "/api/v1/auth/register/confirm?token=" + plain
+	link := authAPIBase(origin) + "/api/v1/auth/register/confirm?token=" + plain
 	if err := h.sendAuthMail(r.Context(), req.Email, "Підтвердіть реєстрацію на Gaido", registerMailBody(link)); err != nil {
 		response.Error(w, r, err)
 		return

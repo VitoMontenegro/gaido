@@ -89,15 +89,16 @@ npm ci
 BUILD_ID="$(git -C "$REPO" rev-parse --short HEAD 2>/dev/null || date +%s)"
 echo "→ build id: $BUILD_ID"
 PROD_DOMAIN="${PROD_DOMAIN:-gaido-ua.com}"
-declare -A APP_ORIGINS=(
-  [portal]="https://${PROD_DOMAIN}"
-  [svit]="https://svit.${PROD_DOMAIN}"
-  [servis]="https://servis.${PROD_DOMAIN}"
-  [vezu]="https://vezu.${PROD_DOMAIN}"
+APEX_ORIGIN="https://${PROD_DOMAIN}"
+declare -A APP_PATHS=(
+  [portal]=""
+  [svit]="/svit"
+  [servis]="/servis"
+  [vezu]="/vezu"
 )
 for app in portal svit servis vezu; do
-  echo "→ build @gaido/$app (${APP_ORIGINS[$app]})"
-  VITE_BUILD_ID="$BUILD_ID" VITE_PUBLIC_SITE_URL="${APP_ORIGINS[$app]}" npm run build -w "@gaido/$app"
+  echo "→ build @gaido/$app (${APEX_ORIGIN}${APP_PATHS[$app]})"
+  VITE_BUILD_ID="$BUILD_ID" VITE_PUBLIC_SITE_URL="$APEX_ORIGIN" npm run build -w "@gaido/$app"
   echo "→ publish $app to $STATIC_ROOT/$app"
   mkdir -p "$STATIC_ROOT/$app"
   rsync -a --delete \

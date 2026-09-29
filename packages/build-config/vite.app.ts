@@ -6,11 +6,14 @@ import { defineConfig, loadEnv, type Plugin, type UserConfig } from 'vite'
 
 const DEFAULT_OG_IMAGE_KEY = 'd2b27d81f09874a08b4dc3293fe67f2e.webp'
 
-const PRODUCTION_ORIGINS: Record<SiteMode, string> = {
-  portal: 'https://gaido-ua.com',
-  guides: 'https://svit.gaido-ua.com',
-  transport: 'https://vezu.gaido-ua.com',
-  services: 'https://servis.gaido-ua.com',
+const APEX_ORIGIN = 'https://gaido-ua.com'
+
+/** Same mount as production. Dev uses the same path on ports 5173–5176. */
+const SECTION_BASE: Record<SiteMode, string> = {
+  portal: '/',
+  guides: '/svit/',
+  transport: '/vezu/',
+  services: '/servis/',
 }
 
 /** Canonical Vite dev ports (see defaultPort in each app vite.config). */
@@ -21,31 +24,22 @@ const DEV_SITE_PORTS: Record<SiteMode, number> = {
   transport: 5176,
 }
 
-function localCrossSiteUrl(
-  target: SiteMode,
-  current: SiteMode,
-  siteOrigin: string,
-  mode: string,
-  env: Record<string, string>,
-): string {
-  const envKeys: Record<SiteMode, string> = {
-    portal: 'VITE_PORTAL_SITE_URL',
-    guides: 'VITE_GUIDES_SITE_URL',
-    services: 'VITE_SERVICES_SITE_URL',
-    transport: 'VITE_TRANSPORT_SITE_URL',
-  }
-  const fromEnv = env[envKeys[target]]?.replace(/\/$/, '')
-  if (fromEnv) return fromEnv
-  if (mode === 'production') return PRODUCTION_ORIGINS[target]
-  if (target === current) return siteOrigin
-  return `http://localhost:${DEV_SITE_PORTS[target]}`
+function sectionPrefix(mode: SiteMode): string {
+  const base = SECTION_BASE[mode]
+  return base === '/' ? '' : base.replace(/\/$/, '')
+}
+
+function localCrossSiteUrl(target: SiteMode, mode: string): string {
+  const prefix = sectionPrefix(target)
+  if (mode === 'production') return `${APEX_ORIGIN}${prefix}`
+  return `http://localhost:${DEV_SITE_PORTS[target]}${prefix}`
 }
 
 const SITE_SOCIAL: Record<SiteMode, { title: string; description: string }> = {
-  portal: { title: 'Gaido', description: 'Для українців — від українців' },
-  guides: { title: 'Gaido', description: 'Каталог приватних гідів і екскурсій українською за кордоном' },
-  transport: { title: 'Gaido Vezu', description: 'Транспорт для українців за кордоном' },
-  services: { title: 'Gaido Servis', description: 'Послуги для українців за кордоном' },
+  portal: { title: 'Gaido UA', description: 'Для українців — від українців' },
+  guides: { title: 'Gaido UA', description: 'Каталог приватних гідів і екскурсій українською за кордоном' },
+  transport: { title: 'Gaido UA', description: 'Транспорт для українців за кордоном' },
+  services: { title: 'Gaido UA', description: 'Послуги для українців за кордоном' },
 }
 
 export type SiteMode = 'portal' | 'guides' | 'transport' | 'services'
@@ -83,6 +77,7 @@ function loadLocalPorts(root: string): Record<string, string> {
 
 function socialMetaHtmlPlugin(siteOrigin: string, siteMode: SiteMode): Plugin {
   const origin = siteOrigin.replace(/\/$/, '')
+  const pageOrigin = `${origin}${sectionPrefix(siteMode)}`
   const ogImage = `${origin}/api/v1/media/public/${DEFAULT_OG_IMAGE_KEY}`
   const { title, description } = SITE_SOCIAL[siteMode]
   const tags = [
@@ -93,7 +88,7 @@ function socialMetaHtmlPlugin(siteOrigin: string, siteMode: SiteMode): Plugin {
     `<meta property="og:site_name" content="${title}" />`,
     `<meta property="og:title" content="${title}" />`,
     `<meta property="og:description" content="${description}" />`,
-    `<meta property="og:url" content="${origin}/" />`,
+    `<meta property="og:url" content="${pageOrigin}/" />`,
     `<meta property="og:image" content="${ogImage}" />`,
     `<meta name="description" content="${description}" />`,
     `<meta name="twitter:card" content="summary_large_image" />`,
@@ -135,19 +130,26 @@ function buildIdPlugin(buildId: string): Plugin {
 }
 
 /** Append ?v=BUILD_ID to /fonts and /images URLs in emitted CSS and index.html. */
-function versionStaticRefsPlugin(buildId: string): Plugin {
-  if (!buildId || buildId === 'dev') {
+function versionStaticRefsPlugin(buildId: string, appBase: string): Plugin {
+  const mount = appBase === '/' ? '' : appBase.replace(/\/$/, '')
+  const versioned = Boolean(buildId && buildId !== 'dev')
+  if (!mount && !versioned) {
     return { name: 'gaido-version-static-refs' }
   }
+  const withMount = (path: string) => {
+    if (!mount || path === mount || path.startsWith(`${mount}/`)) return path
+    return `${mount}${path}`
+  }
   const versionUrl = (path: string) => {
-    if (/[?&]v=/.test(path)) return path
-    const sep = path.includes('?') ? '&' : '?'
-    return `${path}${sep}v=${buildId}`
+    const rooted = withMount(path)
+    if (!versioned || /[?&]v=/.test(rooted)) return rooted
+    const sep = rooted.includes('?') ? '&' : '?'
+    return `${rooted}${sep}v=${buildId}`
   }
   const patchCss = (code: string) =>
     code.replace(
       /url\((['"]?)\/(fonts|images)\/([^'")]+)\1\)/g,
-      (_m, q: string, dir: string, file: string) => `url(${q}/${dir}/${file}?v=${buildId}${q})`,
+      (_m, q: string, dir: string, file: string) => `url(${q}${versionUrl(`/${dir}/${file}`)}${q})`,
     )
   return {
     name: 'gaido-version-static-refs',
@@ -202,12 +204,11 @@ export function createAppViteConfig({
     const frontendPort = Number(
       process.env.FRONTEND_PORT || process.env.PORT || env.FRONTEND_PORT || defaultPort,
     )
+    const appBase = SECTION_BASE[siteMode]
     const siteOrigin = (
-      process.env.VITE_PUBLIC_SITE_URL ||
-      env.VITE_PUBLIC_SITE_URL ||
-      (mode === 'production' ? PRODUCTION_ORIGINS[siteMode] : '') ||
-      localPorts.PUBLIC_BASE_URL ||
-      `http://localhost:${frontendPort}`
+      mode === 'production'
+        ? process.env.VITE_PUBLIC_SITE_URL || APEX_ORIGIN
+        : localPorts.PUBLIC_BASE_URL || `http://localhost:${frontendPort}`
     ).replace(/\/$/, '')
     const buildId = process.env.VITE_BUILD_ID || env.VITE_BUILD_ID || 'dev'
 
@@ -222,11 +223,12 @@ export function createAppViteConfig({
     }
 
     const config: UserConfig = {
+      base: appBase,
       plugins: [
         react(),
         tailwindcss(),
         socialMetaHtmlPlugin(siteOrigin, siteMode),
-        versionStaticRefsPlugin(buildId),
+        versionStaticRefsPlugin(buildId, appBase),
         buildIdPlugin(buildId),
       ],
       envDir: root,
@@ -235,18 +237,10 @@ export function createAppViteConfig({
         'import.meta.env.VITE_SITE_MODE': JSON.stringify(siteMode),
         'import.meta.env.VITE_PUBLIC_SITE_URL': JSON.stringify(siteOrigin),
         'import.meta.env.VITE_BUILD_ID': JSON.stringify(buildId),
-        'import.meta.env.VITE_PORTAL_SITE_URL': JSON.stringify(
-          localCrossSiteUrl('portal', siteMode, siteOrigin, mode, env),
-        ),
-        'import.meta.env.VITE_GUIDES_SITE_URL': JSON.stringify(
-          localCrossSiteUrl('guides', siteMode, siteOrigin, mode, env),
-        ),
-        'import.meta.env.VITE_TRANSPORT_SITE_URL': JSON.stringify(
-          localCrossSiteUrl('transport', siteMode, siteOrigin, mode, env),
-        ),
-        'import.meta.env.VITE_SERVICES_SITE_URL': JSON.stringify(
-          localCrossSiteUrl('services', siteMode, siteOrigin, mode, env),
-        ),
+        'import.meta.env.VITE_PORTAL_SITE_URL': JSON.stringify(localCrossSiteUrl('portal', mode)),
+        'import.meta.env.VITE_GUIDES_SITE_URL': JSON.stringify(localCrossSiteUrl('guides', mode)),
+        'import.meta.env.VITE_TRANSPORT_SITE_URL': JSON.stringify(localCrossSiteUrl('transport', mode)),
+        'import.meta.env.VITE_SERVICES_SITE_URL': JSON.stringify(localCrossSiteUrl('services', mode)),
       },
       resolve: {
         alias: aliases,

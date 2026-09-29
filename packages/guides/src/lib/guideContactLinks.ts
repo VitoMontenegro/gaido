@@ -1,7 +1,7 @@
 import type { Contacts } from '@gaido/api-client/api/types/catalog'
-import { GUIDES_HOST } from '@gaido/site-urls/site'
+import { guidesSiteLabel } from '@gaido/site-urls/brand'
 
-const CONTACT_PREFILL = `Вітаю, я пишу вам із сайту ${GUIDES_HOST}`
+const CONTACT_PREFILL = `Вітаю, я пишу вам із сайту ${guidesSiteLabel()}`
 
 function digitsOnly(value: string) {
   return value.replace(/\D/g, '')

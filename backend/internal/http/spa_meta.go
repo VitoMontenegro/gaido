@@ -19,46 +19,76 @@ var (
 )
 
 type PageMeta struct {
-	Title       string
-	Description string
-	Canonical   string
-	OgImage     string
-	NoIndex     bool
-	JsonLd      []string
+	Title             string
+	Description       string
+	Canonical         string
+	OgImage           string
+	NoIndex           bool
+	LargeImagePreview bool
+	JsonLd            []string
 }
 
 type spaSocialProfile struct {
 	origin      string
+	mediaOrigin string
 	title       string
 	description string
 }
 
-func spaSocialProfileForHost(host string) (spaSocialProfile, bool) {
+func portalSocialProfile() spaSocialProfile {
+	return spaSocialProfile{
+		origin:      apexOrigin,
+		mediaOrigin: apexOrigin,
+		title:       "Gaido UA",
+		description: "Для українців — від українців",
+	}
+}
+
+func guidesSocialProfile() spaSocialProfile {
+	return spaSocialProfile{
+		origin:      apexOrigin + "/svit",
+		mediaOrigin: apexOrigin,
+		title:       "Gaido UA",
+		description: "Каталог приватних гідів і екскурсій українською за кордоном",
+	}
+}
+
+func servicesSocialProfile() spaSocialProfile {
+	return spaSocialProfile{
+		origin:      apexOrigin + "/servis",
+		mediaOrigin: apexOrigin,
+		title:       "Gaido UA",
+		description: "Послуги для українців за кордоном",
+	}
+}
+
+func transportSocialProfile() spaSocialProfile {
+	return spaSocialProfile{
+		origin:      apexOrigin + "/vezu",
+		mediaOrigin: apexOrigin,
+		title:       "Gaido UA",
+		description: "Транспорт для українців за кордоном",
+	}
+}
+
+func spaSocialProfileForRequest(host, path string) (spaSocialProfile, bool) {
+	switch {
+	case path == "/svit" || strings.HasPrefix(path, "/svit/"):
+		return guidesSocialProfile(), true
+	case path == "/servis" || strings.HasPrefix(path, "/servis/"):
+		return servicesSocialProfile(), true
+	case path == "/vezu" || strings.HasPrefix(path, "/vezu/"):
+		return transportSocialProfile(), true
+	}
 	switch normalizeHost(host) {
 	case "gaido-ua.com", "www.gaido-ua.com":
-		return spaSocialProfile{
-			origin:      "https://gaido-ua.com",
-			title:       "Gaido",
-			description: "Для українців — від українців",
-		}, true
+		return portalSocialProfile(), true
 	case "svit.gaido-ua.com":
-		return spaSocialProfile{
-			origin:      "https://svit.gaido-ua.com",
-			title:       "Gaido",
-			description: "Каталог приватних гідів і екскурсій українською за кордоном",
-		}, true
+		return guidesSocialProfile(), true
 	case "servis.gaido-ua.com":
-		return spaSocialProfile{
-			origin:      "https://servis.gaido-ua.com",
-			title:       "Gaido Servis",
-			description: "Послуги для українців за кордоном",
-		}, true
+		return servicesSocialProfile(), true
 	case "vezu.gaido-ua.com":
-		return spaSocialProfile{
-			origin:      "https://vezu.gaido-ua.com",
-			title:       "Gaido Vezu",
-			description: "Транспорт для українців за кордоном",
-		}, true
+		return transportSocialProfile(), true
 	default:
 		return spaSocialProfile{}, false
 	}
@@ -76,8 +106,12 @@ func escapeAttr(s string) string {
 func pageMetaHeadHTML(profile spaSocialProfile, meta *PageMeta) string {
 	title := profile.title
 	desc := profile.description
+	mediaOrigin := profile.mediaOrigin
+	if mediaOrigin == "" {
+		mediaOrigin = profile.origin
+	}
 	canonical := profile.origin + "/"
-	ogImage := profile.origin + "/api/v1/media/public/" + defaultOgImageKey
+	ogImage := mediaOrigin + "/api/v1/media/public/" + defaultOgImageKey
 	noIndex := false
 
 	if meta != nil {
@@ -112,6 +146,8 @@ func pageMetaHeadHTML(profile spaSocialProfile, meta *PageMeta) string {
 	}
 	if noIndex {
 		lines = append(lines, `<meta name="robots" content="noindex, nofollow" />`)
+	} else if meta != nil && meta.LargeImagePreview {
+		lines = append(lines, `<meta name="robots" content="max-image-preview:large" />`)
 	}
 	if meta != nil {
 		for _, raw := range meta.JsonLd {
@@ -124,14 +160,18 @@ func pageMetaHeadHTML(profile spaSocialProfile, meta *PageMeta) string {
 	return "    " + strings.Join(lines, "\n    ") + "\n"
 }
 
-func patchIndexHTML(html, host string, meta *PageMeta) string {
-	profile, ok := spaSocialProfileForHost(host)
+func patchIndexHTML(html, host, path string, meta *PageMeta) string {
+	profile, ok := spaSocialProfileForRequest(host, path)
 	if !ok {
 		return html
 	}
 
+	mediaOrigin := profile.mediaOrigin
+	if mediaOrigin == "" {
+		mediaOrigin = profile.origin
+	}
 	if strings.Contains(html, "localhost") {
-		html = localhostOriginRe.ReplaceAllString(html, profile.origin)
+		html = localhostOriginRe.ReplaceAllString(html, mediaOrigin)
 	}
 
 	title := profile.title
@@ -169,7 +209,7 @@ func crawlableRootHTML(meta *PageMeta) string {
 	if meta == nil || meta.NoIndex {
 		return `<div id="root"></div>`
 	}
-	title := strings.TrimSpace(strings.TrimSuffix(meta.Title, " — Gaido"))
+	title := strings.TrimSpace(strings.TrimSuffix(meta.Title, " — Gaido UA"))
 	desc := strings.TrimSpace(meta.Description)
 	if title == "" && desc == "" {
 		return `<div id="root"></div>`
@@ -193,7 +233,7 @@ func crawlableRootHTML(meta *PageMeta) string {
 }
 
 func patchIndexSocialMeta(html, host string) string {
-	return patchIndexHTML(html, host, nil)
+	return patchIndexHTML(html, host, "", nil)
 }
 
 func serveSpaIndex(w http.ResponseWriter, r *http.Request, indexPath string, meta *PageMeta) {
@@ -202,7 +242,7 @@ func serveSpaIndex(w http.ResponseWriter, r *http.Request, indexPath string, met
 		http.NotFound(w, r)
 		return
 	}
-	html := patchIndexHTML(string(raw), r.Host, meta)
+	html := patchIndexHTML(string(raw), r.Host, r.URL.Path, meta)
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	setSPAFileCacheHeaders(w, "", true)
 	_, _ = w.Write([]byte(html))

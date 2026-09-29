@@ -7,6 +7,7 @@ import { locationQueryParams, useLocation } from '../contexts/LocationContext'
 import DiscoverMap from '../components/discover/DiscoverMap'
 import DiscoverOfferingsList from '../components/discover/DiscoverOfferingsList'
 import LocationPicker from '../components/location/LocationPicker'
+import HomeHero from '../components/HomeHero'
 import { Seo } from '../lib/seo'
 import { pageTitle } from '@gaido/site-urls/brand'
 import { distanceKm } from '../lib/geo'
@@ -147,22 +148,22 @@ export default function DiscoverPage() {
   return (
     <>
       <Seo title={pageTitle(`Послуги ${placeLabel}`)} path="/discover" />
+      <HomeHero
+        title={sectionLabel ?? 'Послуги поруч із вами'}
+        subtitle="Лікарі, майстри, транспорт і допомога українською. Оберіть місто — і побачите, хто працює поруч."
+      >
+        <LocationPicker />
+      </HomeHero>
       <div className="container-site space-y-6 py-8">
-        <header className="space-y-4">
-          <h1 className="section-title">
-            {sectionLabel ?? `Українці в ${placeLabel}`}
-          </h1>
-          {sectionLabel && !loc.hasLocation && (
-            <p className="text-muted">Оберіть місто, щоб побачити пропозиції поруч із вами</p>
-          )}
-          {usingFallback && (
-            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-              У {loc.cityName ?? 'вашому місті'} пропозицій у цьому розділі немає. Показуємо всі доступні
-              обʼявлення — оберіть інше місто (наприклад, Berlin) для пошуку поруч.
-            </div>
-          )}
-          <LocationPicker />
-        </header>
+        {sectionLabel && !loc.hasLocation && (
+          <p className="text-muted">Оберіть місто, щоб побачити пропозиції поруч із вами</p>
+        )}
+        {usingFallback && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            У {loc.cityName ?? 'вашому місті'} пропозицій у цьому розділі немає. Показуємо всі доступні
+            обʼявлення — оберіть інше місто (наприклад, Berlin) для пошуку поруч.
+          </div>
+        )}
 
         {canSearch && (
           <>

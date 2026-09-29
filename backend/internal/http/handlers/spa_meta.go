@@ -25,15 +25,17 @@ type SpaPageMeta struct {
 	Canonical   string
 	OgImage     string
 	NoIndex     bool
-	JsonLd      []string
+	// LargeImagePreview asks Google to use a large thumbnail (country catalog covers).
+	LargeImagePreview bool
+	JsonLd            []string
 }
 
 func pageTitleSuffix(name string) string {
 	name = strings.TrimSpace(name)
 	if name == "" {
-		return "Gaido"
+		return "Gaido UA"
 	}
-	return name + " — Gaido"
+	return name + " — Gaido UA"
 }
 
 func truncateDesc(s string, max int) string {
@@ -71,18 +73,43 @@ func (h *Handlers) resolveSEOImage(img, fallback string) string {
 	}
 }
 
+func isPortalHome(host, path string) bool {
+	switch strings.TrimSuffix(path, "/") {
+	case "", "/":
+	default:
+		return false
+	}
+	switch normalizeHost(host) {
+	case "gaido-ua.com", "www.gaido-ua.com":
+		return true
+	default:
+		return false
+	}
+}
+
+func (h *Handlers) portalHomePageMeta(ctx context.Context) *SpaPageMeta {
+	apex := h.publicBaseURL()
+	defaultImage := apex + "/api/v1/media/public/d2b27d81f09874a08b4dc3293fe67f2e.webp"
+	return &SpaPageMeta{
+		Title:       pageTitleSuffix(seoPortalHomeTitle),
+		Description: seoPortalHomeDescription,
+		Canonical:   strings.TrimRight(apex, "/") + "/",
+		OgImage:     defaultImage,
+		JsonLd:      h.portalHomePageJsonLd(ctx, apex, apex+"/svit"),
+	}
+}
+
 func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *SpaPageMeta {
-	if !isGuidesHost(host) {
+	if isPortalHome(host, path) {
+		return h.portalHomePageMeta(ctx)
+	}
+
+	ok, path, base := guidesPage(host, path, h.publicBaseURL())
+	if !ok {
 		return nil
 	}
 
-	path = strings.TrimSuffix(path, "/")
-	if path == "" {
-		path = "/"
-	}
-
-	base := h.publicBaseURL()
-	defaultImage := base + "/api/v1/media/public/d2b27d81f09874a08b4dc3293fe67f2e.webp"
+	defaultImage := h.publicBaseURL() + "/api/v1/media/public/d2b27d81f09874a08b4dc3293fe67f2e.webp"
 
 	switch {
 	case path == "/":
@@ -241,14 +268,23 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 		if h.PlacePages != nil {
 			page, _ = h.PlacePages.GetBySlug(ctx, domain.PlaceTypeCountry, c.Slug)
 		}
+		items, _ := h.Exc.ListPublicEnriched(ctx, nil, c.Slug, "", nil, 50, 0)
+		priceLabel, coverKey := countryListingOffer(items)
 		meta := &SpaPageMeta{
-			Title:       pageTitleSuffix(seoCountryExcursionsHeading(c.Name)),
-			Description: truncateDesc(seoCountryExcursionsDescription(c.Name), 160),
-			Canonical:   base + "/countries/" + c.Slug,
-			OgImage:     defaultImage,
-			JsonLd:      h.countryPageJsonLd(ctx, c, base, page),
+			Title:             pageTitleSuffix(seoCountryExcursionsHeading(c.Name)),
+			Description:       truncateDesc(seoCountryExcursionsDescription(c.Name, priceLabel), 160),
+			Canonical:         base + "/countries/" + c.Slug,
+			OgImage:           defaultImage,
+			LargeImagePreview: true,
+			JsonLd:            h.countryPageJsonLd(ctx, c, base, page, items),
 		}
 		h.applyPlacePageMeta(meta, page, defaultImage)
+		if priceLabel != "" && !strings.Contains(meta.Description, priceLabel) {
+			meta.Description = truncateDesc(strings.TrimSpace(meta.Description+" "+priceLabel), 160)
+		}
+		if coverKey != "" && (meta.OgImage == "" || meta.OgImage == defaultImage) {
+			meta.OgImage = h.mediaPublicURL(coverKey)
+		}
 		return meta
 
 	case "city":
@@ -342,13 +378,40 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 	return nil
 }
 
-func isGuidesHost(host string) bool {
+func guidesPage(host, path, publicBase string) (ok bool, routePath, pageBase string) {
+	path = strings.TrimSuffix(path, "/")
+	if path == "" {
+		path = "/"
+	}
+	publicBase = strings.TrimRight(publicBase, "/")
+	if path == "/svit" || strings.HasPrefix(path, "/svit/") {
+		route := strings.TrimPrefix(path, "/svit")
+		if route == "" {
+			route = "/"
+		}
+		return true, route, publicBase + "/svit"
+	}
+	if !isGuidesHost(host) {
+		return false, path, publicBase
+	}
+	pageBase = publicBase
+	if normalizeHost(host) == "svit.gaido-ua.com" {
+		pageBase = publicBase + "/svit"
+	}
+	return true, path, pageBase
+}
+
+func normalizeHost(host string) string {
 	h := strings.ToLower(strings.TrimSpace(host))
 	if i := strings.LastIndex(h, ":"); i != -1 && !strings.HasPrefix(h, "[") {
 		h = h[:i]
 	}
-	h = strings.TrimSuffix(h, ".")
-	return h == "svit.gaido-ua.com" || h == "localhost" || strings.HasPrefix(h, "127.0.0.1")
+	return strings.TrimSuffix(h, ".")
+}
+
+func isGuidesHost(host string) bool {
+	h := normalizeHost(host)
+	return h == "svit.gaido-ua.com" || h == "localhost" || h == "127.0.0.1"
 }
 
 // HTMLEscapeAttr escapes text for HTML attribute values.

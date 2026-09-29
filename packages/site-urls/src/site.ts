@@ -5,6 +5,10 @@ export const GUIDES_HOST = 'svit.gaido-ua.com'
 export const TRANSPORT_HOST = 'vezu.gaido-ua.com'
 export const SERVICES_HOST = 'servis.gaido-ua.com'
 
+export const GUIDES_PREFIX = '/svit'
+export const SERVICES_PREFIX = '/servis'
+export const TRANSPORT_PREFIX = '/vezu'
+
 const GUIDE_PATH_RE = /^\/(guides|map|search|journal|guide|excursion|city|ukrainians-in)(\/|$)/
 
 export function getSiteMode(): SiteMode {
@@ -14,6 +18,10 @@ export function getSiteMode(): SiteMode {
   }
 
   if (typeof window === 'undefined') return 'portal'
+  const path = window.location.pathname
+  if (path === GUIDES_PREFIX || path.startsWith(`${GUIDES_PREFIX}/`)) return 'guides'
+  if (path === TRANSPORT_PREFIX || path.startsWith(`${TRANSPORT_PREFIX}/`)) return 'transport'
+  if (path === SERVICES_PREFIX || path.startsWith(`${SERVICES_PREFIX}/`)) return 'services'
   const host = window.location.hostname.toLowerCase()
   if (host === GUIDES_HOST || host.startsWith('svit.')) return 'guides'
   if (host === TRANSPORT_HOST || host.startsWith('vezu.')) return 'transport'
@@ -55,38 +63,72 @@ const LOCAL_DEV_PORTS: Record<string, number> = {
   [TRANSPORT_HOST]: 5176,
 }
 
-function originForHost(host: string, envKey: string): string {
+function sectionOrigin(prefix: string, legacyHost: string, envKey: string): string {
   const fromEnv = (import.meta.env[envKey] as string | undefined)?.replace(/\/$/, '')
   if (fromEnv) return fromEnv
   if (typeof window !== 'undefined') {
     const hostname = window.location.hostname.toLowerCase()
-    if (hostname === host) return window.location.origin
+    if (hostname === legacyHost) return `${window.location.origin}${prefix}`
     if (isLocalDevHost()) {
-      if (host === TRANSPORT_HOST && getSiteMode() === 'transport') return window.location.origin
-      if (host === GUIDES_HOST && getSiteMode() === 'guides') return window.location.origin
-      if (host === SERVICES_HOST && getSiteMode() === 'services') return window.location.origin
-      if (host === PORTAL_HOST && getSiteMode() === 'portal') return window.location.origin
-      const port = LOCAL_DEV_PORTS[host]
-      if (port) return `http://${hostname}:${port}`
+      const port = LOCAL_DEV_PORTS[legacyHost]
+      if (port) return `http://${hostname}:${port}${prefix}`
+    }
+    if (hostname === PORTAL_HOST || hostname === `www.${PORTAL_HOST}`) {
+      return `${window.location.origin}${prefix}`
     }
   }
-  return `https://${host}`
+  return `https://${PORTAL_HOST}${prefix}`
 }
 
 export function guidesOrigin(): string {
-  return originForHost(GUIDES_HOST, 'VITE_GUIDES_SITE_URL')
+  return sectionOrigin(GUIDES_PREFIX, GUIDES_HOST, 'VITE_GUIDES_SITE_URL')
 }
 
 export function portalOrigin(): string {
-  return originForHost(PORTAL_HOST, 'VITE_PORTAL_SITE_URL')
+  return sectionOrigin('', PORTAL_HOST, 'VITE_PORTAL_SITE_URL')
 }
 
 export function transportOrigin(): string {
-  return originForHost(TRANSPORT_HOST, 'VITE_TRANSPORT_SITE_URL')
+  return sectionOrigin(TRANSPORT_PREFIX, TRANSPORT_HOST, 'VITE_TRANSPORT_SITE_URL')
 }
 
 export function servicesOrigin(): string {
-  return originForHost(SERVICES_HOST, 'VITE_SERVICES_SITE_URL')
+  return sectionOrigin(SERVICES_PREFIX, SERVICES_HOST, 'VITE_SERVICES_SITE_URL')
+}
+
+export function publicOrigin(): string {
+  const fromEnv = (import.meta.env.VITE_PUBLIC_SITE_URL as string | undefined)?.replace(/\/$/, '')
+  if (fromEnv) return fromEnv
+  if (typeof window !== 'undefined') return window.location.origin
+  return `https://${PORTAL_HOST}`
+}
+
+/** Vite `base` without a trailing slash. Empty only for the portal. */
+export function sectionBasePath(): string {
+  const base = (import.meta.env.BASE_URL as string | undefined) || '/'
+  if (base === '/' || base === '') return ''
+  return base.endsWith('/') ? base.slice(0, -1) : base
+}
+
+export function routerBasename(): string | undefined {
+  return sectionBasePath() || undefined
+}
+
+/** Origin stored for auth emails. Includes /svit, /servis or /vezu in production. */
+export function authReturnOrigin(): string {
+  if (typeof window === 'undefined') return publicOrigin()
+  return `${window.location.origin}${sectionBasePath()}`
+}
+
+/** Page URL on the current section. `/api/` stays on the apex origin. */
+export function absoluteUrl(path: string): string {
+  if (path.startsWith('http://') || path.startsWith('https://')) return path
+  const p = path.startsWith('/') ? path : `/${path}`
+  const origin = publicOrigin()
+  if (p.startsWith('/api/') || p.startsWith('/media/')) return `${origin}${p}`
+  const base = sectionBasePath()
+  if (!base || p === base || p.startsWith(`${base}/`)) return `${origin}${p}`
+  return `${origin}${base}${p}`
 }
 
 export function absoluteSiteUrl(host: string, path = '/'): string {

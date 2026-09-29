@@ -199,6 +199,36 @@ func (h *Handlers) AdminDeleteExcursion(w http.ResponseWriter, r *http.Request) 
 	response.JSON(w, r, 200, map[string]string{"status": "deleted"})
 }
 func (h *Handlers) ResolveFeaturedExcursions(ctx context.Context, limit int) []domain.ExcursionView {
+	out := make([]domain.ExcursionView, 0, limit)
+	if h.Featured == nil || h.Exc == nil || limit <= 0 {
+		return out
+	}
+	placements, err := h.Featured.ListActiveBySlotType(ctx, domain.FeaturedSlotExcursion, limit)
+	if err != nil {
+		return out
+	}
+	seen := map[int64]bool{}
+	for _, p := range placements {
+		if p.ExcursionID == nil || seen[*p.ExcursionID] {
+			continue
+		}
+		v, err := h.Exc.GetViewByID(ctx, *p.ExcursionID)
+		if err != nil || v == nil {
+			continue
+		}
+		seen[v.ID] = true
+		out = append(out, *v)
+		if len(out) >= limit {
+			break
+		}
+	}
+	return out
+}
+
+func (h *Handlers) ResolveLatestExcursions(ctx context.Context, limit int) []domain.ExcursionView {
+	if h.Exc == nil || limit <= 0 {
+		return []domain.ExcursionView{}
+	}
 	items, err := h.Exc.ListPublicEnrichedNewest(ctx, limit)
 	if err != nil || items == nil {
 		return []domain.ExcursionView{}

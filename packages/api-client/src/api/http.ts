@@ -223,9 +223,11 @@ export function resolveMediaUrl(url: string): string {
 
 function versionStaticPath(path: string): string {
   if (!path.startsWith('/images/') && !path.startsWith('/fonts/')) return path
-  if (/[?&]v=/.test(path)) return path
+  const base = ((import.meta.env.BASE_URL as string | undefined) || '/').replace(/\/$/, '')
+  const rooted = !base || path.startsWith(`${base}/`) ? path : `${base}${path}`
+  if (/[?&]v=/.test(rooted)) return rooted
   const buildId = import.meta.env.VITE_BUILD_ID as string | undefined
-  if (!buildId || buildId === 'dev') return path
-  const sep = path.includes('?') ? '&' : '?'
-  return `${path}${sep}v=${buildId}`
+  if (!buildId || buildId === 'dev') return rooted
+  const sep = rooted.includes('?') ? '&' : '?'
+  return `${rooted}${sep}v=${buildId}`
 }

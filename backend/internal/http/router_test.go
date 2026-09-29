@@ -1,11 +1,14 @@
 package httpx
 
 import (
+	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
+	"github.com/vitomonte/experts-tourister/internal/config"
 	"github.com/vitomonte/experts-tourister/internal/http/cacheheaders"
 )
 
@@ -105,5 +108,73 @@ func TestSpaFileServer_fontsAreImmutable(t *testing.T) {
 	cc := rec.Header().Get("Cache-Control")
 	if cc != cacheheaders.Immutable {
 		t.Fatalf("cache-control: got %q", cc)
+	}
+}
+
+func TestLegacySectionRedirect_preservesPathAndQuery(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/guides/countries/spain?q=1", nil)
+	req.Host = "svit.gaido-ua.com"
+	rec := httptest.NewRecorder()
+	if !legacySectionRedirect(rec, req) {
+		t.Fatal("expected redirect")
+	}
+	if rec.Code != http.StatusMovedPermanently {
+		t.Fatalf("status: got %d", rec.Code)
+	}
+	if got := rec.Header().Get("Location"); got != "https://gaido-ua.com/svit/guides/countries/spain?q=1" {
+		t.Fatalf("location: got %q", got)
+	}
+}
+
+func TestLegacySectionRedirect_sitemapStaysOnApex(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/sitemap.xml", nil)
+	req.Host = "servis.gaido-ua.com"
+	rec := httptest.NewRecorder()
+	if !legacySectionRedirect(rec, req) {
+		t.Fatal("expected redirect")
+	}
+	if got := rec.Header().Get("Location"); got != "https://gaido-ua.com/sitemap.xml" {
+		t.Fatalf("location: got %q", got)
+	}
+}
+
+func TestLegacySectionRedirect_skipsAPI(t *testing.T) {
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", nil)
+	req.Host = "vezu.gaido-ua.com"
+	rec := httptest.NewRecorder()
+	if legacySectionRedirect(rec, req) {
+		t.Fatal("api must stay on the old host")
+	}
+}
+
+func TestSpaLocation_servesSectionAssetAndIndex(t *testing.T) {
+	root := t.TempDir()
+	assetDir := filepath.Join(root, "svit", "assets")
+	if err := os.MkdirAll(assetDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(assetDir, "app.js"), []byte("ok"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "svit", "index.html"), []byte("<html>svit</html>"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg := config.Config{StaticRoot: root}
+
+	dist, filePath := spaLocation("gaido-ua.com", "/svit/assets/app.js", cfg)
+	if dist != filepath.Join(root, "svit") || filePath != "/assets/app.js" {
+		t.Fatalf("asset location: dist=%s file=%s", dist, filePath)
+	}
+	rec := httptest.NewRecorder()
+	spaFileServerPaths(dist, nil, filePath).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/svit/assets/app.js", nil))
+	if rec.Code != 200 || rec.Body.String() != "ok" {
+		t.Fatalf("asset: %d %q", rec.Code, rec.Body.String())
+	}
+
+	dist, filePath = spaLocation("gaido-ua.com", "/svit/guides/countries/spain", cfg)
+	rec = httptest.NewRecorder()
+	spaFileServerPaths(dist, nil, filePath).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/svit/guides/countries/spain", nil))
+	if rec.Code != 200 || !strings.Contains(rec.Body.String(), "svit") {
+		t.Fatalf("index: %d %q", rec.Code, rec.Body.String())
 	}
 }

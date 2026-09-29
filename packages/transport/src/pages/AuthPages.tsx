@@ -10,7 +10,7 @@ import ResetPasswordForm, { loginConfirmMessage } from '@gaido/ui-primitives/Res
 import { legalPath } from '@gaido/ui-primitives/legalPaths'
 import PasswordInput from '@gaido/ui-primitives/PasswordInput'
 import { pageTitle } from '@gaido/site-urls/brand'
-import { transportPostLoginUrl } from '@gaido/site-urls/site'
+import { authReturnOrigin, transportPostLoginUrl } from '@gaido/site-urls/site'
 import { Seo } from '../lib/seo'
 
 function safeReturnPath(from: unknown): string | undefined {
@@ -71,7 +71,7 @@ function RegisterForm({ mode }: { mode: 'tourist' | 'driver' }) {
         accept_privacy: form.accept_privacy,
         accept_site_rules: form.accept_site_rules,
         accept_placement_rules: false,
-        return_origin: window.location.origin,
+        return_origin: authReturnOrigin(),
       })
       setPendingEmail(res.email)
     } catch (err) {

@@ -7,6 +7,7 @@ import {
   type HomeContent,
   type HomeCta,
   type LegalContent,
+  type PortalHubContent,
 } from '@gaido/api-client/api/client'
 import { DEFAULT_OG_IMAGE_KEY } from '@gaido/site-urls/brand'
 import { ImageUrlField } from './ImageUrlField'
@@ -14,9 +15,11 @@ import { LegalPageEditor } from './LegalContentEditor'
 import { normalizeAboutContent } from '../lib/aboutPageContent'
 import { normalizeCategoryTiles } from '../lib/categoryTiles'
 import { normalizeLegalContent } from '../lib/legalContent'
+import { normalizePortalHub } from '../lib/hubSeo'
 
 type SiteContentPayload = {
   home: HomeContent
+  portal_hub: PortalHubContent
   footer: FooterContent
   legal: LegalContent
   about: AboutPageContent
@@ -58,6 +61,7 @@ export function SiteContentEditor() {
     adminApi.siteContent().then((data) => setDraft({
       ...data,
       home: normalizeHome(data.home),
+      portal_hub: normalizePortalHub(data.portal_hub),
       legal: normalizeLegalContent(data.legal),
       about: normalizeAboutContent(data.about),
     })).catch(() => setMessage('Не вдалося завантажити контент сайту'))
@@ -72,6 +76,7 @@ export function SiteContentEditor() {
       setDraft({
         ...saved,
         home: normalizeHome(saved.home),
+        portal_hub: normalizePortalHub(saved.portal_hub),
         legal: normalizeLegalContent(saved.legal),
         about: normalizeAboutContent(saved.about),
       })
@@ -89,11 +94,14 @@ export function SiteContentEditor() {
   }
 
   const home = draft.home
+  const portalHub = draft.portal_hub
   const footer = draft.footer
   const legal = draft.legal
   const about = draft.about
 
   const updateHome = (patch: Partial<HomeContent>) => setDraft({ ...draft, home: { ...home, ...patch } })
+  const updatePortalHub = (patch: Partial<PortalHubContent>) =>
+    setDraft({ ...draft, portal_hub: { ...portalHub, ...patch } })
   const updateFooter = (patch: Partial<FooterContent>) => setDraft({ ...draft, footer: { ...footer, ...patch } })
   const updateLegal = (patch: Partial<LegalContent>) => setDraft({ ...draft, legal: { ...legal, ...patch } })
   const updateAbout = (patch: Partial<AboutPageContent>) => setDraft({ ...draft, about: { ...about, ...patch } })
@@ -109,9 +117,73 @@ export function SiteContentEditor() {
       </div>
 
       <section className="space-y-3 rounded-xl border border-border p-4">
+        <h3 className="font-medium text-ink">Головна gaido-ua.com</h3>
+        <p className="text-sm text-muted">
+          Заголовок, вступ і три картки розділів. Порожнє поле підставляє текст і фото за замовчуванням.
+        </p>
+        <label className="block text-sm text-muted">
+          Заголовок
+          <input
+            className="input mt-1"
+            value={portalHub.title}
+            onChange={(e) => updatePortalHub({ title: e.target.value })}
+          />
+        </label>
+        <label className="block text-sm text-muted">
+          Вступ
+          <textarea
+            className="input mt-1 min-h-24"
+            value={portalHub.lead}
+            onChange={(e) => updatePortalHub({ lead: e.target.value })}
+          />
+        </label>
+        {portalHub.cards.map((card, i) => (
+          <div key={card.id} className="space-y-2 rounded-xl border border-border p-3">
+            <p className="text-sm font-medium text-ink">{card.id === 'guides' ? 'Гіди' : card.id === 'transport' ? 'Перевезення' : 'Послуги'}</p>
+            <label className="block text-sm text-muted">
+              Назва картки
+              <input
+                className="input mt-1"
+                value={card.title}
+                onChange={(e) => {
+                  const cards = [...portalHub.cards]
+                  cards[i] = { ...cards[i], title: e.target.value }
+                  updatePortalHub({ cards })
+                }}
+              />
+            </label>
+            <label className="block text-sm text-muted">
+              Опис
+              <textarea
+                className="input mt-1 min-h-40"
+                value={card.text}
+                onChange={(e) => {
+                  const cards = [...portalHub.cards]
+                  cards[i] = { ...cards[i], text: e.target.value }
+                  updatePortalHub({ cards })
+                }}
+              />
+            </label>
+            <ImageUrlField
+              label="Фото"
+              hint="Обкладинка картки. Рекомендовано 16:10."
+              value={card.image_url}
+              cropAspect={16 / 10}
+              maxBytes={250 * 1024}
+              onChange={(image_url) => {
+                const cards = [...portalHub.cards]
+                cards[i] = { ...cards[i], image_url }
+                updatePortalHub({ cards })
+              }}
+            />
+          </div>
+        ))}
+      </section>
+
+      <section className="space-y-3 rounded-xl border border-border p-4">
         <h3 className="font-medium text-ink">SEO головної сторінки</h3>
         <p className="text-sm text-muted">
-          Title, description і картинка для Google та соцмереж (Open Graph) на svit.gaido-ua.com.
+          Title, description і картинка для Google та соцмереж (Open Graph) на gaido-ua.com/svit.
         </p>
         <label className="block text-sm text-muted">
           Title

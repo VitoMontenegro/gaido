@@ -81,7 +81,7 @@ if [ ! -f "$ENV_FILE" ]; then
 APP_ENV=production
 HTTP_ADDR=:8081
 CORS_ORIGINS=https://${DOMAIN},https://www.${DOMAIN},https://svit.${DOMAIN}
-PUBLIC_BASE_URL=https://svit.${DOMAIN}
+PUBLIC_BASE_URL=https://${DOMAIN}
 
 DATABASE_URL=postgres://tourister:${DB_PASS}@127.0.0.1:5432/tourister?sslmode=disable
 REDIS_URL=redis://127.0.0.1:6379/0

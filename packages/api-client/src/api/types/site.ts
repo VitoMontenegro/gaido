@@ -83,13 +83,30 @@ export type DestinationGroup = {
   cities: DestinationCity[]
 }
 
+export type PortalHubCardId = 'guides' | 'transport' | 'services'
+
+export type PortalHubCard = {
+  id: PortalHubCardId
+  title: string
+  text: string
+  image_url: string
+}
+
+export type PortalHubContent = {
+  title: string
+  lead: string
+  cards: PortalHubCard[]
+}
+
 export type SitePayload = {
   home: {
     content: HomeContent
     featured_guides: PublicGuide[]
     featured_excursions: Excursion[]
+    latest_excursions: Excursion[]
     popular_destinations: DestinationGroup[]
   }
+  portal_hub: PortalHubContent
   footer: FooterContent
   legal: LegalContent
   about: AboutPageContent
@@ -99,6 +116,7 @@ export type SitePayload = {
 
 export type SiteContentPayload = {
   home: HomeContent
+  portal_hub: PortalHubContent
   footer: FooterContent
   legal: LegalContent
   about: AboutPageContent

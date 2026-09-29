@@ -9,7 +9,15 @@ export function seoCountryExcursionsTitle(countryName: string) {
   return pageTitle(seoCountryExcursionsHeading(countryName))
 }
 
-export function seoCountryExcursionsDescription(countryName: string, count?: number) {
+export function seoCountryPriceLine(countryName: string, priceLabel?: string) {
+  const price = (priceLabel ?? '').trim()
+  if (!price) return ''
+  return `${seoCountryExcursionsHeading(countryName)} ${price}`
+}
+
+export function seoCountryExcursionsDescription(countryName: string, count?: number, priceLabel?: string) {
+  const priced = seoCountryPriceLine(countryName, priceLabel)
+  if (priced) return priced
   if (count && count > 0) {
     return `${count} екскурсій українською ${ukInLocative(countryName)} — ціни, гіди, авторські маршрути`
   }
@@ -185,7 +193,7 @@ export function buildWebSiteJsonLd() {
   return {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
-    name: 'Gaido',
+    name: 'Gaido UA',
     url: '/',
     potentialAction: {
       '@type': 'SearchAction',

@@ -5,7 +5,8 @@ import (
 	"strings"
 )
 
-const GuideInstructionsURL = "https://svit.gaido-ua.com/account/guide/instructions"
+const guidesPublicURL = "https://gaido-ua.com/svit"
+const GuideInstructionsURL = guidesPublicURL + "/account/guide/instructions"
 
 type Letter struct {
 	Subject string
@@ -43,7 +44,7 @@ func welcomeGuide(name string) Letter {
 }
 
 func welcomeUser(name string) Letter {
-	catalog := "https://svit.gaido-ua.com/"
+	catalog := guidesPublicURL + "/"
 	subject := "Вітаємо! Ви зареєстровані на Gaido"
 	text := "Вітаємо, " + name + "!\n\n" +
 		"Ви успішно зареєстровані на Gaido. Можна шукати гідів та екскурсії.\n\n" +
@@ -90,7 +91,7 @@ func brandedHTML(preheader, heading, body, buttonLabel, buttonURL, note string) 
         <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#ffffff;border-radius:20px;overflow:hidden;border:1px solid #eeeeee;">
           <tr>
             <td style="padding:22px 28px;background:#2cb2ab;">
-              <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:22px;font-weight:700;letter-spacing:0.04em;color:#ffffff;">Gaido</p>
+              <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:22px;font-weight:700;letter-spacing:0.04em;color:#ffffff;">Gaido UA</p>
               <p style="margin:6px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#e8fffc;">Для українців — від українців</p>
             </td>
           </tr>
@@ -108,7 +109,7 @@ func brandedHTML(preheader, heading, body, buttonLabel, buttonURL, note string) 
           <tr>
             <td style="padding:16px 28px;background:#fafafa;border-top:1px solid #f0f0f0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.5;color:#979797;">
               Лист надіслано, бо ви підтвердили реєстрацію на
-              <a href="https://svit.gaido-ua.com/" style="color:#239a94;text-decoration:none;">svit.gaido-ua.com</a>
+              <a href="https://gaido-ua.com/svit/" style="color:#239a94;text-decoration:none;">gaido-ua.com/svit</a>
             </td>
           </tr>
         </table>

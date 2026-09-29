@@ -19,6 +19,15 @@ func (h *Handlers) LoadHomeContent(ctx context.Context) domain.HomeContent {
 	}
 	return mergeHomeContent(c)
 }
+
+func (h *Handlers) LoadPortalHubContent(ctx context.Context) domain.PortalHubContent {
+	var c domain.PortalHubContent
+	if err := h.Settings.GetJSON(ctx, keyPortalHubContent, &c); err != nil {
+		return defaultPortalHubContent()
+	}
+	return mergePortalHubContent(c)
+}
+
 func (h *Handlers) LoadFooterContent(ctx context.Context) domain.FooterContent {
 	var c domain.FooterContent
 	if err := h.Settings.GetJSON(ctx, keyFooterContent, &c); err != nil {
@@ -111,12 +120,14 @@ func (h *Handlers) LoadBodyFont(ctx context.Context) string {
 func (h *Handlers) GetSite(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	content := h.LoadHomeContent(ctx)
+	portalHub := h.LoadPortalHubContent(ctx)
 	footer := h.LoadFooterContent(ctx)
 	legal := h.LoadLegalContent(ctx)
 	about := h.LoadAboutContent(ctx)
 
 	featuredGuides := h.ResolveFeaturedGuides(ctx, 4)
 	featuredExcursions := h.ResolveFeaturedExcursions(ctx, 6)
+	latestExcursions := h.ResolveLatestExcursions(ctx, 8)
 	destinations := h.ResolvePopularDestinations(ctx, content.PopularCitySlugs)
 
 	response.JSON(w, r, 200, domain.SitePayload{
@@ -124,8 +135,10 @@ func (h *Handlers) GetSite(w http.ResponseWriter, r *http.Request) {
 			Content:             content,
 			FeaturedGuides:      featuredGuides,
 			FeaturedExcursions:  featuredExcursions,
+			LatestExcursions:    latestExcursions,
 			PopularDestinations: destinations,
 		},
+		PortalHub:      portalHub,
 		Footer:         footer,
 		Legal:          legal,
 		About:          about,
@@ -254,18 +267,20 @@ func (h *Handlers) DestinationsFromCitySlugs(ctx context.Context, slugs []string
 }
 func (h *Handlers) AdminGetSiteContent(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, r, 200, map[string]any{
-		"home":   h.LoadHomeContent(r.Context()),
-		"footer": h.LoadFooterContent(r.Context()),
-		"legal":  h.LoadLegalContent(r.Context()),
-		"about":  h.LoadAboutContent(r.Context()),
+		"home":       h.LoadHomeContent(r.Context()),
+		"portal_hub": h.LoadPortalHubContent(r.Context()),
+		"footer":     h.LoadFooterContent(r.Context()),
+		"legal":      h.LoadLegalContent(r.Context()),
+		"about":      h.LoadAboutContent(r.Context()),
 	})
 }
 func (h *Handlers) AdminSetSiteContent(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		Home   domain.HomeContent      `json:"home"`
-		Footer domain.FooterContent    `json:"footer"`
-		Legal  domain.LegalContent     `json:"legal"`
-		About  domain.AboutPageContent `json:"about"`
+		Home      domain.HomeContent      `json:"home"`
+		PortalHub domain.PortalHubContent `json:"portal_hub"`
+		Footer    domain.FooterContent    `json:"footer"`
+		Legal     domain.LegalContent     `json:"legal"`
+		About     domain.AboutPageContent `json:"about"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		response.Error(w, r, apperrors.ErrValidation)
@@ -273,6 +288,10 @@ func (h *Handlers) AdminSetSiteContent(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx := r.Context()
 	if err := h.Settings.SetJSON(ctx, keyHomeContent, req.Home); err != nil {
+		response.Error(w, r, apperrors.ErrInternal)
+		return
+	}
+	if err := h.Settings.SetJSON(ctx, keyPortalHubContent, mergePortalHubContent(req.PortalHub)); err != nil {
 		response.Error(w, r, apperrors.ErrInternal)
 		return
 	}

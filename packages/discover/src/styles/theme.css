@@ -1,9 +1,9 @@
 @import "tailwindcss";
 
 @source "../**/*.{ts,tsx}";
-@source "../../api-client/src/**/*.{ts,tsx}";
-@source "../../ui-primitives/src/**/*.{ts,tsx}";
-@source "../../../apps/servis/src/**/*.{ts,tsx}";
+@source "../../../api-client/src/**/*.{ts,tsx}";
+@source "../../../ui-primitives/src/**/*.{ts,tsx}";
+@source "../../../../apps/servis/src/**/*.{ts,tsx}";
 
 /* MTS Extended — заголовки (font-display) */
 @font-face {
@@ -361,7 +361,7 @@
   }
 
   .leaflet-map {
-    @apply w-full rounded-3xl border border-border;
+    @apply relative isolate z-0 w-full rounded-3xl border border-border;
     height: 520px;
   }
 

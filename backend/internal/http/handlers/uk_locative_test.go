@@ -2,6 +2,14 @@ package handlers
 
 import "testing"
 
+func TestCountryPriceLine(t *testing.T) {
+	got := seoCountryExcursionsDescription("Австрія", formatFromPrice(180, "EUR"))
+	want := "Екскурсії українською в Австрії від 180 €"
+	if got != want {
+		t.Fatalf("got %q", got)
+	}
+}
+
 func TestUkInLocative(t *testing.T) {
 	cases := map[string]string{
 		"Прага":           "у Празі",

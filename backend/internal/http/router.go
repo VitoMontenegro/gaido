@@ -21,6 +21,7 @@ import (
 func NewRouter(cfg config.Config, log *slog.Logger, h *handlers.Handlers) http.Handler {
 	r := chi.NewRouter()
 	r.Use(chimw.Recoverer)
+	r.Use(legacySectionRedirectMiddleware)
 	r.Use(middleware.RequestID)
 	r.Use(middleware.Logger(log))
 	r.Use(cors.Handler(cors.Options{
@@ -279,20 +280,80 @@ func NewRouter(cfg config.Config, log *slog.Logger, h *handlers.Handlers) http.H
 			http.NotFound(w, req)
 			return
 		}
-		spaFileServer(staticDirForHost(req.Host, cfg), h).ServeHTTP(w, req)
+		dist, filePath := spaLocation(req.Host, req.URL.Path, cfg)
+		spaFileServerPaths(dist, h, filePath).ServeHTTP(w, req)
 	})
 	return r
 }
 
-func staticDirForHost(host string, cfg config.Config) string {
+const apexOrigin = "https://gaido-ua.com"
+
+func legacySectionRedirectMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if legacySectionRedirect(w, r) {
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+func legacyHostPrefix(host string) (string, bool) {
+	switch normalizeHost(host) {
+	case "svit.gaido-ua.com":
+		return "/svit", true
+	case "servis.gaido-ua.com":
+		return "/servis", true
+	case "vezu.gaido-ua.com":
+		return "/vezu", true
+	default:
+		return "", false
+	}
+}
+
+func legacySectionRedirect(w http.ResponseWriter, r *http.Request) bool {
+	if r.Method != http.MethodGet && r.Method != http.MethodHead {
+		return false
+	}
+	if strings.HasPrefix(r.URL.Path, "/api/") {
+		return false
+	}
+	prefix, ok := legacyHostPrefix(r.Host)
+	if !ok {
+		return false
+	}
+	targetPath := r.URL.Path
+	if targetPath != "/robots.txt" && targetPath != "/sitemap.xml" {
+		targetPath = prefix + targetPath
+	}
+	target := apexOrigin + targetPath
+	if r.URL.RawQuery != "" {
+		target += "?" + r.URL.RawQuery
+	}
+	http.Redirect(w, r, target, http.StatusMovedPermanently)
+	return true
+}
+
+func spaLocation(host, path string, cfg config.Config) (dist, filePath string) {
 	if cfg.StaticRoot == "" {
-		return cfg.StaticDir
+		return cfg.StaticDir, path
 	}
-	sub := cfg.StaticHostMap[normalizeHost(host)]
-	if sub == "" {
-		sub = "portal"
+	sub, rel := "portal", path
+	switch {
+	case path == "/svit" || strings.HasPrefix(path, "/svit/"):
+		sub, rel = "svit", strings.TrimPrefix(path, "/svit")
+	case path == "/servis" || strings.HasPrefix(path, "/servis/"):
+		sub, rel = "servis", strings.TrimPrefix(path, "/servis")
+	case path == "/vezu" || strings.HasPrefix(path, "/vezu/"):
+		sub, rel = "vezu", strings.TrimPrefix(path, "/vezu")
+	default:
+		if mapped := cfg.StaticHostMap[normalizeHost(host)]; mapped != "" {
+			sub = mapped
+		}
 	}
-	return filepath.Join(cfg.StaticRoot, sub)
+	if rel == "" {
+		rel = "/"
+	}
+	return filepath.Join(cfg.StaticRoot, sub), rel
 }
 
 func normalizeHost(host string) string {
@@ -306,10 +367,19 @@ func normalizeHost(host string) string {
 }
 
 func spaFileServer(dist string, h *handlers.Handlers) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		spaFileServerPaths(dist, h, r.URL.Path).ServeHTTP(w, r)
+	})
+}
+
+func spaFileServerPaths(dist string, h *handlers.Handlers, filePath string) http.Handler {
 	fileServer := http.FileServer(http.Dir(dist))
 	index := filepath.Join(dist, "index.html")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		rel := strings.TrimPrefix(r.URL.Path, "/")
+		if filePath == "" {
+			filePath = "/"
+		}
+		rel := strings.TrimPrefix(filePath, "/")
 		if rel == "" {
 			serveSpaIndexWithMeta(w, r, index, h)
 			return
@@ -320,7 +390,11 @@ func spaFileServer(dist string, h *handlers.Handlers) http.Handler {
 			return
 		}
 		setSPAFileCacheHeaders(w, rel, false)
-		fileServer.ServeHTTP(w, r)
+		req := r.Clone(r.Context())
+		urlCopy := *r.URL
+		urlCopy.Path = filePath
+		req.URL = &urlCopy
+		fileServer.ServeHTTP(w, req)
 	})
 }
 
@@ -329,12 +403,13 @@ func serveSpaIndexWithMeta(w http.ResponseWriter, r *http.Request, indexPath str
 	if h != nil {
 		if resolved := h.ResolveSpaPageMeta(r.Context(), r.Host, r.URL.Path); resolved != nil {
 			meta = &PageMeta{
-				Title:       resolved.Title,
-				Description: resolved.Description,
-				Canonical:   resolved.Canonical,
-				OgImage:     resolved.OgImage,
-				NoIndex:     resolved.NoIndex,
-				JsonLd:      resolved.JsonLd,
+				Title:             resolved.Title,
+				Description:       resolved.Description,
+				Canonical:         resolved.Canonical,
+				OgImage:           resolved.OgImage,
+				NoIndex:           resolved.NoIndex,
+				LargeImagePreview: resolved.LargeImagePreview,
+				JsonLd:            resolved.JsonLd,
 			}
 		}
 	}

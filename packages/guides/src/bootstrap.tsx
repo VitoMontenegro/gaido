@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { HelmetProvider } from 'react-helmet-async'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter } from 'react-router-dom'
+import { routerBasename } from '@gaido/site-urls/site'
 import { ApiClientError, bootstrapAuth } from '@gaido/api-client/api/http'
 import { handleDynamicImportRejection } from '@gaido/ui-primitives/lazyImport'
 import BodyFontSync from '@gaido/ui-primitives/BodyFontSync'
@@ -40,7 +41,7 @@ export function mountApp(App: ComponentType) {
       <StrictMode>
         <HelmetProvider>
           <QueryClientProvider client={queryClient}>
-            <BrowserRouter>
+            <BrowserRouter basename={routerBasename()}>
               <BodyFontSync />
               <UniqueDocumentTitle />
               <DefaultSocialMeta />

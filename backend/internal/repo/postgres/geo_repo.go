@@ -7,6 +7,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/vitomonte/experts-tourister/internal/domain"
+	"github.com/vitomonte/experts-tourister/internal/locale"
 )
 
 type GeoRepo struct{ db *DB }
@@ -111,7 +112,7 @@ func (r *GeoRepo) ListCountriesWithGuideCount(ctx context.Context) ([]CountryWit
 		WHERE co.is_active = true
 		GROUP BY co.id, co.slug, co.name
 		HAVING COUNT(DISTINCT ccg.guide_id) > 0
-		ORDER BY COUNT(DISTINCT ccg.guide_id) DESC, co.name ASC
+		ORDER BY co.id
 	`, domain.GuideStatusActive)
 	if err != nil {
 		return nil, err
@@ -125,7 +126,11 @@ func (r *GeoRepo) ListCountriesWithGuideCount(ctx context.Context) ([]CountryWit
 		}
 		out = append(out, c)
 	}
-	return out, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	locale.SortByName(out, func(c CountryWithGuideCount) string { return c.Name })
+	return out, nil
 }
 
 func (r *GeoRepo) ListCountriesWithExcursions(ctx context.Context) ([]Country, error) {
