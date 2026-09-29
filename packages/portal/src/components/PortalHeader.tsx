@@ -43,7 +43,7 @@ export default function PortalHeader() {
   return (
     <>
       <header className="site-header fixed inset-x-0 top-0 z-50 border-b border-divider/80 bg-page/95 shadow-sm backdrop-blur-md">
-        <div className="container-site flex h-14 items-center gap-3 md:h-18 md:gap-6">
+        <div className="container-site flex h-14 items-center gap-3 md:h-18 md:gap-6 justify-between">
           <BrandLogo compactOnMobile homeTo="/" />
           <nav className="ml-auto hidden items-center gap-1 md:flex" aria-label="Розділи">
             {PORTAL_NAV.map((item) => (
