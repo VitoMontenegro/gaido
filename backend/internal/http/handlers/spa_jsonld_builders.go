@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"math"
 	"strings"
 
 	"github.com/vitomonte/experts-tourister/internal/domain"
@@ -96,7 +95,7 @@ func countryExcursionFaq(countryName string) []faqItem {
 
 func cityExcursionFaq(cityName, countryName string) []faqItem {
 	place := ukInLocative(cityName)
-	if countryName != "" {
+	if countryName != "" && !samePlaceName(cityName, countryName) {
 		place = place + " (" + countryName + ")"
 	}
 	return []faqItem{
@@ -185,8 +184,6 @@ func buildExcursionAggregateProductJSON(items []domain.ExcursionView, base, name
 	prices := make([]float64, 0, len(items))
 	currency := "EUR"
 	var images []string
-	var totalReviews int
-	var weightedRating float64
 
 	for _, e := range items {
 		if e.PriceFrom > 0 {
@@ -197,10 +194,6 @@ func buildExcursionAggregateProductJSON(items []domain.ExcursionView, base, name
 		}
 		if img := strings.TrimSpace(e.CoverImageURL); img != "" && len(images) < 8 {
 			images = append(images, jsonLdAssetBase(base)+"/api/v1/media/public/"+img)
-		}
-		if e.RatingCount > 0 {
-			totalReviews += e.RatingCount
-			weightedRating += e.RatingAvg * float64(e.RatingCount)
 		}
 	}
 
@@ -235,14 +228,8 @@ func buildExcursionAggregateProductJSON(items []domain.ExcursionView, base, name
 	if len(images) > 0 {
 		product["image"] = images
 	}
-	if totalReviews > 0 {
-		product["aggregateRating"] = map[string]any{
-			"@type":       "AggregateRating",
-			"worstRating": 1,
-			"bestRating":  5,
-			"ratingValue": math.Round(weightedRating/float64(totalReviews)*10) / 10,
-			"reviewCount": totalReviews,
-		}
+	if len(prices) == 0 {
+		delete(product, "offers")
 	}
 	return product
 }

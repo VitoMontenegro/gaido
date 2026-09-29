@@ -80,3 +80,28 @@ func TestPatchIndexHTML_replacesExistingDataRhTitle(t *testing.T) {
 		t.Fatalf("expected replaced title in %q", got)
 	}
 }
+
+func TestPatchIndexHTML_singleDescription(t *testing.T) {
+	html := `<!doctype html><html><head><title>Gaido</title>
+<meta name="description" content="старий" />
+</head><body><div id="root"></div></body></html>`
+	meta := &PageMeta{
+		Title:       "Рим — Gaido UA",
+		Description: "Екскурсії українською у Римі",
+		Canonical:   "https://gaido-ua.com/svit/city/rome",
+	}
+	once := patchIndexHTML(html, "gaido-ua.com", "/svit/city/rome", meta)
+	twice := patchIndexHTML(once, "gaido-ua.com", "/svit/city/rome", meta)
+	if strings.Count(twice, `name="description"`) != 1 {
+		t.Fatalf("expected 1 description, got %q", twice)
+	}
+	if strings.Count(twice, `property="og:description"`) != 1 {
+		t.Fatalf("expected 1 og:description, got %q", twice)
+	}
+	if !strings.Contains(twice, `<meta data-rh="true" name="description"`) {
+		t.Fatalf("description must be helmet-owned: %q", twice)
+	}
+	if strings.Count(twice, `hreflang="uk"`) != 1 || strings.Count(twice, `hreflang="x-default"`) != 1 {
+		t.Fatalf("expected one hreflang pair, got %q", twice)
+	}
+}

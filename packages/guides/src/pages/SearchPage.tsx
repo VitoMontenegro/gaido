@@ -120,8 +120,8 @@ export default function SearchPage() {
           <p className="mb-4 text-sm text-muted">Пошук…</p>
         )}
         <ExcursionCardGrid>
-          {items.map((e) => (
-            <ExcursionCard key={e.id} e={e} compact />
+          {items.map((e, index) => (
+            <ExcursionCard key={e.id} e={e} compact priority={index === 0} />
           ))}
         </ExcursionCardGrid>
         {!isFetching && items.length === 0 && (q || date) && (

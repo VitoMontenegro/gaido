@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isBlankHtml, placeFaqOrDefault, placeSeoDescription, placeSeoTitle, homeSeoDescription, homeSeoTitle, seoCityExcursionsHeading, seoCountryExcursionsDescription, seoGuideHeading, seoGuideSubtitle } from './seoTemplates'
+import { isBlankHtml, placeFaqOrDefault, placeSeoDescription, placeSeoTitle, homeSeoDescription, homeSeoTitle, seoCityExcursionsDescription, seoCityExcursionsHeading, seoCountryExcursionsDescription, seoGuideHeading, seoGuideSubtitle } from './seoTemplates'
 
 describe('place page helpers', () => {
   it('treats empty editor html as blank', () => {
@@ -25,6 +25,8 @@ describe('place page helpers', () => {
     expect(seoGuideHeading('Олена', 'Прага · Відень')).toBe('Олена — україномовний гід у Празі')
     expect(seoGuideSubtitle('')).toBe('Україномовний гід')
     expect(seoCountryExcursionsDescription('Австрія', 2, 'від 180 €')).toBe('Екскурсії українською в Австрії від 180 €')
+    expect(seoCityExcursionsDescription('Монако', 'Монако')).toBe('Гіди та авторські екскурсії українською у Монако — бронювання напряму з гідом')
+    expect(seoCityExcursionsDescription('Рим', 'Італія')).toContain('Італія')
     expect(homeSeoDescription('  Custom  ', 'hero')).toBe('Custom')
     expect(homeSeoDescription('', 'hero subtitle')).toBe('hero subtitle')
   })

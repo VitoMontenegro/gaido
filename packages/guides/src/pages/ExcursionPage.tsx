@@ -273,6 +273,7 @@ export default function ExcursionPage() {
               <ExcursionCover
                   cover={excursion.cover_image_url}
                   title={excursion.title}
+                  priority
                   className={
                     excursion.cover_image_url?.trim()
                         ? 'aspect-video w-full max-h-105'

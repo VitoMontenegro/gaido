@@ -63,7 +63,7 @@ function CardShell({
   )
 }
 
-export default function ExcursionCard({ e, compact }: { e: ExcursionItem; compact?: boolean }) {
+export default function ExcursionCard({ e, compact, priority }: { e: ExcursionItem; compact?: boolean; priority?: boolean }) {
   const previewText = excursionPreviewText(e)
   const location = excursionLocationLine(e)
 
@@ -82,6 +82,7 @@ export default function ExcursionCard({ e, compact }: { e: ExcursionItem; compac
           metaLine={formatDuration(e.duration_minutes ?? 180)}
           ratingAvg={e.rating_avg}
           ratingCount={e.rating_count}
+          priority={priority}
         />
         <div className="flex flex-1 flex-col p-2.5 md:p-3">
           {location ? (
@@ -119,6 +120,7 @@ export default function ExcursionCard({ e, compact }: { e: ExcursionItem; compac
         metaLine={excursionCoverMetaLine(e.duration_minutes, e.transport_mode)}
         ratingAvg={e.rating_avg}
         ratingCount={e.rating_count}
+        priority={priority}
       />
       <div className="flex flex-1 flex-col px-3 pb-4 pt-3">
         {location && (

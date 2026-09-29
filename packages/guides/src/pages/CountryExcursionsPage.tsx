@@ -163,8 +163,8 @@ export default function CountryExcursionsPage() {
             <p className="text-sm text-muted">У цій країні поки немає опублікованих екскурсій.</p>
           ) : (
             <ExcursionCardGrid>
-              {items.map((e) => (
-                <ExcursionCard key={e.id} e={e} compact />
+              {items.map((e, index) => (
+                <ExcursionCard key={e.id} e={e} compact priority={index === 0} />
               ))}
             </ExcursionCardGrid>
           )}

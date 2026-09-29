@@ -37,6 +37,7 @@ type ExcursionCoverProps = {
   metaLine?: string
   ratingAvg?: number
   ratingCount?: number
+  priority?: boolean
 }
 
 export default function ExcursionCover({
@@ -48,6 +49,7 @@ export default function ExcursionCover({
   metaLine,
   ratingAvg,
   ratingCount,
+  priority,
 }: ExcursionCoverProps) {
   const hasRating = (ratingCount ?? 0) > 0
   const showOverlay = Boolean(typeLabel || metaLine || hasRating)
@@ -57,8 +59,12 @@ export default function ExcursionCover({
       <img
         src={excursionCoverSrc(cover)}
         alt={title ? `Обкладинка: ${title}` : ''}
+        width={800}
+        height={600}
         className={cn('absolute inset-0 h-full w-full object-cover', imgClassName)}
-        loading="lazy"
+        decoding="async"
+        loading={priority ? 'eager' : 'lazy'}
+        fetchPriority={priority ? 'high' : 'auto'}
       />
       {showOverlay && (
         <>

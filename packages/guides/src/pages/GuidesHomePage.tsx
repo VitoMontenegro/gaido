@@ -211,8 +211,8 @@ export default function GuidesHomePage() {
             }
           />
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-            {featuredExcursions.slice(0, 5).map((e) => (
-              <ExcursionCard key={e.id} e={e} compact />
+            {featuredExcursions.slice(0, 5).map((e, index) => (
+              <ExcursionCard key={e.id} e={e} compact priority={index === 0} />
             ))}
           </div>
         </section>

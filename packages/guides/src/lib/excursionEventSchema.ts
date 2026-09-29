@@ -167,14 +167,18 @@ export function buildExcursionEventJsonLd(
           name: 'Гід-екскурсовод',
         },
     location,
-    offers: {
-      '@type': 'Offer',
-      price: excursion.price_from,
-      priceCurrency: excursion.currency,
-      availability: 'https://schema.org/InStock',
-      validFrom: startDate,
-      url,
-    },
+    ...(excursion.price_from > 0
+      ? {
+          offers: {
+            '@type': 'Offer',
+            price: excursion.price_from,
+            priceCurrency: excursion.currency,
+            availability: 'https://schema.org/InStock',
+            validFrom: startDate,
+            url,
+          },
+        }
+      : {}),
   }
 }
 

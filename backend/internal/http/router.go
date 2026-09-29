@@ -290,11 +290,52 @@ const apexOrigin = "https://gaido-ua.com"
 
 func legacySectionRedirectMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if collapsedSectionRedirect(w, r) {
+			return
+		}
 		if legacySectionRedirect(w, r) {
 			return
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+var sectionPrefixes = []string{"/svit", "/servis", "/vezu"}
+
+func collapseDoubledPrefix(path string) (string, bool) {
+	for _, prefix := range sectionPrefixes {
+		doubled := prefix + prefix
+		if path == doubled || strings.HasPrefix(path, doubled+"/") {
+			return prefix + strings.TrimPrefix(path, doubled), true
+		}
+	}
+	return path, false
+}
+
+func collapsedSectionRedirect(w http.ResponseWriter, r *http.Request) bool {
+	if r.Method != http.MethodGet && r.Method != http.MethodHead {
+		return false
+	}
+	if strings.HasPrefix(r.URL.Path, "/api/") {
+		return false
+	}
+	path, ok := collapseDoubledPrefix(r.URL.Path)
+	if !ok {
+		return false
+	}
+	for {
+		next, again := collapseDoubledPrefix(path)
+		if !again {
+			break
+		}
+		path = next
+	}
+	target := apexOrigin + path
+	if r.URL.RawQuery != "" {
+		target += "?" + r.URL.RawQuery
+	}
+	http.Redirect(w, r, target, http.StatusMovedPermanently)
+	return true
 }
 
 func legacyHostPrefix(host string) (string, bool) {
@@ -323,7 +364,9 @@ func legacySectionRedirect(w http.ResponseWriter, r *http.Request) bool {
 	}
 	targetPath := r.URL.Path
 	if targetPath != "/robots.txt" && targetPath != "/sitemap.xml" {
-		targetPath = prefix + targetPath
+		if targetPath != prefix && !strings.HasPrefix(targetPath, prefix+"/") {
+			targetPath = prefix + targetPath
+		}
 	}
 	target := apexOrigin + targetPath
 	if r.URL.RawQuery != "" {

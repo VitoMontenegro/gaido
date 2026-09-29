@@ -32,8 +32,15 @@ export function seoCityExcursionsTitle(cityName: string) {
   return pageTitle(seoCityExcursionsHeading(cityName))
 }
 
+function distinctCountry(cityName: string, countryName?: string) {
+  const country = (countryName ?? '').trim()
+  if (!country || country.toLowerCase() === cityName.trim().toLowerCase()) return ''
+  return country
+}
+
 export function seoCityExcursionsDescription(cityName: string, countryName?: string) {
-  const where = countryName ? `${ukInLocative(cityName)}, ${countryName}` : ukInLocative(cityName)
+  const country = distinctCountry(cityName, countryName)
+  const where = country ? `${ukInLocative(cityName)}, ${country}` : ukInLocative(cityName)
   return `Гіди та авторські екскурсії українською ${where} — бронювання напряму з гідом`
 }
 
@@ -42,7 +49,8 @@ export function defaultCountryIntro(countryName: string) {
 }
 
 export function defaultCityIntro(cityName: string, countryName?: string) {
-  const where = countryName ? `${ukInLocative(cityName)}, ${countryName}` : ukInLocative(cityName)
+  const country = distinctCountry(cityName, countryName)
+  const where = country ? `${ukInLocative(cityName)}, ${country}` : ukInLocative(cityName)
   return `Авторські екскурсії українською ${where} від місцевих гідів. Оберіть маршрут, перегляньте ціни та напишіть гіду для підтвердження дати.`
 }
 
@@ -157,7 +165,8 @@ export function countryExcursionFaq(countryName: string): FaqItem[] {
 }
 
 export function cityExcursionFaq(cityName: string, countryName?: string): FaqItem[] {
-  const place = countryName ? `${ukInLocative(cityName)} (${countryName})` : ukInLocative(cityName)
+  const country = distinctCountry(cityName, countryName)
+  const place = country ? `${ukInLocative(cityName)} (${country})` : ukInLocative(cityName)
   return [
     {
       question: `Які екскурсії українською є ${place}?`,

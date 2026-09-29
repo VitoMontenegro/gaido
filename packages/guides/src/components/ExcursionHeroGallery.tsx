@@ -17,11 +17,13 @@ function GalleryImage({
   alt,
   className,
   fallbackSrc,
+  priority,
 }: {
   src: string
   alt: string
   className?: string
   fallbackSrc?: string
+  priority?: boolean
 }) {
   const [current, setCurrent] = useState(src)
 
@@ -33,7 +35,12 @@ function GalleryImage({
     <img
       src={current}
       alt={alt}
+      width={1200}
+      height={800}
       className={className}
+      decoding="async"
+      loading={priority ? 'eager' : 'lazy'}
+      fetchPriority={priority ? 'high' : 'auto'}
       onError={() => {
         if (fallbackSrc && current !== fallbackSrc) setCurrent(fallbackSrc)
       }}
@@ -79,6 +86,7 @@ function HeroTile({
           src={src}
           fallbackSrc={fallback}
           alt={alt}
+          priority={index === 0}
           className={cn(
             'h-full w-full object-cover',
             overlayCount != null && 'absolute inset-0',
@@ -134,6 +142,7 @@ function MobileHero({
           src={coverSrc}
           fallbackSrc={fallback}
           alt={title}
+          priority
           className="aspect-384/266 w-full object-cover"
         />
       </button>
@@ -154,6 +163,7 @@ function MobileHero({
           src={mainSrc}
           fallbackSrc={fallback}
           alt={title}
+          priority
           className="aspect-384/266 w-full object-cover"
         />
       </button>
@@ -379,6 +389,7 @@ export default function ExcursionHeroGallery({ images, mobileCover, title }: Pro
             src={urls[0]}
             fallbackSrc={fallback}
             alt={title}
+            priority
             className="aspect-606/404 w-full object-cover md:aspect-606/404"
           />
         </button>

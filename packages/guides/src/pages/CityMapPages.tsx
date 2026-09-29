@@ -177,8 +177,8 @@ export default function CityPage() {
                 <p className="text-sm text-muted">Поки немає екскурсій у цьому місті.</p>
               ) : (
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                  {excursionItems.map((e) => (
-                    <ExcursionCard key={e.id} e={e} />
+                  {excursionItems.map((e, index) => (
+                    <ExcursionCard key={e.id} e={e} priority={index === 0} />
                   ))}
                 </div>
               )}

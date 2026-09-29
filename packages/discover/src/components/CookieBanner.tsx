@@ -8,6 +8,7 @@ export default function CookieBanner() {
   if (!visible) return null
 
   return (
+    <>
     <div id="cookie-banner" className="pointer-events-none fixed bottom-6 left-0 z-[100] w-full">
       <div className="container-site">
         <div
@@ -47,5 +48,7 @@ export default function CookieBanner() {
         </div>
       </div>
     </div>
+    <div className="h-40 shrink-0 sm:h-28" aria-hidden />
+    </>
   )
 }

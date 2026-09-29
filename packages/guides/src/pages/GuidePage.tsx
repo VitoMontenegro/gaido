@@ -125,8 +125,8 @@ export default function GuidePage() {
               <p className="text-stone-600">Поки немає опублікованих екскурсій.</p>
             ) : (
               <div className="grid gap-4 sm:grid-cols-3">
-                {excursionItems.map((e) => (
-                  <ExcursionCard key={e.id} e={e} compact />
+                {excursionItems.map((e, index) => (
+                  <ExcursionCard key={e.id} e={e} compact priority={index === 0} />
                 ))}
               </div>
             )}

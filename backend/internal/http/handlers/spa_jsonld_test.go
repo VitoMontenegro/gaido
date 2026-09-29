@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 	"testing"
+	"unicode/utf8"
 
 	"github.com/vitomonte/experts-tourister/internal/config"
 	"github.com/vitomonte/experts-tourister/internal/domain"
@@ -95,6 +96,38 @@ func TestGuidesPage_stripsSvitPrefix(t *testing.T) {
 	ok, path, base := guidesPage("gaido-ua.com", "/svit/guides/countries/spain/", "https://gaido-ua.com")
 	if !ok || path != "/guides/countries/spain" || base != "https://gaido-ua.com/svit" {
 		t.Fatalf("ok=%v path=%q base=%q", ok, path, base)
+	}
+}
+
+func TestTruncateDescWordBoundary(t *testing.T) {
+	got := truncateDesc("Програма камерної екскурсії: Монако та Монте-Карло Тривалість: 4–5 годин. Формат: авто + піші прогулянки.", 40)
+	if strings.Contains(got, "авто") {
+		t.Fatalf("cut inside the tail: %q", got)
+	}
+	if strings.HasSuffix(got, " ") || strings.Contains(got, "  ") {
+		t.Fatalf("messy cut: %q", got)
+	}
+	if utf8.RuneCountInString(got) > 40 {
+		t.Fatalf("longer than limit: %q", got)
+	}
+}
+
+func TestSeoCityDescriptionSkipsSameCountry(t *testing.T) {
+	got := seoCityExcursionsDescription("Монако", "Монако")
+	if strings.Contains(got, "Монако, Монако") {
+		t.Fatalf("duplicated place: %q", got)
+	}
+	rome := seoCityExcursionsDescription("Рим", "Італія")
+	if !strings.Contains(rome, "Італія") {
+		t.Fatalf("country dropped: %q", rome)
+	}
+}
+
+func TestExcursionProductJSONOmitsZeroPrice(t *testing.T) {
+	e := &domain.ExcursionView{Excursion: domain.Excursion{Title: "Без ціни", Currency: "EUR"}}
+	product := buildExcursionProductJSON(e, "https://gaido-ua.com/svit", "https://gaido-ua.com/svit/excursion/1", nil)
+	if _, ok := product["offers"]; ok {
+		t.Fatal("zero price must not be an offer")
 	}
 }
 

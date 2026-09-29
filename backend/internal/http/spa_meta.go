@@ -15,6 +15,7 @@ var (
 	titleRe           = regexp.MustCompile(`(?i)<title[^>]*>[^<]*</title>`)
 	metaTagRe         = regexp.MustCompile(`(?m)^\s*<meta[^>]+>\s*$`)
 	canonicalRe       = regexp.MustCompile(`(?i)<link[^>]+rel=["']canonical["'][^>]*>`)
+	hreflangRe        = regexp.MustCompile(`(?i)<link[^>]*hreflang=[^>]*>`)
 	rootDivRe         = regexp.MustCompile(`<div id="root"></div>`)
 )
 
@@ -94,6 +95,10 @@ func spaSocialProfileForRequest(host, path string) (spaSocialProfile, bool) {
 	}
 }
 
+func rhMeta(attrs string) string {
+	return `<meta data-rh="true" ` + attrs + ` />`
+}
+
 func escapeAttr(s string) string {
 	return strings.NewReplacer(
 		`&`, "&amp;",
@@ -130,24 +135,28 @@ func pageMetaHeadHTML(profile spaSocialProfile, meta *PageMeta) string {
 		noIndex = meta.NoIndex
 	}
 
+	// data-rh marks tags Helmet already owns, so the client updates them
+	// instead of appending a second description / Open Graph set.
 	lines := []string{
-		`<meta property="og:type" content="website" />`,
-		`<meta property="og:site_name" content="` + escapeAttr(profile.title) + `" />`,
-		`<meta property="og:title" content="` + escapeAttr(title) + `" />`,
-		`<meta property="og:description" content="` + escapeAttr(desc) + `" />`,
-		`<meta property="og:url" content="` + escapeAttr(canonical) + `" />`,
-		`<meta property="og:image" content="` + escapeAttr(ogImage) + `" />`,
-		`<meta name="description" content="` + escapeAttr(desc) + `" />`,
-		`<meta name="twitter:card" content="summary_large_image" />`,
-		`<meta name="twitter:title" content="` + escapeAttr(title) + `" />`,
-		`<meta name="twitter:description" content="` + escapeAttr(desc) + `" />`,
-		`<meta name="twitter:image" content="` + escapeAttr(ogImage) + `" />`,
-		`<link rel="canonical" href="` + escapeAttr(canonical) + `" />`,
+		rhMeta(`property="og:type" content="website"`),
+		rhMeta(`property="og:site_name" content="` + escapeAttr(profile.title) + `"`),
+		rhMeta(`property="og:title" content="` + escapeAttr(title) + `"`),
+		rhMeta(`property="og:description" content="` + escapeAttr(desc) + `"`),
+		rhMeta(`property="og:url" content="` + escapeAttr(canonical) + `"`),
+		rhMeta(`property="og:image" content="` + escapeAttr(ogImage) + `"`),
+		rhMeta(`name="description" content="` + escapeAttr(desc) + `"`),
+		rhMeta(`name="twitter:card" content="summary_large_image"`),
+		rhMeta(`name="twitter:title" content="` + escapeAttr(title) + `"`),
+		rhMeta(`name="twitter:description" content="` + escapeAttr(desc) + `"`),
+		rhMeta(`name="twitter:image" content="` + escapeAttr(ogImage) + `"`),
+		`<link data-rh="true" rel="canonical" href="` + escapeAttr(canonical) + `" />`,
+		`<link data-rh="true" rel="alternate" hreflang="uk" href="` + escapeAttr(canonical) + `" />`,
+		`<link data-rh="true" rel="alternate" hreflang="x-default" href="` + escapeAttr(canonical) + `" />`,
 	}
 	if noIndex {
-		lines = append(lines, `<meta name="robots" content="noindex, nofollow" />`)
+		lines = append(lines, rhMeta(`name="robots" content="noindex, nofollow"`))
 	} else if meta != nil && meta.LargeImagePreview {
-		lines = append(lines, `<meta name="robots" content="max-image-preview:large" />`)
+		lines = append(lines, rhMeta(`name="robots" content="max-image-preview:large"`))
 	}
 	if meta != nil {
 		for _, raw := range meta.JsonLd {
@@ -194,6 +203,7 @@ func patchIndexHTML(html, host, path string, meta *PageMeta) string {
 		return line
 	})
 	html = canonicalRe.ReplaceAllString(html, "")
+	html = hreflangRe.ReplaceAllString(html, "")
 
 	headEnd := strings.Index(html, "</head>")
 	if headEnd == -1 {

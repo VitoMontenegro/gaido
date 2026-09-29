@@ -163,6 +163,7 @@ export function statusTone(status: string) {
 
 export function formatPrice(price: number | null | undefined, currency?: string) {
   const amount = Number(price ?? 0)
+  if (!Number.isFinite(amount) || amount <= 0) return 'Ціна за запитом'
   const code = (currency || 'EUR').toUpperCase()
   const symbol = code === 'EUR' ? '€' : code === 'RUB' ? '₽' : code === 'USD' ? '$' : code
   return `від ${amount.toLocaleString('uk-UA')} ${symbol}`

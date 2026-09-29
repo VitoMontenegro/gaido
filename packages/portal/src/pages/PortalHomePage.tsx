@@ -48,7 +48,7 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
 
 function formatPrice(price?: number, currency?: string) {
   const amount = Number(price ?? 0)
-  if (!amount) return ''
+  if (!Number.isFinite(amount) || amount <= 0) return 'Ціна за запитом'
   const code = (currency || 'EUR').toUpperCase()
   const symbol = code === 'EUR' ? '€' : code === 'USD' ? '$' : code === 'UAH' ? '₴' : code
   return `від ${amount} ${symbol}`

@@ -78,36 +78,22 @@ export function buildExcursionAggregateProductJsonLd(
     .map((e) => (e.cover_image_url ? resolveOgImage(e.cover_image_url) : undefined))
     .filter(Boolean) as string[]
 
-  const ratings = published.filter((e) => (e.rating_count ?? 0) > 0)
-  const totalReviews = ratings.reduce((sum, e) => sum + (e.rating_count ?? 0), 0)
-  const weightedRating =
-    totalReviews > 0
-      ? ratings.reduce((sum, e) => sum + (e.rating_avg ?? 0) * (e.rating_count ?? 0), 0) / totalReviews
-      : 0
-
   const product: Record<string, unknown> = {
     '@context': 'https://schema.org',
     '@type': 'Product',
     name: options.name,
     description: options.description,
     ...(images.length > 0 ? { image: images.slice(0, 8) } : {}),
-    offers: {
+  }
+
+  if (prices.length > 0) {
+    product.offers = {
       '@type': 'AggregateOffer',
-      lowPrice: prices.length > 0 ? Math.min(...prices) : undefined,
-      highPrice: prices.length > 0 ? Math.max(...prices) : undefined,
+      lowPrice: Math.min(...prices),
+      highPrice: Math.max(...prices),
       priceCurrency: currency,
       offerCount: published.length,
       availability: 'https://schema.org/InStock',
-    },
-  }
-
-  if (totalReviews > 0) {
-    product.aggregateRating = {
-      '@type': 'AggregateRating',
-      worstRating: 1,
-      bestRating: 5,
-      ratingValue: Number(weightedRating.toFixed(1)),
-      reviewCount: totalReviews,
     }
   }
 
@@ -167,13 +153,17 @@ export function buildExcursionProductJsonLd(excursion: ListingItem, reviews: Rev
     url,
     ...(images.length > 0 ? { image: images } : {}),
     ...(review.length > 0 ? { review } : {}),
-    offers: {
-      '@type': 'Offer',
-      price: excursion.price_from,
-      priceCurrency: excursion.currency,
-      availability: 'https://schema.org/InStock',
-      url,
-    },
+    ...(excursion.price_from > 0
+      ? {
+          offers: {
+            '@type': 'Offer',
+            price: excursion.price_from,
+            priceCurrency: excursion.currency,
+            availability: 'https://schema.org/InStock',
+            url,
+          },
+        }
+      : {}),
   }
 
   if (excursion.guide_name) {

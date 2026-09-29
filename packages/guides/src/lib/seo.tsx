@@ -1,6 +1,6 @@
 import { Helmet } from 'react-helmet-async'
 import { resolveMediaUrl } from '@gaido/api-client/api/http'
-import { DEFAULT_OG_IMAGE_KEY, SITE_NAME } from '@gaido/site-urls/brand'
+import { clipMetaDescription, DEFAULT_OG_IMAGE_KEY, SITE_NAME } from '@gaido/site-urls/brand'
 import { absoluteUrl } from '@gaido/site-urls/site'
 import { useDocumentTitle } from '@gaido/ui-primitives/useDocumentTitle'
 import { useJsonLd } from '@gaido/ui-primitives/useJsonLd'
@@ -64,7 +64,7 @@ export function DefaultSocialMeta() {
 
 export function Seo({ title, description, path, image, noIndex, largeImagePreview, jsonLd }: SeoProps) {
   const url = path ? absoluteUrl(path) : undefined
-  const desc = (description ?? '').replace(/\s+/g, ' ').trim().slice(0, 160)
+  const desc = clipMetaDescription(description ?? '')
   const ogImage = resolveOgImage(image)
   const rawScripts = Array.isArray(jsonLd) ? jsonLd : jsonLd ? [jsonLd] : []
   const scripts = rawScripts.map((obj) => normalizeJsonLd(obj) as Record<string, unknown>)
@@ -77,6 +77,8 @@ export function Seo({ title, description, path, image, noIndex, largeImagePrevie
       {!noIndex && largeImagePreview && <meta name="robots" content="max-image-preview:large" />}
       {desc && <meta name="description" content={desc} />}
       {url && <link rel="canonical" href={url} />}
+      {url && <link rel="alternate" hrefLang="uk" href={url} />}
+      {url && <link rel="alternate" hrefLang="x-default" href={url} />}
       <meta property="og:site_name" content={SITE_NAME} />
       <meta property="og:title" content={title} />
       {desc && <meta property="og:description" content={desc} />}

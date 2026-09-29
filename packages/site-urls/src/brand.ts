@@ -20,6 +20,15 @@ export function getSiteName(): string {
 
 export const SITE_NAME = getSiteName()
 
+/** One meta description, cut on a word boundary so the snippet is not mid-word. */
+export function clipMetaDescription(value: string, max = 160) {
+  const text = value.replace(/\s+/g, ' ').trim()
+  if (text.length <= max) return text
+  const cut = text.slice(0, max)
+  const space = cut.lastIndexOf(' ')
+  return (space > max / 2 ? cut.slice(0, space) : cut).trim()
+}
+
 export function pageTitle(suffix?: string) {
   const name = getSiteName()
   return suffix ? `${suffix} — ${name}` : name

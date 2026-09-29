@@ -197,13 +197,15 @@ func buildExcursionProductJSON(e *domain.ExcursionView, base, url string, review
 		"@id":      url + "#product",
 		"name":     e.Title,
 		"url":      url,
-		"offers": map[string]any{
+	}
+	if e.PriceFrom > 0 {
+		product["offers"] = map[string]any{
 			"@type":         "Offer",
 			"price":         e.PriceFrom,
 			"priceCurrency": e.Currency,
 			"availability":  "https://schema.org/InStock",
 			"url":           url,
-		},
+		}
 	}
 	if desc != "" {
 		product["description"] = desc
@@ -300,14 +302,16 @@ func buildExcursionEventJSON(e *domain.ExcursionView, base, url string, startsAt
 		},
 		"performer": performer,
 		"location":  location,
-		"offers": map[string]any{
+	}
+	if e.PriceFrom > 0 {
+		event["offers"] = map[string]any{
 			"@type":         "Offer",
 			"price":         e.PriceFrom,
 			"priceCurrency": e.Currency,
 			"availability":  "https://schema.org/InStock",
 			"validFrom":     startsAt.UTC().Format(time.RFC3339),
 			"url":           url,
-		},
+		}
 	}
 	if desc != "" {
 		event["description"] = desc
