@@ -30,7 +30,9 @@ function MenuIcon({ open }: { open: boolean }) {
 
 export default function DiscoverHeader() {
   const { data: me } = useMe()
-  const isStaff = useHasRole('ROLE_ADMIN') || useHasRole('ROLE_MODERATOR')
+  const isAdmin = useHasRole('ROLE_ADMIN')
+  const isModerator = useHasRole('ROLE_MODERATOR')
+  const isStaff = isAdmin || isModerator
   const location = useLocation()
   const [menuOpen, setMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
