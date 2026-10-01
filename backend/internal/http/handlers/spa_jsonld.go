@@ -188,9 +188,9 @@ func buildReviewJSON(items []domain.Review) []map[string]any {
 	return out
 }
 
-// withCatalogReviews adds AggregateRating and the visible Review list to the
-// homepage Product that already carries AggregateOffer. Stars in Google come
-// from AggregateRating, not from the price offer.
+// withCatalogReviews adds AggregateRating and the visible Review list to a
+// Product that already carries AggregateOffer. Stars in Google come from
+// AggregateRating, not from the price offer.
 func withCatalogReviews(blocks []any, reviews []domain.Review, avg float64, count int) []any {
 	rev := buildReviewJSON(reviews)
 	if count <= 0 && len(rev) == 0 {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isBlankHtml, placeFaqOrDefault, placeSeoDescription, placeSeoTitle, homeSeoDescription, homeSeoTitle, seoCityExcursionsDescription, seoCityExcursionsHeading, seoCountryExcursionsDescription, seoGuideHeading, seoGuideSubtitle } from './seoTemplates'
+import { isBlankHtml, placeFaqOrDefault, placeSeoDescription, placeSeoTitle, homeSeoDescription, homeSeoHeading, homeSeoTitle, seoCityExcursionsDescription, seoCityExcursionsHeading, seoCountryExcursionsDescription, seoGuideHeading, seoGuideSubtitle } from './seoTemplates'
 
 describe('place page helpers', () => {
   it('treats empty editor html as blank', () => {
@@ -21,6 +21,8 @@ describe('place page helpers', () => {
     expect(placeSeoTitle('Грузія', 'fallback')).toContain('Грузія')
     expect(homeSeoTitle('Головна')).toContain('Головна')
     expect(homeSeoTitle('')).toContain('Україномовні гіди та екскурсії за кордоном')
+    expect(homeSeoHeading('Українські гіди та екскурсії українською')).toBe('Українські гіди та екскурсії українською')
+    expect(homeSeoHeading('')).toBe('Україномовні гіди та екскурсії за кордоном')
     expect(seoCityExcursionsHeading('Рим')).toBe('Екскурсії українською у Римі')
     expect(seoGuideHeading('Олена', 'Прага · Відень')).toBe('Олена — україномовний гід у Празі')
     expect(seoGuideSubtitle('')).toBe('Україномовний гід')

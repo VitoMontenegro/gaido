@@ -83,6 +83,11 @@ export function homeSeoTitle(custom?: string) {
   return placeSeoTitle(custom, pageTitle(DEFAULT_HOME_SEO_TITLE))
 }
 
+export function homeSeoHeading(custom?: string) {
+  const t = (custom ?? '').trim()
+  return t || DEFAULT_HOME_SEO_TITLE
+}
+
 export function homeSeoDescription(custom?: string, heroSubtitle?: string) {
   return placeSeoDescription(custom, (heroSubtitle ?? '').trim() || DEFAULT_HOME_SEO_DESCRIPTION)
 }

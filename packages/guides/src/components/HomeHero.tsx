@@ -10,11 +10,12 @@ const SLIDES = [
 ] as const
 
 type Props = {
-  title: string
+  heading: string
+  eyebrow?: string
   subtitle: string
 }
 
-export default function HomeHero({ title, subtitle }: Props) {
+export default function HomeHero({ heading, eyebrow, subtitle }: Props) {
   const navigate = useNavigate()
   const [active, setActive] = useState(0)
   const [motionOk, setMotionOk] = useState(false)
@@ -56,8 +57,13 @@ export default function HomeHero({ title, subtitle }: Props) {
       </div>
 
       <div className="container-site relative z-10 flex min-h-[min(78vh,720px)] flex-col justify-center pb-14 pt-24 md:pb-20 md:pt-28">
-        <h1 className="max-w-3xl font-display text-[28px] font-medium uppercase leading-[1.15] text-white sm:text-4xl md:text-5xl">
-          {title}
+        {eyebrow ? (
+          <p className="mb-3 text-sm font-medium uppercase tracking-wide text-white/70 md:text-base">
+            {eyebrow}
+          </p>
+        ) : null}
+        <h1 className="max-w-4xl font-display text-[28px] font-medium uppercase leading-[1.15] text-white sm:text-4xl md:text-5xl">
+          {heading}
         </h1>
         <p
           className="mt-4 text-base leading-relaxed text-white/80 md:text-lg"

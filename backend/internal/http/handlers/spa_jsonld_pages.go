@@ -63,14 +63,6 @@ func (h *Handlers) portalHomePageJsonLd(ctx context.Context, apex, guidesBase st
 
 func (h *Handlers) homePageJsonLd(ctx context.Context, base string, content domain.HomeContent) []string {
 	featured := h.ResolveLatestExcursions(ctx, 6)
-	desc := strings.TrimSpace(content.SEODescription)
-	if desc == "" {
-		desc = content.HeroSubtitle
-	}
-	if desc == "" {
-		desc = seoHomeDescription
-	}
-
 	var faq []faqItem
 	for _, item := range content.FAQ {
 		if item.Question != "" && item.Answer != "" {
@@ -79,13 +71,8 @@ func (h *Handlers) homePageJsonLd(ctx context.Context, base string, content doma
 	}
 
 	blocks := []any{buildWebSiteJSON(base)}
-	blocks = append(blocks, excursionListingBlocks(featured, base, "Нові маршрути Gaido", desc)...)
-	if h.Reviews != nil {
-		reviews, err := h.Reviews.ListRecentPublished(ctx, 6, 0)
-		avg, count, statsErr := h.Reviews.PublishedRatingStats(ctx)
-		if err == nil && statsErr == nil {
-			blocks = withCatalogReviews(blocks, reviews, avg, count)
-		}
+	if list := buildExcursionItemListJSON(featured, base, "Нові маршрути Gaido"); list != nil {
+		blocks = append(blocks, list)
 	}
 	if faqPage := buildFaqPageJSON(faq); faqPage != nil {
 		blocks = append(blocks, faqPage)

@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { catalogApi, articlesApi, resolveMediaUrl, type HomeCategoryTile, type PublicGuide } from '@gaido/api-client/api/client'
@@ -12,8 +12,8 @@ import CountryNameLink from '../components/CountryNameLink'
 import ApiErrorBanner from '../components/ApiErrorBanner'
 import { Seo } from '../lib/seo'
 import HomeReviews from '../components/HomeReviews'
-import { applyHomeReviewJsonLd, buildExcursionListingJsonLd } from '../lib/excursionListingSchema'
-import { buildFaqPageJsonLd, buildWebSiteJsonLd, homeSeoDescription, homeSeoTitle } from '../lib/seoTemplates'
+import { buildExcursionItemListJsonLd } from '../lib/excursionListingSchema'
+import { buildFaqPageJsonLd, buildWebSiteJsonLd, homeSeoDescription, homeSeoHeading, homeSeoTitle } from '../lib/seoTemplates'
 import { normalizeCategoryTiles } from '../lib/categoryTiles'
 import type { ExcursionItem } from '../components/excursionUi'
 import { useRecentViews, validateRecentViews, type RecentView } from '../hooks/useRecentViews'
@@ -31,19 +31,14 @@ function SectionTitle({ title, subtitle, action }: { title: string; subtitle?: s
 }
 
 function FAQItem({ question, answer }: { question: string; answer: string }) {
-  const [open, setOpen] = useState(false)
   return (
-    <div className="border-b border-divider">
-      <button
-        type="button"
-        className="flex w-full items-center justify-between gap-4 py-5 text-left text-base font-medium text-ink"
-        onClick={() => setOpen((v) => !v)}
-      >
+    <details className="group border-b border-divider">
+      <summary className="flex w-full cursor-pointer list-none items-center justify-between gap-4 py-5 text-left text-base font-medium text-ink [&::-webkit-details-marker]:hidden">
         {question}
-        <span className={`shrink-0 text-brand-500 transition-transform ${open ? 'rotate-180' : ''}`}>▾</span>
-      </button>
-      {open && <p className="pb-5 leading-relaxed text-muted">{answer}</p>}
-    </div>
+        <span className="shrink-0 text-brand-500 transition-transform group-open:rotate-180">▾</span>
+      </summary>
+      <p className="pb-5 leading-relaxed text-muted">{answer}</p>
+    </details>
   )
 }
 
@@ -155,19 +150,12 @@ export default function GuidesHomePage() {
     ? site.home.latest_excursions
     : site.home.featured_excursions) ?? []) as ExcursionItem[]
   const homeFaq = content.faq.map((item) => ({ question: item.question, answer: item.answer }))
-  const homeJsonLd = applyHomeReviewJsonLd(
-    [
-      buildWebSiteJsonLd(),
-      ...buildExcursionListingJsonLd(featuredExcursions, {
-        name: 'Нові маршрути Gaido',
-        description: content.hero_subtitle,
-      }),
-      ...(homeFaq.length > 0 ? [buildFaqPageJsonLd(homeFaq)] : []),
-    ].filter(Boolean) as Record<string, unknown>[],
-    homeReviews?.items ?? [],
-    homeReviews?.rating_avg ?? 0,
-    homeReviews?.rating_count ?? 0,
-  )
+  const homeList = buildExcursionItemListJsonLd(featuredExcursions, 'Нові маршрути Gaido')
+  const homeJsonLd = [
+    buildWebSiteJsonLd(),
+    ...(homeList ? [homeList] : []),
+    ...(homeFaq.length > 0 ? [buildFaqPageJsonLd(homeFaq)] : []),
+  ]
   const destinations = site.home.popular_destinations ?? []
   const categoryTiles = normalizeCategoryTiles(content.category_tiles)
   const journalArticles = articlesData?.items ?? []
@@ -188,7 +176,11 @@ export default function GuidesHomePage() {
         jsonLd={homeJsonLd.length > 0 ? homeJsonLd : undefined}
       />
 
-      <HomeHero title={content.hero_title} subtitle={content.hero_subtitle} />
+      <HomeHero
+        heading={homeSeoHeading(content.seo_title)}
+        eyebrow={content.hero_title}
+        subtitle={content.hero_subtitle}
+      />
 
       <section className="container-site py-6 md:py-10">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-2.5">
@@ -236,37 +228,6 @@ export default function GuidesHomePage() {
           ratingAvg={homeReviews?.rating_avg ?? 0}
           ratingCount={homeReviews?.rating_count ?? 0}
         />
-      )}
-
-      {showAbout && (
-        <section className="bg-surface py-14">
-          <div className="container-site grid items-center gap-10 md:grid-cols-2">
-            <div>
-              <p className="section-title-sm mb-4">{content.about_title || 'Про нас'}</p>
-              {aboutParagraphs.map((paragraph, i) => (
-                <p key={i} className={`text-base leading-relaxed text-muted${i > 0 ? ' mt-4' : ''}`}>
-                  {paragraph}
-                </p>
-              ))}
-              {aboutButtonLabel && aboutButtonUrl && (
-                aboutButtonUrl.startsWith('http') ? (
-                  <a href={aboutButtonUrl} className="btn-accent mt-6">
-                    {aboutButtonLabel}
-                  </a>
-                ) : (
-                  <Link to={aboutButtonUrl} className="btn-accent mt-6">
-                    {aboutButtonLabel}
-                  </Link>
-                )
-              )}
-            </div>
-            {aboutImage ? (
-              <img src={aboutImage} alt="" className="aspect-4/3 w-full rounded-[28px] object-cover" loading="lazy" />
-            ) : (
-              <div className="aspect-4/3 rounded-[28px] bg-sand-100" />
-            )}
-          </div>
-        </section>
       )}
 
       {featuredGuides.length > 0 && (
@@ -349,20 +310,38 @@ export default function GuidesHomePage() {
             </section>
         )}
 
-      {content.stats.length > 0 && (
-        <section className="bg-ink py-14 text-white">
-          <div className="container-site">
-            <h2 className="section-title mb-10 text-center text-white">
-              {content.stats_title}
-            </h2>
-            <div className="grid gap-8 sm:grid-cols-3">
-              {content.stats.map((stat) => (
-                <div key={stat.label} className="text-center">
-                  <p className="font-display text-4xl font-medium uppercase md:text-5xl">{stat.value}</p>
-                  <p className="mt-2 text-white/70">{stat.label}</p>
-                </div>
+      {showAbout && (
+        <section className="bg-surface py-14">
+          <div className="container-site grid items-center gap-10 md:grid-cols-2">
+            <div>
+              <h2 className="section-title-sm mb-4">{content.about_title || 'Про нас'}</h2>
+              {aboutParagraphs.map((paragraph, i) => (
+                <p key={i} className={`text-base leading-relaxed text-muted${i > 0 ? ' mt-4' : ''}`}>
+                  {paragraph}
+                </p>
               ))}
+              {aboutButtonLabel && aboutButtonUrl && (
+                aboutButtonUrl.startsWith('http') ? (
+                  <a href={aboutButtonUrl} className="btn-accent mt-6">
+                    {aboutButtonLabel}
+                  </a>
+                ) : (
+                  <Link to={aboutButtonUrl} className="btn-accent mt-6">
+                    {aboutButtonLabel}
+                  </Link>
+                )
+              )}
             </div>
+            {aboutImage ? (
+              <img
+                src={aboutImage}
+                alt={content.about_title || 'Про нас'}
+                className="aspect-4/3 w-full rounded-[28px] object-cover"
+                loading="lazy"
+              />
+            ) : (
+              <div className="aspect-4/3 rounded-[28px] bg-sand-100" />
+            )}
           </div>
         </section>
       )}
@@ -383,9 +362,9 @@ export default function GuidesHomePage() {
       <section className="container-site pb-16 pt-6">
         <div className="cta-panel grid gap-8 p-8 md:grid-cols-[1fr_auto] md:items-center md:gap-12 md:p-10 lg:p-12">
           <div>
-            <h3 className="font-display text-xl font-medium uppercase text-white sm:text-2xl">
+            <h2 className="font-display text-xl font-medium uppercase text-white sm:text-2xl">
               {cta.title}
-            </h3>
+            </h2>
             <p className="mt-3 max-w-lg text-base leading-relaxed text-white/75">
               {cta.text}
             </p>

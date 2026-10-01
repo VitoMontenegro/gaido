@@ -98,47 +98,7 @@ export function buildExcursionAggregateProductJsonLd(
     }
   }
 
-  return product
-}
-
-/** Stars come from AggregateRating on the same Product that already has AggregateOffer. */
-export function applyHomeReviewJsonLd(
-  schemas: Record<string, unknown>[],
-  reviews: Review[],
-  ratingAvg: number,
-  ratingCount: number,
-) {
-  const review = reviewJsonLd(reviews)
-  if (ratingCount <= 0 && review.length === 0) return schemas
-
-  const rating = ratingCount > 0 && ratingAvg > 0
-    ? {
-        '@type': 'AggregateRating',
-        worstRating: 1,
-        bestRating: 5,
-        ratingValue: Math.round(ratingAvg * 10) / 10,
-        reviewCount: ratingCount,
-      }
-    : null
-
-  const product = schemas.find((schema) => schema['@type'] === 'Product')
-  if (product) {
-    if (rating) product.aggregateRating = rating
-    if (review.length > 0) product.review = review
-    return schemas
-  }
-
-  if (!rating || review.length === 0) return schemas
-  return [
-    ...schemas,
-    {
-      '@context': 'https://schema.org',
-      '@type': 'Product',
-      name: 'Екскурсії з україномовними гідами',
-      aggregateRating: rating,
-      review,
-    },
-  ]
+	return product
 }
 
 export function buildWebPageJsonLd(options: {
