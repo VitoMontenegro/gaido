@@ -53,7 +53,7 @@ export default function GuidesFooter() {
                   rel="noreferrer"
                   className="mb-3 block text-base text-ink-soft underline transition hover:text-muted"
                 >
-                  Telegram {botUsername}
+                  Telegram
                 </a>
               )}
 

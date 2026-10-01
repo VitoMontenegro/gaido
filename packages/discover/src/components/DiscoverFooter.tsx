@@ -35,7 +35,7 @@ export default function DiscoverFooter() {
               )}
               {telegram && (
                 <a href={`https://t.me/${telegram}`} target="_blank" rel="noreferrer" className="mb-3 block text-base text-ink-soft underline transition hover:text-muted">
-                  Telegram {telegram}
+                  Telegram
                 </a>
               )}
               <p className="text-sm text-muted">{footer?.description || SITE_TAGLINE}</p>

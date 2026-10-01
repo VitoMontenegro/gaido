@@ -50,7 +50,7 @@ function SectionFooter({ footer, aside }: { footer?: FooterContent; aside: React
               )}
               {telegram && (
                 <a href={`https://t.me/${telegram}`} target="_blank" rel="noreferrer" className="mb-3 block text-base text-ink-soft underline transition hover:text-muted">
-                  Telegram {telegram}
+                  Telegram
                 </a>
               )}
               <p className="mt-2 max-w-sm whitespace-pre-line text-sm leading-relaxed text-muted">
