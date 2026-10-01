@@ -7,6 +7,7 @@ export type MeUser = {
   first_name: string
   last_name: string
   roles: string[]
+  avatar_url?: string
 }
 
 export function userDisplayName(me: Pick<MeUser, 'first_name' | 'last_name' | 'login'>): string {
@@ -46,6 +47,8 @@ export const authApi = {
   me: () => api<MeUser>('/api/v1/account/me'),
   updateProfile: (body: { first_name: string; last_name: string }) =>
     api<MeUser>('/api/v1/account/profile', { method: 'PUT', body: JSON.stringify(body) }),
+  updateAvatar: (avatar_url: string) =>
+    api<MeUser>('/api/v1/account/avatar', { method: 'PUT', body: JSON.stringify({ avatar_url }) }),
   changePassword: (body: { current_password: string; new_password: string }) =>
     api<{ status: string }>('/api/v1/account/password', { method: 'PUT', body: JSON.stringify(body) }),
 }

@@ -10,6 +10,7 @@ import {
   type PortalHubContent,
 } from '@gaido/api-client/api/client'
 import { DEFAULT_OG_IMAGE_KEY } from '@gaido/site-urls/brand'
+import { getSiteMode } from '@gaido/site-urls/site'
 import { ImageUrlField } from './ImageUrlField'
 import { LegalPageEditor } from './LegalContentEditor'
 import { normalizeAboutContent } from '../lib/aboutPageContent'
@@ -21,8 +22,21 @@ type SiteContentPayload = {
   home: HomeContent
   portal_hub: PortalHubContent
   footer: FooterContent
+  footer_transport: FooterContent
+  footer_services: FooterContent
   legal: LegalContent
   about: AboutPageContent
+}
+
+function normalizeFooter(footer?: Partial<FooterContent> | null): FooterContent {
+  return {
+    phone: footer?.phone ?? '',
+    email: footer?.email ?? '',
+    telegram: footer?.telegram ?? '',
+    description: footer?.description ?? '',
+    copyright: footer?.copyright ?? '',
+    columns: footer?.columns ?? [],
+  }
 }
 
 const DEFAULT_CTA: HomeCta = {
@@ -62,6 +76,9 @@ export function SiteContentEditor() {
       ...data,
       home: normalizeHome(data.home),
       portal_hub: normalizePortalHub(data.portal_hub),
+      footer: normalizeFooter(data.footer),
+      footer_transport: normalizeFooter(data.footer_transport),
+      footer_services: normalizeFooter(data.footer_services),
       legal: normalizeLegalContent(data.legal),
       about: normalizeAboutContent(data.about),
     })).catch(() => setMessage('Не вдалося завантажити контент сайту'))
@@ -77,6 +94,9 @@ export function SiteContentEditor() {
         ...saved,
         home: normalizeHome(saved.home),
         portal_hub: normalizePortalHub(saved.portal_hub),
+        footer: normalizeFooter(saved.footer),
+        footer_transport: normalizeFooter(saved.footer_transport),
+        footer_services: normalizeFooter(saved.footer_services),
         legal: normalizeLegalContent(saved.legal),
         about: normalizeAboutContent(saved.about),
       })
@@ -106,17 +126,45 @@ export function SiteContentEditor() {
   const updateLegal = (patch: Partial<LegalContent>) => setDraft({ ...draft, legal: { ...legal, ...patch } })
   const updateAbout = (patch: Partial<AboutPageContent>) => setDraft({ ...draft, about: { ...about, ...patch } })
   const updateCta = (patch: Partial<HomeCta>) => updateHome({ cta: { ...home.cta, ...patch } })
+  const mode = getSiteMode()
+  const guides = mode === 'guides'
+  const sectionFooter = mode === 'transport' ? draft.footer_transport : mode === 'services' ? draft.footer_services : footer
+  const updateSectionFooter = (patch: Partial<FooterContent>) => {
+    if (mode === 'transport') setDraft({ ...draft, footer_transport: { ...draft.footer_transport, ...patch } })
+    else if (mode === 'services') setDraft({ ...draft, footer_services: { ...draft.footer_services, ...patch } })
+    else updateFooter(patch)
+  }
+
+  if (mode === 'transport' || mode === 'services') {
+    return (
+      <div className="card space-y-6">
+        <div>
+          <h2 className="section-title-sm">Футер {mode === 'transport' ? 'vezu' : 'servis'}</h2>
+          <p className="mt-1 text-sm text-muted">Контакти, опис і колонки посилань у підвалі цього розділу.</p>
+        </div>
+        <FooterFields footer={sectionFooter} onChange={updateSectionFooter} />
+        <div className="flex items-center gap-3">
+          <button type="button" className="btn-primary" disabled={saving} onClick={save}>
+            {saving ? 'Збереження…' : 'Зберегти контент'}
+          </button>
+          {message && <span className="text-sm text-muted">{message}</span>}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="card space-y-6">
       <div>
-        <h2 className="section-title-sm">Контент головної та футера</h2>
+        <h2 className="section-title-sm">{guides ? 'Контент svit' : 'Контент головної'}</h2>
         <p className="mt-1 text-sm text-muted">
-          Тексти, зображення плиток категорій, FAQ, статистика та контакти в футері.
+          {guides
+            ? 'Футер, тексти головної svit, юридичні сторінки та /about.'
+            : 'Заголовок, вступ і три картки розділів на gaido-ua.com.'}
         </p>
       </div>
 
-      <section className="space-y-3 rounded-xl border border-border p-4">
+      {!guides && <section className="space-y-3 rounded-xl border border-border p-4">
         <h3 className="font-medium text-ink">Головна gaido-ua.com</h3>
         <p className="text-sm text-muted">
           Заголовок, вступ і три картки розділів. Порожнє поле підставляє текст і фото за замовчуванням.
@@ -178,6 +226,13 @@ export function SiteContentEditor() {
             />
           </div>
         ))}
+      </section>}
+
+      {guides && <>
+      <section className="space-y-3 border-t border-border pt-6">
+        <h3 className="font-medium text-ink">Футер</h3>
+        <p className="text-sm text-muted">Контакти, опис і колонки посилань у підвалі svit.</p>
+        <FooterFields footer={footer} onChange={updateFooter} />
       </section>
 
       <section className="space-y-3 rounded-xl border border-border p-4">
@@ -404,18 +459,6 @@ export function SiteContentEditor() {
         </label>
       </section>
 
-      <section className="space-y-3 border-t border-border pt-6">
-        <h3 className="font-medium text-ink">Футер</h3>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <input className="input" value={footer.phone} onChange={(e) => updateFooter({ phone: e.target.value })} placeholder="Телефон" />
-          <input className="input" value={footer.email} onChange={(e) => updateFooter({ email: e.target.value })} placeholder="Email" />
-          <input className="input" value={footer.telegram} onChange={(e) => updateFooter({ telegram: e.target.value })} placeholder="Telegram" />
-          <input className="input" value={footer.copyright} onChange={(e) => updateFooter({ copyright: e.target.value })} placeholder="Copyright" />
-        </div>
-        <textarea className="input min-h-20" value={footer.description} onChange={(e) => updateFooter({ description: e.target.value })} placeholder="Опис у футері" />
-        <FooterColumnsEditor columns={footer.columns} onChange={(columns) => updateFooter({ columns })} />
-      </section>
-
       <section className="space-y-4 border-t border-divider pt-6">
         <div>
           <h2 className="section-title-sm">Юридичні документи</h2>
@@ -544,6 +587,7 @@ export function SiteContentEditor() {
           <input className="input" value={about.closing} onChange={(e) => updateAbout({ closing: e.target.value })} placeholder="Закриття під tagline" />
         </div>
       </section>
+      </>}
 
       <div className="flex items-center gap-3">
         <button type="button" className="btn-primary" disabled={saving} onClick={save}>
@@ -601,6 +645,27 @@ function ListEditor<T extends Record<string, string>>({
         </div>
       ))}
     </section>
+  )
+}
+
+function FooterFields({
+  footer,
+  onChange,
+}: {
+  footer: FooterContent
+  onChange: (patch: Partial<FooterContent>) => void
+}) {
+  return (
+    <>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <input className="input" value={footer.phone} onChange={(e) => onChange({ phone: e.target.value })} placeholder="Телефон" />
+        <input className="input" value={footer.email} onChange={(e) => onChange({ email: e.target.value })} placeholder="Email" />
+        <input className="input" value={footer.telegram} onChange={(e) => onChange({ telegram: e.target.value })} placeholder="Telegram" />
+        <input className="input" value={footer.copyright} onChange={(e) => onChange({ copyright: e.target.value })} placeholder="Copyright" />
+      </div>
+      <textarea className="input min-h-20" value={footer.description} onChange={(e) => onChange({ description: e.target.value })} placeholder="Опис у футері" />
+      <FooterColumnsEditor columns={footer.columns} onChange={(columns) => onChange({ columns })} />
+    </>
   )
 }
 

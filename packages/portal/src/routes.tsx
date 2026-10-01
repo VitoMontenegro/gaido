@@ -32,6 +32,8 @@ function PortalHomeRedirect() {
 }
 
 const PortalHomePage = lazyImport(() => import('@gaido/portal-shell/pages/PortalHomePage'))
+const NewsListPage = lazyImport(() => import('@gaido/portal-shell/pages/NewsPages').then((m) => ({ default: m.NewsListPage })))
+const NewsArticlePage = lazyImport(() => import('@gaido/portal-shell/pages/NewsPages').then((m) => ({ default: m.NewsArticlePage })))
 const LoginPage = lazyImport(() => import('@gaido/portal-shell/pages/AuthPages').then((m) => ({ default: m.default })))
 const ForgotPasswordPage = lazyImport(() => import('@gaido/portal-shell/pages/AuthPages').then((m) => ({ default: m.ForgotPasswordPage })))
 const ResetPasswordPage = lazyImport(() => import('@gaido/portal-shell/pages/AuthPages').then((m) => ({ default: m.ResetPasswordPage })))
@@ -50,6 +52,10 @@ export function portalPublicRoutes() {
       <Route path="map" element={<GuidesCanonicalRedirect />} />
       <Route path="journal" element={<GuidesCanonicalRedirect />} />
       <Route path="journal/:slug" element={<GuidesCanonicalRedirect />} />
+      <Route path="news" element={<Lazy><NewsListPage /></Lazy>} />
+      <Route path="news/:slug" element={<Lazy><NewsArticlePage /></Lazy>} />
+      <Route path="forums" element={<GuidesCanonicalRedirect />} />
+      <Route path="forums/*" element={<GuidesCanonicalRedirect />} />
       <Route path="excursion/:slug" element={<GuidesCanonicalRedirect />} />
       <Route path="excursions" element={<GuidesCanonicalRedirect />} />
       <Route path="city/:slug" element={<GuidesCanonicalRedirect />} />

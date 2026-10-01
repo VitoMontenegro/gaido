@@ -16,7 +16,7 @@ func NewArticleRepo(db *DB) *ArticleRepo { return &ArticleRepo{db: db} }
 
 const articleAuthorSelect = `
 	NULLIF(TRIM(COALESCE(NULLIF(gp.display_name, ''), NULLIF(TRIM(CONCAT(u.first_name, ' ', u.last_name)), ''), u.login)), ''),
-	NULLIF(gp.avatar_url, ''),
+	` + authorAvatarSQL + `,
 	CASE WHEN gp.status = 'ACTIVE' AND COALESCE(gp.website_slug, '') <> '' THEN gp.website_slug ELSE NULL END
 `
 
@@ -65,22 +65,23 @@ func scanArticle(row pgx.Row) (*domain.Article, error) {
 	return &a, nil
 }
 
-func (r *ArticleRepo) ListPublished(ctx context.Context, limit, offset int) ([]domain.ArticleListItem, error) {
+func (r *ArticleRepo) ListPublished(ctx context.Context, kind string, limit, offset int) ([]domain.ArticleListItem, error) {
 	if limit <= 0 || limit > 100 {
 		limit = 20
 	}
 	if offset < 0 {
 		offset = 0
 	}
+	kind = NormalizeArticleKind(kind)
 	rows, err := r.db.Pool.Query(ctx, `
 		SELECT a.id, a.slug, a.title, a.excerpt, a.cover_image_url, a.published_at,
 		`+articleAuthorSelect+`
 		FROM articles a
 		`+articleAuthorJoin+`
-		WHERE a.status = $1
+		WHERE a.status = $1 AND a.kind = $2
 		ORDER BY a.published_at DESC NULLS LAST, a.id DESC
-		LIMIT $2 OFFSET $3
-	`, domain.ArticlePublished, limit, offset)
+		LIMIT $3 OFFSET $4
+	`, domain.ArticlePublished, kind, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -100,10 +101,10 @@ func (r *ArticleRepo) ListPublishedByGuideSlug(ctx context.Context, slug string,
 		`+articleAuthorSelect+`
 		FROM articles a
 		`+articleAuthorJoin+`
-		WHERE a.status = $1 AND gp.website_slug = $2 AND gp.status = $3
+		WHERE a.status = $1 AND gp.website_slug = $2 AND gp.status = $3 AND a.kind = $4
 		ORDER BY a.published_at DESC NULLS LAST, a.id DESC
-		LIMIT $4 OFFSET $5
-	`, domain.ArticlePublished, slug, domain.GuideStatusActive, limit, offset)
+		LIMIT $5 OFFSET $6
+	`, domain.ArticlePublished, slug, domain.GuideStatusActive, domain.ArticleKindJournal, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -125,14 +126,14 @@ func scanArticleList(rows pgx.Rows) ([]domain.ArticleListItem, error) {
 	return out, rows.Err()
 }
 
-func (r *ArticleRepo) GetPublishedBySlug(ctx context.Context, slug string) (*domain.Article, error) {
+func (r *ArticleRepo) GetPublishedBySlug(ctx context.Context, slug, kind string) (*domain.Article, error) {
 	row := r.db.Pool.QueryRow(ctx, `
 		SELECT a.id, a.slug, a.title, a.excerpt, a.body_html, a.cover_image_url, a.status, a.author_id, a.published_at, a.created_at, a.updated_at,
 		`+articleAuthorSelect+`
 		FROM articles a
 		`+articleAuthorJoin+`
-		WHERE a.slug = $1 AND a.status = $2
-	`, slug, domain.ArticlePublished)
+		WHERE a.slug = $1 AND a.status = $2 AND a.kind = $3
+	`, slug, domain.ArticlePublished, NormalizeArticleKind(kind))
 	a, err := scanArticle(row)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
@@ -211,17 +212,25 @@ type ArticleInput struct {
 	BodyHTML      string
 	CoverImageURL string
 	Status        string
+	Kind          string
 	AuthorID      *int64
 	PublishedAt   *time.Time
+}
+
+func NormalizeArticleKind(kind string) string {
+	if strings.EqualFold(strings.TrimSpace(kind), domain.ArticleKindNews) {
+		return domain.ArticleKindNews
+	}
+	return domain.ArticleKindJournal
 }
 
 func (r *ArticleRepo) Create(ctx context.Context, in ArticleInput) (int64, error) {
 	var id int64
 	err := r.db.Pool.QueryRow(ctx, `
-		INSERT INTO articles (slug, title, excerpt, body_html, cover_image_url, status, author_id, published_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		INSERT INTO articles (slug, title, excerpt, body_html, cover_image_url, status, kind, author_id, published_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		RETURNING id
-	`, in.Slug, in.Title, in.Excerpt, in.BodyHTML, in.CoverImageURL, in.Status, in.AuthorID, in.PublishedAt).Scan(&id)
+	`, in.Slug, in.Title, in.Excerpt, in.BodyHTML, in.CoverImageURL, in.Status, NormalizeArticleKind(in.Kind), in.AuthorID, in.PublishedAt).Scan(&id)
 	return id, err
 }
 

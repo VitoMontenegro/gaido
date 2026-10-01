@@ -11,7 +11,6 @@ export default function PortalFooter() {
           <div className="flex flex-wrap items-start justify-between gap-8">
             <div>
               <BrandLogo className="mb-3" showTagline />
-              <p className="text-sm text-muted">{SITE_TAGLINE}</p>
             </div>
             <nav aria-label="Розділи" className="flex flex-wrap gap-x-5 gap-y-2 text-sm">
               {PORTAL_SECTION_NAV.map((item) => (

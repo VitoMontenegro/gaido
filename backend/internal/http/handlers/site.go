@@ -29,9 +29,24 @@ func (h *Handlers) LoadPortalHubContent(ctx context.Context) domain.PortalHubCon
 }
 
 func (h *Handlers) LoadFooterContent(ctx context.Context) domain.FooterContent {
+	return h.loadFooter(ctx, keyFooterContent, defaultFooterContent)
+}
+
+func (h *Handlers) LoadTransportFooter(ctx context.Context) domain.FooterContent {
+	return h.loadFooter(ctx, keyFooterTransport, defaultTransportFooter)
+}
+
+func (h *Handlers) LoadServicesFooter(ctx context.Context) domain.FooterContent {
+	return h.loadFooter(ctx, keyFooterServices, defaultServicesFooter)
+}
+
+func (h *Handlers) loadFooter(ctx context.Context, key string, fallback func() domain.FooterContent) domain.FooterContent {
 	var c domain.FooterContent
-	if err := h.Settings.GetJSON(ctx, keyFooterContent, &c); err != nil {
-		return defaultFooterContent()
+	if err := h.Settings.GetJSON(ctx, key, &c); err != nil {
+		return fallback()
+	}
+	if c.Columns == nil {
+		c.Columns = []domain.FooterColumn{}
 	}
 	return c
 }
@@ -122,6 +137,8 @@ func (h *Handlers) GetSite(w http.ResponseWriter, r *http.Request) {
 	content := h.LoadHomeContent(ctx)
 	portalHub := h.LoadPortalHubContent(ctx)
 	footer := h.LoadFooterContent(ctx)
+	footerTransport := h.LoadTransportFooter(ctx)
+	footerServices := h.LoadServicesFooter(ctx)
 	legal := h.LoadLegalContent(ctx)
 	about := h.LoadAboutContent(ctx)
 
@@ -138,12 +155,14 @@ func (h *Handlers) GetSite(w http.ResponseWriter, r *http.Request) {
 			LatestExcursions:    latestExcursions,
 			PopularDestinations: destinations,
 		},
-		PortalHub:      portalHub,
-		Footer:         footer,
-		Legal:          legal,
-		About:          about,
-		TelegramBotURL: h.telegramBotURL(),
-		BodyFont:       h.LoadBodyFont(ctx),
+		PortalHub:       portalHub,
+		Footer:          footer,
+		FooterTransport: footerTransport,
+		FooterServices:  footerServices,
+		Legal:           legal,
+		About:           about,
+		TelegramBotURL:  h.telegramBotURL(),
+		BodyFont:        h.LoadBodyFont(ctx),
 	})
 }
 
@@ -267,20 +286,24 @@ func (h *Handlers) DestinationsFromCitySlugs(ctx context.Context, slugs []string
 }
 func (h *Handlers) AdminGetSiteContent(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, r, 200, map[string]any{
-		"home":       h.LoadHomeContent(r.Context()),
-		"portal_hub": h.LoadPortalHubContent(r.Context()),
-		"footer":     h.LoadFooterContent(r.Context()),
-		"legal":      h.LoadLegalContent(r.Context()),
-		"about":      h.LoadAboutContent(r.Context()),
+		"home":             h.LoadHomeContent(r.Context()),
+		"portal_hub":       h.LoadPortalHubContent(r.Context()),
+		"footer":           h.LoadFooterContent(r.Context()),
+		"footer_transport": h.LoadTransportFooter(r.Context()),
+		"footer_services":  h.LoadServicesFooter(r.Context()),
+		"legal":            h.LoadLegalContent(r.Context()),
+		"about":            h.LoadAboutContent(r.Context()),
 	})
 }
 func (h *Handlers) AdminSetSiteContent(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		Home      domain.HomeContent      `json:"home"`
-		PortalHub domain.PortalHubContent `json:"portal_hub"`
-		Footer    domain.FooterContent    `json:"footer"`
-		Legal     domain.LegalContent     `json:"legal"`
-		About     domain.AboutPageContent `json:"about"`
+		Home            domain.HomeContent      `json:"home"`
+		PortalHub       domain.PortalHubContent `json:"portal_hub"`
+		Footer          domain.FooterContent    `json:"footer"`
+		FooterTransport domain.FooterContent    `json:"footer_transport"`
+		FooterServices  domain.FooterContent    `json:"footer_services"`
+		Legal           domain.LegalContent     `json:"legal"`
+		About           domain.AboutPageContent `json:"about"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		response.Error(w, r, apperrors.ErrValidation)
@@ -296,6 +319,14 @@ func (h *Handlers) AdminSetSiteContent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := h.Settings.SetJSON(ctx, keyFooterContent, req.Footer); err != nil {
+		response.Error(w, r, apperrors.ErrInternal)
+		return
+	}
+	if err := h.Settings.SetJSON(ctx, keyFooterTransport, req.FooterTransport); err != nil {
+		response.Error(w, r, apperrors.ErrInternal)
+		return
+	}
+	if err := h.Settings.SetJSON(ctx, keyFooterServices, req.FooterServices); err != nil {
 		response.Error(w, r, apperrors.ErrInternal)
 		return
 	}

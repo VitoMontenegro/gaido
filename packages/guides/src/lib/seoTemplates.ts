@@ -135,6 +135,9 @@ export const SEO_SEARCH_DESCRIPTION = 'Знайдіть гіда та екску
 export const SEO_JOURNAL_HEADING = 'Журнал для туристів'
 export const SEO_JOURNAL_DESCRIPTION = 'Що подивитись у місті та як знайти перевіреного гіда українською за кордоном'
 
+export const SEO_FORUMS_HEADING = 'Форуми'
+export const SEO_FORUMS_DESCRIPTION = 'Обговорення подорожей українською: поради, маршрути та враження мандрівників'
+
 export const SEO_MAP_HEADING = 'Карта екскурсій українською'
 export const SEO_MAP_DESCRIPTION = 'Міста з екскурсіями українською — оберіть напрямок на карті або в списку'
 

@@ -64,6 +64,9 @@ const EditExcursionPage = lazyImport(() => import('@gaido/guides/pages/EditExcur
 const JournalListPage = lazyImport(() => import('@gaido/guides/pages/JournalPages').then((m) => ({ default: m.JournalListPage })))
 const JournalArticlePage = lazyImport(() => import('@gaido/guides/pages/JournalPages').then((m) => ({ default: m.JournalArticlePage })))
 const AboutPage = lazyImport(() => import('@gaido/guides/pages/AboutPage'))
+const ForumIndexPage = lazyImport(() => import('@gaido/guides/pages/ForumPages'))
+const ForumBoardPage = lazyImport(() => import('@gaido/guides/pages/ForumPages').then((m) => ({ default: m.ForumBoardPage })))
+const ForumTopicPage = lazyImport(() => import('@gaido/guides/pages/ForumPages').then((m) => ({ default: m.ForumTopicPage })))
 const SeoCityPage = lazyImport(() => import('@gaido/guides/pages/SeoCityPage'))
 const CountryExcursionsPage = lazyImport(() => import('@gaido/guides/pages/CountryExcursionsPage'))
 const AdminPage = lazyImport(() => import('@gaido/portal-shell/pages/AdminPages').then((m) => ({ default: m.default })))
@@ -118,6 +121,9 @@ export function svitPublicRoutes() {
       <Route path="excursion/:slug" element={<Lazy><ExcursionPage /></Lazy>} />
       <Route path="journal" element={<Lazy><JournalListPage /></Lazy>} />
       <Route path="journal/:slug" element={<Lazy><JournalArticlePage /></Lazy>} />
+      <Route path="forums" element={<Lazy><ForumIndexPage /></Lazy>} />
+      <Route path="forums/:slug" element={<Lazy><ForumBoardPage /></Lazy>} />
+      <Route path="forums/:slug/:topicId" element={<Lazy><ForumTopicPage /></Lazy>} />
       <Route path="about" element={<Lazy><AboutPage /></Lazy>} />
       <Route path="login" element={<Lazy><LoginPage /></Lazy>} />
       <Route path="register" element={<Lazy><RegisterTouristPage /></Lazy>} />

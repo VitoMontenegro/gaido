@@ -335,14 +335,13 @@ func buildPersonJSON(g *domain.GuideProfile, base string) map[string]any {
 	return person
 }
 
-func buildArticleJSON(a *domain.Article, base string) map[string]any {
-	url := base + "/journal/" + a.Slug
+func buildArticleJSON(a *domain.Article, base, pageURL string) map[string]any {
 	article := map[string]any{
 		"@context":    "https://schema.org",
 		"@type":       "Article",
 		"headline":    a.Title,
 		"description": truncateDesc(a.Excerpt, 500),
-		"url":         url,
+		"url":         pageURL,
 		"publisher": map[string]any{
 			"@type": "Organization",
 			"name":  "Gaido UA",

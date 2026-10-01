@@ -457,6 +457,6 @@ func (h *Handlers) GuideDashboard(w http.ResponseWriter, r *http.Request) {
 		FeaturedGuide:      featuredGuide,
 		FeaturedExcursions: featuredExcursions,
 		PaymentsEnabled:    paymentsEnabled,
-		HasLicense:         h.licensePresent(ctx, g),
+		HasLicense:         h.HasUploadedLicense(ctx, g),
 	}))
 }

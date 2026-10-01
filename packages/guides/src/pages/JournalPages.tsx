@@ -12,8 +12,8 @@ import { sanitizeHtml } from '../lib/html'
 
 export function JournalListPage() {
   const { data, isLoading } = useQuery({
-    queryKey: ['articles'],
-    queryFn: () => articlesApi.list(),
+    queryKey: ['articles', 'journal'],
+    queryFn: () => articlesApi.list(20, 'journal'),
   })
   const items = data?.items ?? []
 
@@ -60,8 +60,8 @@ export function JournalArticlePage() {
   const { slug = '' } = useParams()
 
   const { data: article, isLoading } = useQuery({
-    queryKey: ['article', slug],
-    queryFn: () => articlesApi.get(slug),
+    queryKey: ['article', 'journal', slug],
+    queryFn: () => articlesApi.get(slug, 'journal'),
     enabled: !!slug,
   })
 

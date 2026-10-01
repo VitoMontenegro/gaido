@@ -125,6 +125,8 @@ const (
 const (
 	ArticlePublished = "PUBLISHED"
 	ArticleDraft     = "DRAFT"
+	ArticleKindJournal = "journal"
+	ArticleKindNews    = "news"
 )
 
 const (

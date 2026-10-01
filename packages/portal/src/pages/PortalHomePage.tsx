@@ -1,6 +1,8 @@
 import { useMemo, useState, type ReactNode } from 'react'
+import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { catalogApi, resolveMediaUrl, type CountryWithGuides, type Excursion, type PublicGuide } from '@gaido/api-client/api/client'
+import { catalogApi, articlesApi, resolveMediaUrl, type CountryWithGuides, type Excursion, type PublicGuide, type ArticleListItem } from '@gaido/api-client/api/client'
+import { forumsApi, type ForumTopic } from '@gaido/api-client/api/forums'
 import { guidesUrl } from '@gaido/site-urls/site'
 import { staticAssetUrl } from '@gaido/site-urls/staticAsset'
 import ApiErrorBanner from '../components/ApiErrorBanner'
@@ -26,6 +28,110 @@ function SectionTitle({ title, subtitle, action }: { title: string; subtitle?: s
       </div>
       {action}
     </div>
+  )
+}
+
+function formatListTime(iso?: string) {
+  if (!iso) return ''
+  const d = new Date(iso)
+  const now = new Date()
+  const sameDay = d.toDateString() === now.toDateString()
+  if (sameDay) {
+    return d.toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })
+  }
+  return d.toLocaleDateString('uk-UA', { day: 'numeric', month: 'short' })
+}
+
+const listMoreClass =
+  'shrink-0 text-sm text-teal no-underline transition hover:text-teal-dark hover:underline'
+const listItemClass = 'group block px-4 py-2.5 no-underline'
+const listNameClass = 'block text-[15px] leading-snug text-ink transition group-hover:text-teal'
+const listMetaClass = 'mt-1 block text-xs text-muted'
+
+function HomeSideList({
+  title,
+  moreHref,
+  moreLabel,
+  children,
+}: {
+  title: string
+  moreHref: string
+  moreLabel: string
+  children: ReactNode
+}) {
+  const more = moreHref.startsWith('http') ? (
+    <a href={moreHref} className={listMoreClass}>
+      {moreLabel}
+    </a>
+  ) : (
+    <Link to={moreHref} className={listMoreClass}>
+      {moreLabel}
+    </Link>
+  )
+  return (
+    <section className="overflow-hidden rounded-2xl border border-divider bg-surface">
+      <div className="flex items-baseline justify-between gap-3 border-b border-divider px-4 py-3">
+        <h2 className="font-display text-lg font-semibold normal-case tracking-normal text-ink">{title}</h2>
+        {more}
+      </div>
+      {children}
+    </section>
+  )
+}
+
+function clipExcerpt(text?: string, max = 110) {
+  const value = (text ?? '').replace(/\s+/g, ' ').trim()
+  if (!value) return ''
+  if (value.length <= max) return value
+  const cut = value.slice(0, max)
+  const space = cut.lastIndexOf(' ')
+  return `${(space > 50 ? cut.slice(0, space) : cut).trim()}…`
+}
+
+function HomeNewsList({ articles }: { articles: ArticleListItem[] }) {
+  return (
+    <HomeSideList title="Останні новини" moreHref="/news" moreLabel="Усі новини">
+      <ul>
+        {articles.map((article) => {
+          const excerpt = clipExcerpt(article.excerpt)
+          return (
+            <li key={article.id} className="border-b border-divider last:border-b-0">
+              <Link to={`/news/${article.slug}`} className={listItemClass}>
+                <span className="block font-display text-base font-semibold leading-snug text-ink transition group-hover:text-teal">
+                  {article.title}
+                </span>
+                {excerpt && <span className="block text-sm leading-relaxed text-muted">{excerpt}</span>}
+                {article.published_at && (
+                  <time className={listMetaClass} dateTime={article.published_at}>
+                    {formatListTime(article.published_at)}
+                  </time>
+                )}
+              </Link>
+            </li>
+          )
+        })}
+      </ul>
+    </HomeSideList>
+  )
+}
+
+function HomeForumList({ topics }: { topics: ForumTopic[] }) {
+  return (
+    <HomeSideList title="Форуми" moreHref={guidesUrl('/forums')} moreLabel="Усі форуми">
+      <ul>
+        {topics.map((topic) => (
+          <li key={topic.id} className="border-b border-divider last:border-b-0">
+            <a href={guidesUrl(`/forums/${topic.forum_slug}/${topic.id}`)} className={listItemClass}>
+              <span className={listNameClass}>{topic.title}</span>
+              <span className={listMetaClass}>
+                {(topic.last_author?.display_name || topic.author?.display_name || topic.forum_title) +
+                  (topic.last_post_at ? ` · ${formatListTime(topic.last_post_at)}` : '')}
+              </span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </HomeSideList>
   )
 }
 
@@ -145,6 +251,15 @@ export default function PortalHomePage() {
     queryFn: () => catalogApi.countriesWithGuides(),
     staleTime: 60_000,
   })
+  const { data: articlesData } = useQuery({
+    queryKey: ['articles', 'news', 'home'],
+    queryFn: () => articlesApi.list(6, 'news'),
+  })
+  const { data: forumRecent } = useQuery({
+    queryKey: ['forums', 'recent'],
+    queryFn: () => forumsApi.recentTopics(8),
+    staleTime: 30_000,
+  })
 
   const hub = normalizePortalHub(site?.portal_hub)
   const featuredGuides = site?.home.featured_guides ?? []
@@ -153,6 +268,9 @@ export default function PortalHomePage() {
   const destinations = site?.home.popular_destinations ?? []
   const popularSlugs = useMemo(() => new Set(destinations.map((g) => g.country_slug)), [destinations])
   const moreCountries = (countriesData?.items ?? []).filter((c: CountryWithGuides) => !popularSlugs.has(c.slug))
+  const newsArticles = articlesData?.items ?? []
+  const forumTopics = forumRecent?.items ?? []
+  const showForumHome = forumTopics.length > 0
   const jsonLd = buildPortalHomeJsonLd({
     guides: featuredGuides,
     excursions: latestExcursions.length > 0 ? latestExcursions : featuredExcursions,
@@ -296,6 +414,15 @@ export default function PortalHomePage() {
               ))}
             </ul>
           )}
+        </section>
+      )}
+
+      {(newsArticles.length > 0 || showForumHome) && (
+        <section className="container-site py-8 md:py-10">
+          <div className={`grid items-start gap-6 ${newsArticles.length > 0 && showForumHome ? 'lg:grid-cols-2' : 'max-w-xl'}`}>
+            {newsArticles.length > 0 && <HomeNewsList articles={newsArticles.slice(0, 6)} />}
+            {showForumHome && <HomeForumList topics={forumTopics.slice(0, 6)} />}
+          </div>
         </section>
       )}
 

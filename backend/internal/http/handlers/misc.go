@@ -273,6 +273,8 @@ const (
 	keyHomeContent      = "home_content"
 	keyPortalHubContent = "portal_hub_content"
 	keyFooterContent    = "footer_content"
+	keyFooterTransport  = "footer_transport"
+	keyFooterServices   = "footer_services"
 	keyLegalContent     = "legal_content"
 	keyAboutContent     = "about_content"
 )
@@ -468,6 +470,37 @@ func defaultFooterContent() domain.FooterContent {
 		Email:       "hello@gaido.example",
 		Description: "Каталог гідів та авторських екскурсій. Прямий контакт без посередників.",
 		Copyright:   "Gaido UA",
+	}
+}
+
+func defaultTransportFooter() domain.FooterContent {
+	return domain.FooterContent{
+		Description: "Для українців — від українців",
+		Copyright:   "Gaido UA",
+		Columns: []domain.FooterColumn{
+			{Title: "Пасажирам", Links: []domain.FooterLink{
+				{Label: "Пошук рейсів", URL: "/search"},
+				{Label: "Напрямки", URL: "/cities"},
+				{Label: "Мої бронювання", URL: "/account/bookings"},
+			}},
+			{Title: "Перевізникам", Links: []domain.FooterLink{
+				{Label: "Реєстрація", URL: "/register/driver"},
+				{Label: "Кабінет", URL: "/account/rides"},
+				{Label: "Підписка", URL: "/account/carrier/billing"},
+			}},
+			{Title: "Право", Links: []domain.FooterLink{
+				{Label: "Конфіденційність", URL: "/legal/privacy"},
+				{Label: "Правила сайту", URL: "/legal/site-rules"},
+			}},
+		},
+	}
+}
+
+func defaultServicesFooter() domain.FooterContent {
+	return domain.FooterContent{
+		Description: "Для українців — від українців",
+		Copyright:   "Gaido UA",
+		Columns:     []domain.FooterColumn{},
 	}
 }
 func defaultLegalContent() domain.LegalContent {

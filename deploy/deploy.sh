@@ -116,6 +116,7 @@ fi
 mkdir -p "$APP_ROOT/bin"
 "$GO_BIN" build -ldflags="-s -w" -o "$APP_ROOT/bin/tourister-api" ./cmd/api
 "$GO_BIN" build -ldflags="-s -w" -o "$APP_ROOT/bin/tourister-migrate" ./cmd/migrate
+"$GO_BIN" build -ldflags="-s -w" -o "$APP_ROOT/bin/tourister-news" ./cmd/news
 
 echo "→ migrations"
 "$APP_ROOT/bin/tourister-migrate" -cmd up
@@ -125,6 +126,9 @@ write_status "success" 0 "1"
 echo "→ restart api (deferred, so deploy parent is not killed mid-run)"
 if command -v systemd-run >/dev/null 2>&1; then
   sudo systemd-run --quiet --collect --on-active=2s /bin/systemctl restart tourister-api
+  if systemctl list-unit-files tourister-news.service >/dev/null 2>&1; then
+    sudo systemd-run --quiet --collect --on-active=3s /bin/systemctl restart tourister-news
+  fi
 else
   # Fallback: background restart after this script exits the wait briefly.
   (sleep 2; sudo systemctl restart tourister-api) >/dev/null 2>&1 &

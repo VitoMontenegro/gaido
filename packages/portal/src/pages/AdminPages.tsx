@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { adminApi, api, type AdminAnalytics, type AdminPaymentRow, type CookieConsentRecord, type MailSettings } from '@gaido/api-client/api/client'
+import { adminApi, api, authApi, type AdminAnalytics, type AdminPaymentRow, type CookieConsentRecord, type MailSettings } from '@gaido/api-client/api/client'
 import StatCard, { StatGrid } from '../components/crm/StatCard'
-import { useHasRole } from '@gaido/api-client/hooks/useAuth'
+import { ImageUrlField } from '../components/ImageUrlField'
+import { useHasRole, useMe } from '@gaido/api-client/hooks/useAuth'
 import { SiteContentEditor } from '../components/SiteContentEditor'
 import { AdminExcursionsList, AdminGuidesList, AdminReviewsList, AdminUsersList, AdminCarriersList, AdminTransportRidesList, AdminProvidersList, AdminOfferingsList, AdminComplaintsList } from '../components/AdminEntityLists'
 import { ArticlesEditor } from '../components/ArticlesEditor'
@@ -27,7 +28,7 @@ const TABS: { id: AdminTab; label: string; siteModes: SiteMode[] }[] = [
   { id: 'complaints', label: 'Скарги', siteModes: ['portal', 'services'] },
   { id: 'reviews', label: 'Відгуки', siteModes: ['portal', 'guides'] },
   { id: 'settings', label: 'Налаштування', siteModes: ALL_SITES },
-  { id: 'content', label: 'Контент сайту', siteModes: ['portal'] },
+  { id: 'content', label: 'Контент сайту', siteModes: ALL_SITES },
   { id: 'journal', label: 'Журнал', siteModes: ['portal', 'guides'] },
   { id: 'places', label: 'Сторінки', siteModes: ['portal', 'guides'] },
   { id: 'audit', label: 'Аудит', siteModes: ALL_SITES },
@@ -248,6 +249,7 @@ export default function AdminPage() {
 
         {tab === 'settings' && (
           <div className="space-y-4">
+            <AdminAuthorPhoto />
             <div className="card">
               <p className="font-semibold">Модерація контенту</p>
               <p className="mt-1 text-sm text-stone-600">
@@ -328,6 +330,54 @@ export default function AdminPage() {
         {tab === 'cookies' && <AdminCookieConsents />}
       </div>
     </>
+  )
+}
+
+function AdminAuthorPhoto() {
+  const qc = useQueryClient()
+  const { data: me } = useMe()
+  const [value, setValue] = useState('')
+  const [ready, setReady] = useState(false)
+  const [message, setMessage] = useState('')
+
+  useEffect(() => {
+    if (!me || ready) return
+    setValue(me.avatar_url ?? '')
+    setReady(true)
+  }, [me, ready])
+
+  const save = useMutation({
+    mutationFn: (avatar_url: string) => authApi.updateAvatar(avatar_url),
+    onSuccess: () => {
+      setMessage('Збережено')
+      qc.invalidateQueries({ queryKey: ['me'] })
+    },
+    onError: (err: Error) => setMessage(err.message),
+  })
+
+  return (
+    <div className="card space-y-3">
+      <div>
+        <p className="font-semibold">Фото автора</p>
+        <p className="mt-1 text-sm text-stone-600">
+          Показується в статтях і на форумі, коли автор — ви і немає окремого фото гіда.
+          Поки своє фото не завантажено, стоїть загальне.
+        </p>
+      </div>
+      <ImageUrlField
+        label="Фото"
+        value={value}
+        crop={false}
+        maxBytes={400 * 1024}
+        outputFormat="jpeg"
+        onChange={setValue}
+        onPersist={(avatar_url) => {
+          setMessage('')
+          save.mutate(avatar_url)
+        }}
+      />
+      {message && <p className="text-xs text-stone-600">{message}</p>}
+    </div>
   )
 }
 

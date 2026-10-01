@@ -226,6 +226,69 @@
     @apply border-t border-divider px-5 py-3;
   }
 
+  .forum-wrap {
+    @apply overflow-hidden rounded-xl border border-border bg-surface;
+  }
+
+  .forum-table {
+    @apply w-full border-collapse text-left text-sm;
+  }
+
+  .forum-table th {
+    @apply border-b border-border bg-sand-100 px-3 py-2.5 font-medium text-muted;
+    font-size: 12px;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+
+  .forum-table td {
+    @apply border-b border-divider px-3 py-3 align-top;
+  }
+
+  .forum-table tbody tr:last-child td {
+    @apply border-b-0;
+  }
+
+  .forum-table tbody tr:hover td {
+    @apply bg-sand-50;
+  }
+
+  .forum-cat td {
+    @apply bg-sand-100 py-2 font-display text-sm font-medium uppercase text-ink;
+  }
+
+  .forum-cat:hover td {
+    @apply bg-sand-100;
+  }
+
+  .forum-num {
+    @apply w-20 text-center tabular-nums text-muted md:w-24;
+  }
+
+  .forum-link {
+    @apply font-medium text-teal transition hover:text-teal-dark hover:underline;
+  }
+
+  .forum-icon {
+    @apply mt-0.5 h-9 w-9 shrink-0 text-teal;
+  }
+
+  .forum-post {
+    @apply grid overflow-hidden rounded-xl border border-border bg-surface md:grid-cols-[168px_1fr];
+  }
+
+  .forum-post__aside {
+    @apply flex items-center gap-3 bg-sand-50 px-4 py-4 md:flex-col md:items-start md:border-r md:border-divider;
+  }
+
+  .forum-post__body {
+    @apply min-w-0 px-4 py-4 md:px-5;
+  }
+
+  .forum-toolbar {
+    @apply flex flex-wrap items-end justify-between gap-3;
+  }
+
   .article-byline {
     @apply inline-flex items-center gap-3 text-inherit no-underline transition;
   }

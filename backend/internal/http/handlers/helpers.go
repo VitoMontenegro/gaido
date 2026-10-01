@@ -58,10 +58,6 @@ func (h *Handlers) ensureArticleAuthor(ctx context.Context, article *domain.Arti
 	article.AuthorID = &adminID
 }
 
-func (h *Handlers) licensePresent(ctx context.Context, g *domain.GuideProfile) bool {
-	return h.GuideSvc.LicensePresent(ctx, g)
-}
-
 func (h *Handlers) canPreviewUnpublishedExcursion(ctx context.Context, guideID int64) bool {
 	uid := middleware.UserIDFromContext(ctx)
 	if uid == 0 {
@@ -97,7 +93,7 @@ func (h *Handlers) canViewExcursion(ctx context.Context, e *domain.ExcursionView
 
 func (h *Handlers) publicGuideDTO(ctx context.Context, g *domain.GuideProfile) domain.PublicGuideDTO {
 	sub, _ := h.Subs.GetActive(ctx, g.ID)
-	hasLicense := h.licensePresent(ctx, g)
+	hasLicense := h.HasUploadedLicense(ctx, g)
 	// Monetization master switch: when payments enabled, contacts require active subscription.
 	requireSub, _ := h.Settings.GetBool(ctx, "guide_placement_payments_enabled", false)
 	return guidesvc.BuildPublicGuideDTO(g, sub, hasLicense, requireSub)

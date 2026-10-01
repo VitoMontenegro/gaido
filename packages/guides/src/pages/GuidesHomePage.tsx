@@ -115,8 +115,8 @@ export default function GuidesHomePage() {
     staleTime: 60_000,
   })
   const { data: articlesData } = useQuery({
-    queryKey: ['articles', 'home'],
-    queryFn: () => articlesApi.list(3),
+    queryKey: ['articles', 'journal', 'home'],
+    queryFn: () => articlesApi.list(3, 'journal'),
   })
   const recentRaw = useRecentViews()
   const recentKey = recentRaw.map((r) => `${r.type}:${r.slug}`).join('|')

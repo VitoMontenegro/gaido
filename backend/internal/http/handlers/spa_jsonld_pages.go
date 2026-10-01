@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/vitomonte/experts-tourister/internal/domain"
@@ -230,10 +231,22 @@ func (h *Handlers) guidePageJsonLd(ctx context.Context, g *domain.GuideProfile, 
 	return appendJsonLd(nil, blocks...)
 }
 
+func (h *Handlers) newsArticleJsonLd(a *domain.Article, base string) []string {
+	url := base + "/news/" + a.Slug
+	return appendJsonLd(nil,
+		buildArticleJSON(a, base, url),
+		buildBreadcrumbJSON(base, [][2]string{
+			{"Головна", base + "/"},
+			{"Новини", base + "/news"},
+			{a.Title, url},
+		}),
+	)
+}
+
 func (h *Handlers) journalArticleJsonLd(a *domain.Article, base string) []string {
 	url := base + "/journal/" + a.Slug
 	return appendJsonLd(nil,
-		buildArticleJSON(a, base),
+		buildArticleJSON(a, base, url),
 		buildBreadcrumbJSON(base, [][2]string{
 			{"Головна", base + "/"},
 			{"Журнал", base + "/journal"},
@@ -246,5 +259,23 @@ func (h *Handlers) simpleBreadcrumbJsonLd(base, label, path string) []string {
 	return appendJsonLd(nil, buildBreadcrumbJSON(base, [][2]string{
 		{"Головна", base + "/"},
 		{label, base + path},
+	}))
+}
+
+func (h *Handlers) forumBoardJsonLd(base string, f *domain.Forum) []string {
+	return appendJsonLd(nil, buildBreadcrumbJSON(base, [][2]string{
+		{"Головна", base + "/"},
+		{"Форуми", base + "/forums"},
+		{f.Title, base + "/forums/" + f.Slug},
+	}))
+}
+
+func (h *Handlers) forumTopicJsonLd(base string, t *domain.ForumTopic) []string {
+	id := strconv.FormatInt(t.ID, 10)
+	return appendJsonLd(nil, buildBreadcrumbJSON(base, [][2]string{
+		{"Головна", base + "/"},
+		{"Форуми", base + "/forums"},
+		{t.ForumTitle, base + "/forums/" + t.ForumSlug},
+		{t.Title, base + "/forums/" + t.ForumSlug + "/" + id},
 	}))
 }

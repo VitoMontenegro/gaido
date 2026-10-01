@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"html"
+	"strconv"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -112,9 +113,70 @@ func (h *Handlers) portalHomePageMeta(ctx context.Context) *SpaPageMeta {
 	}
 }
 
+func isPortalNewsHost(host string) bool {
+	switch normalizeHost(host) {
+	case "gaido-ua.com", "www.gaido-ua.com", "localhost", "127.0.0.1":
+		return true
+	default:
+		return false
+	}
+}
+
+func (h *Handlers) resolveNewsMeta(ctx context.Context, path, base string) *SpaPageMeta {
+	base = strings.TrimRight(base, "/")
+	path = strings.TrimSuffix(path, "/")
+	if path == "" {
+		path = "/"
+	}
+	defaultImage := h.publicBaseURL() + "/api/v1/media/public/d2b27d81f09874a08b4dc3293fe67f2e.webp"
+	if path == "/news" {
+		return &SpaPageMeta{
+			Title:       pageTitleSuffix(seoNewsHeading),
+			Description: seoNewsDescription,
+			Canonical:   base + "/news",
+			OgImage:     defaultImage,
+			JsonLd:      h.simpleBreadcrumbJsonLd(base, "Новини", "/news"),
+		}
+	}
+	if !strings.HasPrefix(path, "/news/") {
+		return nil
+	}
+	slug := strings.TrimPrefix(path, "/news/")
+	if slug == "" || strings.Contains(slug, "/") {
+		return nil
+	}
+	if h.Articles == nil {
+		return nil
+	}
+	a, err := h.Articles.GetPublishedBySlug(ctx, slug, domain.ArticleKindNews)
+	if err != nil || a == nil {
+		return nil
+	}
+	desc := truncateDesc(a.Excerpt, 160)
+	if desc == "" {
+		desc = truncateDesc(a.Title, 160)
+	}
+	img := defaultImage
+	if a.CoverImageURL != "" {
+		img = h.mediaPublicURL(a.CoverImageURL)
+	}
+	return &SpaPageMeta{
+		Title:       pageTitleSuffix(a.Title),
+		Description: desc,
+		Canonical:   base + "/news/" + a.Slug,
+		OgImage:     img,
+		JsonLd:      h.newsArticleJsonLd(a, base),
+	}
+}
+
 func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *SpaPageMeta {
 	if isPortalHome(host, path) {
 		return h.portalHomePageMeta(ctx)
+	}
+	if isPortalNewsHost(host) {
+		if meta := h.resolveNewsMeta(ctx, path, h.publicBaseURL()); meta != nil {
+			return meta
+		}
 	}
 
 	ok, path, base := guidesPage(host, path, h.publicBaseURL())
@@ -176,6 +238,14 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 			Canonical:   base + "/journal",
 			OgImage:     defaultImage,
 			JsonLd:      h.simpleBreadcrumbJsonLd(base, "Журнал", "/journal"),
+		}
+	case path == "/forums":
+		return &SpaPageMeta{
+			Title:       pageTitleSuffix(seoForumsHeading),
+			Description: seoForumsDescription,
+			Canonical:   base + "/forums",
+			OgImage:     defaultImage,
+			JsonLd:      h.simpleBreadcrumbJsonLd(base, "Форуми", "/forums"),
 		}
 	case path == "/about":
 		about := h.LoadAboutContent(ctx)
@@ -345,7 +415,7 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 		if len(parts) != 2 {
 			return nil
 		}
-		a, err := h.Articles.GetPublishedBySlug(ctx, parts[1])
+		a, err := h.Articles.GetPublishedBySlug(ctx, parts[1], domain.ArticleKindJournal)
 		if err != nil || a == nil {
 			return nil
 		}
@@ -363,6 +433,58 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 			Canonical:   base + "/journal/" + a.Slug,
 			OgImage:     img,
 			JsonLd:      h.journalArticleJsonLd(a, base),
+		}
+
+	case "forums":
+		if h.Forums == nil {
+			return nil
+		}
+		if len(parts) == 2 {
+			f, err := h.Forums.GetBySlug(ctx, parts[1])
+			if err != nil || f == nil {
+				return nil
+			}
+			if f.Audience != domain.ForumAudiencePublic {
+				return &SpaPageMeta{
+					Title:   pageTitleSuffix(f.Title),
+					NoIndex: true,
+				}
+			}
+			desc := truncateDesc(f.Description, 160)
+			if desc == "" {
+				desc = seoForumsDescription
+			}
+			return &SpaPageMeta{
+				Title:       pageTitleSuffix(f.Title),
+				Description: desc,
+				Canonical:   base + "/forums/" + f.Slug,
+				OgImage:     defaultImage,
+				JsonLd:      h.forumBoardJsonLd(base, f),
+			}
+		}
+		if len(parts) != 3 {
+			return nil
+		}
+		topicID, err := strconv.ParseInt(parts[2], 10, 64)
+		if err != nil || topicID <= 0 {
+			return nil
+		}
+		t, err := h.Forums.GetTopic(ctx, topicID)
+		if err != nil || t == nil || t.ForumSlug != parts[1] {
+			return nil
+		}
+		if t.ForumAudience != domain.ForumAudiencePublic {
+			return &SpaPageMeta{
+				Title:   pageTitleSuffix(t.Title),
+				NoIndex: true,
+			}
+		}
+		return &SpaPageMeta{
+			Title:       pageTitleSuffix(t.Title),
+			Description: truncateDesc(t.Title+" — "+t.ForumTitle, 160),
+			Canonical:   base + "/forums/" + t.ForumSlug + "/" + strconv.FormatInt(t.ID, 10),
+			OgImage:     defaultImage,
+			JsonLd:      h.forumTopicJsonLd(base, t),
 		}
 
 	case "ukrainians-in":

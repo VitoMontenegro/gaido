@@ -19,7 +19,8 @@ import (
 func (h *Handlers) ListArticlesPublic(w http.ResponseWriter, r *http.Request) {
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
 	offset, _ := strconv.Atoi(r.URL.Query().Get("offset"))
-	items, err := h.Articles.ListPublished(r.Context(), limit, offset)
+	kind := postgres.NormalizeArticleKind(r.URL.Query().Get("kind"))
+	items, err := h.Articles.ListPublished(r.Context(), kind, limit, offset)
 	if err != nil {
 		response.Error(w, r, apperrors.ErrInternal)
 		return
@@ -31,7 +32,7 @@ func (h *Handlers) ListArticlesPublic(w http.ResponseWriter, r *http.Request) {
 }
 func (h *Handlers) GetArticlePublic(w http.ResponseWriter, r *http.Request) {
 	slug := chi.URLParam(r, "slug")
-	article, err := h.Articles.GetPublishedBySlug(r.Context(), slug)
+	article, err := h.Articles.GetPublishedBySlug(r.Context(), slug, postgres.NormalizeArticleKind(r.URL.Query().Get("kind")))
 	if err != nil {
 		response.Error(w, r, apperrors.ErrInternal)
 		return

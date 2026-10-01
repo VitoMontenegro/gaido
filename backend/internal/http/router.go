@@ -93,6 +93,11 @@ func NewRouter(cfg config.Config, log *slog.Logger, h *handlers.Handlers) http.H
 
 		api.Get("/articles", h.ListArticlesPublic)
 		api.Get("/articles/{slug}", h.GetArticlePublic)
+		api.With(optionalAuth).Get("/forums", h.ListForums)
+		api.Get("/forums/topics/recent", h.ListRecentForumTopics)
+		api.With(optionalAuth).Get("/forums/topics/{id}/longpoll", h.ForumTopicLongpoll)
+		api.With(optionalAuth).Get("/forums/topics/{id}", h.GetForumTopic)
+		api.With(optionalAuth).Get("/forums/{slug}", h.GetForum)
 		api.Get("/place-pages/{type}/{slug}", h.GetPlacePagePublic)
 
 		api.Get("/reviews", h.ListReviewsPublic)
@@ -108,6 +113,7 @@ func NewRouter(cfg config.Config, log *slog.Logger, h *handlers.Handlers) http.H
 			pr.Use(authMW)
 			pr.Get("/account/me", h.Me)
 			pr.Put("/account/profile", h.UpdateAccountProfile)
+			pr.Put("/account/avatar", h.UpdateAccountAvatar)
 			pr.Put("/account/password", h.ChangeAccountPassword)
 			pr.Get("/account/guide/profile", h.GetGuideProfile)
 			pr.Put("/account/guide/profile", h.UpdateGuideProfile)
@@ -122,6 +128,8 @@ func NewRouter(cfg config.Config, log *slog.Logger, h *handlers.Handlers) http.H
 			pr.Get("/notifications", h.ListNotifications)
 			pr.Get("/notifications/longpoll", h.Longpoll)
 			pr.Patch("/notifications/{id}/read", h.MarkNotificationRead)
+			pr.Post("/forums/{slug}/topics", h.CreateForumTopic)
+			pr.Post("/forums/topics/{id}/posts", h.CreateForumPost)
 		})
 
 		api.Group(func(gr chi.Router) {

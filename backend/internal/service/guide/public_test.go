@@ -33,12 +33,17 @@ func TestContactsHiddenInactive(t *testing.T) {
 func TestTypeBadgeRequiresLicense(t *testing.T) {
 	g := &domain.GuideProfile{Status: domain.GuideStatusActive, GuideType: domain.GuideTypeGuide}
 	dto := guidesvc.BuildPublicGuideDTO(g, nil, false, true)
-	if dto.TypeBadge != nil {
-		t.Fatal("badge should be nil without license")
+	if dto.TypeBadge == nil || *dto.TypeBadge != "компаньйон(турлідер)" {
+		t.Fatal("without documents the badge is companion")
 	}
 	dto2 := guidesvc.BuildPublicGuideDTO(g, nil, true, true)
 	if dto2.TypeBadge == nil || *dto2.TypeBadge != "Гід" {
 		t.Fatal("expected guide badge")
+	}
+	ent := &domain.GuideProfile{GuideType: domain.GuideTypeEntertainer}
+	dto3 := guidesvc.BuildPublicGuideDTO(ent, nil, true, true)
+	if dto3.TypeBadge == nil || *dto3.TypeBadge != "Конферансьє" {
+		t.Fatal("expected entertainer badge")
 	}
 }
 
@@ -52,8 +57,8 @@ func TestCatalogStatus(t *testing.T) {
 	if guidesvc.CatalogStatus(domain.GuideTypeGuide, true) != "confirmed" {
 		t.Fatal("confirmed")
 	}
-	if guidesvc.CatalogStatus(domain.GuideTypeGuide, false) != "pending" {
-		t.Fatal("pending")
+	if guidesvc.CatalogStatus(domain.GuideTypeGuide, false) != "companion" {
+		t.Fatal("no documents defaults to companion")
 	}
 }
 

@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { catalogApi } from '@gaido/api-client/api/client'
 import BrandLogo from './BrandLogo'
 import { SITE_NAME } from '@gaido/site-urls/brand'
+import { portalUrl, servicesUrl, transportUrl } from '@gaido/site-urls/site'
 import { useTelegramBotURL } from '../hooks/useTelegramBotURL'
 
 export default function GuidesFooter() {
@@ -92,10 +93,11 @@ export default function GuidesFooter() {
             )}
           </div>
 
-          <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-t border-divider pt-6">
-            <p className="text-sm font-light text-muted-light">
-              © {new Date().getFullYear()} {footer?.copyright ?? SITE_NAME}
-            </p>
+          <div className="mt-8 flex flex-wrap items-center gap-4 border-t border-divider pt-6 text-sm text-muted">
+            <a href={portalUrl('/')} className="hover:underline">Головна</a>
+            <a href={transportUrl('/')} className="hover:underline">Перевезення</a>
+            <a href={servicesUrl('/')} className="hover:underline">Сервіси</a>
+            <p className="ml-auto text-xs text-muted-light">© {new Date().getFullYear()} {footer?.copyright ?? SITE_NAME}</p>
           </div>
         </div>
       </div>

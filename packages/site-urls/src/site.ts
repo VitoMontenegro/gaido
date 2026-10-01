@@ -9,7 +9,7 @@ export const GUIDES_PREFIX = '/svit'
 export const SERVICES_PREFIX = '/servis'
 export const TRANSPORT_PREFIX = '/vezu'
 
-const GUIDE_PATH_RE = /^\/(guides|map|search|journal|guide|excursion|city|ukrainians-in)(\/|$)/
+const GUIDE_PATH_RE = /^\/(guides|map|search|journal|forums|guide|excursion|city|ukrainians-in)(\/|$)/
 
 export function getSiteMode(): SiteMode {
   const override = import.meta.env.VITE_SITE_MODE as string | undefined

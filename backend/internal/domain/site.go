@@ -116,11 +116,11 @@ type DestinationGroup struct {
 }
 
 type SiteHomePayload struct {
-	Content              HomeContent        `json:"content"`
-	FeaturedGuides       []PublicGuideDTO   `json:"featured_guides"`
-	FeaturedExcursions   []ExcursionView    `json:"featured_excursions"`
-	LatestExcursions     []ExcursionView    `json:"latest_excursions"`
-	PopularDestinations  []DestinationGroup `json:"popular_destinations"`
+	Content             HomeContent        `json:"content"`
+	FeaturedGuides      []PublicGuideDTO   `json:"featured_guides"`
+	FeaturedExcursions  []ExcursionView    `json:"featured_excursions"`
+	LatestExcursions    []ExcursionView    `json:"latest_excursions"`
+	PopularDestinations []DestinationGroup `json:"popular_destinations"`
 }
 
 type PortalHubCard struct {
@@ -137,11 +137,13 @@ type PortalHubContent struct {
 }
 
 type SitePayload struct {
-	Home           SiteHomePayload  `json:"home"`
-	PortalHub      PortalHubContent `json:"portal_hub"`
-	Footer         FooterContent    `json:"footer"`
-	Legal          LegalContent     `json:"legal"`
-	About          AboutPageContent `json:"about"`
-	TelegramBotURL string           `json:"telegram_bot_url,omitempty"`
-	BodyFont       string           `json:"body_font"`
+	Home            SiteHomePayload  `json:"home"`
+	PortalHub       PortalHubContent `json:"portal_hub"`
+	Footer          FooterContent    `json:"footer"`
+	FooterTransport FooterContent    `json:"footer_transport"`
+	FooterServices  FooterContent    `json:"footer_services"`
+	Legal           LegalContent     `json:"legal"`
+	About           AboutPageContent `json:"about"`
+	TelegramBotURL  string           `json:"telegram_bot_url,omitempty"`
+	BodyFont        string           `json:"body_font"`
 }

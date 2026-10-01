@@ -65,6 +65,24 @@ func TestResolveSpaPageMeta_portalHome(t *testing.T) {
 	}
 }
 
+func TestResolveSpaPageMeta_portalNews(t *testing.T) {
+	h := &Handlers{Cfg: config.Config{PublicBaseURL: "https://gaido-ua.com"}}
+	meta := h.ResolveSpaPageMeta(context.Background(), "gaido-ua.com", "/news")
+	if meta == nil {
+		t.Fatal("expected portal news meta")
+	}
+	if meta.Canonical != "https://gaido-ua.com/news" {
+		t.Fatalf("canonical = %q", meta.Canonical)
+	}
+	if !strings.Contains(meta.Title, seoNewsHeading) {
+		t.Fatalf("title = %q", meta.Title)
+	}
+	svit := h.ResolveSpaPageMeta(context.Background(), "svit.gaido-ua.com", "/news")
+	if svit != nil {
+		t.Fatalf("svit news meta = %#v, want nil", svit)
+	}
+}
+
 func TestSitemapHubLocations(t *testing.T) {
 	got := sitemapHubLocations("https://gaido-ua.com")
 	want := []string{

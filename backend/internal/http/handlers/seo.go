@@ -62,9 +62,10 @@ func (h *Handlers) SitemapXML(w http.ResponseWriter, r *http.Request) {
 	for _, loc := range sitemapHubLocations(h.publicBaseURL()) {
 		writeURL(loc, today)
 	}
-	for _, path := range []string{"/", "/search", "/map", "/guides", "/journal", "/about"} {
+	for _, path := range []string{"/", "/search", "/map", "/guides", "/journal", "/forums", "/about"} {
 		writeURL(base+path, today)
 	}
+	writeURL(strings.TrimRight(h.publicBaseURL(), "/")+"/news", today)
 
 	if rows, err := h.DB.Pool.Query(ctx, `
 		SELECT co.slug, COALESCE(MAX(e.updated_at), NOW())::date
@@ -145,7 +146,7 @@ func (h *Handlers) SitemapXML(w http.ResponseWriter, r *http.Request) {
 
 	if rows, err := h.DB.Pool.Query(ctx, `
 		SELECT slug, COALESCE(published_at, updated_at, created_at)::date
-		FROM articles WHERE status = 'PUBLISHED' AND slug <> ''
+		FROM articles WHERE status = 'PUBLISHED' AND kind = 'journal' AND slug <> ''
 		ORDER BY id LIMIT 2000
 	`); err == nil {
 		defer rows.Close()
@@ -154,6 +155,31 @@ func (h *Handlers) SitemapXML(w http.ResponseWriter, r *http.Request) {
 			var lastmod time.Time
 			if rows.Scan(&slug, &lastmod) == nil && slug != "" {
 				writeURL(base+"/journal/"+slug, lastmod.Format("2006-01-02"))
+			}
+		}
+	}
+
+	if rows, err := h.DB.Pool.Query(ctx, `
+		SELECT slug, COALESCE(published_at, updated_at, created_at)::date
+		FROM articles WHERE status = 'PUBLISHED' AND kind = 'news' AND slug <> ''
+		ORDER BY id LIMIT 2000
+	`); err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var slug string
+			var lastmod time.Time
+			if rows.Scan(&slug, &lastmod) == nil && slug != "" {
+				writeURL(strings.TrimRight(h.publicBaseURL(), "/")+"/news/"+slug, lastmod.Format("2006-01-02"))
+			}
+		}
+	}
+
+	if h.Forums != nil {
+		if slugs, err := h.Forums.ListPublicSlugs(ctx); err == nil {
+			for _, slug := range slugs {
+				if slug != "" {
+					writeURL(base+"/forums/"+slug, today)
+				}
 			}
 		}
 	}

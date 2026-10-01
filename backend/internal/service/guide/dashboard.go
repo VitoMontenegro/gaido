@@ -29,9 +29,7 @@ func BuildDashboard(in DashboardInput) map[string]any {
 	if g.Phone != "" {
 		profileComplete += 25
 	}
-	if g.GuideType == domain.GuideTypeCompanion || in.HasLicense {
-		profileComplete += 25
-	}
+	profileComplete += 25
 
 	return map[string]any{
 		"display_name": g.DisplayName, "avatar_url": g.AvatarURL, "website_slug": g.WebsiteSlug,

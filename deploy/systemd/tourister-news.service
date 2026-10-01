@@ -1,0 +1,18 @@
+[Unit]
+Description=Gaido news ingest (RSS + gpt-4o-mini)
+After=network.target postgresql.service tourister-api.service
+Wants=postgresql.service
+
+[Service]
+User=deploy
+Group=deploy
+WorkingDirectory=/var/www/tourister/repo/backend
+EnvironmentFile=/var/www/tourister/.env
+ExecStart=/var/www/tourister/bin/tourister-news
+Restart=always
+RestartSec=10
+StandardOutput=append:/var/www/tourister/logs/news.log
+StandardError=append:/var/www/tourister/logs/news.log
+
+[Install]
+WantedBy=multi-user.target

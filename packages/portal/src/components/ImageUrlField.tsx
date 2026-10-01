@@ -4,6 +4,7 @@ import {
   createCropImageSource,
   formatBytes,
   isLikelyImageFile,
+  processImageFile,
   type CropImageSource,
   type ProcessedImage,
   type RasterFormat,
@@ -15,8 +16,12 @@ export type ImageUrlFieldProps = {
   value: string
   onChange: (value: string) => void
   hint?: string
-  /** Увімкнути обрізку перед завантаженням */
+  /** Увімкнути обрізку перед завантаженням. false — файл цілком. */
+  crop?: boolean
+  /** Пропорція обрізки, якщо crop не вимкнено */
   cropAspect?: number
+  /** Викликається після завантаження або видалення, не під час набору URL */
+  onPersist?: (value: string) => void
   /** Цільовий розмір файлу після стиснення */
   maxBytes?: number
   /** Примусовий формат для гідів / аватарів */
@@ -28,7 +33,9 @@ export function ImageUrlField({
   value,
   onChange,
   hint,
+  crop = true,
   cropAspect = 1,
+  onPersist,
   maxBytes = 150 * 1024,
   outputFormat = 'webp',
 }: ImageUrlFieldProps) {
@@ -53,6 +60,7 @@ export function ImageUrlField({
     try {
       const { public_key } = await adminApi.uploadMedia(file)
       onChange(public_key)
+      onPersist?.(public_key)
       setLastSize(file.blob.size)
     } catch (e) {
       setError(formatApiError(e))
@@ -67,6 +75,18 @@ export function ImageUrlField({
       return
     }
     setError('')
+    if (!crop) {
+      setUploading(true)
+      try {
+        const processed = await processImageFile(file, { maxBytes, outputFormat, filename: 'photo' })
+        await upload(processed)
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Помилка читання файлу')
+      } finally {
+        setUploading(false)
+      }
+      return
+    }
     setPreparing(true)
     try {
       revokeCrop()
@@ -82,7 +102,9 @@ export function ImageUrlField({
 
   const defaultHint =
     hint ??
-    `Обрізка ${cropAspect === 1 ? '1:1' : ''}, ${outputFormat === 'jpeg' ? 'JPEG' : 'WebP/JPEG'}, ціль ~${formatBytes(maxBytes)}`
+    (crop
+      ? `Обрізка ${cropAspect === 1 ? '1:1' : ''}, ${outputFormat === 'jpeg' ? 'JPEG' : 'WebP/JPEG'}, ціль ~${formatBytes(maxBytes)}`
+      : `Файл цілком, без обрізки, ціль ~${formatBytes(maxBytes)}`)
 
   return (
     <>
@@ -104,10 +126,10 @@ export function ImageUrlField({
             disabled={uploading || preparing}
             onClick={() => inputRef.current?.click()}
           >
-            {uploading ? 'Завантаження…' : preparing ? 'Підготовка…' : 'Завантажити та обрізати'}
+            {uploading ? 'Завантаження…' : preparing ? 'Підготовка…' : crop ? 'Завантажити та обрізати' : 'Завантажити'}
           </button>
           {value && (
-            <button type="button" className="text-sm text-muted hover:text-ink" onClick={() => { onChange(''); setLastSize(null) }}>
+            <button type="button" className="text-sm text-muted hover:text-ink" onClick={() => { onChange(''); onPersist?.(''); setLastSize(null) }}>
               Видалити
             </button>
           )}

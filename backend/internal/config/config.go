@@ -41,6 +41,13 @@ type Config struct {
 	TelegramWebhookSecret string
 	GeocodeUserAgent      string
 	CookieDomain          string
+	NewsEnabled           bool
+	NewsInterval          time.Duration
+	NewsMaxPerCycle       int
+	NewsMaxPerDay         int
+	NewsFeedURLs          []string
+	OpenAIAPIKey          string
+	OpenAIModel           string
 }
 
 func Load() Config {
@@ -78,11 +85,18 @@ func Load() Config {
 		TelegramWebhookSecret: getEnv("TELEGRAM_WEBHOOK_SECRET", ""),
 		GeocodeUserAgent:      getEnv("GEOCODE_USER_AGENT", "Gaido (+https://gaido-ua.com)"),
 		CookieDomain:          getEnv("COOKIE_DOMAIN", ""),
+		NewsEnabled:           getEnv("NEWS_ENABLED", "false") == "true",
+		NewsInterval:          parseDuration(getEnv("NEWS_INTERVAL", "30m"), 30*time.Minute),
+		NewsMaxPerCycle:       getEnvInt("NEWS_MAX_PER_CYCLE", 3),
+		NewsMaxPerDay:         getEnvInt("NEWS_MAX_PER_DAY", 3),
+		NewsFeedURLs:          splitCSVTrim(getEnv("NEWS_FEED_URLS", "")),
+		OpenAIAPIKey:          getEnv("OPENAI_API_KEY", ""),
+		OpenAIModel:           getEnv("OPENAI_MODEL", "gpt-4o-mini"),
 	}
 }
 
 func getEnv(key, fallback string) string {
-	if v := os.Getenv(key); v != "" {
+	if v := strings.TrimSpace(os.Getenv(key)); v != "" {
 		return v
 	}
 	return fallback
@@ -103,6 +117,20 @@ func parseDuration(s string, fallback time.Duration) time.Duration {
 		return fallback
 	}
 	return d
+}
+
+func splitCSVTrim(s string) []string {
+	if strings.TrimSpace(s) == "" {
+		return nil
+	}
+	var out []string
+	for _, p := range strings.Split(s, ",") {
+		p = strings.TrimSpace(p)
+		if p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
 }
 
 func splitCSV(s string) []string {
@@ -137,8 +165,8 @@ func parseHostMap(raw string) map[string]string {
 		"svit.gaido-ua.com":   "svit",
 		"servis.gaido-ua.com": "servis",
 		"vezu.gaido-ua.com":   "vezu",
-		"localhost":        "portal",
-		"127.0.0.1":        "portal",
+		"localhost":           "portal",
+		"127.0.0.1":           "portal",
 	}
 	if raw == "" {
 		return defaults

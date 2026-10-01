@@ -14,6 +14,7 @@ type User struct {
 	PasswordHash string
 	Roles        []string
 	Status       string
+	AvatarURL    string
 	CreatedAt    time.Time
 	DeletedAt    *time.Time
 }
@@ -29,7 +30,7 @@ type GuideProfile struct {
 	AvatarURL              string     `json:"avatar_url,omitempty"`
 	WebsiteSlug            string     `json:"website_slug,omitempty"`
 	RatingAvg              float64    `json:"rating_avg"`
-	RatingCount            int         `json:"rating_count"`
+	RatingCount            int        `json:"rating_count"`
 	PreferredContactMethod string     `json:"preferred_contact_method,omitempty"`
 	Phone                  string     `json:"phone"`
 	Email                  string     `json:"email"`
@@ -147,10 +148,10 @@ type FeaturedExcursionPlacement struct {
 }
 
 type BillingStatusDTO struct {
-	PaymentsEnabled    bool                          `json:"payments_enabled"`
-	Subscription       *GuideSubscription            `json:"subscription,omitempty"`
-	FeaturedGuide      *FeaturedPlacement            `json:"featured_guide,omitempty"`
-	FeaturedExcursions []FeaturedExcursionPlacement  `json:"featured_excursions"`
+	PaymentsEnabled    bool                         `json:"payments_enabled"`
+	Subscription       *GuideSubscription           `json:"subscription,omitempty"`
+	FeaturedGuide      *FeaturedPlacement           `json:"featured_guide,omitempty"`
+	FeaturedExcursions []FeaturedExcursionPlacement `json:"featured_excursions"`
 }
 
 type ExcursionVideoContent struct {
@@ -165,37 +166,37 @@ type ExcursionComfortItem struct {
 }
 
 type ExcursionStructuredContent struct {
-	Gallery            []string                `json:"gallery,omitempty"`
-	GalleryMobileCover string                  `json:"gallery_mobile_cover,omitempty"`
-	RouteStops         []string                `json:"route_stops,omitempty"`
-	RouteDisclaimer    string                  `json:"route_disclaimer,omitempty"`
-	PhotoLocations     []string                `json:"photo_locations,omitempty"`
-	Video              *ExcursionVideoContent  `json:"video,omitempty"`
-	ComfortItems       []ExcursionComfortItem  `json:"comfort_items,omitempty"`
+	Gallery            []string               `json:"gallery,omitempty"`
+	GalleryMobileCover string                 `json:"gallery_mobile_cover,omitempty"`
+	RouteStops         []string               `json:"route_stops,omitempty"`
+	RouteDisclaimer    string                 `json:"route_disclaimer,omitempty"`
+	PhotoLocations     []string               `json:"photo_locations,omitempty"`
+	Video              *ExcursionVideoContent `json:"video,omitempty"`
+	ComfortItems       []ExcursionComfortItem `json:"comfort_items,omitempty"`
 }
 
 type Excursion struct {
-	ID                    int64   `json:"id"`
-	GuideID               int64   `json:"guide_id"`
-	CityID                int64   `json:"city_id"`
-	CategoryID            *int64  `json:"category_id,omitempty"`
-	Title                 string  `json:"title"`
-	Slug                  string  `json:"slug"`
-	Description           string  `json:"description"`
-	Type                  string  `json:"type"`
-	MaxGuests             int     `json:"max_guests"`
-	PriceFrom             float64 `json:"price_from"`
-	Currency              string  `json:"currency"`
-	Status                string  `json:"status"`
-	DurationMinutes       int     `json:"duration_minutes"`
-	TransportMode         string  `json:"transport_mode"`
-	ChildrenAllowed       bool    `json:"children_allowed"`
-	Language              string  `json:"language"`
-	OrganizationalDetails string   `json:"organizational_details"`
-	MeetingPoint          string   `json:"meeting_point"`
-	CoverImageURL         string   `json:"cover_image_url"`
-	BodyHTML              string   `json:"body_html"`
-	MapEmbedURL           string   `json:"map_embed_url"`
+	ID                    int64                      `json:"id"`
+	GuideID               int64                      `json:"guide_id"`
+	CityID                int64                      `json:"city_id"`
+	CategoryID            *int64                     `json:"category_id,omitempty"`
+	Title                 string                     `json:"title"`
+	Slug                  string                     `json:"slug"`
+	Description           string                     `json:"description"`
+	Type                  string                     `json:"type"`
+	MaxGuests             int                        `json:"max_guests"`
+	PriceFrom             float64                    `json:"price_from"`
+	Currency              string                     `json:"currency"`
+	Status                string                     `json:"status"`
+	DurationMinutes       int                        `json:"duration_minutes"`
+	TransportMode         string                     `json:"transport_mode"`
+	ChildrenAllowed       bool                       `json:"children_allowed"`
+	Language              string                     `json:"language"`
+	OrganizationalDetails string                     `json:"organizational_details"`
+	MeetingPoint          string                     `json:"meeting_point"`
+	CoverImageURL         string                     `json:"cover_image_url"`
+	BodyHTML              string                     `json:"body_html"`
+	MapEmbedURL           string                     `json:"map_embed_url"`
 	IncludedItems         []string                   `json:"included_items"`
 	ExcludedItems         []string                   `json:"excluded_items"`
 	StructuredContent     ExcursionStructuredContent `json:"structured_content"`

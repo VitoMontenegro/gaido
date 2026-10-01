@@ -49,14 +49,11 @@ func BuildPublicGuideDTO(g *domain.GuideProfile, sub *domain.GuideSubscription, 
 	return dto
 }
 
-func CatalogStatus(guideType string, hasLicense bool) string {
+func CatalogStatus(_ string, hasLicense bool) string {
 	if hasLicense {
 		return "confirmed"
 	}
-	if guideType == domain.GuideTypeCompanion {
-		return "companion"
-	}
-	return "pending"
+	return "companion"
 }
 
 func GuideTypeForDocument(docType string) string {
@@ -90,10 +87,7 @@ func typeBadge(guideType string, hasLicense bool) string {
 		}
 		return "Гід"
 	}
-	if guideType == domain.GuideTypeCompanion {
-		return "Компаньйон"
-	}
-	return ""
+	return "компаньйон(турлідер)"
 }
 
 func contactsVisible(g *domain.GuideProfile, sub *domain.GuideSubscription, requireSubscription bool) bool {

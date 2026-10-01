@@ -108,6 +108,8 @@ export type SitePayload = {
   }
   portal_hub: PortalHubContent
   footer: FooterContent
+  footer_transport: FooterContent
+  footer_services: FooterContent
   legal: LegalContent
   about: AboutPageContent
   telegram_bot_url?: string
@@ -118,6 +120,8 @@ export type SiteContentPayload = {
   home: HomeContent
   portal_hub: PortalHubContent
   footer: FooterContent
+  footer_transport: FooterContent
+  footer_services: FooterContent
   legal: LegalContent
   about: AboutPageContent
 }

@@ -66,9 +66,9 @@ export function formatDate(iso?: string) {
 }
 
 export function catalogStatusText(status: string) {
-  if (status === 'companion') return 'Компаньйон'
+  if (status === 'companion') return 'компаньйон(турлідер)'
   if (status === 'confirmed') return 'Підтверджено'
-  if (status === 'pending') return 'Без бейджа'
+  if (status === 'pending') return 'компаньйон(турлідер)'
   return status
 }
 
@@ -91,24 +91,23 @@ export function formatSize(bytes: number) {
 }
 
 export function catalogStatusLabel(profile: Partial<GuideProfile>) {
-  if (profile.catalog_status === 'companion') return 'Компаньйон'
-  if (profile.type_badge) return profile.type_badge
-  if (profile.catalog_status === 'pending') return 'Без бейджа'
-  return 'Не визначено'
+  if (profile.catalog_status === 'companion' || profile.catalog_status === 'pending' || !profile.type_badge) {
+    return 'компаньйон(турлідер)'
+  }
+  return profile.type_badge
 }
 
 export function CatalogStatusBanner({ profile }: { profile: Partial<GuideProfile> }) {
   const label = catalogStatusLabel(profile)
-  const tone =
-    profile.catalog_status === 'confirmed' || profile.catalog_status === 'companion'
-      ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-      : 'border-amber-200 bg-amber-50 text-amber-900'
+  const tone = 'border-emerald-200 bg-emerald-50 text-emerald-800'
 
   return (
     <div className={`rounded-xl border px-4 py-3 text-sm ${tone}`}>
       <p className="font-medium">Статус у каталозі: {label}</p>
-      {profile.catalog_status === 'pending' && (
-        <p className="mt-1 opacity-90">Завантажте ліцензію гіда або конферансьє — бейдж з&apos;явиться після завантаження.</p>
+      {profile.catalog_status !== 'confirmed' && (
+        <p className="mt-1 opacity-90">
+          Документів немає — за замовчуванням «компаньйон(турлідер)». Завантажте ліцензію, щоб стати гідом або конферансьє.
+        </p>
       )}
     </div>
   )

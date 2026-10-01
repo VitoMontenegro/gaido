@@ -18,7 +18,10 @@ const GUIDES_NAV = [
   { to: '/map', label: 'Країни' },
   { to: '/guides', label: 'Гіди' },
   { to: '/journal', label: 'Журнал' },
+  { to: '/forums', label: 'Форум' },
 ] as const
+
+const GUIDES_FORUM_NAV = { to: '/forums/gidam', label: 'Форум гідів' } as const
 
 function MenuIcon({ open }: { open: boolean }) {
   return (
@@ -40,6 +43,10 @@ function navActive(pathname: string, to: string): boolean {
   if (to === '/') {
     return pathname === '/' || pathname === '/guides' || pathname.startsWith('/guides/') || pathname.startsWith('/guide/')
   }
+  if (to === '/forums') {
+    if (pathname === GUIDES_FORUM_NAV.to || pathname.startsWith(`${GUIDES_FORUM_NAV.to}/`)) return false
+    return pathname === '/forums' || pathname.startsWith('/forums/')
+  }
   return pathname === to || pathname.startsWith(`${to}/`)
 }
 
@@ -52,6 +59,8 @@ export default function GuidesHeader() {
   const { count } = useFavorites()
   const authPending = isLoading && !!getAccessToken()
   const isGuide = useHasRole('ROLE_GUIDE')
+  const isAdmin = useHasRole('ROLE_ADMIN')
+  const navItems = isGuide || isAdmin ? [...GUIDES_NAV, GUIDES_FORUM_NAV] : GUIDES_NAV
   const accountHref = isGuide ? '/account/guide' : '/account'
   const { data: guideDashboard } = useQuery({
     queryKey: ['guide-dashboard'],
@@ -60,7 +69,7 @@ export default function GuidesHeader() {
     staleTime: 5 * 60 * 1000,
   })
   const profileName = me ? (isGuide && guideDashboard?.display_name) || userDisplayName(me) : ''
-  const profileAvatar = isGuide ? guideDashboard?.avatar_url : undefined
+  const profileAvatar = (isGuide ? guideDashboard?.avatar_url : undefined) || me?.avatar_url
   const homeOverlay = location.pathname === '/'
   const solidHeader = !homeOverlay || scrolled
 
@@ -98,7 +107,7 @@ export default function GuidesHeader() {
           <div className="flex h-14 items-center gap-3 md:h-18 md:gap-6">
             <BrandLogo compactOnMobile homeTo="/" variant={solidHeader ? 'default' : 'inverse'} />
             <nav className="ml-auto hidden items-center gap-1 md:flex" aria-label="Головна навігація">
-              {GUIDES_NAV.map((item) => (
+              {navItems.map((item) => (
                 <Link
                   key={item.to}
                   to={item.to}
@@ -205,7 +214,7 @@ export default function GuidesHeader() {
           <button type="button" className="absolute inset-0 bg-ink/25 backdrop-blur-[2px]" aria-label="Закрити меню" onClick={() => setMenuOpen(false)} />
           <nav id="mobile-nav" className={cn('absolute inset-x-0 overflow-y-auto border-b border-divider bg-page px-5 py-4 shadow-[0_16px_40px_rgba(0,0,0,0.08)]', solidHeader ? 'top-14 max-h-[calc(100dvh-3.5rem)]' : 'top-[5.5rem] max-h-[calc(100dvh-5.5rem)]')} aria-label="Мобільна навігація">
             <ul className="space-y-1">
-              {GUIDES_NAV.map((item) => (
+              {navItems.map((item) => (
                 <li key={item.to}>
                   <Link
                     to={item.to}

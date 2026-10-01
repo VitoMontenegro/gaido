@@ -13,7 +13,7 @@ type UserRepo struct{ db *DB }
 
 func NewUserRepo(db *DB) *UserRepo { return &UserRepo{db: db} }
 
-const userSelectCols = `id, email, login, first_name, last_name, password_hash, roles, status, created_at, deleted_at`
+const userSelectCols = `id, email, login, first_name, last_name, password_hash, roles, status, created_at, deleted_at, avatar_url`
 
 func (r *UserRepo) Create(ctx context.Context, email, login, firstName, lastName, hash string, roles []string) (int64, error) {
 	var id int64
@@ -65,7 +65,7 @@ func scanUser(row pgx.Row) (*domain.User, error) {
 	var u domain.User
 	err := row.Scan(
 		&u.ID, &u.Email, &u.Login, &u.FirstName, &u.LastName, &u.PasswordHash,
-		&u.Roles, &u.Status, &u.CreatedAt, &u.DeletedAt,
+		&u.Roles, &u.Status, &u.CreatedAt, &u.DeletedAt, &u.AvatarURL,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
@@ -78,6 +78,14 @@ func (r *UserRepo) UpdatePassword(ctx context.Context, id int64, hash string) er
 		UPDATE users SET password_hash=$2, updated_at=NOW()
 		WHERE id=$1 AND deleted_at IS NULL
 	`, id, hash)
+	return err
+}
+
+func (r *UserRepo) UpdateAvatar(ctx context.Context, id int64, avatarURL string) error {
+	_, err := r.db.Pool.Exec(ctx, `
+		UPDATE users SET avatar_url=$2, updated_at=NOW()
+		WHERE id=$1 AND deleted_at IS NULL
+	`, id, avatarURL)
 	return err
 }
 
@@ -112,7 +120,7 @@ func (r *UserRepo) List(ctx context.Context, limit, offset int) ([]domain.User, 
 		var u domain.User
 		if err := rows.Scan(
 			&u.ID, &u.Email, &u.Login, &u.FirstName, &u.LastName, &u.PasswordHash,
-			&u.Roles, &u.Status, &u.CreatedAt, &u.DeletedAt,
+			&u.Roles, &u.Status, &u.CreatedAt, &u.DeletedAt, &u.AvatarURL,
 		); err != nil {
 			return nil, err
 		}

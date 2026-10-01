@@ -235,15 +235,21 @@ func (h *Handlers) Me(w http.ResponseWriter, r *http.Request) {
 		response.Error(w, r, apperrors.ErrNotFound)
 		return
 	}
-	response.JSON(w, r, 200, map[string]any{
+	response.JSON(w, r, 200, accountUserJSON(u))
+}
+
+func accountUserJSON(u *domain.User) map[string]any {
+	return map[string]any{
 		"id":         u.ID,
 		"email":      u.Email,
 		"login":      u.Login,
 		"first_name": u.FirstName,
 		"last_name":  u.LastName,
+		"avatar_url": u.AvatarURL,
 		"roles":      u.Roles,
-	})
+	}
 }
+
 func (h *Handlers) UpdateAccountProfile(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		FirstName string `json:"first_name"`
@@ -263,14 +269,32 @@ func (h *Handlers) UpdateAccountProfile(w http.ResponseWriter, r *http.Request) 
 		response.Error(w, r, apperrors.ErrNotFound)
 		return
 	}
-	response.JSON(w, r, 200, map[string]any{
-		"id":         u.ID,
-		"email":      u.Email,
-		"login":      u.Login,
-		"first_name": u.FirstName,
-		"last_name":  u.LastName,
-		"roles":      u.Roles,
-	})
+	response.JSON(w, r, 200, accountUserJSON(u))
+}
+func (h *Handlers) UpdateAccountAvatar(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		AvatarURL string `json:"avatar_url"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Error(w, r, apperrors.ErrValidation)
+		return
+	}
+	avatar := strings.TrimSpace(req.AvatarURL)
+	if len(avatar) > 500 {
+		response.Error(w, r, apperrors.ErrValidation)
+		return
+	}
+	uid := middleware.UserIDFromContext(r.Context())
+	if err := h.Users.UpdateAvatar(r.Context(), uid, avatar); err != nil {
+		response.Error(w, r, apperrors.ErrInternal)
+		return
+	}
+	u, err := h.Users.GetByID(r.Context(), uid)
+	if err != nil || u == nil {
+		response.Error(w, r, apperrors.ErrNotFound)
+		return
+	}
+	response.JSON(w, r, 200, accountUserJSON(u))
 }
 func (h *Handlers) ChangeAccountPassword(w http.ResponseWriter, r *http.Request) {
 	var req struct {

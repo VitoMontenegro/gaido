@@ -49,19 +49,6 @@ func (s *Service) HasUploadedLicense(ctx context.Context, g *domain.GuideProfile
 	return ok
 }
 
-func (s *Service) LicensePresent(ctx context.Context, g *domain.GuideProfile) bool {
-	switch g.GuideType {
-	case domain.GuideTypeGuide:
-		ok, _ := s.Guides.HasDocument(ctx, g.ID, domain.DocTypeGuideLicense)
-		return ok
-	case domain.GuideTypeEntertainer:
-		ok, _ := s.Guides.HasDocument(ctx, g.ID, domain.DocTypeEntertainerLicense)
-		return ok
-	default:
-		return true
-	}
-}
-
 func (s *Service) AccountProfile(ctx context.Context, g *domain.GuideProfile) domain.GuideAccountProfile {
 	return BuildGuideAccountProfile(g, s.HasUploadedLicense(ctx, g))
 }
