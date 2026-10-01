@@ -113,7 +113,7 @@ export default function GuidesHomePage() {
   })
   const { data: articlesData } = useQuery({
     queryKey: ['articles', 'journal', 'home'],
-    queryFn: () => articlesApi.list(3, 'journal'),
+    queryFn: () => articlesApi.list(4, 'journal'),
   })
   const { data: homeReviews } = useQuery({
     queryKey: ['reviews', 'home'],
@@ -316,7 +316,7 @@ export default function GuidesHomePage() {
                             </Link>
                         }
                     />
-                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                         {journalArticles.map((article) => (
                             <JournalArticleCard key={article.id} article={article} heading="h3" />
                         ))}
