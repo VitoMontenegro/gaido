@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { catalogApi, articlesApi, resolveMediaUrl, type HomeCategoryTile, type PublicGuide } from '@gaido/api-client/api/client'
+import { reviewsApi } from '@gaido/api-client/api/reviews'
 import JournalArticleCard from '../components/JournalArticleCard'
 import ExcursionCard, { excursionCardPropsFromPartial } from '../components/ExcursionCard'
 import GuideCard from '../components/GuideCard'
@@ -10,7 +11,8 @@ import HomeHero from '../components/HomeHero'
 import CountryNameLink from '../components/CountryNameLink'
 import ApiErrorBanner from '../components/ApiErrorBanner'
 import { Seo } from '../lib/seo'
-import { buildExcursionListingJsonLd } from '../lib/excursionListingSchema'
+import HomeReviews from '../components/HomeReviews'
+import { applyHomeReviewJsonLd, buildExcursionListingJsonLd } from '../lib/excursionListingSchema'
 import { buildFaqPageJsonLd, buildWebSiteJsonLd, homeSeoDescription, homeSeoTitle } from '../lib/seoTemplates'
 import { normalizeCategoryTiles } from '../lib/categoryTiles'
 import type { ExcursionItem } from '../components/excursionUi'
@@ -118,6 +120,11 @@ export default function GuidesHomePage() {
     queryKey: ['articles', 'journal', 'home'],
     queryFn: () => articlesApi.list(3, 'journal'),
   })
+  const { data: homeReviews } = useQuery({
+    queryKey: ['reviews', 'home'],
+    queryFn: () => reviewsApi.list({ limit: 6, offset: 0 }),
+    staleTime: 60_000,
+  })
   const recentRaw = useRecentViews()
   const recentKey = recentRaw.map((r) => `${r.type}:${r.slug}`).join('|')
   const { data: recentValid, isPending: recentValidating } = useQuery({
@@ -148,14 +155,19 @@ export default function GuidesHomePage() {
     ? site.home.latest_excursions
     : site.home.featured_excursions) ?? []) as ExcursionItem[]
   const homeFaq = content.faq.map((item) => ({ question: item.question, answer: item.answer }))
-  const homeJsonLd = [
-    buildWebSiteJsonLd(),
-    ...buildExcursionListingJsonLd(featuredExcursions, {
-      name: 'Нові маршрути Gaido',
-      description: content.hero_subtitle,
-    }),
-    ...(homeFaq.length > 0 ? [buildFaqPageJsonLd(homeFaq)] : []),
-  ].filter(Boolean) as Record<string, unknown>[]
+  const homeJsonLd = applyHomeReviewJsonLd(
+    [
+      buildWebSiteJsonLd(),
+      ...buildExcursionListingJsonLd(featuredExcursions, {
+        name: 'Нові маршрути Gaido',
+        description: content.hero_subtitle,
+      }),
+      ...(homeFaq.length > 0 ? [buildFaqPageJsonLd(homeFaq)] : []),
+    ].filter(Boolean) as Record<string, unknown>[],
+    homeReviews?.items ?? [],
+    homeReviews?.rating_avg ?? 0,
+    homeReviews?.rating_count ?? 0,
+  )
   const destinations = site.home.popular_destinations ?? []
   const categoryTiles = normalizeCategoryTiles(content.category_tiles)
   const journalArticles = articlesData?.items ?? []
@@ -216,6 +228,14 @@ export default function GuidesHomePage() {
             ))}
           </div>
         </section>
+      )}
+
+      {(homeReviews?.items.length ?? 0) > 0 && (
+        <HomeReviews
+          reviews={homeReviews?.items ?? []}
+          ratingAvg={homeReviews?.rating_avg ?? 0}
+          ratingCount={homeReviews?.rating_count ?? 0}
+        />
       )}
 
       {showAbout && (

@@ -23,6 +23,7 @@ export type Review = {
   author_name?: string
   excursion_id: number
   excursion_title?: string
+  excursion_slug?: string
   created_at?: string
   photos?: string[]
   dispute?: ReviewDispute
@@ -39,6 +40,8 @@ export type ReviewListResponse = {
   total: number
   limit: number
   offset: number
+  rating_avg?: number
+  rating_count?: number
 }
 
 export type ReviewPhotoListResponse = {

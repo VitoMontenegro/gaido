@@ -18,7 +18,8 @@ const reviewListSelect = `
 	SELECT r.id, r.guide_id, r.author_id, r.rating, r.text, r.status, r.excursion_id,
 		r.created_at,
 		COALESCE(NULLIF(TRIM(CONCAT(u.first_name, ' ', u.last_name)), ''), u.login) AS author_name,
-		COALESCE(e.title, '') AS excursion_title
+		COALESCE(e.title, '') AS excursion_title,
+		COALESCE(e.slug, '') AS excursion_slug
 	FROM guide_reviews r
 	JOIN users u ON u.id = r.author_id
 	LEFT JOIN excursions e ON e.id = r.excursion_id`
@@ -86,6 +87,37 @@ func (r *ReviewRepo) CountByExcursion(ctx context.Context, excursionID int64) (i
 	return total, err
 }
 
+func (r *ReviewRepo) ListRecentPublished(ctx context.Context, limit, offset int) ([]domain.Review, error) {
+	if limit <= 0 || limit > 50 {
+		limit = 6
+	}
+	if offset < 0 {
+		offset = 0
+	}
+	return r.listReviews(ctx, reviewListSelect+`
+		WHERE r.status=$1 AND TRIM(r.text) <> ''
+		ORDER BY r.created_at DESC, r.id DESC
+		LIMIT $2 OFFSET $3
+	`, domain.ReviewPublished, limit, offset)
+}
+
+func (r *ReviewRepo) CountPublishedWithText(ctx context.Context) (int, error) {
+	var total int
+	err := r.db.Pool.QueryRow(ctx, `
+		SELECT COUNT(*) FROM guide_reviews WHERE status=$1 AND TRIM(text) <> ''
+	`, domain.ReviewPublished).Scan(&total)
+	return total, err
+}
+
+func (r *ReviewRepo) PublishedRatingStats(ctx context.Context) (avg float64, count int, err error) {
+	err = r.db.Pool.QueryRow(ctx, `
+		SELECT COALESCE(AVG(rating)::float8, 0), COUNT(*)::int
+		FROM guide_reviews
+		WHERE status=$1
+	`, domain.ReviewPublished).Scan(&avg, &count)
+	return avg, count, err
+}
+
 func (r *ReviewRepo) ListByGuide(ctx context.Context, guideID int64, limit, offset int) ([]domain.Review, error) {
 	return r.listReviews(ctx, reviewListSelect+`
 		WHERE r.guide_id=$1 AND r.status=$2
@@ -112,7 +144,7 @@ func (r *ReviewRepo) listReviews(ctx context.Context, sql string, args ...any) (
 	for rows.Next() {
 		var rv domain.Review
 		var createdAt time.Time
-		if err := rows.Scan(&rv.ID, &rv.GuideID, &rv.AuthorID, &rv.Rating, &rv.Text, &rv.Status, &rv.ExcursionID, &createdAt, &rv.AuthorName, &rv.ExcursionTitle); err != nil {
+		if err := rows.Scan(&rv.ID, &rv.GuideID, &rv.AuthorID, &rv.Rating, &rv.Text, &rv.Status, &rv.ExcursionID, &createdAt, &rv.AuthorName, &rv.ExcursionTitle, &rv.ExcursionSlug); err != nil {
 			return nil, err
 		}
 		rv.CreatedAt = createdAt.UTC().Format(time.RFC3339)

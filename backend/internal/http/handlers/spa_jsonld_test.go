@@ -188,3 +188,38 @@ func TestExcursionProductJSONSingleAggregateRating(t *testing.T) {
 		t.Fatal("missing reviewRating")
 	}
 }
+
+func TestWithCatalogReviewsAttachesAggregateRating(t *testing.T) {
+	blocks := []any{
+		map[string]any{
+			"@type": "Product",
+			"name":  "Нові маршрути Gaido",
+			"offers": map[string]any{
+				"@type":      "AggregateOffer",
+				"offerCount": 3,
+			},
+		},
+	}
+	out := withCatalogReviews(blocks, []domain.Review{{
+		AuthorName:     "Олена",
+		Rating:         5,
+		Text:           "Чудовий маршрут",
+		ExcursionTitle: "Барселона пішки",
+		CreatedAt:      "2026-08-01T12:00:00Z",
+	}}, 4.8, 12)
+	product := out[0].(map[string]any)
+	rating := product["aggregateRating"].(map[string]any)
+	if rating["ratingValue"] != 4.8 || rating["reviewCount"] != 12 {
+		t.Fatalf("aggregateRating = %#v", rating)
+	}
+	if _, ok := product["offers"]; !ok {
+		t.Fatal("AggregateOffer was dropped")
+	}
+	reviews := product["review"].([]map[string]any)
+	if reviews[0]["name"] != "Барселона пішки" {
+		t.Fatalf("review name = %#v", reviews[0]["name"])
+	}
+	if _, dup := reviews[0]["aggregateRating"]; dup {
+		t.Fatal("review must not carry aggregateRating")
+	}
+}

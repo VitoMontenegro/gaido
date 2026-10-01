@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
+	"math"
 	"net/http"
 	"strconv"
 	"strings"
@@ -184,8 +185,10 @@ func (h *Handlers) ListReviewsPublic(w http.ResponseWriter, r *http.Request) {
 			total, err = h.Reviews.CountByGuide(r.Context(), guideID)
 		}
 	default:
-		response.Error(w, r, apperrors.ErrValidation)
-		return
+		items, err = h.Reviews.ListRecentPublished(r.Context(), limit, offset)
+		if err == nil {
+			total, err = h.Reviews.CountPublishedWithText(r.Context())
+		}
 	}
 	if err != nil {
 		response.Error(w, r, apperrors.ErrInternal)
@@ -194,7 +197,14 @@ func (h *Handlers) ListReviewsPublic(w http.ResponseWriter, r *http.Request) {
 	if items == nil {
 		items = []domain.Review{}
 	}
-	response.JSON(w, r, 200, map[string]any{"items": items, "total": total, "limit": limit, "offset": offset})
+	payload := map[string]any{"items": items, "total": total, "limit": limit, "offset": offset}
+	if excursionID <= 0 && guideID <= 0 {
+		if avg, count, statsErr := h.Reviews.PublishedRatingStats(r.Context()); statsErr == nil && count > 0 {
+			payload["rating_avg"] = math.Round(avg*10) / 10
+			payload["rating_count"] = count
+		}
+	}
+	response.JSON(w, r, 200, payload)
 }
 
 func (h *Handlers) ListReviewPhotosPublic(w http.ResponseWriter, r *http.Request) {

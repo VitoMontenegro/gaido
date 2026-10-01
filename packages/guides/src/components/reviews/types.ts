@@ -23,6 +23,7 @@ export type Review = {
   author_name?: string
   excursion_id: number
   excursion_title?: string
+  excursion_slug?: string
   created_at?: string
   photos?: string[]
   dispute?: ReviewDispute

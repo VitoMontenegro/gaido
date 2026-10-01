@@ -226,6 +226,7 @@ type Review struct {
 	AuthorName     string          `json:"author_name,omitempty"`
 	ExcursionID    int64           `json:"excursion_id"`
 	ExcursionTitle string          `json:"excursion_title,omitempty"`
+	ExcursionSlug  string          `json:"excursion_slug,omitempty"`
 	Rating         int             `json:"rating"`
 	Text           string          `json:"text"`
 	Status         string          `json:"status"`
