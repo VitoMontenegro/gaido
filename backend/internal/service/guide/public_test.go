@@ -33,7 +33,7 @@ func TestContactsHiddenInactive(t *testing.T) {
 func TestTypeBadgeRequiresLicense(t *testing.T) {
 	g := &domain.GuideProfile{Status: domain.GuideStatusActive, GuideType: domain.GuideTypeGuide}
 	dto := guidesvc.BuildPublicGuideDTO(g, nil, false, true)
-	if dto.TypeBadge == nil || *dto.TypeBadge != "компаньйон(турлідер)" {
+	if dto.TypeBadge == nil || *dto.TypeBadge != "компаньйон (турлідер)" {
 		t.Fatal("without documents the badge is companion")
 	}
 	dto2 := guidesvc.BuildPublicGuideDTO(g, nil, true, true)

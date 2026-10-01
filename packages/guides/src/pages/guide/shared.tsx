@@ -66,9 +66,9 @@ export function formatDate(iso?: string) {
 }
 
 export function catalogStatusText(status: string) {
-  if (status === 'companion') return 'компаньйон(турлідер)'
+  if (status === 'companion') return 'компаньйон (турлідер)'
   if (status === 'confirmed') return 'Підтверджено'
-  if (status === 'pending') return 'компаньйон(турлідер)'
+  if (status === 'pending') return 'компаньйон (турлідер)'
   return status
 }
 
@@ -92,7 +92,7 @@ export function formatSize(bytes: number) {
 
 export function catalogStatusLabel(profile: Partial<GuideProfile>) {
   if (profile.catalog_status === 'companion' || profile.catalog_status === 'pending' || !profile.type_badge) {
-    return 'компаньйон(турлідер)'
+    return 'компаньйон (турлідер)'
   }
   return profile.type_badge
 }
@@ -106,7 +106,7 @@ export function CatalogStatusBanner({ profile }: { profile: Partial<GuideProfile
       <p className="font-medium">Статус у каталозі: {label}</p>
       {profile.catalog_status !== 'confirmed' && (
         <p className="mt-1 opacity-90">
-          Документів немає — за замовчуванням «компаньйон(турлідер)». Завантажте ліцензію, щоб стати гідом або конферансьє.
+          Документів немає — за замовчуванням «компаньйон (турлідер)». Завантажте ліцензію, щоб стати гідом або конферансьє.
         </p>
       )}
     </div>

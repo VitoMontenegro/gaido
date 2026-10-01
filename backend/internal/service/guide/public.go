@@ -87,7 +87,7 @@ func typeBadge(guideType string, hasLicense bool) string {
 		}
 		return "Гід"
 	}
-	return "компаньйон(турлідер)"
+	return "компаньйон (турлідер)"
 }
 
 func contactsVisible(g *domain.GuideProfile, sub *domain.GuideSubscription, requireSubscription bool) bool {
