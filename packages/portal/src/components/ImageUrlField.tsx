@@ -78,7 +78,7 @@ export function ImageUrlField({
     if (!crop) {
       setUploading(true)
       try {
-        const processed = await processImageFile(file, { maxBytes, outputFormat, filename: 'photo' })
+        const processed = await processImageFile(file, { maxBytes, format: outputFormat, filename: 'photo' })
         await upload(processed)
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Помилка читання файлу')

@@ -1,4 +1,4 @@
-import { guidesUrl, portalUrl, servicesUrl, transportUrl } from '@gaido/site-urls/site'
+import { guidesUrl, servicesUrl, transportUrl } from '@gaido/site-urls/site'
 
 export const PORTAL_SECTION_NAV = [
   { id: 'guides', href: () => guidesUrl('/'), label: 'Екскурсії' },

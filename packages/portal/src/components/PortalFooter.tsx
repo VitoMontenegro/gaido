@@ -1,5 +1,4 @@
 import BrandLogo from './BrandLogo'
-import { SITE_TAGLINE } from '@gaido/site-urls/brand'
 import { guidesUrl } from '@gaido/site-urls/site'
 import { PORTAL_SECTION_NAV } from '../lib/portalNav'
 

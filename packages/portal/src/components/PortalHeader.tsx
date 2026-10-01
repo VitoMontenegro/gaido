@@ -7,7 +7,7 @@ import BrandLogo from './BrandLogo'
 import { guidesUrl } from '@gaido/site-urls/site'
 import { PORTAL_SECTION_NAV } from '../lib/portalNav'
 
-const PORTAL_NAV = PORTAL_SECTION_NAV.filter((item) => item.id !== 'home')
+const PORTAL_NAV = PORTAL_SECTION_NAV
 
 function MenuIcon({ open }: { open: boolean }) {
   return (
