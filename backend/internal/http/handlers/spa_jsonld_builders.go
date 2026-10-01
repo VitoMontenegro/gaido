@@ -28,12 +28,16 @@ func buildWebSiteJSON(base string) map[string]any {
 }
 
 func buildOrganizationJSON(base string) map[string]any {
+	return buildGuidesOrganizationJSON(base, seoPortalHomeDescription)
+}
+
+func buildGuidesOrganizationJSON(base, description string) map[string]any {
 	return map[string]any{
 		"@context":    "https://schema.org",
 		"@type":       "Organization",
 		"name":        "Gaido UA",
 		"url":         strings.TrimRight(base, "/") + "/",
-		"description": seoPortalHomeDescription,
+		"description": description,
 	}
 }
 

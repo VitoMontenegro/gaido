@@ -21,6 +21,7 @@ import (
 func NewRouter(cfg config.Config, log *slog.Logger, h *handlers.Handlers) http.Handler {
 	r := chi.NewRouter()
 	r.Use(chimw.Recoverer)
+	r.Use(sectionTrailingSlashRedirectMiddleware)
 	r.Use(legacySectionRedirectMiddleware)
 	r.Use(middleware.RequestID)
 	r.Use(middleware.Logger(log))
@@ -296,6 +297,15 @@ func NewRouter(cfg config.Config, log *slog.Logger, h *handlers.Handlers) http.H
 
 const apexOrigin = "https://gaido-ua.com"
 
+func sectionTrailingSlashRedirectMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if sectionTrailingSlashRedirect(w, r) {
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 func legacySectionRedirectMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if collapsedSectionRedirect(w, r) {
@@ -306,6 +316,27 @@ func legacySectionRedirectMiddleware(next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+func sectionTrailingSlashRedirect(w http.ResponseWriter, r *http.Request) bool {
+	if r.Method != http.MethodGet && r.Method != http.MethodHead {
+		return false
+	}
+	if strings.HasPrefix(r.URL.Path, "/api/") {
+		return false
+	}
+	for _, prefix := range sectionPrefixes {
+		if r.URL.Path != prefix {
+			continue
+		}
+		target := apexOrigin + prefix + "/"
+		if r.URL.RawQuery != "" {
+			target += "?" + r.URL.RawQuery
+		}
+		http.Redirect(w, r, target, http.StatusMovedPermanently)
+		return true
+	}
+	return false
 }
 
 var sectionPrefixes = []string{"/svit", "/servis", "/vezu"}
@@ -461,6 +492,7 @@ func serveSpaIndexWithMeta(w http.ResponseWriter, r *http.Request, indexPath str
 				NoIndex:           resolved.NoIndex,
 				LargeImagePreview: resolved.LargeImagePreview,
 				JsonLd:            resolved.JsonLd,
+				CrawlLinks:        resolved.CrawlLinks,
 			}
 		}
 	}

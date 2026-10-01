@@ -30,6 +30,8 @@ type SpaPageMeta struct {
 	// LargeImagePreview asks Google to use a large thumbnail (country catalog covers).
 	LargeImagePreview bool
 	JsonLd            []string
+	// CrawlLinks — internal links for pre-JS HTML (city/country hubs on home).
+	CrawlLinks [][2]string
 }
 
 func pageTitleSuffix(name string) string {
@@ -200,12 +202,14 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 		if desc == "" || desc == legacyHomeSEODescription {
 			desc = seoHomeDescription
 		}
+		destinations := h.ResolvePopularDestinations(ctx, content.PopularCitySlugs)
 		return &SpaPageMeta{
 			Title:       pageTitleSuffix(title),
 			Description: desc,
 			Canonical:   base + "/",
 			OgImage:     h.resolveSEOImage(content.SEOImageURL, defaultImage),
 			JsonLd:      h.homePageJsonLd(ctx, base, content),
+			CrawlLinks:  homeCrawlLinks(base, destinations),
 		}
 	case path == "/search":
 		return &SpaPageMeta{
@@ -511,6 +515,35 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 	}
 
 	return nil
+}
+
+func homeCrawlLinks(base string, destinations []domain.DestinationGroup) [][2]string {
+	const limit = 12
+	links := make([][2]string, 0, limit)
+	for _, group := range destinations {
+		if group.CountrySlug != "" && group.CountryName != "" {
+			links = append(links, [2]string{
+				group.CountryName,
+				strings.TrimRight(base, "/") + "/guides/countries/" + group.CountrySlug,
+			})
+			if len(links) >= limit {
+				return links[:limit]
+			}
+		}
+		for _, city := range group.Cities {
+			if city.Slug == "" || city.Name == "" {
+				continue
+			}
+			links = append(links, [2]string{
+				city.Name,
+				strings.TrimRight(base, "/") + "/city/" + city.Slug,
+			})
+			if len(links) >= limit {
+				return links[:limit]
+			}
+		}
+	}
+	return links
 }
 
 func guidesPage(host, path, publicBase string) (ok bool, routePath, pageBase string) {

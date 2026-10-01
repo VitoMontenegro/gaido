@@ -130,16 +130,19 @@ func TestTruncateDescWordBoundary(t *testing.T) {
 	}
 }
 
-func TestHomePageJsonLdOmitsProduct(t *testing.T) {
+func TestHomePageJsonLdIncludesRichSchema(t *testing.T) {
 	h := &Handlers{}
 	joined := strings.Join(h.homePageJsonLd(context.Background(), "https://gaido-ua.com/svit", domain.HomeContent{
 		FAQ: []domain.HomeFAQ{{Question: "Як забронювати?", Answer: "Напишіть гіду."}},
 	}), "")
-	if strings.Contains(joined, `"@type":"Product"`) {
-		t.Fatal("homepage must not emit Product")
+	if !strings.Contains(joined, `"@type":"Organization"`) {
+		t.Fatal("missing Organization")
 	}
 	if !strings.Contains(joined, `"@type":"WebSite"`) {
 		t.Fatal("missing WebSite")
+	}
+	if !strings.Contains(joined, `"@type":"WebPage"`) {
+		t.Fatal("missing WebPage")
 	}
 	if !strings.Contains(joined, `"@type":"FAQPage"`) {
 		t.Fatal("missing FAQPage")

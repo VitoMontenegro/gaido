@@ -150,6 +150,21 @@ func TestLegacySectionRedirect_keepsExistingPrefix(t *testing.T) {
 	}
 }
 
+func TestSectionTrailingSlashRedirect(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/svit", nil)
+	req.Host = "gaido-ua.com"
+	rec := httptest.NewRecorder()
+	if !sectionTrailingSlashRedirect(rec, req) {
+		t.Fatal("expected redirect")
+	}
+	if rec.Code != http.StatusMovedPermanently {
+		t.Fatalf("status: got %d", rec.Code)
+	}
+	if got := rec.Header().Get("Location"); got != "https://gaido-ua.com/svit/" {
+		t.Fatalf("location: got %q", got)
+	}
+}
+
 func TestCollapsedSectionRedirect_doubledSvit(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/svit/svit/city/monaco?q=1", nil)
 	req.Host = "gaido-ua.com"

@@ -3,6 +3,13 @@ import type { ExcursionItem } from '../components/excursionUi'
 import { excursionPreviewText } from '../components/excursionUi'
 import { buildExcursionEventJsonLd, excursionSchemaImages } from './excursionEventSchema'
 import { absoluteUrl, resolveOgImage } from './seo'
+import {
+  buildFaqPageJsonLd,
+  buildOrganizationJsonLd,
+  buildWebSiteJsonLd,
+  DEFAULT_HOME_SEO_DESCRIPTION,
+  type FaqItem,
+} from './seoTemplates'
 
 type ListingItem = Pick<
   ExcursionItem,
@@ -134,6 +141,113 @@ export function buildExcursionListingJsonLd(
   if (itemList) schemas.push(itemList)
   if (product) schemas.push(product)
   return schemas
+}
+
+function itemListJsonLd(name: string, items: { name: string; url: string }[]) {
+  if (items.length === 0) return null
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name,
+    numberOfItems: items.length,
+    itemListElement: items.map((item, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      name: item.name,
+      url: item.url,
+    })),
+  }
+}
+
+export function attachCatalogReviews(
+  schemas: Record<string, unknown>[],
+  reviews: Review[],
+  ratingAvg: number,
+  ratingCount: number,
+) {
+  const rev = reviewJsonLd(reviews)
+  if (ratingCount <= 0 && rev.length === 0) return schemas
+
+  const rating = {
+    '@type': 'AggregateRating',
+    worstRating: 1,
+    bestRating: 5,
+    ratingValue: Number(ratingAvg.toFixed(1)),
+    reviewCount: ratingCount,
+  }
+
+  for (const schema of schemas) {
+    if (schema['@type'] !== 'Product') continue
+    if (ratingCount > 0 && ratingAvg > 0) schema.aggregateRating = rating
+    if (rev.length > 0) schema.review = rev
+    return schemas
+  }
+
+  if (ratingCount <= 0 || ratingAvg <= 0) return schemas
+  return [
+    ...schemas,
+    {
+      '@context': 'https://schema.org',
+      '@type': 'Product',
+      name: 'Екскурсії з україномовними гідами',
+      aggregateRating: rating,
+      ...(rev.length > 0 ? { review: rev } : {}),
+    },
+  ]
+}
+
+export function buildGuidesHomeJsonLd(input: {
+  excursions: ListingItem[]
+  guides: { display_name: string; slug: string }[]
+  countries: { name: string; slug: string }[]
+  faq: FaqItem[]
+  reviews?: Review[]
+  ratingAvg?: number
+  ratingCount?: number
+  pageName: string
+  pageDescription: string
+  pagePath?: string
+  pageImage?: string
+}) {
+  const listingDescription = input.pageDescription || DEFAULT_HOME_SEO_DESCRIPTION
+  const schemas: Record<string, unknown>[] = [
+    buildOrganizationJsonLd(listingDescription),
+    buildWebSiteJsonLd(),
+    ...buildExcursionListingJsonLd(input.excursions, {
+      name: 'Екскурсії українською на Gaido',
+      description: listingDescription,
+    }),
+  ]
+
+  const guides = itemListJsonLd(
+    'Україномовні гіди',
+    input.guides.map((g) => ({ name: g.display_name, url: absoluteUrl(`/guide/${g.slug}`) })),
+  )
+  if (guides) schemas.push(guides)
+
+  const countries = itemListJsonLd(
+    'Україномовні гіди за країнами',
+    input.countries.map((c) => ({ name: c.name, url: absoluteUrl(`/guides/countries/${c.slug}`) })),
+  )
+  if (countries) schemas.push(countries)
+
+  schemas.push(
+    buildWebPageJsonLd({
+      name: input.pageName,
+      path: input.pagePath ?? '/',
+      description: input.pageDescription,
+      image: input.pageImage,
+    }),
+  )
+
+  if (input.faq.length > 0) schemas.push(buildFaqPageJsonLd(input.faq))
+
+  return attachCatalogReviews(
+    schemas,
+    input.reviews ?? [],
+    input.ratingAvg ?? 0,
+    input.ratingCount ?? 0,
+  )
 }
 
 /** Product schema for a single excursion detail page. */

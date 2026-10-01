@@ -79,6 +79,9 @@ export function placeSeoDescription(custom: string | undefined, fallback: string
 export const DEFAULT_HOME_SEO_TITLE = 'Україномовні гіди та екскурсії за кордоном'
 export const DEFAULT_HOME_SEO_DESCRIPTION = 'Каталог приватних гідів і екскурсій українською за кордоном'
 
+export const GUIDES_HOME_SEO_TEXT =
+  'Україномовні гіди та екскурсії за кордоном — приватні прогулянки, оглядові й тематичні маршрути українською в Європі та світі. На Gaido UA зібрано каталог україномовних гідів та екскурсій українською: місцеві експерти, авторські екскурсії, індивідуальні тури та групові програми без посередників.\n\nЗнайдіть гіда за містом або країною, порівняйте екскурсії за темою, тривалістю та ціною. Шукаєте оглядову прогулянку, гастрономічний маршрут, історичну екскурсію чи тур вихідного дня — напишіть гіду напряму, узгодьте дату, склад групи та ціну.\n\nКаталог україномовних гідів підходить мандрівникам з України та діаспори: приватний гід, сімейна екскурсія, тур для компанії. Відкрийте розділ гідів, оберіть напрямок і забронюйте екскурсію українською.'
+
 export function homeSeoTitle(custom?: string) {
   return placeSeoTitle(custom, pageTitle(DEFAULT_HOME_SEO_TITLE))
 }
@@ -220,5 +223,15 @@ export function buildWebSiteJsonLd() {
       },
       'query-input': 'required name=search_term_string',
     },
+  }
+}
+
+export function buildOrganizationJsonLd(description: string) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: 'Gaido UA',
+    url: '/',
+    description,
   }
 }

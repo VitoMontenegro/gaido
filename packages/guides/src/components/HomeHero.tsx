@@ -43,7 +43,7 @@ export default function HomeHero({ heading, eyebrow, subtitle }: Props) {
           <img
             key={slide.src}
             src={slide.src}
-            alt=""
+            alt={slide.alt}
             className={`home-hero__slide absolute inset-0 h-full w-full object-cover transition-opacity duration-1400 ease-out ${
               i === active ? 'opacity-100' : 'opacity-0'
             }`}

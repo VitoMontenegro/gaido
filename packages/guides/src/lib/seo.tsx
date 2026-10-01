@@ -80,6 +80,7 @@ export function Seo({ title, description, path, image, noIndex, largeImagePrevie
       {url && <link rel="alternate" hrefLang="uk" href={url} />}
       {url && <link rel="alternate" hrefLang="x-default" href={url} />}
       <meta property="og:site_name" content={SITE_NAME} />
+      <meta property="og:locale" content="uk_UA" />
       <meta property="og:title" content={title} />
       {desc && <meta property="og:description" content={desc} />}
       {url && <meta property="og:url" content={url} />}

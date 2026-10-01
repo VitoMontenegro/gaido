@@ -427,7 +427,7 @@ export default function PortalHomePage() {
       )}
 
       <section className="py-14">
-        <div className="container-site max-w-3xl">
+        <div className="container-site max-w-4xl">
           <SectionTitle title="Часті запитання" />
           <div className="card px-4 md:px-6">
             {PORTAL_HOME_FAQ.map((item) => (

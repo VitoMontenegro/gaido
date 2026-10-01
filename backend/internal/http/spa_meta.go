@@ -27,6 +27,7 @@ type PageMeta struct {
 	NoIndex           bool
 	LargeImagePreview bool
 	JsonLd            []string
+	CrawlLinks        [][2]string
 }
 
 type spaSocialProfile struct {
@@ -139,6 +140,7 @@ func pageMetaHeadHTML(profile spaSocialProfile, meta *PageMeta) string {
 	// instead of appending a second description / Open Graph set.
 	lines := []string{
 		rhMeta(`property="og:type" content="website"`),
+		rhMeta(`property="og:locale" content="uk_UA"`),
 		rhMeta(`property="og:site_name" content="` + escapeAttr(profile.title) + `"`),
 		rhMeta(`property="og:title" content="` + escapeAttr(title) + `"`),
 		rhMeta(`property="og:description" content="` + escapeAttr(desc) + `"`),
@@ -237,6 +239,17 @@ func crawlableRootHTML(meta *PageMeta) string {
 		b.WriteString(`<p>`)
 		b.WriteString(html.EscapeString(desc))
 		b.WriteString(`</p>`)
+	}
+	if len(meta.CrawlLinks) > 0 {
+		b.WriteString(`<nav aria-label="Напрямки"><ul>`)
+		for _, link := range meta.CrawlLinks {
+			b.WriteString(`<li><a href="`)
+			b.WriteString(html.EscapeString(link[1]))
+			b.WriteString(`">`)
+			b.WriteString(html.EscapeString(link[0]))
+			b.WriteString(`</a></li>`)
+		}
+		b.WriteString(`</ul></nav>`)
 	}
 	b.WriteString(`</article></div>`)
 	return b.String()

@@ -62,21 +62,69 @@ func (h *Handlers) portalHomePageJsonLd(ctx context.Context, apex, guidesBase st
 }
 
 func (h *Handlers) homePageJsonLd(ctx context.Context, base string, content domain.HomeContent) []string {
-	featured := h.ResolveLatestExcursions(ctx, 6)
+	featured := h.ResolveLatestExcursions(ctx, 8)
+	if len(featured) == 0 {
+		featured = h.ResolveFeaturedExcursions(ctx, 8)
+	}
+
+	desc := seoHomeDescription
+	if custom := strings.TrimSpace(content.SEODescription); custom != "" && custom != legacyHomeSEODescription {
+		desc = truncateDesc(custom, 160)
+	}
+
+	title := seoHomeTitle
+	if custom := strings.TrimSpace(content.SEOTitle); custom != "" && custom != legacyHomeSEOTitle {
+		title = custom
+	}
+
+	listName := "Екскурсії українською на Gaido"
+	blocks := []any{
+		buildGuidesOrganizationJSON(base, desc),
+		buildWebSiteJSON(base),
+	}
+	blocks = append(blocks, excursionListingBlocks(featured, base, listName, desc)...)
+
+	var guides []domain.PublicGuideDTO
+	if h.Featured != nil && h.Guides != nil {
+		guides = h.ResolveFeaturedGuides(ctx, 4)
+	}
+	if list := buildPublicGuideItemListJSON(guides, base, "Україномовні гіди"); list != nil {
+		blocks = append(blocks, list)
+	}
+
+	var countries []countryGuideEntry
+	if h.Geo != nil {
+		rows, _ := h.Geo.ListCountriesWithGuideCount(ctx)
+		for _, c := range rows {
+			if c.GuideCount > 0 {
+				countries = append(countries, countryGuideEntry{Name: c.Name, Slug: c.Slug})
+			}
+		}
+	}
+	if list := buildCountryGuideItemListJSON(countries, base); list != nil {
+		blocks = append(blocks, list)
+	}
+
+	image := h.resolveSEOImage(content.SEOImageURL, h.publicBaseURL()+"/api/v1/media/public/d2b27d81f09874a08b4dc3293fe67f2e.webp")
+	blocks = append(blocks, buildWebPageJSON(base, "/", title, desc, image))
+
 	var faq []faqItem
 	for _, item := range content.FAQ {
 		if item.Question != "" && item.Answer != "" {
 			faq = append(faq, faqItem{question: item.Question, answer: item.Answer})
 		}
 	}
-
-	blocks := []any{buildWebSiteJSON(base)}
-	if list := buildExcursionItemListJSON(featured, base, "Нові маршрути Gaido"); list != nil {
-		blocks = append(blocks, list)
-	}
 	if faqPage := buildFaqPageJSON(faq); faqPage != nil {
 		blocks = append(blocks, faqPage)
 	}
+
+	if h.Reviews != nil {
+		reviews, _ := h.Reviews.ListRecentPublished(ctx, 6, 0)
+		if avg, count, err := h.Reviews.PublishedRatingStats(ctx); err == nil && count > 0 {
+			blocks = withCatalogReviews(blocks, reviews, avg, count)
+		}
+	}
+
 	return appendJsonLd(nil, blocks...)
 }
 

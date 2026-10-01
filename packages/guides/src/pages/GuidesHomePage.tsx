@@ -12,8 +12,8 @@ import CountryNameLink from '../components/CountryNameLink'
 import ApiErrorBanner from '../components/ApiErrorBanner'
 import { Seo } from '../lib/seo'
 import HomeReviews from '../components/HomeReviews'
-import { buildExcursionItemListJsonLd } from '../lib/excursionListingSchema'
-import { buildFaqPageJsonLd, buildWebSiteJsonLd, homeSeoDescription, homeSeoHeading, homeSeoTitle } from '../lib/seoTemplates'
+import { buildGuidesHomeJsonLd } from '../lib/excursionListingSchema'
+import { GUIDES_HOME_SEO_TEXT, homeSeoDescription, homeSeoHeading, homeSeoTitle } from '../lib/seoTemplates'
 import { normalizeCategoryTiles } from '../lib/categoryTiles'
 import type { ExcursionItem } from '../components/excursionUi'
 import { useRecentViews, validateRecentViews, type RecentView } from '../hooks/useRecentViews'
@@ -86,7 +86,7 @@ function CategoryTile({ tile }: { tile: HomeCategoryTile }) {
   const img = resolveMediaUrl(tile.image_url)
   return (
     <Link to={tile.url} className="category-tile">
-      {img && <img src={img} alt="" className="category-tile__img" loading="lazy" />}
+      {img && <img src={img} alt={tile.label} className="category-tile__img" loading="lazy" />}
       <span className="category-tile__label">{tile.label}</span>
     </Link>
   )
@@ -149,14 +149,23 @@ export default function GuidesHomePage() {
   const featuredExcursions = ((site.home.latest_excursions?.length
     ? site.home.latest_excursions
     : site.home.featured_excursions) ?? []) as ExcursionItem[]
-  const homeFaq = content.faq.map((item) => ({ question: item.question, answer: item.answer }))
-  const homeList = buildExcursionItemListJsonLd(featuredExcursions, 'Нові маршрути Gaido')
-  const homeJsonLd = [
-    buildWebSiteJsonLd(),
-    ...(homeList ? [homeList] : []),
-    ...(homeFaq.length > 0 ? [buildFaqPageJsonLd(homeFaq)] : []),
-  ]
   const destinations = site.home.popular_destinations ?? []
+  const homeFaq = content.faq.map((item) => ({ question: item.question, answer: item.answer }))
+  const seoDescription = homeSeoDescription(content.seo_description, content.hero_subtitle)
+  const homeJsonLd = buildGuidesHomeJsonLd({
+    excursions: featuredExcursions,
+    guides: featuredGuides.map((g) => ({ display_name: g.display_name, slug: g.slug })),
+    countries: destinations.map((g) => ({ name: g.country_name, slug: g.country_slug })),
+    faq: homeFaq,
+    reviews: homeReviews?.items,
+    ratingAvg: homeReviews?.rating_avg,
+    ratingCount: homeReviews?.rating_count,
+    pageName: homeSeoHeading(content.seo_title),
+    pageDescription: seoDescription,
+    pagePath: '/',
+    pageImage: content.seo_image_url || undefined,
+  })
+  const seoTextParagraphs = GUIDES_HOME_SEO_TEXT.split(/\n\n+/).map((p) => p.trim()).filter(Boolean)
   const categoryTiles = normalizeCategoryTiles(content.category_tiles)
   const journalArticles = articlesData?.items ?? []
   const cta = content.cta
@@ -170,7 +179,7 @@ export default function GuidesHomePage() {
     <>
       <Seo
         title={homeSeoTitle(content.seo_title)}
-        description={homeSeoDescription(content.seo_description, content.hero_subtitle)}
+        description={seoDescription}
         path="/"
         image={content.seo_image_url || undefined}
         jsonLd={homeJsonLd.length > 0 ? homeJsonLd : undefined}
@@ -250,6 +259,15 @@ export default function GuidesHomePage() {
           </div>
         </section>
       )}
+
+      <section className="container-site py-14">
+        <h2 className="section-title-sm mb-4">Екскурсії українською за кордоном</h2>
+        {seoTextParagraphs.map((paragraph, i) => (
+          <p key={i} className={`max-w-4xl text-base leading-relaxed text-muted${i > 0 ? ' mt-4' : ''}`}>
+            {paragraph}
+          </p>
+        ))}
+      </section>
 
       {destinations.length > 0 && (
         <section className="container-site py-14">
@@ -348,7 +366,7 @@ export default function GuidesHomePage() {
 
       {content.faq.length > 0 && (
         <section className="bg-surface py-14">
-          <div className="container-site max-w-3xl">
+          <div className="container-site max-w-4xl">
             <SectionTitle title="Часті запитання" />
             <div className="card px-4 md:px-6">
               {content.faq.map((item) => (
