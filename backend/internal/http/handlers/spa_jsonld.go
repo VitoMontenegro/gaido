@@ -188,46 +188,6 @@ func buildReviewJSON(items []domain.Review) []map[string]any {
 	return out
 }
 
-// withCatalogReviews adds AggregateRating and the visible Review list to a
-// Product that already carries AggregateOffer. Stars in Google come from
-// AggregateRating, not from the price offer.
-func withCatalogReviews(blocks []any, reviews []domain.Review, avg float64, count int) []any {
-	rev := buildReviewJSON(reviews)
-	if count <= 0 && len(rev) == 0 {
-		return blocks
-	}
-	rating := map[string]any{
-		"@type":       "AggregateRating",
-		"worstRating": 1,
-		"bestRating":  5,
-		"ratingValue": math.Round(avg*10) / 10,
-		"reviewCount": count,
-	}
-	for _, b := range blocks {
-		m, ok := b.(map[string]any)
-		if !ok || m["@type"] != "Product" {
-			continue
-		}
-		if count > 0 && avg > 0 {
-			m["aggregateRating"] = rating
-		}
-		if len(rev) > 0 {
-			m["review"] = rev
-		}
-		return blocks
-	}
-	if count <= 0 || avg <= 0 || len(rev) == 0 {
-		return blocks
-	}
-	return append(blocks, map[string]any{
-		"@context":        "https://schema.org",
-		"@type":           "Product",
-		"name":            "Екскурсії з україномовними гідами",
-		"aggregateRating": rating,
-		"review":          rev,
-	})
-}
-
 func buildExcursionProductJSON(e *domain.ExcursionView, base, url string, reviews []domain.Review) map[string]any {
 	desc := truncateDesc(e.Description, 500)
 	if desc == "" {

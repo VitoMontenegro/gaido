@@ -159,51 +159,11 @@ function itemListJsonLd(name: string, items: { name: string; url: string }[]) {
   }
 }
 
-export function attachCatalogReviews(
-  schemas: Record<string, unknown>[],
-  reviews: Review[],
-  ratingAvg: number,
-  ratingCount: number,
-) {
-  const rev = reviewJsonLd(reviews)
-  if (ratingCount <= 0 && rev.length === 0) return schemas
-
-  const rating = {
-    '@type': 'AggregateRating',
-    worstRating: 1,
-    bestRating: 5,
-    ratingValue: Number(ratingAvg.toFixed(1)),
-    reviewCount: ratingCount,
-  }
-
-  for (const schema of schemas) {
-    if (schema['@type'] !== 'Product') continue
-    if (ratingCount > 0 && ratingAvg > 0) schema.aggregateRating = rating
-    if (rev.length > 0) schema.review = rev
-    return schemas
-  }
-
-  if (ratingCount <= 0 || ratingAvg <= 0) return schemas
-  return [
-    ...schemas,
-    {
-      '@context': 'https://schema.org',
-      '@type': 'Product',
-      name: 'Екскурсії з україномовними гідами',
-      aggregateRating: rating,
-      ...(rev.length > 0 ? { review: rev } : {}),
-    },
-  ]
-}
-
 export function buildGuidesHomeJsonLd(input: {
   excursions: ListingItem[]
   guides: { display_name: string; slug: string }[]
   countries: { name: string; slug: string }[]
   faq: FaqItem[]
-  reviews?: Review[]
-  ratingAvg?: number
-  ratingCount?: number
   pageName: string
   pageDescription: string
   pagePath?: string
@@ -242,12 +202,7 @@ export function buildGuidesHomeJsonLd(input: {
 
   if (input.faq.length > 0) schemas.push(buildFaqPageJsonLd(input.faq))
 
-  return attachCatalogReviews(
-    schemas,
-    input.reviews ?? [],
-    input.ratingAvg ?? 0,
-    input.ratingCount ?? 0,
-  )
+  return schemas
 }
 
 /** Product schema for a single excursion detail page. */

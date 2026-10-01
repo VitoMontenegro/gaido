@@ -118,13 +118,6 @@ func (h *Handlers) homePageJsonLd(ctx context.Context, base string, content doma
 		blocks = append(blocks, faqPage)
 	}
 
-	if h.Reviews != nil {
-		reviews, _ := h.Reviews.ListRecentPublished(ctx, 6, 0)
-		if avg, count, err := h.Reviews.PublishedRatingStats(ctx); err == nil && count > 0 {
-			blocks = withCatalogReviews(blocks, reviews, avg, count)
-		}
-	}
-
 	return appendJsonLd(nil, blocks...)
 }
 
