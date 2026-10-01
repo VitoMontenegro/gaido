@@ -256,7 +256,9 @@ func crawlableRootHTML(meta *PageMeta) string {
 		return `<div id="root"></div>`
 	}
 	var b strings.Builder
-	b.WriteString(`<div id="root"><article>`)
+	// Keep crawl text in the HTML source, but out of the visual flow so the
+	// SPA does not flash unstyled markup before React replaces #root.
+	b.WriteString(`<div id="root"><article aria-hidden="true" style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0">`)
 	writeCrawlEscaped(&b, "h1", body.H1)
 	for _, p := range body.Paragraphs {
 		writeCrawlEscaped(&b, "p", p)
