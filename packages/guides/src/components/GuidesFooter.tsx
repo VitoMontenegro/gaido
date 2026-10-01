@@ -18,7 +18,6 @@ export default function GuidesFooter() {
   const telegramHref =
     telegramBotURL ||
     (footer?.telegram ? `https://t.me/${footer.telegram.replace(/^@/, '')}` : '')
-  const botUsername = telegramHref.replace(/^https:\/\/t\.me\//, '')
 
   return (
     <footer className="pb-5 pt-8">
