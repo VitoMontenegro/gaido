@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { catalogApi, type FooterContent } from '@gaido/api-client/api/client'
+import { catalogApi } from '@gaido/api-client/api/client'
 import BrandLogo from './BrandLogo'
 import { SITE_NAME, SITE_TAGLINE } from '@gaido/site-urls/brand'
 import { guidesUrl, portalUrl, transportUrl } from '@gaido/site-urls/site'

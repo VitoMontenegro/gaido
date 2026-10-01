@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { forumsApi, type Forum, type ForumAuthor, type ForumTopic, type ForumTopicResponse } from '@gaido/api-client/api/forums'
+import { forumsApi, type Forum, type ForumAuthor, type ForumTopicResponse } from '@gaido/api-client/api/forums'
 import { formatApiError, getApiErrorCode } from '@gaido/api-client/api/http'
 import { useForumTopic } from '@gaido/api-client/hooks/useForumTopic'
 import { useMe } from '@gaido/api-client/hooks/useAuth'
