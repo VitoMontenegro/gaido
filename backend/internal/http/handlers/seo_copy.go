@@ -56,6 +56,20 @@ const (
 	seoMapDescription = "Міста з екскурсіями українською — оберіть напрямок на карті або в списку"
 
 	seoAboutFallbackDescription = "Каталог україномовних гідів та авторських екскурсій за кордоном"
+
+	seoGuidesHomeText = "Україномовні гіди та екскурсії за кордоном — приватні прогулянки, оглядові й тематичні маршрути українською в Європі та світі. На Gaido UA зібрано каталог україномовних гідів та екскурсій українською: місцеві експерти, авторські екскурсії, індивідуальні тури та групові програми без посередників.\n\nЗнайдіть гіда за містом або країною, порівняйте екскурсії за темою, тривалістю та ціною. Шукаєте оглядову прогулянку, гастрономічний маршрут, історичну екскурсію чи тур вихідного дня — напишіть гіду напряму, узгодьте дату, склад групи та ціну.\n\nКаталог україномовних гідів підходить мандрівникам з України та діаспори: приватний гід, сімейна екскурсія, тур для компанії. Відкрийте розділ гідів, оберіть напрямок і забронюйте екскурсію українською."
+
+	seoTransportHomeTitle           = "Міжнародні перевезення"
+	seoTransportHomeDescription     = "Регулярні маршрутки та попутки для українців за кордоном. Пошук рейсів, перевірені перевізники, бронювання на Vezu."
+	seoTransportSearchHeading       = "Пошук рейсів"
+	seoTransportSearchDescription   = "Пошук міжнародних рейсів: маршрутки та попутки для українців за кордоном."
+	seoTransportCitiesHeading       = "Напрямки"
+	seoTransportCitiesDescription   = "Міста та міжнародні маршрути Vezu — рейси з і до популярних напрямків для українців."
+	seoTransportCarriersHeading     = "Перевізники"
+	seoTransportCarriersDescription = "Каталог перевізників Vezu — компанії, ФОП та приватні водії"
+
+	seoServicesHomeTitle       = "Послуги для українців за кордоном"
+	seoServicesHomeDescription = "Лікарі, майстри, транспорт і допомога українською. Оберіть місто — і побачите, хто працює поруч."
 )
 
 func seoCountryExcursionsHeading(name string) string {
@@ -149,4 +163,67 @@ func primaryCityName(joined string) string {
 		return ""
 	}
 	return strings.TrimSpace(parts[0])
+}
+
+func defaultCountryIntro(name string) string {
+	return "Оберіть авторську екскурсію українською " + ukInLocative(name) + " від місцевих гідів. Порівняйте ціни, перегляньте маршрути та напишіть гіду напряму для бронювання дати."
+}
+
+func defaultCityIntro(city, country string) string {
+	where := ukInLocative(city)
+	if country != "" && !samePlaceName(city, country) {
+		where = where + ", " + country
+	}
+	return "Авторські екскурсії українською " + where + " від місцевих гідів. Оберіть маршрут, перегляньте ціни та напишіть гіду для підтвердження дати."
+}
+
+func seoCityHubHeading(cityName string) string {
+	return "Рейси з " + cityName + " та до " + cityName
+}
+
+func seoCityHubDescription(cityName string, count int) string {
+	if count > 0 {
+		return fmt.Sprintf("%d рейсів через %s — регулярні маршрутки та попутки для українців", count, cityName)
+	}
+	return "Міжнародні рейси з " + cityName + " та до " + cityName + " — бронювання на Vezu"
+}
+
+func seoRouteHeading(fromName, toName string) string {
+	return "Рейси " + fromName + " → " + toName
+}
+
+func seoRouteDescription(fromName, toName string, count int) string {
+	if count > 0 {
+		return fmt.Sprintf("%d рейсів %s → %s: маршрутки, попутки, ціни та бронювання для українців", count, fromName, toName)
+	}
+	return "Міжнародні рейси " + fromName + " → " + toName + " — маршрутки та попутки для українців за кордоном"
+}
+
+var transportHomeFAQ = []faqItem{
+	{question: "Як знайти рейс?", answer: "Оберіть місто відправлення та прибуття на головній або в розділі «Пошук». Потім перегляньте доступні рейси та дати відправлення."},
+	{question: "Коли видно контакти перевізника?", answer: "Контакти перевізника видно на сторінці рейсу та в профілі."},
+	{question: "Чи можна бронювати онлайн?", answer: "Так. На сторінці рейсу оберіть дату та кількість місць — бронювання підтверджується перевізником."},
+	{question: "Як опублікувати свій рейс?", answer: "Зареєструйтесь як водій, заповніть профіль перевізника та додайте рейс у кабінеті. Після модерації він зʼявиться в пошуку."},
+}
+
+var transportPopularRoutes = []struct {
+	Label string
+	From  string
+	To    string
+}{
+	{Label: "Варшава → Львів", From: "warsaw", To: "lviv"},
+	{Label: "Краків → Київ", From: "krakow", To: "kyiv"},
+	{Label: "Берлін → Львів", From: "berlin", To: "lviv"},
+	{Label: "Прага → Київ", From: "prague", To: "kyiv"},
+	{Label: "Гданськ → Варшава", From: "gdansk", To: "warsaw"},
+}
+
+var transportHomeTiles = []struct {
+	Label string
+	Path  string
+}{
+	{Label: "Пошук рейсів", Path: "/search"},
+	{Label: "Напрямки", Path: "/cities"},
+	{Label: "Перевізники", Path: "/carriers"},
+	{Label: "Стати перевізником", Path: "/register/driver"},
 }

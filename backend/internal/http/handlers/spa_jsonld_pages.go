@@ -168,9 +168,11 @@ func (h *Handlers) countryPageJsonLd(ctx context.Context, c *postgres.Country, b
 	return appendJsonLd(nil, blocks...)
 }
 
-func (h *Handlers) cityPageJsonLd(ctx context.Context, city *postgres.City, base string, page *domain.PlacePage) []string {
-	cityID := city.ID
-	items, _ := h.Exc.ListPublicEnriched(ctx, &cityID, "", "", nil, 50, 0)
+func (h *Handlers) cityPageJsonLd(ctx context.Context, city *postgres.City, base string, page *domain.PlacePage, items []domain.ExcursionView) []string {
+	if items == nil && h.Exc != nil {
+		cityID := city.ID
+		items, _ = h.Exc.ListPublicEnriched(ctx, &cityID, "", "", nil, 50, 0)
+	}
 
 	countryName := ""
 	if country, err := h.Geo.GetCountryBySlug(ctx, city.CountrySlug); err == nil && country != nil {

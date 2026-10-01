@@ -30,8 +30,7 @@ type SpaPageMeta struct {
 	// LargeImagePreview asks Google to use a large thumbnail (country catalog covers).
 	LargeImagePreview bool
 	JsonLd            []string
-	// CrawlLinks — internal links for pre-JS HTML (city/country hubs on home).
-	CrawlLinks [][2]string
+	CrawlBody         CrawlBody
 }
 
 func pageTitleSuffix(name string) string {
@@ -106,13 +105,36 @@ func isPortalHome(host, path string) bool {
 func (h *Handlers) portalHomePageMeta(ctx context.Context) *SpaPageMeta {
 	apex := h.publicBaseURL()
 	defaultImage := apex + "/api/v1/media/public/d2b27d81f09874a08b4dc3293fe67f2e.webp"
-	return &SpaPageMeta{
-		Title:       pageTitleSuffix(seoPortalHomeTitle),
+	hub := h.LoadPortalHubContent(ctx)
+	title := strings.TrimSpace(hub.Title)
+	if title == "" {
+		title = seoPortalHomeTitle
+	}
+	lead := strings.TrimSpace(hub.Lead)
+	if lead == "" {
+		lead = seoPortalHomeLead
+	}
+	body := newCrawlBody(title, lead)
+	for _, card := range hub.Cards {
+		href := ""
+		switch card.ID {
+		case "guides":
+			href = absURL(apex, "/svit/")
+		case "transport":
+			href = absURL(apex, "/vezu/")
+		case "services":
+			href = absURL(apex, "/servis/")
+		}
+		body = body.withSection(card.Title, splitParagraphs(card.Text), []CrawlLink{crawlLink(card.Title, href)})
+	}
+	body = body.withFAQ(portalHomeFAQ())
+	return (&SpaPageMeta{
+		Title:       pageTitleSuffix(title),
 		Description: seoPortalHomeDescription,
 		Canonical:   strings.TrimRight(apex, "/") + "/",
 		OgImage:     defaultImage,
 		JsonLd:      h.portalHomePageJsonLd(ctx, apex, apex+"/svit"),
-	}
+	}).withBody(body)
 }
 
 func isPortalNewsHost(host string) bool {
@@ -132,13 +154,17 @@ func (h *Handlers) resolveNewsMeta(ctx context.Context, path, base string) *SpaP
 	}
 	defaultImage := h.publicBaseURL() + "/api/v1/media/public/d2b27d81f09874a08b4dc3293fe67f2e.webp"
 	if path == "/news" {
-		return &SpaPageMeta{
+		var articles []domain.ArticleListItem
+		if h.Articles != nil {
+			articles, _ = h.Articles.ListPublished(ctx, domain.ArticleKindNews, 50, 0)
+		}
+		return (&SpaPageMeta{
 			Title:       pageTitleSuffix(seoNewsHeading),
 			Description: seoNewsDescription,
 			Canonical:   base + "/news",
 			OgImage:     defaultImage,
 			JsonLd:      h.simpleBreadcrumbJsonLd(base, "Новини", "/news"),
-		}
+		}).withBody(newCrawlBody(seoNewsHeading, seoNewsDescription).withSection("", nil, articleCrawlLinks(base, "/news", articles)))
 	}
 	if !strings.HasPrefix(path, "/news/") {
 		return nil
@@ -162,13 +188,13 @@ func (h *Handlers) resolveNewsMeta(ctx context.Context, path, base string) *SpaP
 	if a.CoverImageURL != "" {
 		img = h.mediaPublicURL(a.CoverImageURL)
 	}
-	return &SpaPageMeta{
+	return (&SpaPageMeta{
 		Title:       pageTitleSuffix(a.Title),
 		Description: desc,
 		Canonical:   base + "/news/" + a.Slug,
 		OgImage:     img,
 		JsonLd:      h.newsArticleJsonLd(a, base),
-	}
+	}).withBody(newCrawlBody(a.Title, append([]string{a.Excerpt}, htmlParagraphs(a.BodyHTML)...)...))
 }
 
 func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *SpaPageMeta {
@@ -179,6 +205,12 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 		if meta := h.resolveNewsMeta(ctx, path, h.publicBaseURL()); meta != nil {
 			return meta
 		}
+	}
+	if ok, route, base := sectionPage(host, path, h.publicBaseURL(), "/vezu", "vezu.gaido-ua.com"); ok {
+		return h.resolveTransportMeta(ctx, route, base)
+	}
+	if ok, route, base := sectionPage(host, path, h.publicBaseURL(), "/servis", "servis.gaido-ua.com"); ok {
+		return h.resolveServicesMeta(ctx, route, base)
 	}
 
 	ok, path, base := guidesPage(host, path, h.publicBaseURL())
@@ -203,54 +235,89 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 			desc = seoHomeDescription
 		}
 		destinations := h.ResolvePopularDestinations(ctx, content.PopularCitySlugs)
-		return &SpaPageMeta{
+		featured := h.ResolveLatestExcursions(ctx, 8)
+		if len(featured) == 0 {
+			featured = h.ResolveFeaturedExcursions(ctx, 8)
+		}
+		var guides []domain.PublicGuideDTO
+		if h.Featured != nil && h.Guides != nil {
+			guides = h.ResolveFeaturedGuides(ctx, 4)
+		}
+		body := newCrawlBody(title, append([]string{desc}, splitParagraphs(seoGuidesHomeText)...)...)
+		body = body.withSection("", nil, categoryTileLinks(base, content.CategoryTiles))
+		body = body.withSection("Нові маршрути", nil, excursionCrawlLinks(base, featured))
+		body = body.withSection("Фаворити мандрівників", nil, guideCrawlLinks(base, guides))
+		body = body.withSection("Популярні напрямки", nil, destinationCrawlLinks(base, destinations))
+		if content.AboutText != "" || content.AboutTitle != "" {
+			aboutTitle := content.AboutTitle
+			if aboutTitle == "" {
+				aboutTitle = "Про нас"
+			}
+			body = body.withSection(aboutTitle, splitParagraphs(content.AboutText), nil)
+		}
+		body = body.withFAQ(faqFromHome(content))
+		return (&SpaPageMeta{
 			Title:       pageTitleSuffix(title),
 			Description: desc,
 			Canonical:   base + "/",
 			OgImage:     h.resolveSEOImage(content.SEOImageURL, defaultImage),
 			JsonLd:      h.homePageJsonLd(ctx, base, content),
-			CrawlLinks:  homeCrawlLinks(base, destinations),
-		}
+		}).withBody(body)
 	case path == "/search":
-		return &SpaPageMeta{
+		return (&SpaPageMeta{
 			Title:       pageTitleSuffix(seoSearchHeading),
 			Description: seoSearchDescription,
 			Canonical:   base + "/search",
 			OgImage:     defaultImage,
 			JsonLd:      h.searchPageJsonLd(base),
-		}
+		}).withBody(newCrawlBody(seoSearchHeading, seoSearchDescription))
 	case path == "/map":
-		return &SpaPageMeta{
+		return (&SpaPageMeta{
 			Title:       pageTitleSuffix(seoMapHeading),
 			Description: seoMapDescription,
 			Canonical:   base + "/map",
 			OgImage:     defaultImage,
 			JsonLd:      h.simpleBreadcrumbJsonLd(base, "Карта", "/map"),
-		}
+		}).withBody(newCrawlBody(seoMapHeading, seoMapDescription))
 	case path == "/guides":
-		return &SpaPageMeta{
+		return (&SpaPageMeta{
 			Title:       pageTitleSuffix(seoGuidesListHeading),
 			Description: seoGuidesListDescription,
 			Canonical:   base + "/guides",
 			OgImage:     defaultImage,
 			JsonLd:      h.guidesListPageJsonLd(ctx, base),
-		}
+		}).withBody(newCrawlBody(seoGuidesListHeading, seoGuidesListDescription).withSection("", nil, countryGuideCrawlLinks(base, h.countriesWithGuides(ctx))))
 	case path == "/journal":
-		return &SpaPageMeta{
+		var articles []domain.ArticleListItem
+		if h.Articles != nil {
+			articles, _ = h.Articles.ListPublished(ctx, domain.ArticleKindJournal, 50, 0)
+		}
+		return (&SpaPageMeta{
 			Title:       pageTitleSuffix(seoJournalHeading),
 			Description: seoJournalDescription,
 			Canonical:   base + "/journal",
 			OgImage:     defaultImage,
 			JsonLd:      h.simpleBreadcrumbJsonLd(base, "Журнал", "/journal"),
-		}
+		}).withBody(newCrawlBody(seoJournalHeading, seoJournalDescription).withSection("", nil, articleCrawlLinks(base, "/journal", articles)))
 	case path == "/forums":
-		return &SpaPageMeta{
+		var links []CrawlLink
+		if h.Forums != nil {
+			if forums, err := h.Forums.List(ctx); err == nil {
+				for _, f := range forums {
+					if f.Audience != domain.ForumAudiencePublic || f.Slug == "" {
+						continue
+					}
+					links = append(links, crawlLink(f.Title, absURL(base, "/forums/"+f.Slug)))
+				}
+			}
+		}
+		return (&SpaPageMeta{
 			Title:       pageTitleSuffix(seoForumsHeading),
 			Description: seoForumsDescription,
 			Canonical:   base + "/forums",
 			OgImage:     defaultImage,
 			JsonLd:      h.simpleBreadcrumbJsonLd(base, "Форуми", "/forums"),
-		}
+		}).withBody(newCrawlBody(seoForumsHeading, seoForumsDescription).withSection("", nil, links))
 	case path == "/about":
 		about := h.LoadAboutContent(ctx)
 		title := about.HeroEyebrow
@@ -261,13 +328,20 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 		if desc == "" {
 			desc = seoAboutFallbackDescription
 		}
-		return &SpaPageMeta{
+		body := newCrawlBody(title, append([]string{about.HeroTitle, desc}, about.Story...)...)
+		if about.Belief != "" {
+			body = body.withSection("", []string{about.Belief}, nil)
+		}
+		audienceParas := compactParagraphs(append([]string{about.AudienceLead}, audienceParagraphs(about.Audience)...))
+		body = body.withSection(about.AudienceTitle, audienceParas, nil)
+		body = body.withSection("", compactParagraphs([]string{about.Mission, about.Tagline, about.Closing, about.Disclaimer}), nil)
+		return (&SpaPageMeta{
 			Title:       pageTitleSuffix(title),
 			Description: desc,
 			Canonical:   base + "/about",
 			OgImage:     defaultImage,
 			JsonLd:      h.simpleBreadcrumbJsonLd(base, title, "/about"),
-		}
+		}).withBody(body)
 	case path == "/favorites":
 		return &SpaPageMeta{
 			Title:       pageTitleSuffix("Обране"),
@@ -285,7 +359,7 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 
 	switch parts[0] {
 	case "excursion":
-		if len(parts) != 2 {
+		if len(parts) != 2 || h.Exc == nil {
 			return nil
 		}
 		e, err := h.Exc.GetViewBySlug(ctx, parts[1])
@@ -304,16 +378,21 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 		if e.CityName != "" {
 			title = pageTitleSuffix(fmt.Sprintf("%s — екскурсія %s", e.Title, ukInLocative(e.CityName)))
 		}
-		return &SpaPageMeta{
+		paras := compactParagraphs(append([]string{e.Description}, htmlParagraphs(e.BodyHTML)...))
+		var guideLinks []CrawlLink
+		if e.GuideName != "" && e.GuideSlug != "" {
+			guideLinks = []CrawlLink{crawlLink(e.GuideName, absURL(base, "/guide/"+e.GuideSlug))}
+		}
+		return (&SpaPageMeta{
 			Title:       title,
 			Description: desc,
 			Canonical:   base + "/excursion/" + e.Slug,
 			OgImage:     img,
 			JsonLd:      h.excursionDetailJsonLd(ctx, e, base),
-		}
+		}).withBody(newCrawlBody(e.Title, paras...).withSection("Гід", nil, guideLinks))
 
 	case "guide":
-		if len(parts) != 2 {
+		if len(parts) != 2 || h.Guides == nil {
 			return nil
 		}
 		g, err := h.Guides.GetBySlug(ctx, parts[1])
@@ -327,7 +406,8 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 			}
 		}
 		heading := seoGuideHeading(g.DisplayName, cityName)
-		desc := truncateDesc(domain.PublicGuideAbout(g.About), 160)
+		about := domain.PublicGuideAbout(g.About)
+		desc := truncateDesc(about, 160)
 		if desc == "" {
 			desc = heading
 		}
@@ -335,16 +415,20 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 		if g.AvatarURL != "" {
 			img = h.mediaPublicURL(g.AvatarURL)
 		}
-		return &SpaPageMeta{
+		var excursions []domain.ExcursionView
+		if h.Exc != nil {
+			excursions, _ = h.Exc.ListPublishedByGuide(ctx, g.ID)
+		}
+		return (&SpaPageMeta{
 			Title:       pageTitleSuffix(heading),
 			Description: desc,
 			Canonical:   base + "/guide/" + g.WebsiteSlug,
 			OgImage:     img,
 			JsonLd:      h.guidePageJsonLd(ctx, g, base),
-		}
+		}).withBody(newCrawlBody(heading, splitParagraphs(about)...).withSection("Екскурсії", nil, excursionCrawlLinks(base, excursions)))
 
 	case "countries":
-		if len(parts) != 2 {
+		if len(parts) != 2 || h.Geo == nil {
 			return nil
 		}
 		c, err := h.Geo.GetCountryBySlug(ctx, parts[1])
@@ -355,10 +439,14 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 		if h.PlacePages != nil {
 			page, _ = h.PlacePages.GetBySlug(ctx, domain.PlaceTypeCountry, c.Slug)
 		}
-		items, _ := h.Exc.ListPublicEnriched(ctx, nil, c.Slug, "", nil, 50, 0)
+		var items []domain.ExcursionView
+		if h.Exc != nil {
+			items, _ = h.Exc.ListPublicEnriched(ctx, nil, c.Slug, "", nil, 50, 0)
+		}
 		priceLabel, coverKey := countryListingOffer(items)
+		heading := seoCountryExcursionsHeading(c.Name)
 		meta := &SpaPageMeta{
-			Title:             pageTitleSuffix(seoCountryExcursionsHeading(c.Name)),
+			Title:             pageTitleSuffix(heading),
 			Description:       truncateDesc(seoCountryExcursionsDescription(c.Name, priceLabel), 160),
 			Canonical:         base + "/countries/" + c.Slug,
 			OgImage:           defaultImage,
@@ -372,10 +460,21 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 		if coverKey != "" && (meta.OgImage == "" || meta.OgImage == defaultImage) {
 			meta.OgImage = h.mediaPublicURL(coverKey)
 		}
-		return meta
+		faq := placeFAQItems(page)
+		if len(faq) == 0 {
+			faq = countryExcursionFaq(c.Name)
+		}
+		intro := []string{defaultCountryIntro(c.Name)}
+		if page != nil {
+			intro = append(compactParagraphs([]string{page.Excerpt}), htmlParagraphs(page.IntroHTML)...)
+			if len(intro) == 0 {
+				intro = []string{defaultCountryIntro(c.Name)}
+			}
+		}
+		return meta.withBody(newCrawlBody(headingFromTitle(meta.Title), intro...).withSection("Екскурсії", nil, excursionCrawlLinks(base, items)).withFAQ(faq))
 
 	case "city":
-		if len(parts) != 2 {
+		if len(parts) != 2 || h.Geo == nil {
 			return nil
 		}
 		city, err := h.Geo.GetCityBySlug(ctx, parts[1])
@@ -390,33 +489,60 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 		if country, err := h.Geo.GetCountryBySlug(ctx, city.CountrySlug); err == nil && country != nil {
 			countryName = country.Name
 		}
+		cityID := city.ID
+		var items []domain.ExcursionView
+		if h.Exc != nil {
+			items, _ = h.Exc.ListPublicEnriched(ctx, &cityID, "", "", nil, 50, 0)
+		}
+		heading := seoCityExcursionsHeading(city.Name)
 		meta := &SpaPageMeta{
-			Title:       pageTitleSuffix(seoCityExcursionsHeading(city.Name)),
+			Title:       pageTitleSuffix(heading),
 			Description: truncateDesc(seoCityExcursionsDescription(city.Name, countryName), 160),
 			Canonical:   base + "/city/" + city.Slug,
 			OgImage:     defaultImage,
-			JsonLd:      h.cityPageJsonLd(ctx, city, base, page),
+			JsonLd:      h.cityPageJsonLd(ctx, city, base, page, items),
 		}
 		h.applyPlacePageMeta(meta, page, defaultImage)
-		return meta
+		faq := placeFAQItems(page)
+		if len(faq) == 0 {
+			faq = cityExcursionFaq(city.Name, countryName)
+		}
+		intro := []string{defaultCityIntro(city.Name, countryName)}
+		if page != nil {
+			intro = append(compactParagraphs([]string{page.Excerpt}), htmlParagraphs(page.IntroHTML)...)
+			if len(intro) == 0 {
+				intro = []string{defaultCityIntro(city.Name, countryName)}
+			}
+		}
+		return meta.withBody(newCrawlBody(headingFromTitle(meta.Title), intro...).withSection("Екскурсії", nil, excursionCrawlLinks(base, items)).withFAQ(faq))
 
 	case "guides":
 		if len(parts) == 3 && parts[1] == "countries" {
+			if h.Geo == nil {
+				return nil
+			}
 			c, err := h.Geo.GetCountryBySlug(ctx, parts[2])
 			if err != nil || c == nil {
 				return nil
 			}
-			return &SpaPageMeta{
-				Title:       pageTitleSuffix(seoGuidesCountryHeading(c.Name)),
-				Description: truncateDesc(seoGuidesCountryDescription(c.Name), 160),
+			heading := seoGuidesCountryHeading(c.Name)
+			desc := seoGuidesCountryDescription(c.Name)
+			var guides []domain.GuideProfile
+			if h.Guides != nil {
+				countryID := c.ID
+				guides, _ = h.Guides.ListPublic(ctx, nil, &countryID, "", 50, 0)
+			}
+			return (&SpaPageMeta{
+				Title:       pageTitleSuffix(heading),
+				Description: truncateDesc(desc, 160),
 				Canonical:   base + "/guides/countries/" + c.Slug,
 				OgImage:     defaultImage,
 				JsonLd:      h.guidesCountryPageJsonLd(ctx, c, base),
-			}
+			}).withBody(newCrawlBody(heading, desc).withSection("", nil, guideProfileCrawlLinks(base, guides)))
 		}
 
 	case "journal":
-		if len(parts) != 2 {
+		if len(parts) != 2 || h.Articles == nil {
 			return nil
 		}
 		a, err := h.Articles.GetPublishedBySlug(ctx, parts[1], domain.ArticleKindJournal)
@@ -431,13 +557,13 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 		if a.CoverImageURL != "" {
 			img = h.mediaPublicURL(a.CoverImageURL)
 		}
-		return &SpaPageMeta{
+		return (&SpaPageMeta{
 			Title:       pageTitleSuffix(a.Title),
 			Description: desc,
 			Canonical:   base + "/journal/" + a.Slug,
 			OgImage:     img,
 			JsonLd:      h.journalArticleJsonLd(a, base),
-		}
+		}).withBody(newCrawlBody(a.Title, append([]string{a.Excerpt}, htmlParagraphs(a.BodyHTML)...)...))
 
 	case "forums":
 		if h.Forums == nil {
@@ -458,13 +584,19 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 			if desc == "" {
 				desc = seoForumsDescription
 			}
-			return &SpaPageMeta{
+			var links []CrawlLink
+			if topics, err := h.Forums.ListTopics(ctx, f.ID, 50, 0); err == nil {
+				for _, topic := range topics {
+					links = append(links, crawlLink(topic.Title, absURL(base, "/forums/"+f.Slug+"/"+strconv.FormatInt(topic.ID, 10))))
+				}
+			}
+			return (&SpaPageMeta{
 				Title:       pageTitleSuffix(f.Title),
 				Description: desc,
 				Canonical:   base + "/forums/" + f.Slug,
 				OgImage:     defaultImage,
 				JsonLd:      h.forumBoardJsonLd(base, f),
-			}
+			}).withBody(newCrawlBody(f.Title, f.Description).withSection("Теми", nil, links))
 		}
 		if len(parts) != 3 {
 			return nil
@@ -483,22 +615,30 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 				NoIndex: true,
 			}
 		}
-		return &SpaPageMeta{
+		return (&SpaPageMeta{
 			Title:       pageTitleSuffix(t.Title),
 			Description: truncateDesc(t.Title+" — "+t.ForumTitle, 160),
 			Canonical:   base + "/forums/" + t.ForumSlug + "/" + strconv.FormatInt(t.ID, 10),
 			OgImage:     defaultImage,
 			JsonLd:      h.forumTopicJsonLd(base, t),
+		}).withBody(newCrawlBody(t.Title, t.ForumTitle))
+
+	case "legal":
+		if len(parts) != 2 {
+			return nil
 		}
+		return h.legalPageMeta(ctx, base, defaultImage, parts[1])
 
 	case "ukrainians-in":
 		if len(parts) != 2 {
 			return nil
 		}
-		city, err := h.Geo.GetCityBySlug(ctx, parts[1])
 		name := parts[1]
-		if err == nil && city != nil {
-			name = city.Name
+		if h.Geo != nil {
+			city, err := h.Geo.GetCityBySlug(ctx, parts[1])
+			if err == nil && city != nil {
+				name = city.Name
+			}
 		}
 		return &SpaPageMeta{
 			Title:       pageTitleSuffix("Українці " + ukInLocative(name)),
@@ -515,35 +655,6 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 	}
 
 	return nil
-}
-
-func homeCrawlLinks(base string, destinations []domain.DestinationGroup) [][2]string {
-	const limit = 12
-	links := make([][2]string, 0, limit)
-	for _, group := range destinations {
-		if group.CountrySlug != "" && group.CountryName != "" {
-			links = append(links, [2]string{
-				group.CountryName,
-				strings.TrimRight(base, "/") + "/guides/countries/" + group.CountrySlug,
-			})
-			if len(links) >= limit {
-				return links[:limit]
-			}
-		}
-		for _, city := range group.Cities {
-			if city.Slug == "" || city.Name == "" {
-				continue
-			}
-			links = append(links, [2]string{
-				city.Name,
-				strings.TrimRight(base, "/") + "/city/" + city.Slug,
-			})
-			if len(links) >= limit {
-				return links[:limit]
-			}
-		}
-	}
-	return links
 }
 
 func guidesPage(host, path, publicBase string) (ok bool, routePath, pageBase string) {

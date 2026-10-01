@@ -19,6 +19,29 @@ var (
 	rootDivRe         = regexp.MustCompile(`<div id="root"></div>`)
 )
 
+type CrawlLink struct {
+	Label string
+	Href  string
+}
+
+type CrawlSection struct {
+	Title      string
+	Paragraphs []string
+	Links      []CrawlLink
+}
+
+type CrawlFAQ struct {
+	Question string
+	Answer   string
+}
+
+type CrawlBody struct {
+	H1         string
+	Paragraphs []string
+	Sections   []CrawlSection
+	FAQ        []CrawlFAQ
+}
+
 type PageMeta struct {
 	Title             string
 	Description       string
@@ -27,7 +50,7 @@ type PageMeta struct {
 	NoIndex           bool
 	LargeImagePreview bool
 	JsonLd            []string
-	CrawlLinks        [][2]string
+	CrawlBody         CrawlBody
 }
 
 type spaSocialProfile struct {
@@ -215,44 +238,111 @@ func patchIndexHTML(html, host, path string, meta *PageMeta) string {
 	return rootDivRe.ReplaceAllString(html, crawlableRootHTML(meta))
 }
 
-// crawlableRootHTML gives each URL unique body text before JS runs.
-// Google otherwise treats the empty SPA shell as one document and picks another URL as canonical.
+// crawlableRootHTML gives each URL unique visible body text before JS runs.
 func crawlableRootHTML(meta *PageMeta) string {
 	if meta == nil || meta.NoIndex {
 		return `<div id="root"></div>`
 	}
-	title := strings.TrimSpace(strings.TrimSuffix(meta.Title, " — Gaido UA"))
-	desc := strings.TrimSpace(meta.Description)
-	if title == "" && desc == "" {
+	body := meta.CrawlBody
+	if strings.TrimSpace(body.H1) == "" {
+		body.H1 = strings.TrimSpace(strings.TrimSuffix(meta.Title, " — Gaido UA"))
+	}
+	if len(compactCrawlText(body.Paragraphs)) == 0 {
+		if desc := strings.TrimSpace(meta.Description); desc != "" {
+			body.Paragraphs = []string{desc}
+		}
+	}
+	if strings.TrimSpace(body.H1) == "" && len(compactCrawlText(body.Paragraphs)) == 0 && len(body.Sections) == 0 && len(body.FAQ) == 0 {
 		return `<div id="root"></div>`
 	}
 	var b strings.Builder
-	// Hidden until React replaces #root. The text stays in the HTML for crawlers
-	// and does not flash as unstyled content on first paint.
-	b.WriteString(`<div id="root"><article style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0">`)
-	if title != "" {
-		b.WriteString(`<h1>`)
-		b.WriteString(html.EscapeString(title))
-		b.WriteString(`</h1>`)
+	b.WriteString(`<div id="root"><article>`)
+	writeCrawlEscaped(&b, "h1", body.H1)
+	for _, p := range body.Paragraphs {
+		writeCrawlEscaped(&b, "p", p)
 	}
-	if desc != "" {
-		b.WriteString(`<p>`)
-		b.WriteString(html.EscapeString(desc))
-		b.WriteString(`</p>`)
-	}
-	if len(meta.CrawlLinks) > 0 {
-		b.WriteString(`<nav aria-label="Напрямки"><ul>`)
-		for _, link := range meta.CrawlLinks {
-			b.WriteString(`<li><a href="`)
-			b.WriteString(html.EscapeString(link[1]))
-			b.WriteString(`">`)
-			b.WriteString(html.EscapeString(link[0]))
-			b.WriteString(`</a></li>`)
+	for _, sec := range body.Sections {
+		title := strings.TrimSpace(sec.Title)
+		paras := compactCrawlText(sec.Paragraphs)
+		if title == "" && len(paras) == 0 && len(sec.Links) == 0 {
+			continue
 		}
-		b.WriteString(`</ul></nav>`)
+		b.WriteString(`<section>`)
+		writeCrawlEscaped(&b, "h2", title)
+		for _, p := range paras {
+			writeCrawlEscaped(&b, "p", p)
+		}
+		writeCrawlLinks(&b, sec.Links)
+		b.WriteString(`</section>`)
+	}
+	if len(body.FAQ) > 0 {
+		b.WriteString(`<section>`)
+		b.WriteString(`<h2>Часті запитання</h2>`)
+		for _, item := range body.FAQ {
+			q := strings.TrimSpace(item.Question)
+			a := strings.TrimSpace(item.Answer)
+			if q == "" || a == "" {
+				continue
+			}
+			writeCrawlEscaped(&b, "h3", q)
+			writeCrawlEscaped(&b, "p", a)
+		}
+		b.WriteString(`</section>`)
 	}
 	b.WriteString(`</article></div>`)
 	return b.String()
+}
+
+func writeCrawlEscaped(b *strings.Builder, tag, text string) {
+	text = strings.TrimSpace(text)
+	if text == "" {
+		return
+	}
+	b.WriteByte('<')
+	b.WriteString(tag)
+	b.WriteByte('>')
+	b.WriteString(html.EscapeString(text))
+	b.WriteString("</")
+	b.WriteString(tag)
+	b.WriteByte('>')
+}
+
+func writeCrawlLinks(b *strings.Builder, links []CrawlLink) {
+	var n int
+	for _, link := range links {
+		if strings.TrimSpace(link.Label) == "" || strings.TrimSpace(link.Href) == "" {
+			continue
+		}
+		n++
+	}
+	if n == 0 {
+		return
+	}
+	b.WriteString(`<ul>`)
+	for _, link := range links {
+		label := strings.TrimSpace(link.Label)
+		href := strings.TrimSpace(link.Href)
+		if label == "" || href == "" {
+			continue
+		}
+		b.WriteString(`<li><a href="`)
+		b.WriteString(html.EscapeString(href))
+		b.WriteString(`">`)
+		b.WriteString(html.EscapeString(label))
+		b.WriteString(`</a></li>`)
+	}
+	b.WriteString(`</ul>`)
+}
+
+func compactCrawlText(items []string) []string {
+	out := make([]string, 0, len(items))
+	for _, item := range items {
+		item = strings.TrimSpace(item)
+		if item != "" {
+			out = append(out, item)
+		}
+	}
+	return out
 }
 
 func patchIndexSocialMeta(html, host string) string {

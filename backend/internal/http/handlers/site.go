@@ -13,6 +13,9 @@ import (
 )
 
 func (h *Handlers) LoadHomeContent(ctx context.Context) domain.HomeContent {
+	if h == nil || h.Settings == nil {
+		return defaultHomeContent()
+	}
 	var c domain.HomeContent
 	if err := h.Settings.GetJSON(ctx, keyHomeContent, &c); err != nil {
 		return defaultHomeContent()
@@ -21,6 +24,9 @@ func (h *Handlers) LoadHomeContent(ctx context.Context) domain.HomeContent {
 }
 
 func (h *Handlers) LoadPortalHubContent(ctx context.Context) domain.PortalHubContent {
+	if h == nil || h.Settings == nil {
+		return defaultPortalHubContent()
+	}
 	var c domain.PortalHubContent
 	if err := h.Settings.GetJSON(ctx, keyPortalHubContent, &c); err != nil {
 		return defaultPortalHubContent()
@@ -51,6 +57,9 @@ func (h *Handlers) loadFooter(ctx context.Context, key string, fallback func() d
 	return c
 }
 func (h *Handlers) LoadLegalContent(ctx context.Context) domain.LegalContent {
+	if h == nil || h.Settings == nil {
+		return defaultLegalContent()
+	}
 	var c domain.LegalContent
 	if err := h.Settings.GetJSON(ctx, keyLegalContent, &c); err != nil {
 		return defaultLegalContent()
@@ -71,6 +80,9 @@ func mergeLegalContent(stored domain.LegalContent) domain.LegalContent {
 	return stored
 }
 func (h *Handlers) LoadAboutContent(ctx context.Context) domain.AboutPageContent {
+	if h == nil || h.Settings == nil {
+		return defaultAboutContent()
+	}
 	var c domain.AboutPageContent
 	if err := h.Settings.GetJSON(ctx, keyAboutContent, &c); err != nil {
 		return defaultAboutContent()
@@ -216,6 +228,9 @@ func (h *Handlers) ResolveFeaturedGuides(ctx context.Context, limit int) []domai
 	return out
 }
 func (h *Handlers) ResolvePopularDestinations(ctx context.Context, citySlugs []string) []domain.DestinationGroup {
+	if h == nil || h.Geo == nil {
+		return nil
+	}
 	points, err := h.Geo.ListMapPoints(ctx)
 	if err != nil || len(points) == 0 {
 		return nil

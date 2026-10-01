@@ -63,6 +63,15 @@ func TestResolveSpaPageMeta_portalHome(t *testing.T) {
 	if !strings.Contains(joined, `"@type":"WebSite"`) {
 		t.Fatal("missing WebSite")
 	}
+	if meta.CrawlBody.H1 == "" {
+		t.Fatal("missing crawl h1")
+	}
+	if len(meta.CrawlBody.FAQ) == 0 {
+		t.Fatal("missing crawl FAQ")
+	}
+	if strings.Contains(strings.Join(meta.CrawlBody.Paragraphs, " "), "width:1px") {
+		t.Fatal("hidden crawl copy")
+	}
 }
 
 func TestResolveSpaPageMeta_portalNews(t *testing.T) {
@@ -240,5 +249,77 @@ func TestWithCatalogReviewsAttachesAggregateRating(t *testing.T) {
 	}
 	if _, dup := reviews[0]["aggregateRating"]; dup {
 		t.Fatal("review must not carry aggregateRating")
+	}
+}
+
+func TestResolveSpaPageMeta_svitHomeCrawlBody(t *testing.T) {
+	h := &Handlers{Cfg: config.Config{PublicBaseURL: "https://gaido-ua.com"}}
+	meta := h.ResolveSpaPageMeta(context.Background(), "gaido-ua.com", "/svit")
+	if meta == nil {
+		t.Fatal("expected svit home meta")
+	}
+	if meta.Canonical != "https://gaido-ua.com/svit/" {
+		t.Fatalf("canonical = %q", meta.Canonical)
+	}
+	if meta.CrawlBody.H1 == "" {
+		t.Fatal("missing h1")
+	}
+	joined := strings.Join(meta.CrawlBody.Paragraphs, " ")
+	if !strings.Contains(joined, "україномовних гідів") && !strings.Contains(strings.ToLower(joined), "гід") {
+		t.Fatalf("missing seo text: %q", joined)
+	}
+	if len(meta.CrawlBody.FAQ) == 0 {
+		t.Fatal("missing home FAQ")
+	}
+}
+
+func TestResolveSpaPageMeta_transportHome(t *testing.T) {
+	h := &Handlers{Cfg: config.Config{PublicBaseURL: "https://gaido-ua.com"}}
+	meta := h.ResolveSpaPageMeta(context.Background(), "gaido-ua.com", "/vezu")
+	if meta == nil {
+		t.Fatal("expected vezu home meta")
+	}
+	if meta.Canonical != "https://gaido-ua.com/vezu/" {
+		t.Fatalf("canonical = %q", meta.Canonical)
+	}
+	if !strings.Contains(meta.Title, seoTransportHomeTitle) {
+		t.Fatalf("title = %q", meta.Title)
+	}
+	if meta.CrawlBody.H1 != seoTransportHomeTitle {
+		t.Fatalf("h1 = %q", meta.CrawlBody.H1)
+	}
+	if len(meta.CrawlBody.FAQ) == 0 {
+		t.Fatal("missing transport FAQ")
+	}
+}
+
+func TestResolveSpaPageMeta_servicesHome(t *testing.T) {
+	h := &Handlers{Cfg: config.Config{PublicBaseURL: "https://gaido-ua.com"}}
+	meta := h.ResolveSpaPageMeta(context.Background(), "gaido-ua.com", "/servis")
+	if meta == nil {
+		t.Fatal("expected servis home meta")
+	}
+	if meta.Canonical != "https://gaido-ua.com/servis/" {
+		t.Fatalf("canonical = %q", meta.Canonical)
+	}
+	if !strings.Contains(meta.Title, seoServicesHomeTitle) {
+		t.Fatalf("title = %q", meta.Title)
+	}
+	if meta.CrawlBody.H1 != seoServicesHomeTitle {
+		t.Fatalf("h1 = %q", meta.CrawlBody.H1)
+	}
+	if len(meta.CrawlBody.Paragraphs) == 0 {
+		t.Fatal("missing services intro")
+	}
+}
+
+func TestResolveSpaPageMeta_noIndexHasEmptyBody(t *testing.T) {
+	h := &Handlers{Cfg: config.Config{PublicBaseURL: "https://gaido-ua.com"}}
+	meta := h.ResolveSpaPageMeta(context.Background(), "gaido-ua.com", "/svit/login")
+	if meta == nil || !meta.NoIndex {
+		t.Fatalf("expected noindex login, got %#v", meta)
+	}
+	if meta.CrawlBody.H1 != "" || len(meta.CrawlBody.Paragraphs) != 0 {
+		t.Fatalf("noindex must not carry crawl body: %#v", meta.CrawlBody)
 	}
 }

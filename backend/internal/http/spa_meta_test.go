@@ -35,7 +35,7 @@ func TestPatchIndexHTML_pageMeta(t *testing.T) {
 		`rel="canonical" href="https://gaido-ua.com/svit/countries/turkey"`,
 		`property="og:title" content="Екскурсії в Туреччині — Gaido UA"`,
 		`property="og:image" content="https://gaido-ua.com/api/v1/media/public/cover.webp"`,
-		`<div id="root"><article style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0"><h1>Екскурсії в Туреччині</h1><p>Екскурсії в Туреччині — ціни, гіди</p></article></div>`,
+		`<div id="root"><article><h1>Екскурсії в Туреччині</h1><p>Екскурсії в Туреччині — ціни, гіди</p></article></div>`,
 	} {
 		if !strings.Contains(got, part) {
 			t.Fatalf("expected %q in %q", part, got)
@@ -67,6 +67,43 @@ func TestPatchIndexHTML_noIndex(t *testing.T) {
 	}
 	if strings.Contains(got, "<article>") {
 		t.Fatalf("noindex pages should keep an empty root, got %q", got)
+	}
+	if strings.Contains(got, "width:1px") {
+		t.Fatalf("noindex pages must not hide crawl text, got %q", got)
+	}
+}
+
+func TestPatchIndexHTML_visibleCrawlBody(t *testing.T) {
+	html := `<!doctype html><html><head><title>Gaido</title></head><body><div id="root"></div></body></html>`
+	meta := &PageMeta{
+		Title:       "Україномовні гіди — Gaido UA",
+		Description: "Каталог гідів",
+		Canonical:   "https://gaido-ua.com/svit/",
+		CrawlBody: CrawlBody{
+			H1:         "Україномовні гіди та екскурсії за кордоном",
+			Paragraphs: []string{"Каталог приватних гідів і екскурсій українською за кордоном"},
+			Sections: []CrawlSection{{
+				Title: "Популярні напрямки",
+				Links: []CrawlLink{{Label: "Італія", Href: "https://gaido-ua.com/svit/guides/countries/italy"}},
+			}},
+			FAQ: []CrawlFAQ{{Question: "Як забронювати?", Answer: "Напишіть гіду."}},
+		},
+	}
+	got := patchIndexHTML(html, "gaido-ua.com", "/svit/", meta)
+	for _, part := range []string{
+		`<div id="root"><article>`,
+		`<h1>Україномовні гіди та екскурсії за кордоном</h1>`,
+		`<h2>Популярні напрямки</h2>`,
+		`href="https://gaido-ua.com/svit/guides/countries/italy"`,
+		`<h2>Часті запитання</h2>`,
+		`<h3>Як забронювати?</h3>`,
+	} {
+		if !strings.Contains(got, part) {
+			t.Fatalf("expected %q in %q", part, got)
+		}
+	}
+	if strings.Contains(got, "width:1px") || strings.Contains(got, "clip:rect") {
+		t.Fatalf("crawl body must be visible, got %q", got)
 	}
 }
 

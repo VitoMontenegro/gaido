@@ -492,9 +492,33 @@ func serveSpaIndexWithMeta(w http.ResponseWriter, r *http.Request, indexPath str
 				NoIndex:           resolved.NoIndex,
 				LargeImagePreview: resolved.LargeImagePreview,
 				JsonLd:            resolved.JsonLd,
-				CrawlLinks:        resolved.CrawlLinks,
+				CrawlBody:         crawlBodyFromMeta(resolved.CrawlBody),
 			}
 		}
 	}
 	serveSpaIndex(w, r, indexPath, meta)
+}
+
+func crawlBodyFromMeta(src handlers.CrawlBody) CrawlBody {
+	out := CrawlBody{H1: src.H1, Paragraphs: src.Paragraphs}
+	if len(src.Sections) > 0 {
+		out.Sections = make([]CrawlSection, 0, len(src.Sections))
+		for _, sec := range src.Sections {
+			item := CrawlSection{Title: sec.Title, Paragraphs: sec.Paragraphs}
+			if len(sec.Links) > 0 {
+				item.Links = make([]CrawlLink, 0, len(sec.Links))
+				for _, link := range sec.Links {
+					item.Links = append(item.Links, CrawlLink{Label: link.Label, Href: link.Href})
+				}
+			}
+			out.Sections = append(out.Sections, item)
+		}
+	}
+	if len(src.FAQ) > 0 {
+		out.FAQ = make([]CrawlFAQ, 0, len(src.FAQ))
+		for _, item := range src.FAQ {
+			out.FAQ = append(out.FAQ, CrawlFAQ{Question: item.Question, Answer: item.Answer})
+		}
+	}
+	return out
 }
