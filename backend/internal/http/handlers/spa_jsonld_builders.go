@@ -38,6 +38,10 @@ func buildGuidesOrganizationJSON(base, description string) map[string]any {
 		"name":        "Gaido UA",
 		"url":         strings.TrimRight(base, "/") + "/",
 		"description": description,
+		"sameAs": []string{
+			"https://www.instagram.com/gaido_ua/",
+			"https://www.facebook.com/profile.php?id=61593557160858",
+		},
 	}
 }
 

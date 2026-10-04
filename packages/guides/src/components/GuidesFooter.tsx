@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { catalogApi } from '@gaido/api-client/api/client'
+import FooterSocial from '@gaido/ui-primitives/FooterSocial'
 import BrandLogo from './BrandLogo'
 import { SITE_NAME } from '@gaido/site-urls/brand'
 import { portalUrl, servicesUrl, transportUrl } from '@gaido/site-urls/site'
@@ -96,6 +97,7 @@ export default function GuidesFooter() {
             <a href={portalUrl('/')} className="hover:underline">Головна</a>
             <a href={transportUrl('/')} className="hover:underline">Перевезення</a>
             <a href={servicesUrl('/')} className="hover:underline">Сервіси</a>
+            <FooterSocial />
             <p className="ml-auto text-xs text-muted-light">© {new Date().getFullYear()} {footer?.copyright ?? SITE_NAME}</p>
           </div>
         </div>

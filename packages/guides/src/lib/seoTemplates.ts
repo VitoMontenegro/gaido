@@ -1,4 +1,5 @@
 import { pageTitle } from '@gaido/site-urls/brand'
+import { ORGANIZATION_SAME_AS } from '@gaido/site-urls/social'
 import { ukInLocative } from './ukLocative'
 
 export function seoCountryExcursionsHeading(countryName: string) {
@@ -233,5 +234,6 @@ export function buildOrganizationJsonLd(description: string) {
     name: 'Gaido UA',
     url: '/',
     description,
+    sameAs: ORGANIZATION_SAME_AS,
   }
 }

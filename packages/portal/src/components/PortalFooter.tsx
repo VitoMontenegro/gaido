@@ -1,3 +1,4 @@
+import FooterSocial from '@gaido/ui-primitives/FooterSocial'
 import BrandLogo from './BrandLogo'
 import { guidesUrl } from '@gaido/site-urls/site'
 import { PORTAL_SECTION_NAV } from '../lib/portalNav'
@@ -22,7 +23,10 @@ export default function PortalFooter() {
               </a>
             </nav>
           </div>
-          <p className="mt-8 text-xs text-muted-light">© {new Date().getFullYear()} Gaido UA</p>
+          <div className="mt-8 flex flex-wrap items-center gap-4 border-t border-divider pt-6 text-sm text-muted">
+            <FooterSocial />
+            <p className="ml-auto text-xs text-muted-light">© {new Date().getFullYear()} Gaido UA</p>
+          </div>
         </div>
       </div>
     </footer>

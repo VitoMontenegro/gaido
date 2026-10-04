@@ -22,7 +22,7 @@ var serviceCatalog = []catSeed{
 		{"barber", "Барбер", 4}, {"cosmetologist", "Косметолог", 5}, {"makeup", "Візажист", 6},
 		{"massage-beauty", "Масаж", 7}, {"beauty-other", "Інші послуги краси", 8},
 	}},
-	{slug: "translation", name: "Перекладачі", icon: "🗣", order: 14, services: []svcSeed{
+	{slug: "translation", name: "Переклад", icon: "🗣", order: 14, services: []svcSeed{
 		{"translator", "Перекладач", 1}, {"interpreter", "Інтерпретатор", 2}, {"translation-other", "Інші послуги перекладу", 3},
 	}},
 	{slug: "health", name: "Здоров'я", icon: "🩺", order: 2, services: []svcSeed{
@@ -82,6 +82,33 @@ var serviceCatalog = []catSeed{
 	{slug: "ukrainian-places", name: "Українські місця", icon: "🇺🇦", order: 13, services: []svcSeed{
 		{"cultural-center", "Культурні центри", 1}, {"ukrainian-school", "Школи", 2}, {"community", "Громади", 3},
 		{"organization", "Організації", 4}, {"events", "Заходи", 5},
+	}},
+	{slug: "tourism", name: "Туризм", icon: "🧳", order: 15, services: []svcSeed{
+		{"tourism", "Туризм", 1},
+	}},
+	{slug: "legal", name: "Юридичні послуги", icon: "⚖️", order: 16, services: []svcSeed{
+		{"legal", "Юридичні послуги", 1},
+	}},
+	{slug: "cleaning", name: "Клінінг", icon: "🧹", order: 17, services: []svcSeed{
+		{"cleaning", "Клінінг", 1},
+	}},
+	{slug: "garden", name: "Сад/город", icon: "🌱", order: 18, services: []svcSeed{
+		{"garden", "Сад/город", 1},
+	}},
+	{slug: "it", name: "IT послуги", icon: "💻", order: 19, services: []svcSeed{
+		{"it", "IT послуги", 1},
+	}},
+	{slug: "pets", name: "Домашні улюбленці", icon: "🐾", order: 20, services: []svcSeed{
+		{"pets", "Домашні улюбленці", 1},
+	}},
+	{slug: "celebrations", name: "Організація свят", icon: "🎉", order: 21, services: []svcSeed{
+		{"celebrations", "Організація свят", 1},
+	}},
+	{slug: "sport", name: "Спорт", icon: "⚽", order: 22, services: []svcSeed{
+		{"sport", "Спорт", 1},
+	}},
+	{slug: "tech-repair", name: "Ремонт техніки", icon: "🔧", order: 23, services: []svcSeed{
+		{"tech-repair", "Ремонт техніки", 1},
 	}},
 }
 

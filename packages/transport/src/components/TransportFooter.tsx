@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { catalogApi, type FooterContent } from '@gaido/api-client/api/client'
+import FooterSocial from '@gaido/ui-primitives/FooterSocial'
 import BrandLogo from './BrandLogo'
 import { SITE_NAME, SITE_TAGLINE } from '@gaido/site-urls/brand'
 import { guidesUrl, portalUrl, servicesUrl } from '@gaido/site-urls/site'
@@ -86,6 +87,7 @@ function SectionFooter({ footer, aside }: { footer?: FooterContent; aside: React
 
           <div className="mt-8 flex flex-wrap items-center gap-4 border-t border-divider pt-6 text-sm text-muted">
             {aside}
+            <FooterSocial />
             <p className="ml-auto text-xs text-muted-light">© {new Date().getFullYear()} {footer?.copyright || SITE_NAME}</p>
           </div>
         </div>

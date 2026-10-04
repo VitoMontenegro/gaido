@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { catalogApi } from '@gaido/api-client/api/client'
+import FooterSocial from '@gaido/ui-primitives/FooterSocial'
 import BrandLogo from './BrandLogo'
 import { SITE_NAME, SITE_TAGLINE } from '@gaido/site-urls/brand'
 import { guidesUrl, portalUrl, transportUrl } from '@gaido/site-urls/site'
@@ -62,6 +63,7 @@ export default function DiscoverFooter() {
             <a href={guidesUrl('/')} className="hover:underline">Екскурсії</a>
             <a href={transportUrl('/')} className="hover:underline">Перевезення</a>
             <a href={portalUrl('/')} className="hover:underline">gaido-ua.com</a>
+            <FooterSocial />
             <p className="ml-auto text-xs text-muted-light">© {new Date().getFullYear()} {footer?.copyright || SITE_NAME}</p>
           </div>
         </div>
