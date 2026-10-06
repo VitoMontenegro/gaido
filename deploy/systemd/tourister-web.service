@@ -1,0 +1,24 @@
+[Unit]
+Description=Gaido UA Next.js web
+After=network.target tourister-api.service
+Wants=tourister-api.service
+
+[Service]
+User=deploy
+Group=deploy
+# Next monorepo standalone: server.js under apps/web/
+WorkingDirectory=/var/www/tourister/web/apps/web
+# Не подключать /var/www/tourister/.env: там DATABASE_URL и JWT, Node их не использует.
+Environment=NODE_ENV=production
+Environment=PORT=3000
+Environment=HOSTNAME=127.0.0.1
+Environment=API_INTERNAL_URL=http://127.0.0.1:8081
+Environment=NEXT_PUBLIC_SITE_URL=https://gaido-ua.com
+ExecStart=/usr/bin/node server.js
+Restart=always
+RestartSec=5
+StandardOutput=append:/var/www/tourister/logs/web.log
+StandardError=append:/var/www/tourister/logs/web.log
+
+[Install]
+WantedBy=multi-user.target

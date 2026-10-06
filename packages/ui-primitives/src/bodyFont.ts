@@ -1,8 +1,8 @@
 export type BodyFont = 'roboto' | 'rubik'
 
 export const BODY_FONT_STACK: Record<BodyFont, string> = {
-  roboto: '"Roboto", ui-sans-serif, system-ui, sans-serif',
-  rubik: '"Rubik", ui-sans-serif, system-ui, sans-serif',
+  roboto: 'var(--font-roboto), ui-sans-serif, system-ui, sans-serif',
+  rubik: 'var(--font-rubik), ui-sans-serif, system-ui, sans-serif',
 }
 
 export function normalizeBodyFont(value?: string | null): BodyFont {

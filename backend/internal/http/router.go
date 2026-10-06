@@ -2,8 +2,6 @@ package httpx
 
 import (
 	"net/http"
-	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -74,6 +72,7 @@ func NewRouter(cfg config.Config, log *slog.Logger, h *handlers.Handlers) http.H
 		api.Get("/looking-requests", h.ListLookingRequests)
 
 		api.Get("/site", h.GetSite)
+		api.Get("/seo/page-meta", h.GetSpaPageMetaJSON)
 		api.With(middleware.AuthRateLimit(20, time.Minute, cfg.TrustProxy)).Post("/cookie-consent", h.AcceptCookieConsent)
 		api.Post("/telegram/webhook", h.TelegramWebhook)
 
@@ -284,13 +283,9 @@ func NewRouter(cfg config.Config, log *slog.Logger, h *handlers.Handlers) http.H
 		})
 	})
 
+	// HTML is served by Next.js. Go only keeps API, robots, sitemap, and legacy redirects.
 	r.Get("/*", func(w http.ResponseWriter, req *http.Request) {
-		if strings.HasPrefix(req.URL.Path, "/api/") {
-			http.NotFound(w, req)
-			return
-		}
-		dist, filePath := spaLocation(req.Host, req.URL.Path, cfg)
-		spaFileServerPaths(dist, h, filePath).ServeHTTP(w, req)
+		http.NotFound(w, req)
 	})
 	return r
 }
@@ -415,29 +410,6 @@ func legacySectionRedirect(w http.ResponseWriter, r *http.Request) bool {
 	return true
 }
 
-func spaLocation(host, path string, cfg config.Config) (dist, filePath string) {
-	if cfg.StaticRoot == "" {
-		return cfg.StaticDir, path
-	}
-	sub, rel := "portal", path
-	switch {
-	case path == "/svit" || strings.HasPrefix(path, "/svit/"):
-		sub, rel = "svit", strings.TrimPrefix(path, "/svit")
-	case path == "/servis" || strings.HasPrefix(path, "/servis/"):
-		sub, rel = "servis", strings.TrimPrefix(path, "/servis")
-	case path == "/vezu" || strings.HasPrefix(path, "/vezu/"):
-		sub, rel = "vezu", strings.TrimPrefix(path, "/vezu")
-	default:
-		if mapped := cfg.StaticHostMap[normalizeHost(host)]; mapped != "" {
-			sub = mapped
-		}
-	}
-	if rel == "" {
-		rel = "/"
-	}
-	return filepath.Join(cfg.StaticRoot, sub), rel
-}
-
 func normalizeHost(host string) string {
 	h := host
 	if i := strings.LastIndex(host, ":"); i != -1 {
@@ -446,79 +418,4 @@ func normalizeHost(host string) string {
 		}
 	}
 	return strings.ToLower(strings.TrimSuffix(strings.TrimSpace(h), "."))
-}
-
-func spaFileServer(dist string, h *handlers.Handlers) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		spaFileServerPaths(dist, h, r.URL.Path).ServeHTTP(w, r)
-	})
-}
-
-func spaFileServerPaths(dist string, h *handlers.Handlers, filePath string) http.Handler {
-	fileServer := http.FileServer(http.Dir(dist))
-	index := filepath.Join(dist, "index.html")
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if filePath == "" {
-			filePath = "/"
-		}
-		rel := strings.TrimPrefix(filePath, "/")
-		if rel == "" {
-			serveSpaIndexWithMeta(w, r, index, h)
-			return
-		}
-		path := filepath.Join(dist, filepath.Clean("/"+rel))
-		if info, err := os.Stat(path); err != nil || info.IsDir() {
-			serveSpaIndexWithMeta(w, r, index, h)
-			return
-		}
-		setSPAFileCacheHeaders(w, rel, false)
-		req := r.Clone(r.Context())
-		urlCopy := *r.URL
-		urlCopy.Path = filePath
-		req.URL = &urlCopy
-		fileServer.ServeHTTP(w, req)
-	})
-}
-
-func serveSpaIndexWithMeta(w http.ResponseWriter, r *http.Request, indexPath string, h *handlers.Handlers) {
-	var meta *PageMeta
-	if h != nil {
-		if resolved := h.ResolveSpaPageMeta(r.Context(), r.Host, r.URL.Path); resolved != nil {
-			meta = &PageMeta{
-				Title:             resolved.Title,
-				Description:       resolved.Description,
-				Canonical:         resolved.Canonical,
-				OgImage:           resolved.OgImage,
-				NoIndex:           resolved.NoIndex,
-				LargeImagePreview: resolved.LargeImagePreview,
-				JsonLd:            resolved.JsonLd,
-				CrawlBody:         crawlBodyFromMeta(resolved.CrawlBody),
-			}
-		}
-	}
-	serveSpaIndex(w, r, indexPath, meta)
-}
-
-func crawlBodyFromMeta(src handlers.CrawlBody) CrawlBody {
-	out := CrawlBody{H1: src.H1, Paragraphs: src.Paragraphs}
-	if len(src.Sections) > 0 {
-		out.Sections = make([]CrawlSection, 0, len(src.Sections))
-		for _, sec := range src.Sections {
-			item := CrawlSection{Title: sec.Title, Paragraphs: sec.Paragraphs}
-			if len(sec.Links) > 0 {
-				item.Links = make([]CrawlLink, 0, len(sec.Links))
-				for _, link := range sec.Links {
-					item.Links = append(item.Links, CrawlLink{Label: link.Label, Href: link.Href})
-				}
-			}
-			out.Sections = append(out.Sections, item)
-		}
-	}
-	if len(src.FAQ) > 0 {
-		out.FAQ = make([]CrawlFAQ, 0, len(src.FAQ))
-		for _, item := range src.FAQ {
-			out.FAQ = append(out.FAQ, CrawlFAQ{Question: item.Question, Answer: item.Answer})
-		}
-	}
-	return out
 }

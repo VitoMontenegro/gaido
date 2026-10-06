@@ -21,7 +21,7 @@ export function stripGuideAboutLinks(text: string): string {
 
 export function displayGuideAbout(text?: string | null): string {
   if (!text) return ''
-  return clampGuideAbout(stripGuideAboutLinks(text))
+  return stripGuideAboutLinks(text)
 }
 
 export function nextGuideAbout(current: string, next: string): string {

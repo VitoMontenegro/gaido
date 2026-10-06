@@ -6,5 +6,6 @@ backend/storage/
 .idea/
 /node_modules/
 apps/*/dist/
+**/.next/
 **/node_modules/
 **/node_modules/.tmp/

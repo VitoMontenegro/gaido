@@ -1,3 +1,5 @@
+import { getPublicEnv } from './env'
+
 export type SiteMode = 'portal' | 'guides' | 'transport' | 'services'
 
 export const PORTAL_HOST = 'gaido-ua.com'
@@ -11,17 +13,23 @@ export const TRANSPORT_PREFIX = '/vezu'
 
 const GUIDE_PATH_RE = /^\/(guides|map|search|journal|forums|guide|excursion|city|ukrainians-in)(\/|$)/
 
+export function siteModeFromPath(pathname: string): SiteMode {
+  if (pathname === GUIDES_PREFIX || pathname.startsWith(`${GUIDES_PREFIX}/`)) return 'guides'
+  if (pathname === TRANSPORT_PREFIX || pathname.startsWith(`${TRANSPORT_PREFIX}/`)) return 'transport'
+  if (pathname === SERVICES_PREFIX || pathname.startsWith(`${SERVICES_PREFIX}/`)) return 'services'
+  return 'portal'
+}
+
 export function getSiteMode(): SiteMode {
-  const override = import.meta.env.VITE_SITE_MODE as string | undefined
+  const override = getPublicEnv('VITE_SITE_MODE')
   if (override === 'portal' || override === 'guides' || override === 'transport' || override === 'services') {
     return override
   }
 
   if (typeof window === 'undefined') return 'portal'
   const path = window.location.pathname
-  if (path === GUIDES_PREFIX || path.startsWith(`${GUIDES_PREFIX}/`)) return 'guides'
-  if (path === TRANSPORT_PREFIX || path.startsWith(`${TRANSPORT_PREFIX}/`)) return 'transport'
-  if (path === SERVICES_PREFIX || path.startsWith(`${SERVICES_PREFIX}/`)) return 'services'
+  const fromPath = siteModeFromPath(path)
+  if (fromPath !== 'portal') return fromPath
   const host = window.location.hostname.toLowerCase()
   if (host === GUIDES_HOST || host.startsWith('svit.')) return 'guides'
   if (host === TRANSPORT_HOST || host.startsWith('vezu.')) return 'transport'
@@ -56,24 +64,14 @@ function isLocalDevHost(): boolean {
   return h === 'localhost' || h === '127.0.0.1'
 }
 
-const LOCAL_DEV_PORTS: Record<string, number> = {
-  [PORTAL_HOST]: 5173,
-  [GUIDES_HOST]: 5174,
-  [SERVICES_HOST]: 5175,
-  [TRANSPORT_HOST]: 5176,
-}
-
 function sectionOrigin(prefix: string, legacyHost: string, envKey: string): string {
-  const fromEnv = (import.meta.env[envKey] as string | undefined)?.replace(/\/$/, '')
+  const fromEnv = getPublicEnv(envKey)?.replace(/\/$/, '')
   if (fromEnv) return fromEnv
   if (typeof window !== 'undefined') {
     const hostname = window.location.hostname.toLowerCase()
     if (hostname === legacyHost) return `${window.location.origin}${prefix}`
-    if (isLocalDevHost()) {
-      const port = LOCAL_DEV_PORTS[legacyHost]
-      if (port) return `http://${hostname}:${port}${prefix}`
-    }
-    if (hostname === PORTAL_HOST || hostname === `www.${PORTAL_HOST}`) {
+    // Unified Next (and same-origin apex): all sections share one origin + path prefix.
+    if (isLocalDevHost() || hostname === PORTAL_HOST || hostname === `www.${PORTAL_HOST}`) {
       return `${window.location.origin}${prefix}`
     }
   }
@@ -97,17 +95,37 @@ export function servicesOrigin(): string {
 }
 
 export function publicOrigin(): string {
-  const fromEnv = (import.meta.env.VITE_PUBLIC_SITE_URL as string | undefined)?.replace(/\/$/, '')
+  const fromEnv = getPublicEnv('VITE_PUBLIC_SITE_URL')?.replace(/\/$/, '')
   if (fromEnv) return fromEnv
   if (typeof window !== 'undefined') return window.location.origin
   return `https://${PORTAL_HOST}`
 }
 
-/** Vite `base` without a trailing slash. Empty only for the portal. */
+/** Path prefix for the current section (no trailing slash). Empty for portal. */
 export function sectionBasePath(): string {
-  const base = (import.meta.env.BASE_URL as string | undefined) || '/'
-  if (base === '/' || base === '') return ''
-  return base.endsWith('/') ? base.slice(0, -1) : base
+  switch (getSiteMode()) {
+    case 'guides':
+      return GUIDES_PREFIX
+    case 'services':
+      return SERVICES_PREFIX
+    case 'transport':
+      return TRANSPORT_PREFIX
+    default:
+      return ''
+  }
+}
+
+export function sectionBasePathForMode(mode: SiteMode): string {
+  switch (mode) {
+    case 'guides':
+      return GUIDES_PREFIX
+    case 'services':
+      return SERVICES_PREFIX
+    case 'transport':
+      return TRANSPORT_PREFIX
+    default:
+      return ''
+  }
 }
 
 export function routerBasename(): string | undefined {

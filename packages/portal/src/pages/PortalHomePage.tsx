@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { catalogApi, articlesApi, resolveMediaUrl, type CountryWithGuides, type Excursion, type PublicGuide, type ArticleListItem } from '@gaido/api-client/api/client'
@@ -18,7 +18,6 @@ import {
   PORTAL_HOME_SEO_DESCRIPTION,
   portalHomeSeoTitle,
 } from '../lib/hubSeo'
-
 function SectionTitle({ title, subtitle, action }: { title: string; subtitle?: string; action?: ReactNode }) {
   return (
     <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
@@ -271,6 +270,13 @@ export default function PortalHomePage() {
   const newsArticles = articlesData?.items ?? []
   const forumTopics = forumRecent?.items ?? []
   const showForumHome = forumTopics.length > 0
+  const [showWorldBg, setShowWorldBg] = useState(false)
+  useEffect(() => {
+    const start = () => setShowWorldBg(true)
+    if (document.readyState === 'complete') start()
+    else window.addEventListener('load', start, { once: true })
+    return () => window.removeEventListener('load', start)
+  }, [])
   const jsonLd = buildPortalHomeJsonLd({
     guides: featuredGuides,
     excursions: latestExcursions.length > 0 ? latestExcursions : featuredExcursions,
@@ -289,7 +295,7 @@ export default function PortalHomePage() {
       <div className="pointer-events-none fixed inset-0 z-0" aria-hidden>
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: `url(${staticAssetUrl('/images/home/world-bg.jpg')})` }}
+          style={showWorldBg ? { backgroundImage: `url(${staticAssetUrl('/images/home/world-bg.jpg')})` } : undefined}
         />
         <div className="absolute inset-0 bg-page/50" />
       </div>
@@ -300,14 +306,21 @@ export default function PortalHomePage() {
         <h1 className="section-title mt-2">{hub.title}</h1>
         <p className="mt-3 max-w-3xl text-base leading-relaxed text-muted">{hub.lead}</p>
         <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-3">
-          {hub.cards.map((card) => (
+          {hub.cards.map((card, index) => (
             <a
               key={card.id}
               href={portalHubCardHref(card.id)}
               className="card group overflow-hidden p-0 transition hover:shadow-[0_10px_30px_rgba(0,0,0,0.08)]"
             >
               <div className="aspect-16/10 overflow-hidden bg-sand-100">
-                <img src={portalHubImageSrc(card.image_url)} alt="" className="h-full w-full object-cover" loading="lazy" />
+                <img
+                  src={portalHubImageSrc(card.image_url)}
+                  alt=""
+                  className="h-full w-full object-cover"
+                  loading={index === 0 ? 'eager' : 'lazy'}
+                  fetchPriority={index === 0 ? 'high' : 'low'}
+                  decoding={index === 0 ? 'sync' : 'async'}
+                />
               </div>
               <div className="p-5">
                 <h2 className="section-title-sm group-hover:text-brand-700">{card.title}</h2>

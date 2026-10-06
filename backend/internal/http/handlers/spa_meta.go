@@ -15,7 +15,7 @@ import (
 func (h *Handlers) publicBaseURL() string {
 	base := strings.TrimRight(h.Cfg.PublicBaseURL, "/")
 	if base == "" {
-		base = "http://localhost:5173"
+		base = "http://localhost:3000"
 	}
 	return base
 }
@@ -95,7 +95,7 @@ func isPortalHome(host, path string) bool {
 		return false
 	}
 	switch normalizeHost(host) {
-	case "gaido-ua.com", "www.gaido-ua.com":
+	case "gaido-ua.com", "www.gaido-ua.com", "localhost", "127.0.0.1":
 		return true
 	default:
 		return false
@@ -690,7 +690,7 @@ func normalizeHost(host string) string {
 
 func isGuidesHost(host string) bool {
 	h := normalizeHost(host)
-	return h == "svit.gaido-ua.com" || h == "localhost" || h == "127.0.0.1"
+	return h == "svit.gaido-ua.com"
 }
 
 // HTMLEscapeAttr escapes text for HTML attribute values.

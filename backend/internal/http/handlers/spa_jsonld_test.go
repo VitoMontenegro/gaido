@@ -29,7 +29,8 @@ func TestIsPortalHome(t *testing.T) {
 		{"gaido-ua.com", "", true},
 		{"gaido-ua.com", "/svit", false},
 		{"svit.gaido-ua.com", "/", false},
-		{"localhost", "/", false},
+		{"localhost", "/", true},
+		{"127.0.0.1", "/", true},
 	}
 	for _, tc := range cases {
 		if got := isPortalHome(tc.host, tc.path); got != tc.want {

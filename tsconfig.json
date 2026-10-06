@@ -8,9 +8,6 @@
     { "path": "./packages/discover" },
     { "path": "./packages/portal" },
     { "path": "./packages/transport" },
-    { "path": "./apps/portal" },
-    { "path": "./apps/svit" },
-    { "path": "./apps/servis" },
-    { "path": "./apps/vezu" }
+    { "path": "./apps/web" }
   ]
 }

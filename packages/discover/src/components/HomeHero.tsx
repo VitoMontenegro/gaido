@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { staticAssetUrl } from '@gaido/site-urls/staticAsset'
 
 const SLIDES = [
-  { src: staticAssetUrl('/images/home/about.jpg'), alt: 'Послуги поруч' },
+  { src: staticAssetUrl('/images/home/about.webp'), alt: 'Послуги поруч' },
   { src: staticAssetUrl('/images/home/map.jpg'), alt: 'Міста і локації' },
   { src: staticAssetUrl('/images/home/search.jpg'), alt: 'Пошук послуг' },
 ] as const
@@ -24,11 +24,13 @@ export default function HomeHero({ title, subtitle, children }: { title: string;
           <img
             key={slide.src}
             src={slide.src}
-            alt=""
+            alt={i === 0 ? slide.alt : ''}
             className={`home-hero__slide absolute inset-0 h-full w-full object-cover transition-opacity duration-1400 ease-out ${
               i === active ? 'opacity-100' : 'opacity-0'
             }`}
             loading={i === 0 ? 'eager' : 'lazy'}
+            fetchPriority={i === 0 ? 'high' : 'low'}
+            decoding={i === 0 ? 'sync' : 'async'}
           />
         ))}
         <div className="absolute inset-0 bg-linear-to-r from-ink/85 via-ink/60 to-ink/30" />

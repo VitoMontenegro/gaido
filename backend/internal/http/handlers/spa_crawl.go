@@ -12,26 +12,26 @@ import (
 )
 
 type CrawlLink struct {
-	Label string
-	Href  string
+	Label string `json:"label"`
+	Href  string `json:"href"`
 }
 
 type CrawlSection struct {
-	Title      string
-	Paragraphs []string
-	Links      []CrawlLink
+	Title      string      `json:"title"`
+	Paragraphs []string    `json:"paragraphs"`
+	Links      []CrawlLink `json:"links"`
 }
 
 type CrawlFAQ struct {
-	Question string
-	Answer   string
+	Question string `json:"question"`
+	Answer   string `json:"answer"`
 }
 
 type CrawlBody struct {
-	H1         string
-	Paragraphs []string
-	Sections   []CrawlSection
-	FAQ        []CrawlFAQ
+	H1         string         `json:"h1"`
+	Paragraphs []string       `json:"paragraphs"`
+	Sections   []CrawlSection `json:"sections"`
+	FAQ        []CrawlFAQ     `json:"faq"`
 }
 
 var htmlTagRe = regexp.MustCompile(`(?s)<[^>]*>`)

@@ -1,7 +1,7 @@
 .PHONY: up down migrate-up migrate-down test vet lint-frontend backend frontend restart-local stop-local run-local build-frontend
 
 up:
-	docker compose up -d
+	docker compose up -d postgres redis
 
 down:
 	docker compose down
@@ -14,8 +14,7 @@ migrate-down:
 
 test:
 	cd backend && go test ./...
-	npm run test -w @gaido/shared
-	npm run build
+	npm run test --workspaces --if-present
 
 vet:
 	cd backend && go vet ./...
@@ -24,13 +23,13 @@ lint-frontend:
 	npm run lint --workspaces --if-present
 
 build-frontend:
-	npm run build
+	npm run build -w @gaido/web
 
 backend:
 	cd backend && go run ./cmd/api
 
 frontend:
-	npm run dev:portal
+	npm run dev -w @gaido/web
 
 restart-local:
 	./restart-local.sh

@@ -4,7 +4,7 @@ import { staticAssetUrl } from '@gaido/site-urls/staticAsset'
 import CityPicker from './CityPicker'
 
 const SLIDES = [
-  { src: staticAssetUrl('/images/home/excursions.jpg'), alt: 'Міжнародні рейси' },
+  { src: staticAssetUrl('/images/home/excursions.webp'), alt: 'Міжнародні рейси' },
   { src: staticAssetUrl('/images/home/about.jpg'), alt: 'Подорож за кордон' },
   { src: staticAssetUrl('/images/home/search.jpg'), alt: 'Пошук рейсів' },
 ] as const
@@ -39,11 +39,13 @@ export default function HomeHero() {
           <img
             key={slide.src}
             src={slide.src}
-            alt=""
+            alt={i === 0 ? slide.alt : ''}
             className={`home-hero__slide absolute inset-0 h-full w-full object-cover transition-opacity duration-1400 ease-out ${
               i === active ? 'opacity-100' : 'opacity-0'
             }`}
             loading={i === 0 ? 'eager' : 'lazy'}
+            fetchPriority={i === 0 ? 'high' : 'low'}
+            decoding={i === 0 ? 'sync' : 'async'}
           />
         ))}
         <div className="absolute inset-0 bg-linear-to-r from-ink/85 via-ink/60 to-ink/30" />

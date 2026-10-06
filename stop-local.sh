@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Остановка локальных процессов Experts Tourister (API + Vite).
-# Postgres/Redis (Docker/OrbStack) не останавливает — см. docker compose down.
+# Остановка локальных процессов Experts Tourister (API + Next).
+# Postgres/Redis/web (Docker/OrbStack) — docker compose --profile web down.
 #
 #   ./stop-local.sh
 set -euo pipefail
@@ -14,7 +14,7 @@ local_load_env "$ROOT"
 
 BACKEND_PORT="${BACKEND_PORT:-${HTTP_ADDR#:}}"
 BACKEND_PORT="${BACKEND_PORT:-8091}"
-FRONTEND_PORT="${FRONTEND_PORT:-5173}"
+FRONTEND_PORT="${FRONTEND_PORT:-3000}"
 
 echo "■ stop-local.sh"
 
@@ -28,4 +28,9 @@ for port in $(local_backend_port_candidates); do
 done
 local_stop_dev_frontends
 
-echo "✓ stopped (infra docker compose — отдельно)"
+# Stop Next compose service if running (keeps postgres/redis).
+if command -v docker >/dev/null 2>&1; then
+  (cd "$ROOT" && docker compose --profile web stop web 2>/dev/null) || true
+fi
+
+echo "✓ stopped (postgres/redis docker — отдельно: docker compose down)"

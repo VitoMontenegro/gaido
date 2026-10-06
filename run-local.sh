@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
-# Локальный запуск Experts Tourister: Docker (PG+Redis) → migrate → Go API → Vite.
-# Порты по умолчанию (OrbStack-safe): API :8091, Vite :5173, PG :5433, Redis :6380.
+# Локальный запуск: Docker (PG+Redis[+Next]) → migrate → Go API → Next.js.
+# Порты: API :8091, Next :3000, PG :5433, Redis :6380 (OrbStack-safe).
 # :8080/:8081 часто заняты OrbStack — не используем.
 #
 #   ./run-local.sh
 #   LOCAL_SKIP_FRONTEND=1 ./run-local.sh
 #   LOCAL_SKIP_DOCKER=1 ./run-local.sh
+#   LOCAL_NEXT_HOST=1 ./run-local.sh   # Next на Mac вместо OrbStack
 #   LOCAL_SKIP_MIGRATE=1 ./run-local.sh
 #   LOCAL_SKIP_BACKEND=1 ./run-local.sh
 set -euo pipefail
@@ -37,8 +38,8 @@ export PAYMENT_STUB_ENABLED="${PAYMENT_STUB_ENABLED:-true}"
 echo "■ run-local.sh"
 
 if [[ "${LOCAL_SKIP_DOCKER:-0}" != "1" ]]; then
-  echo "→ docker compose up -d"
-  (cd "$ROOT" && docker compose up -d)
+  echo "→ docker compose up -d (postgres redis)"
+  (cd "$ROOT" && docker compose up -d postgres redis)
   local_wait_tcp "$PG_HOST" "$PG_PORT" "postgres"
   local_wait_tcp "$REDIS_HOST" "$REDIS_PORT" "redis"
 else
@@ -84,17 +85,28 @@ if [[ ! -d "$ROOT/node_modules" ]]; then
   (cd "$ROOT" && npm install)
 fi
 
-LOCAL_APP="${LOCAL_APP:-portal}"
-case "$LOCAL_APP" in
-  portal|svit|servis|vezu) ;;
-  *)
-    echo "→ invalid LOCAL_APP=$LOCAL_APP (use portal|svit|servis|vezu)" >&2
-    exit 1
-    ;;
-esac
+export NEXT_PUBLIC_SITE_URL="${NEXT_PUBLIC_SITE_URL:-http://localhost:${FRONTEND_PORT}}"
+export NEXT_PUBLIC_API_URL="${NEXT_PUBLIC_API_URL:-}"
+export API_INTERNAL_URL="${API_INTERNAL_URL:-http://127.0.0.1:${BACKEND_PORT}}"
+export NEXT_PUBLIC_BUILD_ID="${NEXT_PUBLIC_BUILD_ID:-dev}"
 
-echo "→ frontend :${FRONTEND_PORT} app=${LOCAL_APP} (foreground — Ctrl+C stops vite only; ./stop-local.sh for all)"
-cd "$ROOT"
-export PORT="$FRONTEND_PORT"
-export BACKEND_PORT HTTP_ADDR LOCAL_APP
-exec npm run "dev:${LOCAL_APP}" -- --host 127.0.0.1 --port "$FRONTEND_PORT"
+if [[ "${LOCAL_NEXT_HOST:-0}" == "1" ]]; then
+  echo "→ Next.js on host :${FRONTEND_PORT} (LOCAL_NEXT_HOST=1, foreground — Ctrl+C)"
+  cd "$ROOT"
+  export PORT="$FRONTEND_PORT"
+  exec npm run dev -w @gaido/web -- --port "$FRONTEND_PORT"
+fi
+
+if [[ "${LOCAL_SKIP_DOCKER:-0}" != "1" ]]; then
+  echo "→ Next.js in OrbStack :${FRONTEND_PORT} (compose profile web)"
+  (
+    cd "$ROOT"
+    API_INTERNAL_URL="http://host.docker.internal:${BACKEND_PORT}" \
+    NEXT_PUBLIC_SITE_URL="http://localhost:${FRONTEND_PORT}" \
+    docker compose --profile web up --build web
+  )
+else
+  echo "→ Next.js on host :${FRONTEND_PORT} (LOCAL_SKIP_DOCKER=1)"
+  cd "$ROOT"
+  exec npm run dev -w @gaido/web -- --port "$FRONTEND_PORT"
+fi

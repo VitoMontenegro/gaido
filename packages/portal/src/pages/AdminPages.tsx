@@ -10,6 +10,7 @@ import { ArticlesEditor } from '../components/ArticlesEditor'
 import { PlacePagesEditor } from '../components/PlacePagesEditor'
 import { formatPrice } from '../components/excursionUi'
 import { getSiteMode, type SiteMode } from '@gaido/site-urls/site'
+import { BODY_FONT_STACK } from '@gaido/ui-primitives/bodyFont'
 import { useDocumentTitle } from '@gaido/ui-primitives/useDocumentTitle'
 
 type AdminTab = 'analytics' | 'users' | 'guides' | 'excursions' | 'reviews' | 'carriers' | 'vezu' | 'providers' | 'offerings' | 'complaints' | 'settings' | 'content' | 'journal' | 'places' | 'audit' | 'cookies'
@@ -305,7 +306,7 @@ export default function AdminPage() {
                         ? 'border-teal bg-teal/5 ring-2 ring-teal/20'
                         : 'border-border bg-surface hover:bg-sand-50'
                     }`}
-                    style={{ fontFamily: opt.id === 'roboto' ? 'Roboto, sans-serif' : 'Rubik, sans-serif' }}
+                    style={{ fontFamily: BODY_FONT_STACK[opt.id] }}
                     onClick={() => updateSetting({ body_font: opt.id })}
                   >
                     <span className="block font-semibold">{opt.label}</span>
@@ -313,7 +314,7 @@ export default function AdminPage() {
                   </button>
                 ))}
               </div>
-              <p className="text-sm text-stone-600" style={{ fontFamily: settings?.body_font === 'roboto' ? 'Roboto, sans-serif' : 'Rubik, sans-serif' }}>
+              <p className="text-sm text-stone-600" style={{ fontFamily: BODY_FONT_STACK[settings?.body_font === 'roboto' ? 'roboto' : 'rubik'] }}>
                 Приклад: знайдіть рейс, забронюйте місце або звʼяжіться з перевіреним перевізником.
               </p>
             </div>

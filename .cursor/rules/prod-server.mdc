@@ -17,6 +17,8 @@ alwaysApply: true
 | VM | `vm265150` @ vm.it-garage.pro |
 | ОС | AlmaLinux 8.10 |
 | App | `/var/www/tourister` |
-| Static | `STATIC_ROOT=/var/www/tourister/www` → `portal/`, `svit/`, `servis/`, `vezu/` |
+| HTML | Next `tourister-web` → `127.0.0.1:3000`, каталог `/var/www/tourister/web` |
+| API | Go `tourister-api` → `127.0.0.1:8081` |
+| Static | `/var/www/tourister/www` — только откат старого Vite, HTML оттуда больше не отдаётся |
 
 Когда пользователь просит зайти на сервер, деплой, логи, nginx, systemd — вызывай `./scripts/ssh-prod.sh '…'` (нужен `required_permissions: ["all"]`). Не печатай `SSH_PASS` в чат и не коммить `.local/`.

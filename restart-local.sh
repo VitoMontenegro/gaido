@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Единая точка локального запуска Experts Tourister.
-# Порты: API :8091, Vite :5173, PG :5433, Redis :6380 (OrbStack-safe, см. .local/ports.env).
+# Порты: API :8091, Next :3000, PG :5433, Redis :6380 (OrbStack-safe, см. .local/ports.env).
 #
 #   ./restart-local.sh
 #   LOCAL_SKIP_FRONTEND=1 ./restart-local.sh

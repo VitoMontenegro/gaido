@@ -10,6 +10,7 @@ GIT_BRANCH="${GIT_BRANCH:-main}"
 GIT_REPO="${GIT_REPO:-https://github.com/VitoMontenegro/gaido.git}"
 APP_SLUG="${DEPLOY_APP_SLUG:-web-prod-2026}"
 DEPLOY_USER="${DEPLOY_USER:-deploy}"
+WEB_ROOT="${WEB_ROOT:-$APP_ROOT/web}"
 
 # Manual runs as root leave root-owned node_modules/www and break npm ci for deploy user.
 if [ "$(id -un)" = "root" ]; then
@@ -72,40 +73,49 @@ set -a
 source "$ENV_FILE"
 set +a
 
-STATIC_ROOT="${STATIC_ROOT:-$APP_ROOT/www}"
-
-# Manual copies / Mac rsyncs can leave www owned by another uid — deploy user cannot rsync --delete.
-# sudoers does not allow chown; never prompt for a password (breaks unattended deploy).
-if [ ! -O "$STATIC_ROOT" ] 2>/dev/null || find "$STATIC_ROOT" -mindepth 1 -maxdepth 2 ! -writable 2>/dev/null | grep -q .; then
-  echo "ERROR: $STATIC_ROOT has files not writable by $(id -un)."
-  echo "Fix as root: chown -R $DEPLOY_USER:$DEPLOY_USER $STATIC_ROOT"
-  exit 255
-fi
-mkdir -p "$STATIC_ROOT"
-
-echo "→ frontend build (4 apps)"
-cd "$REPO"
-npm ci
-BUILD_ID="$(git -C "$REPO" rev-parse --short HEAD 2>/dev/null || date +%s)"
-echo "→ build id: $BUILD_ID"
 PROD_DOMAIN="${PROD_DOMAIN:-gaido-ua.com}"
 APEX_ORIGIN="https://${PROD_DOMAIN}"
-declare -A APP_PATHS=(
-  [portal]=""
-  [svit]="/svit"
-  [servis]="/servis"
-  [vezu]="/vezu"
-)
-for app in portal svit servis vezu; do
-  echo "→ build @gaido/$app (${APEX_ORIGIN}${APP_PATHS[$app]})"
-  VITE_BUILD_ID="$BUILD_ID" VITE_PUBLIC_SITE_URL="$APEX_ORIGIN" npm run build -w "@gaido/$app"
-  echo "→ publish $app to $STATIC_ROOT/$app"
-  mkdir -p "$STATIC_ROOT/$app"
-  rsync -a --delete \
-    --exclude '._*' \
-    --exclude '.DS_Store' \
-    "$REPO/apps/$app/dist/" "$STATIC_ROOT/$app/"
-done
+BUILD_ID="$(git -C "$REPO" rev-parse --short HEAD 2>/dev/null || date +%s)"
+echo "→ build id: $BUILD_ID"
+
+echo "→ frontend build (Next.js standalone)"
+cd "$REPO"
+npm ci
+export NEXT_PUBLIC_SITE_URL="$APEX_ORIGIN"
+export NEXT_PUBLIC_API_URL=""
+export API_INTERNAL_URL="http://127.0.0.1:8081"
+export NEXT_PUBLIC_BUILD_ID="$BUILD_ID"
+npm run build -w @gaido/web
+
+echo "→ publish Next standalone to $WEB_ROOT"
+mkdir -p "$WEB_ROOT"
+rm -rf "${WEB_ROOT:?}/"*
+# Next standalone layout: apps/web/.next/standalone (+ static + public)
+STANDALONE="$REPO/apps/web/.next/standalone"
+STATIC_SRC="$REPO/apps/web/.next/static"
+PUBLIC_SRC="$REPO/apps/web/public"
+if [ ! -d "$STANDALONE" ]; then
+  echo "ERROR: missing $STANDALONE — next build failed?"
+  exit 1
+fi
+cp -a "$STANDALONE"/. "$WEB_ROOT/"
+mkdir -p "$WEB_ROOT/apps/web/.next"
+cp -a "$STATIC_SRC" "$WEB_ROOT/apps/web/.next/static"
+# Copy public assets next to server (resolve symlinks)
+mkdir -p "$WEB_ROOT/apps/web/public"
+rsync -aL --delete "$PUBLIC_SRC"/ "$WEB_ROOT/apps/web/public/" 2>/dev/null \
+  || cp -aL "$PUBLIC_SRC"/. "$WEB_ROOT/apps/web/public/"
+# Prefer running from WEB_ROOT with server.js at root or apps/web/server.js
+if [ -f "$WEB_ROOT/apps/web/server.js" ]; then
+  # monorepo standalone nests the app
+  :
+elif [ -f "$WEB_ROOT/server.js" ]; then
+  :
+else
+  echo "ERROR: server.js not found under $WEB_ROOT"
+  find "$WEB_ROOT" -name 'server.js' | head
+  exit 1
+fi
 
 echo "→ backend build"
 cd "$REPO/backend"
@@ -123,15 +133,16 @@ echo "→ migrations"
 
 # Mark success BEFORE restart: systemctl kills the API process that started us.
 write_status "success" 0 "1"
-echo "→ restart api (deferred, so deploy parent is not killed mid-run)"
+echo "→ HTML отдаёт tourister-web :3000. Если nginx ещё проксирует сайт на API, переключите его сразу после DEPLOY OK — новый API страницы не отдаёт."
+echo "→ restart api + web (deferred)"
 if command -v systemd-run >/dev/null 2>&1; then
   sudo systemd-run --quiet --collect --on-active=2s /bin/systemctl restart tourister-api
+  sudo systemd-run --quiet --collect --on-active=3s /bin/systemctl restart tourister-web
   if systemctl list-unit-files tourister-news.service >/dev/null 2>&1; then
-    sudo systemd-run --quiet --collect --on-active=3s /bin/systemctl restart tourister-news
+    sudo systemd-run --quiet --collect --on-active=4s /bin/systemctl restart tourister-news
   fi
 else
-  # Fallback: background restart after this script exits the wait briefly.
-  (sleep 2; sudo systemctl restart tourister-api) >/dev/null 2>&1 &
+  (sleep 2; sudo systemctl restart tourister-api; sudo systemctl restart tourister-web) >/dev/null 2>&1 &
   disown || true
 fi
 

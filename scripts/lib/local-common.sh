@@ -82,7 +82,7 @@ local_resolve_ports() {
     BACKEND_PORT="${HTTP_ADDR#:}"
   fi
   BACKEND_PORT="${BACKEND_PORT:-8091}"
-  FRONTEND_PORT="${FRONTEND_PORT:-5173}"
+  FRONTEND_PORT="${FRONTEND_PORT:-3000}"
   PG_PORT="${PG_PORT:-5433}"
   REDIS_PORT="${REDIS_PORT:-6380}"
 
@@ -101,12 +101,12 @@ local_resolve_ports() {
 
   frontend_preferred="$FRONTEND_PORT"
   if local_port_busy "$frontend_preferred" && ! local_is_our_frontend_on_port "$frontend_preferred"; then
-    picked="$(local_pick_free_port 5173 5174 5175 5176 4173 4174)" || exit 1
+    picked="$(local_pick_free_port 3000 3001 3002 5173 4173)" || exit 1
     echo "→ frontend :${frontend_preferred} busy, using :${picked}" >&2
     FRONTEND_PORT="$picked"
   fi
 
-  CORS_ORIGINS="${CORS_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174,http://localhost:5175,http://127.0.0.1:5175,http://localhost:5176,http://127.0.0.1:5176}"
+  CORS_ORIGINS="${CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001,http://localhost:5173,http://127.0.0.1:5173}"
   PUBLIC_BASE_URL="${PUBLIC_BASE_URL:-http://localhost:${FRONTEND_PORT}}"
 
   export HTTP_ADDR=":${BACKEND_PORT}"
@@ -124,13 +124,14 @@ PG_PORT=${PG_PORT}
 REDIS_PORT=${REDIS_PORT}
 EOF
 
-  cat >"$root/.local/vite.env" <<EOF
+  cat >"$root/.local/next.env" <<EOF
 # Auto-synced from .local/ports.env by run-local.sh — do not commit
 FRONTEND_PORT=${FRONTEND_PORT}
 BACKEND_PORT=${BACKEND_PORT}
 HTTP_ADDR=:${BACKEND_PORT}
-VITE_PUBLIC_SITE_URL=${PUBLIC_BASE_URL}
-LOCAL_APP=${LOCAL_APP:-portal}
+NEXT_PUBLIC_SITE_URL=${PUBLIC_BASE_URL}
+NEXT_PUBLIC_API_URL=
+API_INTERNAL_URL=http://127.0.0.1:${BACKEND_PORT}
 EOF
 }
 
@@ -160,12 +161,12 @@ local_is_backend_process() {
 
 local_is_frontend_process() {
   local cmd="$1"
-  [[ "$cmd" == *"vite"* ]] && [[ "$cmd" == *"frontend"* || "$cmd" == *"goproject"* || "$cmd" == *"experts-tourister"* || "$cmd" == *"/apps/"* ]]
+  [[ "$cmd" == *"next"* || "$cmd" == *"vite"* ]] && [[ "$cmd" == *"frontend"* || "$cmd" == *"goproject"* || "$cmd" == *"experts-tourister"* || "$cmd" == *"/apps/"* || "$cmd" == *"@gaido/web"* ]]
 }
 
-# Vite dev servers for monorepo apps (5173–5179 covers strictPort fallbacks).
+# Next (3000+) and legacy Vite ports.
 local_dev_frontend_ports() {
-  echo 5173 5174 5175 5176 5177 5178 5179
+  echo 3000 3001 3002 5173 5174 5175 5176 5177 5178 5179
 }
 
 local_stop_dev_frontends() {
@@ -267,24 +268,20 @@ local_print_urls() {
   local redis_port="${REDIS_PORT:-6380}"
   echo ""
   echo "══════════════════════════════════════════════"
-  echo " Experts Tourister — local"
+  echo " Gaido UA — local (Go API + Next.js)"
   echo "──────────────────────────────────────────────"
   echo " API:       http://localhost:${backend_port}"
   echo " Health:    http://localhost:${backend_port}/healthz"
-  local section_path="/"
-  case "${LOCAL_APP:-portal}" in
-    svit) section_path="/svit/" ;;
-    servis) section_path="/servis/" ;;
-    vezu) section_path="/vezu/" ;;
-  esac
-  echo " Frontend:  http://localhost:${frontend_port}${section_path}"
-  echo " Sections:  :5173/  :5174/svit/  :5175/servis/  :5176/vezu/"
+  echo " Next:      http://localhost:${frontend_port}/"
+  echo "            http://localhost:${frontend_port}/svit/"
+  echo "            http://localhost:${frontend_port}/servis/"
+  echo "            http://localhost:${frontend_port}/vezu/"
   echo " Postgres:  localhost:${pg_port}"
   echo " Redis:     localhost:${redis_port}"
   echo "──────────────────────────────────────────────"
   echo " Demo: admin / admin12345 · guide1 / guide12345"
-  echo " Vezu demo: LOCAL_SEED=1 ./restart-local.sh (carrier-demo-abc / carrier12345)"
-  echo " Vezu site: LOCAL_APP=vezu ./restart-local.sh"
+  echo " Seed: LOCAL_SEED=1 ./restart-local.sh"
+  echo " Next on Mac: LOCAL_NEXT_HOST=1 ./restart-local.sh"
   echo "══════════════════════════════════════════════"
   echo ""
 }

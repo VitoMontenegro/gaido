@@ -1,1 +1,1 @@
-deploy ALL=(ALL) NOPASSWD: /bin/systemctl restart tourister-api, /bin/systemctl status tourister-api, /bin/systemctl restart tourister-news, /bin/systemctl status tourister-news, /usr/bin/systemd-run
+deploy ALL=(ALL) NOPASSWD: /bin/systemctl restart tourister-api, /bin/systemctl status tourister-api, /bin/systemctl restart tourister-web, /bin/systemctl status tourister-web, /bin/systemctl restart tourister-news, /bin/systemctl status tourister-news, /usr/bin/systemd-run

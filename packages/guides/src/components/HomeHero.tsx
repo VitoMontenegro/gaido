@@ -4,7 +4,7 @@ import { staticAssetUrl } from '@gaido/site-urls/staticAsset'
 import { sanitizeHtml } from '../lib/html'
 
 const SLIDES = [
-  { src: staticAssetUrl('/images/home/excursions.jpg'), alt: 'Авторська екскурсія містом' },
+  { src: staticAssetUrl('/images/home/excursions.webp'), alt: 'Авторська екскурсія містом' },
   { src: staticAssetUrl('/images/home/about.jpg'), alt: 'Атмосфера подорожі' },
   { src: staticAssetUrl('/images/home/guides.jpg'), alt: 'Місцевий гід' },
 ] as const

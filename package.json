@@ -6,11 +6,10 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "npm run build -w @gaido/portal -w @gaido/svit -w @gaido/servis -w @gaido/vezu",
-    "dev:portal": "npm run dev -w @gaido/portal -- --host 127.0.0.1 --port 5173",
-    "dev:svit": "npm run dev -w @gaido/svit -- --host 127.0.0.1 --port 5174",
-    "dev:servis": "npm run dev -w @gaido/servis -- --host 127.0.0.1 --port 5175",
-    "dev:vezu": "npm run dev -w @gaido/vezu -- --host 127.0.0.1 --port 5176",
+    "build": "npm run build -w @gaido/web",
+    "dev": "npm run dev -w @gaido/web",
+    "dev:web": "npm run dev -w @gaido/web",
+    "start": "npm run start -w @gaido/web",
     "stop:local": "./stop-local.sh",
     "lint": "npm run lint --workspaces --if-present",
     "test": "npm run test --workspaces --if-present"

@@ -1,0 +1,40 @@
+---
+description: После переезда HTML отдаёт Next.js, не четыре Vite SPA
+alwaysApply: true
+---
+
+# Сайт: Next.js вместо четырёх React SPA
+
+Четыре приложения `apps/portal`, `apps/svit`, `apps/servis`, `apps/vezu` удалены. Не восстанавливать их и не собирать Vite. Интерфейс живёт в `packages/portal`, `packages/guides`, `packages/discover`, `packages/transport` и монтируется клиентом из `apps/web`.
+
+## Кто что отдаёт
+
+```
+nginx :443
+  /api  /healthz  /readyz  /robots.txt  /sitemap.xml  → Go :8081
+  остальной HTML на gaido-ua.com                      → Next :3000
+  svit|servis|vezu.gaido-ua.com                       → Go :8081 (301 на apex)
+```
+
+Порты 3000 и 8081 снаружи не открывать. Локальный Docker (`docker-compose` profile `web`, API `:8091`) на прод не переносится. Прод без Docker: `tourister-api` и `tourister-web`.
+
+Unit `tourister-web` не читает `/var/www/tourister/.env`. Секреты, `DATABASE_URL` и JWT остаются только у Go. В клиентский бандл попадают лишь `NEXT_PUBLIC_*`, и они вшиваются на `next build`, а не при рестарте. `API_INTERNAL_URL` — рантайм SSR (прод `http://127.0.0.1:8081`, локально `http://127.0.0.1:8091`).
+
+## Как устроен `apps/web`
+
+- Один catch-all `app/[[...slug]]/page.tsx`. `ClientShell` выбирает пакет по пути и держит `ssr: false`.
+- До `setReady(true)` должен завершиться `bootstrapAuth` (таймаут не больше пары секунд). Иначе запросы уходят без токена и больше не повторяются.
+- Не рисовать отдельный кадр под LCP-картинку. Его удаление при монтировании SPA и есть скачок страницы. Картинку первого экрана грузить в самом герое, `preload` — только на тот же URL.
+- SEO-теги первого HTML берёт Go: `GET /api/v1/seo/page-meta`. Теги помечать `data-rh="true"`, иначе Helmet продублирует их.
+- Слэш в каноникале и в ответе 200 только у `/`, `/svit/`, `/servis/`, `/vezu/`. Вложенные пути без слэша. Это держат `apps/web/middleware.ts` и sitemap Go. Не включать `trailingSlash: true`.
+- `found: false` и приватные пути (`login`, `account`, `admin`, …) — `noindex`. Не отдавать `notFound()` только из-за `found: false`: часть экранов (например сброс пароля) есть в клиентском роутере и не описана в page-meta.
+- Скрытый crawl-body нужен первому HTML и снимается, когда приложение готово. Не оставлять его в вёрстке рядом с видимым текстом.
+- Редирект `/about`, `/jobs`, `/places`, `/help`, `/looking` ведёт на `/`, как портальный роутер. Не уводить `/about` на `/svit/about`.
+
+## Чего не делать
+
+- Не коммитить `apps/web/.next`.
+- Не проксировать HTML поддоменов на Next: 301 делает Go.
+- Не подключать API `.env` к процессу Node.
+- После `deploy.sh` nginx переключать сразу. Новый Go HTML не отдаёт, пока `location /` смотрит на `:8081`, сайт пустой.
+- Откат — nginx и старый бинарник API вместе. Одного nginx недостаточно.

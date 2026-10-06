@@ -1,4 +1,22 @@
-const API_BASE = import.meta.env.VITE_API_URL ?? ''
+function resolveApiBase(): string {
+  if (typeof process !== 'undefined' && process.env) {
+    // Server-side Next → Go (docker host / loopback). Browser uses relative URLs.
+    if (typeof window === 'undefined') {
+      const internal = process.env.API_INTERNAL_URL
+      if (internal) return internal.replace(/\/$/, '')
+    }
+    const pub = process.env.NEXT_PUBLIC_API_URL ?? process.env.VITE_API_URL
+    if (pub !== undefined) return pub.replace(/\/$/, '')
+  }
+  return ''
+}
+
+let API_BASE = resolveApiBase()
+
+/** Re-read after env is available (tests / hot reload). */
+export function resetApiBaseForTests() {
+  API_BASE = resolveApiBase()
+}
 
 export type ApiError = {
   error: { code: string; message: string; request_id: string }
@@ -223,11 +241,11 @@ export function resolveMediaUrl(url: string): string {
 
 function versionStaticPath(path: string): string {
   if (!path.startsWith('/images/') && !path.startsWith('/fonts/')) return path
-  const base = ((import.meta.env.BASE_URL as string | undefined) || '/').replace(/\/$/, '')
-  const rooted = !base || path.startsWith(`${base}/`) ? path : `${base}${path}`
-  if (/[?&]v=/.test(rooted)) return rooted
-  const buildId = import.meta.env.VITE_BUILD_ID as string | undefined
-  if (!buildId || buildId === 'dev') return rooted
-  const sep = rooted.includes('?') ? '&' : '?'
-  return `${rooted}${sep}v=${buildId}`
+  if (/[?&]v=/.test(path)) return path
+  let buildId = 'dev'
+  const fromEnv = typeof process !== 'undefined' ? process.env?.NEXT_PUBLIC_BUILD_ID || process.env?.VITE_BUILD_ID : ''
+  if (fromEnv) buildId = fromEnv
+  if (!buildId || buildId === 'dev') return path
+  const sep = path.includes('?') ? '&' : '?'
+  return `${path}${sep}v=${buildId}`
 }
