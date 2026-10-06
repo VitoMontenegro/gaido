@@ -32,7 +32,7 @@ services:
       context: .
       dockerfile: apps/web/Dockerfile
     ports:
-      - "3000:3000"
+      - "${FRONTEND_PORT:-3000}:3000"
     environment:
       NEXT_PUBLIC_SITE_URL: http://localhost:3000
       NEXT_PUBLIC_API_URL: ""

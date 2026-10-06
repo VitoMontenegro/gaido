@@ -287,7 +287,7 @@ export default function GuidesHomePage() {
                     className="text-teal font-semibold text-[16px] hover:text-teal-dark"
                   />
                 </h3>
-                <ul className="space-y-2 flex gap-2 align-center">
+                <ul className="space-y-2 flex flex-wrap gap-2 align-center">
                   {group.cities.map((city) => (
                     <li className={'mb-0'} key={city.slug}>
                       <Link to={`/city/${city.slug}`} className="text-base text-[#4b4b4b] transition hover:text-ink hover:underline">
