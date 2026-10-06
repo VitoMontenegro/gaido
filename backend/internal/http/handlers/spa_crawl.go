@@ -122,6 +122,191 @@ func faqAnswerText(s string) string {
 	return strings.Join(strings.Fields(s), " ")
 }
 
+func excursionTypeLabel(raw string) string {
+	switch strings.ToUpper(strings.TrimSpace(raw)) {
+	case "INDIVIDUAL":
+		return "індивідуальна"
+	case "GROUP":
+		return "групова"
+	default:
+		return ""
+	}
+}
+
+func guideTypeLabel(raw string) string {
+	switch strings.TrimSpace(raw) {
+	case domain.GuideTypeGuide:
+		return "гід"
+	case domain.GuideTypeEntertainer:
+		return "конферансьє"
+	case domain.GuideTypeCompanion:
+		return "компаньйон (турлідер)"
+	default:
+		return ""
+	}
+}
+
+func languageLabel(raw string) string {
+	switch strings.ToLower(strings.TrimSpace(raw)) {
+	case "", "uk", "ua", "ukrainian", "українська":
+		if strings.TrimSpace(raw) == "" {
+			return ""
+		}
+		return "українська"
+	default:
+		return strings.TrimSpace(raw)
+	}
+}
+
+func formatDurationUA(minutes int) string {
+	if minutes <= 0 {
+		return ""
+	}
+	if minutes >= 24*60 && minutes%(24*60) == 0 {
+		days := minutes / (24 * 60)
+		return fmt.Sprintf("%d %s", days, daysWordUA(days))
+	}
+	if minutes%60 == 0 {
+		hours := minutes / 60
+		return fmt.Sprintf("%d %s", hours, hoursWordUA(hours))
+	}
+	hours := minutes / 60
+	mins := minutes % 60
+	if hours == 0 {
+		return fmt.Sprintf("%d хв", mins)
+	}
+	return fmt.Sprintf("%d год %d хв", hours, mins)
+}
+
+func hoursWordUA(n int) string {
+	mod10 := n % 10
+	mod100 := n % 100
+	if mod10 == 1 && mod100 != 11 {
+		return "година"
+	}
+	if mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20) {
+		return "години"
+	}
+	return "годин"
+}
+
+func daysWordUA(n int) string {
+	mod10 := n % 10
+	mod100 := n % 100
+	if mod10 == 1 && mod100 != 11 {
+		return "день"
+	}
+	if mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20) {
+		return "дні"
+	}
+	return "днів"
+}
+
+func formatMoney(v float64) string {
+	if v == float64(int64(v)) {
+		return strconv.FormatInt(int64(v), 10)
+	}
+	return strconv.FormatFloat(v, 'f', 2, 64)
+}
+
+func joinList(items []string) string {
+	clean := compactParagraphs(items)
+	return strings.Join(clean, ", ")
+}
+
+func excursionCrawlParagraphs(e *domain.ExcursionView) []string {
+	if e == nil {
+		return nil
+	}
+	var lines []string
+	place := joinList([]string{e.CityName, e.CountryName})
+	if place != "" {
+		lines = append(lines, "Місце: "+place+".")
+	}
+	if label := excursionTypeLabel(e.Type); label != "" {
+		lines = append(lines, "Формат: "+label+".")
+	}
+	if duration := formatDurationUA(e.DurationMinutes); duration != "" {
+		lines = append(lines, "Тривалість: "+duration+".")
+	}
+	if e.PriceFrom > 0 {
+		currency := strings.TrimSpace(e.Currency)
+		if currency == "" {
+			currency = "EUR"
+		}
+		lines = append(lines, fmt.Sprintf("Вартість від %s %s.", formatMoney(e.PriceFrom), currency))
+	}
+	if lang := languageLabel(e.Language); lang != "" {
+		lines = append(lines, "Мова проведення: "+lang+".")
+	}
+	if point := strings.TrimSpace(e.MeetingPoint); point != "" {
+		lines = append(lines, "Місце зустрічі: "+point+".")
+	}
+	if details := strings.TrimSpace(e.OrganizationalDetails); details != "" {
+		lines = append(lines, details)
+	}
+	if included := joinList(e.IncludedItems); included != "" {
+		lines = append(lines, "Включено: "+included+".")
+	}
+	if excluded := joinList(e.ExcludedItems); excluded != "" {
+		lines = append(lines, "Не включено: "+excluded+".")
+	}
+	lines = append(lines, e.Description)
+	lines = append(lines, htmlParagraphs(e.BodyHTML)...)
+	return compactParagraphs(lines)
+}
+
+func excursionRouteParagraphs(e *domain.ExcursionView) []string {
+	if e == nil {
+		return nil
+	}
+	lines := compactParagraphs(e.StructuredContent.RouteStops)
+	if disclaimer := strings.TrimSpace(e.StructuredContent.RouteDisclaimer); disclaimer != "" {
+		lines = append(lines, disclaimer)
+	}
+	return lines
+}
+
+func guideCrawlParagraphs(g *domain.GuideProfile, cityName string, excursions []domain.ExcursionView) []string {
+	if g == nil {
+		return nil
+	}
+	var lines []string
+	name := strings.TrimSpace(g.DisplayName)
+	cityName = strings.TrimSpace(cityName)
+	if name != "" && cityName != "" {
+		lines = append(lines, fmt.Sprintf("%s проводить екскурсії у місті %s.", name, cityName))
+	} else if cityName != "" {
+		lines = append(lines, "Місто: "+cityName+".")
+	}
+	if label := guideTypeLabel(g.GuideType); label != "" {
+		lines = append(lines, "Формат роботи: "+label+".")
+	}
+	if hours := strings.TrimSpace(g.ResponseHours); hours != "" {
+		lines = append(lines, "Години відповіді: "+hours+".")
+	}
+	lines = append(lines, splitParagraphs(domain.PublicGuideAbout(g.About))...)
+	if titles := excursionTitleList(excursions); titles != "" {
+		lines = append(lines, "Екскурсії гіда: "+titles+".")
+	}
+	return compactParagraphs(lines)
+}
+
+func excursionTitleList(items []domain.ExcursionView) string {
+	titles := make([]string, 0, len(items))
+	for _, e := range items {
+		title := strings.TrimSpace(e.Title)
+		if title == "" {
+			continue
+		}
+		titles = append(titles, title)
+		if len(titles) >= 12 {
+			break
+		}
+	}
+	return strings.Join(titles, ", ")
+}
+
 func htmlParagraphs(s string) []string {
 	s = strings.ReplaceAll(s, "\r\n", "\n")
 	s = strings.ReplaceAll(s, "</p>", "\n")

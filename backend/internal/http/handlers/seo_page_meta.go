@@ -96,11 +96,10 @@ func normalizePageMetaPath(path string) string {
 	return path
 }
 
-func unknownPageMeta(canonical string) map[string]any {
+func unknownPageMeta() map[string]any {
 	return map[string]any{
 		"title":       "Gaido UA",
 		"description": "Для українців — від українців",
-		"canonical":   canonical,
 		"no_index":    true,
 		"found":       false,
 		"json_ld":     []string{},
@@ -127,7 +126,7 @@ func (h *Handlers) GetSpaPageMetaJSON(w http.ResponseWriter, r *http.Request) {
 	meta := h.ResolveSpaPageMeta(r.Context(), host, path)
 	var payload map[string]any
 	if meta == nil {
-		payload = unknownPageMeta(strings.TrimRight(h.publicBaseURL(), "/") + path)
+		payload = unknownPageMeta()
 	} else {
 		payload = map[string]any{
 			"title":               meta.Title,

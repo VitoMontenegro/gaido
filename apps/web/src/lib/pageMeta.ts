@@ -46,11 +46,11 @@ function apiBase(): string {
   return process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '') || ''
 }
 
-function fallbackMeta(path: string): PageMeta {
+function fallbackMeta(_path: string): PageMeta {
   return {
     title: 'Gaido UA',
     description: 'Для українців — від українців',
-    canonical: `${siteOrigin()}${path === '/' ? '/' : path}`,
+    canonical: '',
     no_index: true,
     found: false,
   }
@@ -64,7 +64,7 @@ export async function fetchPageMeta(pathname: string): Promise<PageMeta> {
     if (!res.ok) return fallbackMeta(path)
     const meta = (await res.json()) as PageMeta
     if (meta.found === false) {
-      return { ...fallbackMeta(path), ...meta, no_index: true, found: false, crawl_body: undefined }
+      return { ...fallbackMeta(path), ...meta, canonical: '', no_index: true, found: false, crawl_body: undefined }
     }
     return meta
   } catch {

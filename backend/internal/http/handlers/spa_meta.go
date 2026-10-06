@@ -378,10 +378,13 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 		if e.CityName != "" {
 			title = pageTitleSuffix(fmt.Sprintf("%s — екскурсія %s", e.Title, ukInLocative(e.CityName)))
 		}
-		paras := compactParagraphs(append([]string{e.Description}, htmlParagraphs(e.BodyHTML)...))
 		var guideLinks []CrawlLink
 		if e.GuideName != "" && e.GuideSlug != "" {
 			guideLinks = []CrawlLink{crawlLink(e.GuideName, absURL(base, "/guide/"+e.GuideSlug))}
+		}
+		body := newCrawlBody(e.Title, excursionCrawlParagraphs(e)...).withSection("Гід", nil, guideLinks)
+		if route := excursionRouteParagraphs(e); len(route) > 0 {
+			body = body.withSection("Маршрут", route, nil)
 		}
 		return (&SpaPageMeta{
 			Title:       title,
@@ -389,7 +392,7 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 			Canonical:   base + "/excursion/" + e.Slug,
 			OgImage:     img,
 			JsonLd:      h.excursionDetailJsonLd(ctx, e, base),
-		}).withBody(newCrawlBody(e.Title, paras...).withSection("Гід", nil, guideLinks))
+		}).withBody(body)
 
 	case "guide":
 		if len(parts) != 2 || h.Guides == nil {
@@ -425,7 +428,7 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 			Canonical:   base + "/guide/" + g.WebsiteSlug,
 			OgImage:     img,
 			JsonLd:      h.guidePageJsonLd(ctx, g, base),
-		}).withBody(newCrawlBody(heading, splitParagraphs(about)...).withSection("Екскурсії", nil, excursionCrawlLinks(base, excursions)))
+		}).withBody(newCrawlBody(heading, guideCrawlParagraphs(g, cityName, excursions)...).withSection("Екскурсії", nil, excursionCrawlLinks(base, excursions)))
 
 	case "countries":
 		if len(parts) != 2 || h.Geo == nil {

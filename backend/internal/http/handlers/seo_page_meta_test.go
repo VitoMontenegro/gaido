@@ -28,6 +28,9 @@ func TestGetSpaPageMetaJSON_unknownIsNoIndex(t *testing.T) {
 	if body["found"] != false || body["no_index"] != true {
 		t.Fatalf("body = %#v", body)
 	}
+	if _, ok := body["canonical"]; ok {
+		t.Fatal("unknown page must not set canonical")
+	}
 	if _, ok := body["crawl_body"]; ok {
 		t.Fatal("unknown page must not include crawl_body")
 	}
