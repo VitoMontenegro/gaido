@@ -168,7 +168,7 @@ export default function CountryExcursionsPage() {
         {!isLoading && cities.length > 0 && (
           <section>
             <h2 className="mb-4 text-xl font-semibold">Міста</h2>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="c-city flex flex-wrap gap-2.5 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {cities.map((city) => (
                 <Link key={city.slug} to={`/city/${city.slug}`} className="card hover:shadow-md">
                   {city.name}
