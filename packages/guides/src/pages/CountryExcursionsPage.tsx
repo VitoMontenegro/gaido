@@ -1,5 +1,5 @@
 import { Link, useParams } from 'react-router-dom'
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { catalogApi, placePagesApi } from '@gaido/api-client/api/client'
 import Breadcrumbs from '../components/Breadcrumbs'
@@ -38,6 +38,8 @@ function lowestOffer(items: ExcursionItem[]) {
   return price > 0 ? { price, currency } : null
 }
 
+const EXCURSIONS_PAGE = 8
+
 function excursionWord(n: number) {
   const mod10 = n % 10
   const mod100 = n % 100
@@ -53,10 +55,29 @@ export default function CountryExcursionsPage() {
     queryFn: () => catalogApi.countries(),
   })
   const country = (countries?.items ?? []).find((c) => c.slug === countrySlug)
+  const [shown, setShown] = useState(EXCURSIONS_PAGE)
+  useEffect(() => {
+    setShown(EXCURSIONS_PAGE)
+  }, [countrySlug])
   const { data: excursions, isLoading } = useQuery({
     queryKey: ['excursions', 'country', countrySlug],
-    queryFn: () =>
-      catalogApi.excursions({ country_slug: countrySlug, limit: '50' }) as Promise<{ items: ExcursionItem[] }>,
+    queryFn: async () => {
+      const pageSize = 50
+      const items: ExcursionItem[] = []
+      let offset = 0
+      for (;;) {
+        const page = (await catalogApi.excursions({
+          country_slug: countrySlug,
+          limit: String(pageSize),
+          offset: String(offset),
+        })) as { items: ExcursionItem[]; total?: number }
+        items.push(...(page.items ?? []))
+        offset += page.items?.length ?? 0
+        if (!page.items?.length || page.items.length < pageSize) break
+        if (typeof page.total === 'number' && offset >= page.total) break
+      }
+      return { items }
+    },
     enabled: !!countrySlug,
   })
   const { data: guides, isLoading: guidesLoading } = useQuery({
@@ -178,7 +199,7 @@ export default function CountryExcursionsPage() {
           </section>
         )}
 
-        <section className="mt-10 min-h-[120px]">
+        <section className="mt-10 min-h-30">
           <h2 className="mb-4 text-xl font-semibold">Екскурсії</h2>
           {isLoading ? (
             <p className="text-sm text-muted">Завантаження…</p>
@@ -187,20 +208,22 @@ export default function CountryExcursionsPage() {
           ) : (
             <>
               <ExcursionCardGrid>
-                {items.slice(0, 8).map((e, index) => (
+                {items.slice(0, shown).map((e, index) => (
                   <ExcursionCard key={e.id} e={e} compact priority={index === 0} />
                 ))}
               </ExcursionCardGrid>
-              {items.length > 8 && (
-                <p className="mt-4 text-sm text-muted">
-                  Показано 8 з {items.length}. Решту відкрийте в місті вище.
-                </p>
+              {shown < items.length && (
+                <div className="pt-4 text-center">
+                  <button type="button" className="btn-secondary px-6" onClick={() => setShown((n) => n + EXCURSIONS_PAGE)}>
+                    Показати ще
+                  </button>
+                </div>
               )}
             </>
           )}
         </section>
 
-        <section className="mt-10 min-h-[120px]">
+        <section className="mt-10 min-h-30">
           <h2 className="mb-4 text-xl font-semibold">Україномовні гіди</h2>
           {guidesLoading ? (
             <p className="text-sm text-muted">Завантаження…</p>
