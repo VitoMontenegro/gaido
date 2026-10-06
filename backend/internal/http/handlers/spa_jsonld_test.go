@@ -19,6 +19,17 @@ func TestExcursionSchemaImages_sectionBaseUsesApex(t *testing.T) {
 	}
 }
 
+func TestListingCoverImageSkipsExternalURL(t *testing.T) {
+	if got := listingCoverImage("https://gaido-ua.com/svit", "https://ivisit.nyc/photo.jpg"); got != "" {
+		t.Fatalf("external cover must not be prefixed, got %s", got)
+	}
+	got := listingCoverImage("https://gaido-ua.com/svit", "abc.webp")
+	want := "https://gaido-ua.com/api/v1/media/public/abc.webp"
+	if got != want {
+		t.Fatalf("got %s", got)
+	}
+}
+
 func TestIsPortalHome(t *testing.T) {
 	cases := []struct {
 		host, path string

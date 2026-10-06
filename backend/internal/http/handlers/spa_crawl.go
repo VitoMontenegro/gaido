@@ -134,6 +134,24 @@ func htmlParagraphs(s string) []string {
 	return splitParagraphs(s)
 }
 
+func cityCrawlLinks(base string, items []domain.ExcursionView) []CrawlLink {
+	seen := map[string]struct{}{}
+	out := make([]CrawlLink, 0)
+	for _, e := range items {
+		slug := strings.TrimSpace(e.CitySlug)
+		name := strings.TrimSpace(e.CityName)
+		if slug == "" || name == "" {
+			continue
+		}
+		if _, ok := seen[slug]; ok {
+			continue
+		}
+		seen[slug] = struct{}{}
+		out = append(out, crawlLink(name, absURL(base, "/city/"+slug)))
+	}
+	return out
+}
+
 func excursionCrawlLinks(base string, items []domain.ExcursionView) []CrawlLink {
 	out := make([]CrawlLink, 0, len(items))
 	for _, e := range items {
@@ -172,9 +190,6 @@ func guideProfileCrawlLinks(base string, items []domain.GuideProfile) []CrawlLin
 			continue
 		}
 		out = append(out, crawlLink(name, absURL(base, "/guide/"+g.WebsiteSlug)))
-		if len(out) >= 50 {
-			break
-		}
 	}
 	return out
 }
@@ -185,7 +200,7 @@ func countryGuideCrawlLinks(base string, items []countryGuideEntry) []CrawlLink 
 		if c.Name == "" || c.Slug == "" {
 			continue
 		}
-		out = append(out, crawlLink(c.Name, absURL(base, "/guides/countries/"+c.Slug)))
+		out = append(out, crawlLink(c.Name, absURL(base, "/countries/"+c.Slug)))
 	}
 	return out
 }
@@ -194,7 +209,7 @@ func destinationCrawlLinks(base string, destinations []domain.DestinationGroup) 
 	out := make([]CrawlLink, 0)
 	for _, group := range destinations {
 		if group.CountrySlug != "" && group.CountryName != "" {
-			out = append(out, crawlLink(group.CountryName, absURL(base, "/guides/countries/"+group.CountrySlug)))
+			out = append(out, crawlLink(group.CountryName, absURL(base, "/countries/"+group.CountrySlug)))
 		}
 		for _, city := range group.Cities {
 			if city.Slug == "" || city.Name == "" {

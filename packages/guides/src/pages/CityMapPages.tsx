@@ -9,6 +9,7 @@ import ExcursionCard from '../components/ExcursionCard'
 import { PlaceBody, PlaceExcerpt } from '../components/PlacePageBlocks'
 import SeoFaqSection from '../components/SeoFaqSection'
 import { buildExcursionListingJsonLd, buildPlaceJsonLd } from '../lib/excursionListingSchema'
+import GuideCard, { GuideCardGrid } from '../components/GuideCard'
 import { Seo } from '../lib/seo'
 import {
   buildFaqPageJsonLd,
@@ -20,8 +21,8 @@ import {
   seoCityExcursionsDescription,
   seoCityExcursionsHeading,
   seoCityExcursionsTitle,
-  SEO_MAP_DESCRIPTION,
-  SEO_MAP_HEADING,
+  SEO_COUNTRIES_DESCRIPTION,
+  SEO_COUNTRIES_HEADING,
 } from '../lib/seoTemplates'
 import { pageTitle } from '@gaido/site-urls/brand'
 
@@ -121,8 +122,11 @@ export default function CityPage() {
   const breadcrumbItems = city
     ? [
         ...(countryName && city.country_slug
-          ? [{ label: countryName, to: `/countries/${city.country_slug}` }]
-          : [{ label: 'Карта', to: '/map' }]),
+          ? [
+              { label: 'Країни', to: '/countries' },
+              { label: countryName, to: `/countries/${city.country_slug}` },
+            ]
+          : [{ label: 'Країни', to: '/countries' }]),
         { label: city.name },
       ]
     : []
@@ -154,22 +158,7 @@ export default function CityPage() {
           <>
             <PlaceExcerpt value={placePage?.excerpt} fallback={excerptFallback} />
 
-            <section className="mt-8 min-h-[120px]">
-              <h2 className="mb-4 text-xl font-semibold">Україномовні гіди</h2>
-              {guidesLoading ? (
-                <GuideGridSkeleton />
-              ) : guideItems.length === 0 ? (
-                <p className="text-sm text-muted">Поки немає гідів у цьому місті.</p>
-              ) : (
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                  {guideItems.map((g) => (
-                    <Link key={g.id} to={`/guide/${g.slug}`} className="card hover:shadow-md">{g.display_name}</Link>
-                  ))}
-                </div>
-              )}
-            </section>
-
-            <section className="mt-10 min-h-[280px]">
+            <section className="mt-8 min-h-[280px]">
               <h2 className="mb-4 text-xl font-semibold">Екскурсії</h2>
               {excursionsLoading ? (
                 <ExcursionGridSkeleton />
@@ -181,6 +170,21 @@ export default function CityPage() {
                     <ExcursionCard key={e.id} e={e} priority={index === 0} />
                   ))}
                 </div>
+              )}
+            </section>
+
+            <section className="mt-10 min-h-[120px]">
+              <h2 className="mb-4 text-xl font-semibold">Україномовні гіди</h2>
+              {guidesLoading ? (
+                <GuideGridSkeleton />
+              ) : guideItems.length === 0 ? (
+                <p className="text-sm text-muted">Поки немає гідів у цьому місті.</p>
+              ) : (
+                <GuideCardGrid>
+                  {guideItems.map((g) => (
+                    <GuideCard key={g.id} guide={g} compact />
+                  ))}
+                </GuideCardGrid>
               )}
             </section>
 
@@ -197,33 +201,72 @@ export default function CityPage() {
   )
 }
 
-export function MapPage() {
-  const { data, isLoading } = useQuery({
+export function CountriesPage() {
+  const { data: pointsData, isLoading: pointsLoading } = useQuery({
     queryKey: ['map-points'],
     queryFn: () => catalogApi.mapPoints(),
   })
+  const { data: topGuides } = useQuery({
+    queryKey: ['guides-top', 'countries'],
+    queryFn: () => catalogApi.topGuides(8),
+  })
+  const { data: excursions } = useQuery({
+    queryKey: ['excursions', 'countries-preview'],
+    queryFn: () => catalogApi.excursions({ limit: '8' }),
+  })
 
-  const points = data?.items ?? []
+  const points = pointsData?.items ?? []
+  const guideItems = topGuides?.items ?? []
+  const excursionItems = excursions?.items ?? []
 
   return (
     <>
-      <Seo title={pageTitle(SEO_MAP_HEADING)} description={SEO_MAP_DESCRIPTION} path="/map" />
-      <Breadcrumbs items={[{ label: 'Карта' }]} currentPath="/map" />
+      <Seo title={pageTitle(SEO_COUNTRIES_HEADING)} description={SEO_COUNTRIES_DESCRIPTION} path="/countries" />
+      <Breadcrumbs items={[{ label: 'Країни' }]} currentPath="/countries" />
       <div className="container-site py-5 sm:py-8">
-        <h1 className="font-display text-xl font-bold leading-tight break-normal sm:text-3xl">{SEO_MAP_HEADING}</h1>
-        <p className="mt-1.5 text-sm text-stone-600 sm:mt-2 sm:text-base">{SEO_MAP_DESCRIPTION}</p>
+        <h1 className="font-display text-xl font-bold leading-tight break-normal sm:text-3xl">{SEO_COUNTRIES_HEADING}</h1>
+        <p className="mt-1.5 max-w-3xl text-sm text-stone-600 sm:mt-2 sm:text-base">{SEO_COUNTRIES_DESCRIPTION}</p>
 
-        {isLoading ? (
-          <div className="mt-6 min-h-80 animate-pulse rounded-2xl bg-sand-100 sm:min-h-130" aria-label="Завантаження карти" />
-        ) : points.length === 0 ? (
-          <p className="mt-6 text-stone-500">Поки немає опублікованих екскурсій на карті.</p>
-        ) : (
-          <>
-            <div className="mt-6">
-              <CitiesMap points={points} />
+        <section className="mt-8">
+          {pointsLoading ? (
+            <div className="min-h-40 animate-pulse rounded-2xl bg-sand-100" aria-label="Завантаження напрямків" />
+          ) : points.length === 0 ? (
+            <p className="text-sm text-muted">Поки немає країн з опублікованими екскурсіями.</p>
+          ) : (
+            <>
+              <MapDestinationsList points={points} />
+              <div className="mt-6">
+                <CitiesMap points={points} />
+              </div>
+            </>
+          )}
+        </section>
+
+        {excursionItems.length > 0 && (
+          <section className="mt-10">
+            <h2 className="mb-4 text-xl font-semibold">Екскурсії</h2>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {excursionItems.map((excursion, index) => (
+                <ExcursionCard key={excursion.id} e={excursion} compact priority={index === 0} />
+              ))}
             </div>
-            <MapDestinationsList points={points} />
-          </>
+          </section>
+        )}
+
+        {guideItems.length > 0 && (
+          <section className="mt-10">
+            <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+              <h2 className="text-xl font-semibold">Гіди</h2>
+              <Link to="/guides" className="link-accent text-sm normal-case">
+                Усі гіди →
+              </Link>
+            </div>
+            <GuideCardGrid>
+              {guideItems.map((guide) => (
+                <GuideCard key={guide.id} guide={guide} compact />
+              ))}
+            </GuideCardGrid>
+          </section>
         )}
       </div>
     </>

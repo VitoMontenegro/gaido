@@ -377,7 +377,7 @@ export default function PortalHomePage() {
             title="Країни та міста з гідами"
             subtitle="Оберіть напрямок — знайдіть гіда та екскурсію українською"
             action={
-              <a href={guidesUrl('/guides')} className="link-accent text-sm normal-case">
+              <a href={guidesUrl('/countries')} className="link-accent text-sm normal-case">
                 Усі країни →
               </a>
             }
@@ -390,7 +390,7 @@ export default function PortalHomePage() {
               <div key={group.country_slug} className="card">
                 <h3 className="section-title-sm mb-2">
                   <a
-                    href={guidesUrl(`/guides/countries/${group.country_slug}`)}
+                    href={guidesUrl(`/countries/${group.country_slug}`)}
                     className="text-teal font-semibold hover:text-teal-dark"
                   >
                     {group.country_name}
@@ -415,7 +415,7 @@ export default function PortalHomePage() {
             <ul className="mt-8 flex flex-wrap gap-x-4 gap-y-2 text-sm">
               {moreCountries.map((country) => (
                 <li key={country.slug}>
-                  <a href={guidesUrl(`/guides/countries/${country.slug}`)} className="text-muted transition hover:text-ink hover:underline">
+                  <a href={guidesUrl(`/countries/${country.slug}`)} className="text-muted transition hover:text-ink hover:underline">
                     {country.name}
                     {country.guide_count > 0 ? ` · ${country.guide_count}` : ''}
                   </a>

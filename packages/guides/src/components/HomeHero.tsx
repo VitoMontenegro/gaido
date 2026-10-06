@@ -92,12 +92,12 @@ export default function HomeHero({ heading, eyebrow, subtitle }: Props) {
 
         <div className="mt-5 flex flex-wrap items-center gap-3">
           <Link
-            to="/map"
+            to="/countries"
             className="inline-flex min-h-10 items-center rounded-xl border border-white/25 bg-white/10 px-4 text-sm font-medium text-white transition hover:bg-white/20"
           >
-            Карта напрямків
+            Країни та міста
           </Link>
-          <Link to="/guides/countries" className="text-sm font-medium text-white/85 underline-offset-4 hover:underline">
+          <Link to="/guides" className="text-sm font-medium text-white/85 underline-offset-4 hover:underline">
             Дивитись гідів →
           </Link>
         </div>

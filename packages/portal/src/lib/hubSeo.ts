@@ -157,7 +157,7 @@ export function buildPortalHomeJsonLd(input: {
 
   const countries = itemList(
     'Україномовні гіди за країнами',
-    input.countries.map((c) => ({ name: c.name, url: guidesUrl(`/guides/countries/${c.slug}`) })),
+    input.countries.map((c) => ({ name: c.name, url: guidesUrl(`/countries/${c.slug}`) })),
   )
   if (countries) blocks.push(countries)
 

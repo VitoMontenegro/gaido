@@ -25,7 +25,7 @@ function compareUkName(a: string, b: string) {
 function CountryTile({ slug, name, guideCount }: { slug: string; name: string; guideCount: number }) {
   return (
     <Link
-      to={`/guides/countries/${slug}`}
+      to={`/countries/${slug}`}
       className="group flex min-h-17 flex-col justify-between rounded-2xl border border-border bg-surface p-3 transition hover:border-brand-300 hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)]"
     >
       <p className="font-display text-base font-medium normal-case text-ink group-hover:text-brand-700 md:text-lg">
@@ -82,7 +82,7 @@ export default function GuidesListPage() {
               '@type': 'ListItem',
               position: index + 1,
               name: c.name,
-              url: `/guides/countries/${c.slug}`,
+              url: `/countries/${c.slug}`,
             })),
           }]
         : [],

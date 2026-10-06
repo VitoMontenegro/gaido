@@ -154,7 +154,7 @@ func (h *Handlers) countryPageJsonLd(ctx context.Context, c *postgres.Country, b
 		buildFaqPageJSON(faq),
 		buildBreadcrumbJSON(base, [][2]string{
 			{"Головна", base + "/"},
-			{"Екскурсії", base + "/search"},
+			{"Країни", base + "/countries"},
 			{c.Name, base + path},
 		}),
 	)
@@ -185,7 +185,7 @@ func (h *Handlers) cityPageJsonLd(ctx context.Context, city *postgres.City, base
 
 	crumbs := [][2]string{
 		{"Головна", base + "/"},
-		{"Екскурсії", base + "/search"},
+		{"Країни", base + "/countries"},
 	}
 	if countryName != "" && city.CountrySlug != "" {
 		crumbs = append(crumbs, [2]string{countryName, base + "/countries/" + city.CountrySlug})

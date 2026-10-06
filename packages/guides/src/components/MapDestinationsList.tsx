@@ -27,8 +27,7 @@ export default function MapDestinationsList({ points }: { points: MapPoint[] }) 
   if (!groups.length) return null
 
   return (
-    <section className="mt-10">
-      <h2 className="font-display mb-6 text-2xl font-bold">Напрямки</h2>
+    <div>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {groups.map((country) => (
           <article key={country.slug} className="card">
@@ -50,6 +49,6 @@ export default function MapDestinationsList({ points }: { points: MapPoint[] }) 
           </article>
         ))}
       </div>
-    </section>
+    </div>
   )
 }

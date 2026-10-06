@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { catalogApi, placePagesApi } from '@gaido/api-client/api/client'
 import Breadcrumbs from '../components/Breadcrumbs'
 import ExcursionCard, { ExcursionCardGrid } from '../components/ExcursionCard'
+import GuideCard, { GuideCardGrid } from '../components/GuideCard'
 import { PlaceBody, PlaceExcerpt } from '../components/PlacePageBlocks'
 import SeoFaqSection from '../components/SeoFaqSection'
 import type { ExcursionItem } from '../components/excursionUi'
@@ -58,6 +59,27 @@ export default function CountryExcursionsPage() {
       catalogApi.excursions({ country_slug: countrySlug, limit: '50' }) as Promise<{ items: ExcursionItem[] }>,
     enabled: !!countrySlug,
   })
+  const { data: guides, isLoading: guidesLoading } = useQuery({
+    queryKey: ['guides', 'country', countrySlug],
+    queryFn: async () => {
+      const pageSize = 50
+      const items = []
+      let offset = 0
+      for (;;) {
+        const page = await catalogApi.guides({
+          country_slug: countrySlug,
+          limit: String(pageSize),
+          offset: String(offset),
+        })
+        items.push(...page.items)
+        offset += page.items.length
+        if (page.items.length < pageSize) break
+        if (typeof page.total === 'number' && offset >= page.total) break
+      }
+      return { items }
+    },
+    enabled: !!countrySlug,
+  })
   const { data: placePage } = useQuery({
     queryKey: ['place-page', 'country', countrySlug],
     queryFn: () => placePagesApi.public('country', countrySlug),
@@ -67,6 +89,7 @@ export default function CountryExcursionsPage() {
 
   const title = country?.name ?? countrySlug
   const items = excursions?.items ?? []
+  const guideItems = guides?.items ?? []
   const cities = useMemo(() => {
     const bySlug = new Map<string, { slug: string; name: string }>()
     for (const item of items) {
@@ -119,13 +142,13 @@ export default function CountryExcursionsPage() {
       <Breadcrumbs
         currentPath={`/countries/${countrySlug}`}
         items={[
-          { label: 'Екскурсії', to: '/search' },
+          { label: 'Країни', to: '/countries' },
           { label: title },
         ]}
       />
       <div className="container-site py-5 md:py-8">
-        <Link to="/search" className="mb-4 inline-block text-sm text-teal hover:underline md:hidden">
-          ← Усі екскурсії
+        <Link to="/countries" className="mb-4 inline-block text-sm text-teal hover:underline md:hidden">
+          ← Усі країни
         </Link>
         <h1 className={cn('section-title mb-1 text-2xl md:text-[28px]', !country && 'capitalize')}>
           {pageHeading}
@@ -162,11 +185,33 @@ export default function CountryExcursionsPage() {
           ) : items.length === 0 ? (
             <p className="text-sm text-muted">У цій країні поки немає опублікованих екскурсій.</p>
           ) : (
-            <ExcursionCardGrid>
-              {items.map((e, index) => (
-                <ExcursionCard key={e.id} e={e} compact priority={index === 0} />
+            <>
+              <ExcursionCardGrid>
+                {items.slice(0, 8).map((e, index) => (
+                  <ExcursionCard key={e.id} e={e} compact priority={index === 0} />
+                ))}
+              </ExcursionCardGrid>
+              {items.length > 8 && (
+                <p className="mt-4 text-sm text-muted">
+                  Показано 8 з {items.length}. Решту відкрийте в місті вище.
+                </p>
+              )}
+            </>
+          )}
+        </section>
+
+        <section className="mt-10 min-h-[120px]">
+          <h2 className="mb-4 text-xl font-semibold">Україномовні гіди</h2>
+          {guidesLoading ? (
+            <p className="text-sm text-muted">Завантаження…</p>
+          ) : guideItems.length === 0 ? (
+            <p className="text-sm text-muted">У цій країні поки немає опублікованих гідів.</p>
+          ) : (
+            <GuideCardGrid>
+              {guideItems.map((guide) => (
+                <GuideCard key={guide.id} guide={guide} compact />
               ))}
-            </ExcursionCardGrid>
+            </GuideCardGrid>
           )}
         </section>
 

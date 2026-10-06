@@ -15,7 +15,7 @@ import { useFavorites, useSyncGuestFavorites } from '../hooks/useFavorites'
 
 const GUIDES_NAV = [
   { to: '/search', label: 'Пошук' },
-  { to: '/map', label: 'Країни' },
+  { to: '/countries', label: 'Країни' },
   { to: '/guides', label: 'Гіди' },
   { to: '/journal', label: 'Журнал' },
   { to: '/forums', label: 'Форум' },

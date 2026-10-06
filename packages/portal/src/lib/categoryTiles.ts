@@ -3,8 +3,8 @@ import { staticAssetUrl } from '@gaido/site-urls/staticAsset'
 
 export const DEFAULT_CATEGORY_TILES: HomeCategoryTile[] = [
   { label: 'Пошук', url: '/search', image_url: staticAssetUrl('/images/home/search.jpg') },
-  { label: 'Карта', url: '/map', image_url: staticAssetUrl('/images/home/map.jpg') },
-  { label: 'Гіди', url: '/guides/countries', image_url: staticAssetUrl('/images/home/guides.jpg') },
+  { label: 'Країни', url: '/countries', image_url: staticAssetUrl('/images/home/map.jpg') },
+  { label: 'Гіди', url: '/guides', image_url: staticAssetUrl('/images/home/guides.jpg') },
   { label: 'Журнал', url: '/journal', image_url: staticAssetUrl('/images/home/journal.jpg') },
 ]
 

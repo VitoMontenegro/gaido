@@ -72,6 +72,7 @@ export default function SearchPage() {
         title={pageTitle(SEO_SEARCH_HEADING)}
         description={SEO_SEARCH_DESCRIPTION}
         path="/search"
+        noIndex
         jsonLd={listingJsonLd.length > 0 ? listingJsonLd : undefined}
       />
       <Breadcrumbs items={[{ label: 'Пошук' }]} currentPath="/search" />

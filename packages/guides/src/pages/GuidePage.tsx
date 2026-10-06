@@ -69,6 +69,7 @@ export default function GuidePage() {
 
   const excursionItems = excursions?.items ?? []
   const countryFromExcursion = excursionItems.find((e) => e.country_slug && e.country_name)
+  const cityFromExcursion = excursionItems.find((e) => e.city_slug && e.city_name)
 
   const about = displayGuideAbout(guide.about)
 
@@ -104,7 +105,13 @@ export default function GuidePage() {
           ...(countryFromExcursion
             ? [{
                 label: countryFromExcursion.country_name!,
-                to: `/guides/countries/${countryFromExcursion.country_slug}`,
+                to: `/countries/${countryFromExcursion.country_slug}`,
+              }]
+            : []),
+          ...(cityFromExcursion
+            ? [{
+                label: cityFromExcursion.city_name!,
+                to: `/city/${cityFromExcursion.city_slug}`,
               }]
             : []),
           { label: guide.display_name },
@@ -166,7 +173,7 @@ export default function GuidePage() {
       </div>
 
       <div className="container-site pb-10">
-        <Link to="/guides/countries" className="text-brand-700 hover:underline">← Усі гіди</Link>
+        <Link to="/guides" className="text-brand-700 hover:underline">← Усі гіди</Link>
       </div>
     </>
   )

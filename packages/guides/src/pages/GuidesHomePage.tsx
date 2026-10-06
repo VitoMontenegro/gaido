@@ -243,7 +243,7 @@ export default function GuidesHomePage() {
               title="Фаворити мандрівників"
               subtitle="Місцеві експерти з авторськими маршрутами"
               action={
-                <Link to="/guides/countries" className="link-accent text-sm normal-case">
+                <Link to="/guides" className="link-accent text-sm normal-case">
                   Усі гіди →
                 </Link>
               }
@@ -272,8 +272,8 @@ export default function GuidesHomePage() {
             title="Популярні напрямки"
             subtitle="Оберіть місто — знайдіть гіда та екскурсію"
             action={
-              <Link to="/map" className="link-accent text-sm normal-case">
-                Усі міста на карті →
+              <Link to="/countries" className="link-accent text-sm normal-case">
+                Усі країни →
               </Link>
             }
           />

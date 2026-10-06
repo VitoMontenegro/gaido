@@ -152,10 +152,10 @@ export default function AboutPage() {
               Знайти екскурсію
             </Link>
             <Link
-              to="/map"
+              to="/countries"
               className="inline-flex min-h-10 min-w-45 items-center justify-center rounded-xl border border-white/25 bg-white/10 px-5 text-base font-medium text-white transition hover:bg-white/20"
             >
-              Карта напрямків
+              Країни та міста
             </Link>
           </div>
         </div>

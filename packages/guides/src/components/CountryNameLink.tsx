@@ -12,7 +12,7 @@ function useCountryGuideSlugs() {
   return useMemo(() => new Set((data?.items ?? []).map((c) => c.slug)), [data?.items])
 }
 
-/** Country name → `/guides/countries/:slug` when that country has published guides. */
+/** Country name → `/countries/:slug` when that country has published guides. */
 export default function CountryNameLink({
   slug,
   name,

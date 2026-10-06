@@ -185,6 +185,14 @@ func buildExcursionItemListJSON(items []domain.ExcursionView, base, listName str
 	}
 }
 
+func listingCoverImage(base, img string) string {
+	img = strings.TrimSpace(img)
+	if img == "" || strings.HasPrefix(img, "http://") || strings.HasPrefix(img, "https://") {
+		return ""
+	}
+	return jsonLdAssetBase(base) + "/api/v1/media/public/" + strings.TrimPrefix(img, "/")
+}
+
 func buildExcursionAggregateProductJSON(items []domain.ExcursionView, base, name, description string) map[string]any {
 	if len(items) == 0 {
 		return nil
@@ -200,8 +208,8 @@ func buildExcursionAggregateProductJSON(items []domain.ExcursionView, base, name
 		if e.Currency != "" {
 			currency = e.Currency
 		}
-		if img := strings.TrimSpace(e.CoverImageURL); img != "" && len(images) < 8 {
-			images = append(images, jsonLdAssetBase(base)+"/api/v1/media/public/"+img)
+		if img := listingCoverImage(base, e.CoverImageURL); img != "" && len(images) < 8 {
+			images = append(images, img)
 		}
 	}
 
@@ -312,7 +320,7 @@ func buildCountryGuideItemListJSON(countries []countryGuideEntry, base string) m
 			"@type":    "ListItem",
 			"position": i + 1,
 			"name":     c.Name,
-			"url":      base + "/guides/countries/" + c.Slug,
+			"url":      base + "/countries/" + c.Slug,
 		}
 	}
 	return urlItemListJSON("Україномовні гіди за країнами", elements)

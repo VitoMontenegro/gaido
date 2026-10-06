@@ -288,7 +288,7 @@ func defaultHomeContent() domain.HomeContent {
 		SEOImageURL:    "d2b27d81f09874a08b4dc3293fe67f2e.webp",
 		CategoryTiles: []domain.HomeCategoryTile{
 			{Label: "Пошук", URL: "/search", ImageURL: "/images/home/search.jpg"},
-			{Label: "Країни", URL: "/map", ImageURL: "/images/home/map.jpg"},
+			{Label: "Країни", URL: "/countries", ImageURL: "/images/home/map.jpg"},
 			{Label: "Гіди", URL: "/guides", ImageURL: "/images/home/guides.jpg"},
 			{Label: "Журнал", URL: "/journal", ImageURL: "/images/home/journal.jpg"},
 		},

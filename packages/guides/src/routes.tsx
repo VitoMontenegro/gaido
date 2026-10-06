@@ -6,7 +6,7 @@ import GuideLayout from './components/crm/GuideLayout'
 import ExternalRedirect from '@gaido/ui-primitives/ExternalRedirect'
 import { lazyImport } from '@gaido/ui-primitives/lazyImport'
 import { servicesUrl } from '@gaido/site-urls/site'
-import CityPage, { MapPage } from './pages/CityMapPages'
+import CityPage, { CountriesPage } from './pages/CityMapPages'
 
 export function PageFallback() {
   return (
@@ -29,7 +29,7 @@ export function Lazy({ children }: { children: ReactNode }) {
 
 function GuideCountryLegacyRedirect() {
   const { countrySlug = '' } = useParams()
-  return <Navigate to={`/guides/countries/${countrySlug}`} replace />
+  return <Navigate to={`/countries/${countrySlug}`} replace />
 }
 
 function PortalHomeRedirect() {
@@ -41,7 +41,6 @@ const SearchPage = lazyImport(() => import('@gaido/guides/pages/SearchPage'))
 const GuidePage = lazyImport(() => import('@gaido/guides/pages/GuidePage'))
 const ExcursionPage = lazyImport(() => import('@gaido/guides/pages/ExcursionPage'))
 const GuidesListPage = lazyImport(() => import('@gaido/guides/pages/CatalogPages').then((m) => ({ default: m.default })))
-const GuidesByCountryPage = lazyImport(() => import('@gaido/guides/pages/CatalogPages').then((m) => ({ default: m.GuidesByCountryPage })))
 const LoginPage = lazyImport(() => import('@gaido/guides/pages/AuthPages').then((m) => ({ default: m.default })))
 const RegisterTouristPage = lazyImport(() => import('@gaido/guides/pages/AuthPages').then((m) => ({ default: m.RegisterTouristPage })))
 const RegisterGuidePage = lazyImport(() => import('@gaido/guides/pages/AuthPages').then((m) => ({ default: m.RegisterGuidePage })))
@@ -99,7 +98,7 @@ export function svitPublicRoutes() {
   return (
     <>
       <Route index element={<Lazy><GuidesHomePage /></Lazy>} />
-      <Route path="guides/countries/:countrySlug" element={<Lazy><GuidesByCountryPage /></Lazy>} />
+      <Route path="guides/countries/:countrySlug" element={<GuideCountryLegacyRedirect />} />
       <Route path="guides/countries" element={<Navigate to="/guides" replace />} />
       <Route path="guides/:countrySlug" element={<GuideCountryLegacyRedirect />} />
       <Route path="guides" element={<Lazy><GuidesListPage /></Lazy>} />
@@ -112,10 +111,10 @@ export function svitPublicRoutes() {
       <Route path="ukrainians-in/:citySlug" element={<Lazy><SeoCityPage /></Lazy>} />
       <Route path="search" element={<Lazy><SearchPage /></Lazy>} />
       <Route path="favorites" element={<Lazy><FavoritesPage /></Lazy>} />
-      <Route path="map" element={<MapPage />} />
+      <Route path="map" element={<Navigate to="/countries" replace />} />
       <Route path="city/:slug" element={<CityPage />} />
       <Route path="countries/:countrySlug" element={<Lazy><CountryExcursionsPage /></Lazy>} />
-      <Route path="countries" element={<Navigate to="/search" replace />} />
+      <Route path="countries" element={<CountriesPage />} />
       <Route path="guide/:slug" element={<Lazy><GuidePage /></Lazy>} />
       <Route path="excursions" element={<Navigate to="/search" replace />} />
       <Route path="excursion/:slug" element={<Lazy><ExcursionPage /></Lazy>} />

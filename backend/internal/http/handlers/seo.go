@@ -62,7 +62,7 @@ func (h *Handlers) SitemapXML(w http.ResponseWriter, r *http.Request) {
 	for _, loc := range sitemapHubLocations(h.publicBaseURL()) {
 		writeURL(loc, today)
 	}
-	for _, path := range []string{"/", "/search", "/map", "/guides", "/journal", "/forums", "/about"} {
+	for _, path := range []string{"/", "/countries", "/guides", "/journal", "/forums", "/about"} {
 		writeURL(base+path, today)
 	}
 	writeURL(strings.TrimRight(h.publicBaseURL(), "/")+"/news", today)
@@ -84,7 +84,6 @@ func (h *Handlers) SitemapXML(w http.ResponseWriter, r *http.Request) {
 			var lastmod time.Time
 			if rows.Scan(&slug, &lastmod) == nil && slug != "" {
 				writeURL(base+"/countries/"+slug, lastmod.Format("2006-01-02"))
-				writeURL(base+"/guides/countries/"+slug, lastmod.Format("2006-01-02"))
 			}
 		}
 	}

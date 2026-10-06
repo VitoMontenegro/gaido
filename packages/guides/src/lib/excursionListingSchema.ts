@@ -187,7 +187,7 @@ export function buildGuidesHomeJsonLd(input: {
 
   const countries = itemListJsonLd(
     'Україномовні гіди за країнами',
-    input.countries.map((c) => ({ name: c.name, url: absoluteUrl(`/guides/countries/${c.slug}`) })),
+    input.countries.map((c) => ({ name: c.name, url: absoluteUrl(`/countries/${c.slug}`) })),
   )
   if (countries) schemas.push(countries)
 
