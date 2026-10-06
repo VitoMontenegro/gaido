@@ -1,11 +1,21 @@
 import { describe, expect, it } from 'vitest'
-import { isBlankHtml, placeFaqOrDefault, placeSeoDescription, placeSeoTitle, homeSeoDescription, homeSeoHeading, homeSeoTitle, seoCityExcursionsDescription, seoCityExcursionsHeading, seoCountryExcursionsDescription, seoGuideHeading, seoGuideSubtitle } from './seoTemplates'
+import { isBlankHtml, placeFaqOrDefault, placeSeoDescription, placeSeoTitle, homeSeoDescription, homeSeoHeading, homeSeoTitle, seoCityExcursionsDescription, seoCityExcursionsHeading, seoCountryExcursionsDescription, seoGuideHeading, seoGuideSubtitle, buildFaqPageJsonLd } from './seoTemplates'
 
 describe('place page helpers', () => {
   it('treats empty editor html as blank', () => {
     expect(isBlankHtml('<p></p>')).toBe(true)
     expect(isBlankHtml('<p><br></p>')).toBe(true)
     expect(isBlankHtml('<p>Текст</p>')).toBe(false)
+  })
+
+  it('strips links from faq schema text', () => {
+    const ld = buildFaqPageJsonLd([{
+      question: 'Де?',
+      answer: 'місто — <a href="/city/london">Лондон</a>.',
+    }])
+    const text = (ld.mainEntity[0] as { acceptedAnswer: { text: string } }).acceptedAnswer.text
+    expect(text).toBe('місто — Лондон.')
+    expect(text).not.toContain('<a')
   })
 
   it('uses custom faq when filled', () => {

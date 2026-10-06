@@ -80,3 +80,10 @@ export function sanitizeHtml(raw?: string): string {
   const cleaned = stripEditorArtifacts(raw ?? '')
   return DOMPurify.sanitize(asHtml(cleaned), { USE_PROFILES: { html: true } })
 }
+
+/** Inline fragment: plain text stays text, allowed tags such as links stay tags. */
+export function sanitizeInlineHtml(raw?: string): string {
+  const cleaned = stripEditorArtifacts(raw ?? '').trim()
+  if (!cleaned) return ''
+  return DOMPurify.sanitize(cleaned, { USE_PROFILES: { html: true } })
+}

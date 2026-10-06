@@ -289,3 +289,19 @@ func TestResolveSpaPageMeta_noIndexHasEmptyBody(t *testing.T) {
 		t.Fatalf("noindex must not carry crawl body: %#v", meta.CrawlBody)
 	}
 }
+
+func TestFaqAnswerTextStripsLinks(t *testing.T) {
+	got := faqAnswerText(`місто — <a href="/city/london">Лондон</a>.`)
+	if got != "місто — Лондон." {
+		t.Fatalf("text = %q", got)
+	}
+	raw := buildFaqPageJSON([]faqItem{{
+		question: "Де?",
+		answer:   `місто — <a href="/city/london">Лондон</a>.`,
+	}})
+	entities := raw["mainEntity"].([]map[string]any)
+	text := entities[0]["acceptedAnswer"].(map[string]any)["text"]
+	if text != "місто — Лондон." {
+		t.Fatalf("schema text = %#v", text)
+	}
+}

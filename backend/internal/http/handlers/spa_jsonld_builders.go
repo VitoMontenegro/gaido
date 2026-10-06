@@ -73,7 +73,7 @@ func buildFaqPageJSON(items []faqItem) map[string]any {
 			"name":  item.question,
 			"acceptedAnswer": map[string]any{
 				"@type": "Answer",
-				"text":  item.answer,
+				"text":  faqAnswerText(item.answer),
 			},
 		}
 	}

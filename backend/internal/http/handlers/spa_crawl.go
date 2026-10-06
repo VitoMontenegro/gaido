@@ -116,6 +116,12 @@ func splitParagraphs(s string) []string {
 	return compactParagraphs(parts)
 }
 
+func faqAnswerText(s string) string {
+	s = htmlTagRe.ReplaceAllString(s, "")
+	s = html.UnescapeString(s)
+	return strings.Join(strings.Fields(s), " ")
+}
+
 func htmlParagraphs(s string) []string {
 	s = strings.ReplaceAll(s, "\r\n", "\n")
 	s = strings.ReplaceAll(s, "</p>", "\n")

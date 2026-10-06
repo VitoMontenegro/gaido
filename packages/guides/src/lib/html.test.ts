@@ -1,5 +1,8 @@
+import { createElement } from 'react'
 import { describe, expect, it } from 'vitest'
-import { normalizeHref, sanitizeHtml } from './html'
+import { renderToStaticMarkup } from 'react-dom/server'
+import SeoFaqSection from '../components/SeoFaqSection'
+import { normalizeHref, sanitizeHtml, sanitizeInlineHtml } from './html'
 
 describe('sanitizeHtml', () => {
   it('strips script tags', () => {
@@ -18,6 +21,36 @@ describe('sanitizeHtml', () => {
     )
     expect(out).not.toContain('text-stone-700')
     expect(out).toContain('Повний опис')
+  })
+})
+
+describe('sanitizeInlineHtml', () => {
+  it('keeps relative links and drops scripts', () => {
+    const out = sanitizeInlineHtml(
+      'місто — <a href="/city/london">Лондон</a>.<script>alert(1)</script>',
+    )
+    expect(out).toContain('<a href="/city/london">Лондон</a>')
+    expect(out.toLowerCase()).not.toContain('script')
+    expect(out).not.toContain('<p>')
+  })
+
+  it('leaves plain answers as text', () => {
+    expect(sanitizeInlineHtml('Так. Більшість гідів.')).toBe('Так. Більшість гідів.')
+  })
+})
+
+describe('SeoFaqSection', () => {
+  it('renders answer links instead of escaped tags', () => {
+    const html = renderToStaticMarkup(
+      createElement(SeoFaqSection, {
+        items: [{
+          question: 'Де зібрані екскурсії?',
+          answer: 'місто — <a href="/city/london">Лондон</a>.',
+        }],
+      }),
+    )
+    expect(html).toContain('<a href="/city/london">Лондон</a>')
+    expect(html).not.toContain('&lt;a')
   })
 })
 

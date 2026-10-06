@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { sanitizeInlineHtml } from '../lib/html'
 import type { FaqItem } from '../lib/seoTemplates'
 
 type Props = {
@@ -31,9 +32,10 @@ export default function SeoFaqSection({ items, title = 'Часті запита�
                 </span>
               </button>
               {open && (
-                <p className="px-4 pb-4 text-sm leading-relaxed text-muted md:px-5 md:text-base">
-                  {item.answer}
-                </p>
+                <p
+                  className="px-4 pb-4 text-sm leading-relaxed text-muted md:px-5 md:text-base [&_a]:text-teal [&_a]:underline [&_a]:underline-offset-2"
+                  dangerouslySetInnerHTML={{ __html: sanitizeInlineHtml(item.answer) }}
+                />
               )}
             </div>
           )

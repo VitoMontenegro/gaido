@@ -1,3 +1,4 @@
+import { sanitizeInlineHtml } from '@gaido/guides/lib/html'
 import type { CrawlBody as CrawlBodyType } from '../lib/pageMeta'
 
 /** Server-rendered text for crawlers (replaced visually by the client SPA). */
@@ -51,7 +52,7 @@ export function CrawlBody({ body, noIndex }: { body?: CrawlBodyType; noIndex?: b
           {faq.map((item, i) => (
             <div key={`f-${i}`}>
               <h3>{item.question}</h3>
-              <p>{item.answer}</p>
+              <p dangerouslySetInnerHTML={{ __html: sanitizeInlineHtml(item.answer) }} />
             </div>
           ))}
         </section>

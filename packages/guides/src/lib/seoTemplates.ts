@@ -195,6 +195,20 @@ export function cityExcursionFaq(cityName: string, countryName?: string): FaqIte
   ]
 }
 
+/** FAQ schema wants readable text; page HTML keeps the links. */
+export function faqPlainText(value: string) {
+  return value
+    .replace(/<[^>]*>/g, '')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
 export function buildFaqPageJsonLd(items: FaqItem[]) {
   return {
     '@context': 'https://schema.org',
@@ -204,7 +218,7 @@ export function buildFaqPageJsonLd(items: FaqItem[]) {
       name: item.question,
       acceptedAnswer: {
         '@type': 'Answer',
-        text: item.answer,
+        text: faqPlainText(item.answer),
       },
     })),
   }
