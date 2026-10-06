@@ -207,8 +207,8 @@ export function CountriesPage() {
     queryFn: () => catalogApi.mapPoints(),
   })
   const { data: topGuides } = useQuery({
-    queryKey: ['guides-top', 'countries'],
-    queryFn: () => catalogApi.topGuides(8),
+    queryKey: ['guides-top', 'countries', 10],
+    queryFn: () => catalogApi.topGuides(10),
   })
   const { data: excursions } = useQuery({
     queryKey: ['excursions', 'countries-preview'],
