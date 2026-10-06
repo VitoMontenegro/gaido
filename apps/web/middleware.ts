@@ -11,29 +11,39 @@ export function middleware(request: NextRequest) {
   if (request.method !== 'GET' && request.method !== 'HEAD') {
     return NextResponse.next()
   }
-
   const host = (request.headers.get('host') || '').replace(/:\d+$/, '').toLowerCase()
-  const { pathname } = request.nextUrl
-  const url = request.nextUrl.clone()
+  const { pathname, search, protocol, port } = request.nextUrl
+  let pathnameOut = pathname
   let changed = false
-
-  if (host === 'www.gaido-ua.com') {
-    url.protocol = 'https:'
-    url.hostname = 'gaido-ua.com'
-    url.port = ''
-    changed = true
-  }
-
   if (SECTION_ROOTS.has(pathname)) {
-    url.pathname = `${pathname}/`
+    pathnameOut = `${pathname}/`
     changed = true
   } else if (pathname.length > 1 && pathname.endsWith('/') && !SECTION_ROOT_SLASH.has(pathname)) {
-    url.pathname = pathname.replace(/\/+$/, '') || '/'
+    pathnameOut = pathname.replace(/\/+$/, '') || '/'
     changed = true
   }
-
+  let publicHost = host
+  if (publicHost === 'www.gaido-ua.com') {
+    publicHost = 'gaido-ua.com'
+    changed = true
+  }
   if (!changed) return NextResponse.next()
-  return NextResponse.redirect(url, 308)
+  // Строка, не NextURL: за прокси NextURL смотрит на localhost:3000 и теряет pathname.
+  const forwardedHost = request.headers.get('x-forwarded-host')
+  const proto = (
+    forwardedHost
+      ? request.headers.get('x-forwarded-proto') || 'https'
+      : protocol.replace(/:$/, '') || 'http'
+  )
+    .split(',')[0]
+    .trim()
+  if (forwardedHost) {
+    publicHost = forwardedHost.split(',')[0].trim().replace(/:\d+$/, '').toLowerCase()
+    if (publicHost === 'www.gaido-ua.com') publicHost = 'gaido-ua.com'
+  }
+  const publicPort = forwardedHost || !port ? '' : `:${port}`
+  const dest = `${proto}://${publicHost}${publicPort}${pathnameOut}${search}`
+  return NextResponse.redirect(dest, 308)
 }
 
 export const config = {
