@@ -210,7 +210,7 @@ function HubExcursionSection({
 }
 
 function HubExcursionCard({ item }: { item: Excursion }) {
-  const cover = resolveMediaUrl(item.cover_image_url ?? '')
+  const cover = resolveMediaUrl(item.cover_image_url ?? '') || staticAssetUrl('/images/home/excursions.jpg')
   const price = formatPrice(item.price_from, item.currency)
   return (
     <a
@@ -218,11 +218,7 @@ function HubExcursionCard({ item }: { item: Excursion }) {
       className="group flex h-full flex-col overflow-hidden rounded-2xl bg-surface transition hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)]"
     >
       <div className="aspect-4/3 overflow-hidden bg-sand-100">
-        {cover ? (
-          <img src={cover} alt="" className="h-full w-full object-cover" loading="lazy" />
-        ) : (
-          <div className="h-full w-full bg-sand-100" />
-        )}
+        <img src={cover} alt="" className="h-full w-full object-cover" loading="lazy" />
       </div>
       <div className="flex flex-1 flex-col p-3">
         {(item.city_name || item.country_name) && (
