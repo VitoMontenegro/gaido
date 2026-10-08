@@ -1,35 +1,23 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { catalogApi } from '@gaido/api-client/api/catalog'
 import { discoverApi, providerApi } from '@gaido/api-client/api/discover'
-import type { City } from '@gaido/api-client/api/types/catalog'
+import GeoCityPicker from '@gaido/ui-primitives/GeoCityPicker'
 import LeafletMap from '../map/LeafletMap'
 
 type Pin = { lat: number; lng: number }
 
 export default function PointLocationForm({ onSaved }: { onSaved: () => void }) {
-  const [query, setQuery] = useState('')
-  const [city, setCity] = useState<City | undefined>()
+  const [cityId, setCityId] = useState(0)
   const [address, setAddress] = useState('')
   const [pin, setPin] = useState<Pin | null>(null)
   const [hint, setHint] = useState('')
 
-  const { data: cities } = useQuery({
-    queryKey: ['cities-all'],
-    queryFn: () => catalogApi.cities(),
-    staleTime: 300_000,
+  const { data: city } = useQuery({
+    queryKey: ['city-by-id', cityId],
+    queryFn: () => catalogApi.cityById(cityId),
+    enabled: cityId > 0,
   })
-
-  const items = cities?.items ?? []
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase()
-    const list = q
-      ? items.filter((c) => c.name.toLowerCase().includes(q) || c.slug.includes(q))
-      : items
-    const sliced = list.slice(0, 80)
-    if (city && !sliced.some((c) => c.id === city.id)) return [city, ...sliced]
-    return sliced
-  }, [items, query, city])
 
   const lookup = useMutation({
     mutationFn: () => {
@@ -73,10 +61,7 @@ export default function PointLocationForm({ onSaved }: { onSaved: () => void }) 
     try {
       const res = await discoverApi.reverseAddress(lat, lng)
       if (res.address) setAddress(res.address)
-      if (!city && res.city_id) {
-        const found = items.find((c) => c.id === res.city_id)
-        if (found) setCity(found)
-      }
+      if (cityId <= 0 && res.city_id) setCityId(res.city_id)
       setHint('')
     } catch {
       setHint('Координати збережено, адресу визначити не вдалося.')
@@ -92,32 +77,17 @@ export default function PointLocationForm({ onSaved }: { onSaved: () => void }) 
       }}
     >
       <h2 className="font-medium">Додати точку</h2>
-      <label className="block space-y-1 text-sm">
-        <span>Місто</span>
-        <input
-          className="input"
-          placeholder="Пошук міста…"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
-        <select
-          className="input"
-          value={city?.id ?? ''}
+      <div className="space-y-1">
+        <p className="text-sm font-medium">Країна та місто</p>
+        <GeoCityPicker
+          value={cityId}
           required
-          onChange={(e) => {
-            const next = items.find((c) => c.id === Number(e.target.value))
-            setCity(next)
+          onChange={(id) => {
+            setCityId(id)
             setPin(null)
           }}
-        >
-          <option value="">{city ? city.name : 'Оберіть місто'}</option>
-          {filtered.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-      </label>
+        />
+      </div>
       <label className="block space-y-1 text-sm">
         <span>Адреса</span>
         <div className="flex flex-wrap gap-2">

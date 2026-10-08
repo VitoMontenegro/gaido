@@ -196,6 +196,18 @@ func (r *CarrierRepo) ListAdmin(ctx context.Context, status string, limit int) (
 	return items, rows.Err()
 }
 
+func (r *CarrierRepo) SetBaseCity(ctx context.Context, providerID, cityID int64) error {
+	tag, err := r.db.Pool.Exec(ctx, `
+		UPDATE carrier_profiles SET base_city_id=$2, updated_at=NOW() WHERE provider_id=$1`, providerID, cityID)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return pgx.ErrNoRows
+	}
+	return nil
+}
+
 func (r *CarrierRepo) SetStatus(ctx context.Context, providerID int64, status string) error {
 	_, err := r.db.Pool.Exec(ctx, `
 		UPDATE carrier_profiles SET status=$2, updated_at=NOW() WHERE provider_id=$1`, providerID, status)

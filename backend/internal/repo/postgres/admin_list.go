@@ -97,3 +97,19 @@ func adminGuideWhere(q AdminListQuery) (where string, args []any) {
 	}
 	return joinConds(conds), args
 }
+
+func adminUserWhere(q AdminListQuery) (where string, args []any) {
+	conds := []string{"deleted_at IS NULL"}
+	n := 1
+	if q.Status != "" {
+		conds = append(conds, fmt.Sprintf("status=$%d", n))
+		args = append(args, q.Status)
+		n++
+	}
+	terms := expandSearchTerms(q.Q)
+	if len(terms) > 0 {
+		conds = append(conds, fmt.Sprintf(`(email ILIKE ANY($%d) OR login ILIKE ANY($%d) OR first_name ILIKE ANY($%d) OR last_name ILIKE ANY($%d))`, n, n, n, n))
+		args = append(args, searchPatterns(terms))
+	}
+	return joinConds(conds), args
+}

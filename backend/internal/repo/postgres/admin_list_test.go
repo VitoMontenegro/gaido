@@ -30,6 +30,16 @@ func TestAdminExcursionWhere(t *testing.T) {
 	}
 }
 
+func TestAdminUserWhere(t *testing.T) {
+	where, args := adminUserWhere(AdminListQuery{Status: "ACTIVE", Q: "ivan@example.com"})
+	if !strings.Contains(where, "deleted_at IS NULL") || !strings.Contains(where, "status=$1") || !strings.Contains(where, "email ILIKE ANY($2)") {
+		t.Fatalf("unexpected where: %s", where)
+	}
+	if len(args) != 2 {
+		t.Fatalf("args=%d", len(args))
+	}
+}
+
 func TestAdminGuideWhere(t *testing.T) {
 	where, args := adminGuideWhere(AdminListQuery{Status: "ACTIVE", Q: "Іван", CountrySlug: "pl"})
 	if !strings.Contains(where, "status=$1") || !strings.Contains(where, "co.slug=$2") || !strings.Contains(where, "display_name ILIKE ANY($3)") {

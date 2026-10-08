@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -104,29 +105,33 @@ func (r *UserRepo) AddRole(ctx context.Context, userID int64, role string) error
 	return err
 }
 
-func (r *UserRepo) List(ctx context.Context, limit, offset int) ([]domain.User, error) {
-	rows, err := r.db.Pool.Query(ctx, `
-		SELECT `+userSelectCols+`
-		FROM users
-		WHERE deleted_at IS NULL
-		ORDER BY id LIMIT $1 OFFSET $2
-	`, limit, offset)
+func (r *UserRepo) ListAdmin(ctx context.Context, q AdminListQuery) ([]domain.User, int, error) {
+	q.Limit, q.Offset = ClampAdminPage(q.Limit, q.Offset)
+	where, args := adminUserWhere(q)
+	var total int
+	if err := r.db.Pool.QueryRow(ctx, `SELECT COUNT(*) FROM users`+where, args...).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+	order := adminOrderSQL(q.OrderAsc)
+	n := len(args) + 1
+	sql := fmt.Sprintf(`SELECT `+userSelectCols+` FROM users%s ORDER BY created_at %s, id %s LIMIT $%d OFFSET $%d`, where, order, order, n, n+1)
+	rows, err := r.db.Pool.Query(ctx, sql, append(args, q.Limit, q.Offset)...)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
-	var out []domain.User
+	out := make([]domain.User, 0)
 	for rows.Next() {
 		var u domain.User
 		if err := rows.Scan(
 			&u.ID, &u.Email, &u.Login, &u.FirstName, &u.LastName, &u.PasswordHash,
 			&u.Roles, &u.Status, &u.CreatedAt, &u.DeletedAt, &u.AvatarURL,
 		); err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		out = append(out, u)
 	}
-	return out, rows.Err()
+	return out, total, rows.Err()
 }
 
 func (r *UserRepo) SaveRefreshToken(ctx context.Context, userID int64, hash string, exp time.Time) error {

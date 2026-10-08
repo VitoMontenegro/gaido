@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { adminApi, userDisplayName, type AdminCarrier, type AdminExcursion, type AdminGuide, type AdminListParams, type AdminProvider, type AdminOffering, type AdminComplaint, type AdminReview, type AdminTransportRide, type AdminUser } from '@gaido/api-client/api/client'
@@ -6,6 +6,7 @@ import { isTransportSite, isServicesSite, transportUrl, servicesUrl } from '@gai
 import { useMe } from '@gaido/api-client/hooks/useAuth'
 import { formatPrice } from './excursionUi'
 import GuideAvatar from './GuideAvatar'
+import GeoCityPicker from '@gaido/ui-primitives/GeoCityPicker'
 import { AdminGuideDocuments } from './AdminGuideDocuments'
 import { guideTypeBadgeLabel } from '../lib/fancybox'
 
@@ -80,6 +81,35 @@ function useDebouncedValue<T>(value: T, delay = 300): T {
   return debounced
 }
 
+function AdminCityField({
+  value,
+  pending,
+  onSave,
+}: {
+  value?: number | null
+  pending: boolean
+  onSave: (cityId: number) => void
+}) {
+  const saved = value ?? 0
+  const [cityId, setCityId] = useState(saved)
+  useEffect(() => {
+    setCityId(saved)
+  }, [saved])
+  return (
+    <div className="mt-3 max-w-xl space-y-2">
+      <GeoCityPicker label="Місто" value={cityId} onChange={setCityId} />
+      <button
+        type="button"
+        className="btn-secondary text-sm"
+        disabled={pending || cityId <= 0 || cityId === saved}
+        onClick={() => onSave(cityId)}
+      >
+        Зберегти місто
+      </button>
+    </div>
+  )
+}
+
 function formatAdminDate(iso?: string) {
   if (!iso) return '—'
   const d = new Date(iso)
@@ -129,7 +159,7 @@ function AdminListFilters({
   onCountry: (value: string) => void
   order: 'asc' | 'desc'
   onOrder: (value: 'asc' | 'desc') => void
-  countries: { slug: string; name: string }[]
+  countries?: { slug: string; name: string }[]
   searchPlaceholder: string
 }) {
   return (
@@ -140,12 +170,14 @@ function AdminListFilters({
         onChange={(e) => onQ(e.target.value)}
         placeholder={searchPlaceholder}
       />
-      <select className="input w-auto min-w-[12rem] py-2" value={countrySlug} onChange={(e) => onCountry(e.target.value)}>
-        <option value="">Усі країни</option>
-        {countries.map((c) => (
-          <option key={c.slug} value={c.slug}>{c.name}</option>
-        ))}
-      </select>
+      {countries && (
+        <select className="input w-auto min-w-[12rem] py-2" value={countrySlug} onChange={(e) => onCountry(e.target.value)}>
+          <option value="">Усі країни</option>
+          {countries.map((c) => (
+            <option key={c.slug} value={c.slug}>{c.name}</option>
+          ))}
+        </select>
+      )}
       <select className="input w-auto min-w-[12rem] py-2" value={order} onChange={(e) => onOrder(e.target.value as 'asc' | 'desc')}>
         <option value="desc">Спочатку нові</option>
         <option value="asc">Спочатку старі</option>
@@ -186,9 +218,11 @@ function AdminPager({
 export function AdminUsersList() {
   const qc = useQueryClient()
   const { data: me } = useMe()
+  const list = useAdminListQuery()
   const { data, isLoading, isError, error } = useQuery({
-    queryKey: ['admin-users'],
-    queryFn: () => adminApi.users(),
+    queryKey: ['admin-users', list.params],
+    queryFn: () => adminApi.users(list.params),
+    placeholderData: keepPreviousData,
   })
 
   const remove = useMutation({
@@ -212,71 +246,87 @@ export function AdminUsersList() {
     onError: (err: Error) => window.alert(err.message),
   })
 
-  if (isLoading) return <ListShell title="Користувачі">Завантаження…</ListShell>
-  if (isError) return <ListShell title="Користувачі">{error?.message ?? 'Помилка'}</ListShell>
+  const items = data?.items ?? []
+  const total = data?.total ?? items.length
+  const filters = (
+    <AdminListFilters
+      q={list.qInput}
+      onQ={list.setQInput}
+      countrySlug={list.countrySlug}
+      onCountry={list.setCountrySlug}
+      order={list.order}
+      onOrder={list.setOrder}
+      searchPlaceholder="Пошук за імʼям або поштою"
+    />
+  )
+
+  if (isLoading && !data) return <ListShell title="Користувачі" toolbar={filters}><div className="px-4 py-3">Завантаження…</div></ListShell>
+  if (isError) return <ListShell title="Користувачі" toolbar={filters}><div className="px-4 py-3">{error?.message ?? 'Помилка'}</div></ListShell>
 
   return (
-    <ListShell title="Користувачі" count={(data?.items ?? []).length}>
-      <table className="w-full min-w-[720px] text-sm">
-        <thead>
-          <tr className="border-b border-divider bg-sand-50 text-left text-stone-500">
-            <th className="px-4 py-2 font-medium">#</th>
-            <th className="px-4 py-2 font-medium">Логін</th>
-            <th className="px-4 py-2 font-medium">Email</th>
-            <th className="px-4 py-2 font-medium">Ролі</th>
-            <th className="px-4 py-2 font-medium">Статус</th>
-            <th className="px-4 py-2 font-medium" />
-          </tr>
-        </thead>
-        <tbody>
-          {(data?.items ?? []).map((u: AdminUser) => (
-            <tr key={u.id} className="border-b border-divider last:border-0">
-              <td className="px-4 py-2.5">{u.id}</td>
-              <td className="px-4 py-2.5 font-medium">{userDisplayName(u)}</td>
-              <td className="px-4 py-2.5 text-stone-600">{u.email}</td>
-              <td className="px-4 py-2.5">{u.roles.join(', ')}</td>
-              <td className="px-4 py-2.5">
-                <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusBadge(u.status)}`}>
-                  {u.status}
-                </span>
-              </td>
-              <td className="px-4 py-2.5 text-right">
-                <div className="flex justify-end gap-2">
+    <ListShell
+      title="Користувачі"
+      count={total}
+      toolbar={filters}
+      footer={<AdminPager total={total} limit={data?.limit ?? ADMIN_PAGE_SIZE} offset={list.offset} onOffset={list.setOffset} />}
+    >
+      <ul className="divide-y divide-divider">
+        {items.map((u: AdminUser) => (
+          <li key={u.id} className="px-4 py-3">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="min-w-0 flex-1">
+                <p className="font-medium">{userDisplayName(u)}</p>
+                <p className="text-sm text-stone-500">
+                  {u.email}
+                  {u.email && u.login ? ' · ' : ''}
+                  {u.login}
+                  {` · ${formatAdminDate(u.created_at)}`}
+                </p>
+              </div>
+              <span className="rounded-full bg-sand-100 px-2 py-0.5 text-xs font-medium text-stone-600">
+                {u.roles.join(', ')}
+              </span>
+              <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusBadge(u.status)}`}>
+                {statusLabel(u.status)}
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  className="rounded-lg border border-amber-200 px-2 py-1 text-xs text-amber-800 hover:bg-amber-50 disabled:opacity-50"
+                  disabled={clearLoginBlock.isPending}
+                  onClick={() => {
+                    const label = userDisplayName(u)
+                    if (window.confirm(`Зняти блок входу для «${label}»?`)) {
+                      clearLoginBlock.mutate(u.login)
+                    }
+                  }}
+                >
+                  Зняти блок входу
+                </button>
+                {me?.id !== u.id && (
                   <button
                     type="button"
-                    className="rounded-lg border border-amber-200 px-2 py-1 text-xs text-amber-800 hover:bg-amber-50 disabled:opacity-50"
-                    disabled={clearLoginBlock.isPending}
+                    className="rounded-lg border border-red-200 px-2 py-1 text-xs text-red-700 hover:bg-red-50 disabled:opacity-50"
+                    disabled={remove.isPending}
                     onClick={() => {
                       const label = userDisplayName(u)
-                      if (window.confirm(`Зняти блок входу для «${label}»?`)) {
-                        clearLoginBlock.mutate(u.login)
+                      const extra = u.roles.includes('ROLE_GUIDE') ? ' Профіль гіда та екскурсії також будуть видалені.' : ''
+                      if (window.confirm(`Видалити «${label}»?${extra}`)) {
+                        remove.mutate(u.id)
                       }
                     }}
                   >
-                    Зняти блок входу
+                    Видалити
                   </button>
-                  {me?.id !== u.id && (
-                    <button
-                      type="button"
-                      className="rounded-lg border border-red-200 px-2 py-1 text-xs text-red-700 hover:bg-red-50 disabled:opacity-50"
-                      disabled={remove.isPending}
-                      onClick={() => {
-                        const label = userDisplayName(u)
-                        const extra = u.roles.includes('ROLE_GUIDE') ? ' Профіль гіда та екскурсії також будуть видалені.' : ''
-                        if (window.confirm(`Видалити «${label}»?${extra}`)) {
-                          remove.mutate(u.id)
-                        }
-                      }}
-                    >
-                      Видалити
-                    </button>
-                  )}
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+                )}
+              </div>
+            </div>
+          </li>
+        ))}
+        {items.length === 0 && (
+          <li className="px-4 py-6 text-sm text-stone-500">Користувачів не знайдено</li>
+        )}
+      </ul>
     </ListShell>
   )
 }
@@ -757,6 +807,11 @@ export function AdminCarriersList({ statusFilter }: { statusFilter?: string }) {
                 )
               })}
             </div>
+            <AdminCityField
+              value={c.base_city_id}
+              pending={update.isPending}
+              onSave={(cityId) => update.mutate({ id: c.provider_id, patch: { base_city_id: cityId } })}
+            />
           </li>
         ))}
         {(data?.items ?? []).length === 0 && (
@@ -845,7 +900,8 @@ export function AdminProvidersList({ statusFilter }: { statusFilter?: string }) 
   })
 
   const update = useMutation({
-    mutationFn: ({ id, status }: { id: number; status: string }) => adminApi.updateProvider(id, { status }),
+    mutationFn: ({ id, status, primary_city_id }: { id: number; status?: string; primary_city_id?: number }) =>
+      adminApi.updateProvider(id, { status, primary_city_id }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin-providers'] })
       qc.invalidateQueries({ queryKey: ['analytics'] })
@@ -881,9 +937,13 @@ export function AdminProvidersList({ statusFilter }: { statusFilter?: string }) 
         </thead>
         <tbody>
           {(data?.items ?? []).map((p: AdminProvider) => (
-            <tr key={p.id} className="border-b border-divider last:border-0">
+            <Fragment key={p.id}>
+            <tr className="border-b border-divider">
               <td className="px-4 py-2.5">{p.id}</td>
-              <td className="px-4 py-2.5 font-medium">{p.display_name}</td>
+              <td className="px-4 py-2.5 font-medium">
+                {p.display_name}
+                {p.primary_city_name ? <p className="text-xs font-normal text-stone-500">{p.primary_city_name}</p> : null}
+              </td>
               <td className="px-4 py-2.5 text-stone-600">{p.login}</td>
               <td className="px-4 py-2.5 text-sm text-stone-500">{p.email}</td>
               <td className="px-4 py-2.5">
@@ -942,6 +1002,16 @@ export function AdminProvidersList({ statusFilter }: { statusFilter?: string }) 
                 </div>
               </td>
             </tr>
+            <tr className="border-b border-divider last:border-0">
+              <td colSpan={7} className="px-4 pb-4">
+                <AdminCityField
+                  value={p.primary_city_id}
+                  pending={update.isPending}
+                  onSave={(cityId) => update.mutate({ id: p.id, primary_city_id: cityId })}
+                />
+              </td>
+            </tr>
+            </Fragment>
           ))}
           {(data?.items ?? []).length === 0 && (
             <tr>

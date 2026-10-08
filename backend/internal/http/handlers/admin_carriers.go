@@ -2,12 +2,14 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v5"
 	"github.com/vitomonte/experts-tourister/internal/apperrors"
 	"github.com/vitomonte/experts-tourister/internal/domain"
 	"github.com/vitomonte/experts-tourister/internal/http/middleware"
@@ -45,6 +47,7 @@ func (h *Handlers) AdminUpdateCarrier(w http.ResponseWriter, r *http.Request) {
 		UkrainianStatus string `json:"ukrainian_status"`
 		BusinessStatus  string `json:"business_status"`
 		DocumentsStatus string `json:"documents_status"`
+		BaseCityID      *int64 `json:"base_city_id"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		response.Error(w, r, apperrors.ErrValidation)
@@ -73,6 +76,25 @@ func (h *Handlers) AdminUpdateCarrier(w http.ResponseWriter, r *http.Request) {
 		}
 		if err := h.Carriers.SetVerification(r.Context(), providerID, field, val); err != nil {
 			response.Error(w, r, apperrors.ErrValidation)
+			return
+		}
+	}
+	if req.BaseCityID != nil && *req.BaseCityID > 0 {
+		city, err := h.Geo.GetCityByID(r.Context(), *req.BaseCityID)
+		if err != nil {
+			response.Error(w, r, apperrors.ErrInternal)
+			return
+		}
+		if city == nil {
+			response.Error(w, r, apperrors.ErrValidation)
+			return
+		}
+		if err := h.Carriers.SetBaseCity(r.Context(), providerID, *req.BaseCityID); err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				response.Error(w, r, apperrors.ErrNotFound)
+				return
+			}
+			response.Error(w, r, apperrors.ErrInternal)
 			return
 		}
 	}

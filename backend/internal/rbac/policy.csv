@@ -24,6 +24,7 @@ p, ROLE_GUIDE, /api/v1/notifications, GET
 p, ROLE_GUIDE, /api/v1/notifications/*, GET
 p, ROLE_GUIDE, /api/v1/notifications/*, PATCH
 
+p, ROLE_PROVIDER, /api/v1/account/geo/cities, POST
 p, ROLE_PROVIDER, /api/v1/account/provider, GET
 p, ROLE_PROVIDER, /api/v1/account/provider/*, GET
 p, ROLE_PROVIDER, /api/v1/account/provider/*, POST
@@ -86,6 +87,7 @@ p, ROLE_MODERATOR, /api/v1/notifications/*, PATCH
 
 p, ROLE_MODERATOR, /api/v1/media, POST
 
+p, ROLE_ADMIN, /api/v1/account/geo/cities, POST
 p, ROLE_ADMIN, /api/v1/admin, GET
 p, ROLE_ADMIN, /api/v1/admin/*, GET
 p, ROLE_ADMIN, /api/v1/admin/*, POST

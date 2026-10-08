@@ -3,6 +3,8 @@ package postgres
 import (
 	"context"
 	"time"
+
+	"github.com/jackc/pgx/v5"
 )
 
 const marketplaceProviderFilter = `
@@ -15,9 +17,10 @@ func (r *ProviderRepo) ListProvidersAdmin(ctx context.Context, status string) ([
 	q := `
 		SELECT pr.id, pr.user_id, pr.display_name, pr.business_name, pr.profession, pr.website_slug,
 			pr.status, pr.rating_avg, pr.rating_count, pr.created_at, pr.updated_at,
-			u.login, u.email, u.roles
+			u.login, u.email, u.roles, pr.primary_city_id, COALESCE(ci.name, '')
 		FROM providers pr
 		JOIN users u ON u.id = pr.user_id
+		LEFT JOIN cities ci ON ci.id = pr.primary_city_id
 		WHERE TRUE` + marketplaceProviderFilter
 	args := []any{}
 	if status != "" {
@@ -37,10 +40,11 @@ func (r *ProviderRepo) ListProvidersAdmin(ctx context.Context, status string) ([
 		var ratingAvg float64
 		var ratingCount int
 		var createdAt, updatedAt time.Time
-		var login, email string
+		var login, email, cityName string
 		var roles []string
+		var cityID *int64
 		if err := rows.Scan(&id, &userID, &displayName, &businessName, &profession, &websiteSlug,
-			&statusStr, &ratingAvg, &ratingCount, &createdAt, &updatedAt, &login, &email, &roles); err != nil {
+			&statusStr, &ratingAvg, &ratingCount, &createdAt, &updatedAt, &login, &email, &roles, &cityID, &cityName); err != nil {
 			return nil, err
 		}
 		out = append(out, map[string]any{
@@ -48,6 +52,7 @@ func (r *ProviderRepo) ListProvidersAdmin(ctx context.Context, status string) ([
 			"profession": profession, "website_slug": websiteSlug, "status": statusStr,
 			"rating_avg": ratingAvg, "rating_count": ratingCount, "created_at": createdAt, "updated_at": updatedAt,
 			"login": login, "email": email, "roles": roles,
+			"primary_city_id": cityID, "primary_city_name": cityName,
 		})
 	}
 	if out == nil {
@@ -59,6 +64,17 @@ func (r *ProviderRepo) ListProvidersAdmin(ctx context.Context, status string) ([
 func (r *ProviderRepo) UpdateProviderStatus(ctx context.Context, providerID int64, status string) error {
 	_, err := r.db.Pool.Exec(ctx, `UPDATE providers SET status=$1, updated_at=NOW() WHERE id=$2`, status, providerID)
 	return err
+}
+
+func (r *ProviderRepo) SetPrimaryCity(ctx context.Context, providerID, cityID int64) error {
+	tag, err := r.db.Pool.Exec(ctx, `UPDATE providers SET primary_city_id=$1, updated_at=NOW() WHERE id=$2`, cityID, providerID)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return pgx.ErrNoRows
+	}
+	return nil
 }
 
 func (r *ProviderRepo) ListOfferingsAdmin(ctx context.Context, status string) ([]map[string]any, error) {

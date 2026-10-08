@@ -149,6 +149,7 @@ export default function RideForm({ initial, onSaved, onCancel }: Props) {
               <CitySelect
                 label={`Зупинка ${idx + 1}`}
                 value={cityId || undefined}
+                required
                 onChange={(id) => setStopCityIds((s) => s.map((v, i) => (i === idx ? id : v)))}
               />
             </div>

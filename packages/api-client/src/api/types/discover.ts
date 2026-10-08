@@ -77,6 +77,7 @@ export type PublicProvider = {
   instagram?: string
   facebook?: string
   website?: string
+  primary_city_id?: number
   offerings: Array<{
     id: number
     title: string

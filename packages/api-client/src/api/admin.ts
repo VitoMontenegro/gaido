@@ -55,6 +55,7 @@ export type AdminCarrier = {
   website_slug: string
   carrier_type: string
   status: string
+  base_city_id?: number | null
   base_city_name?: string
   phone?: string
   email?: string
@@ -112,6 +113,8 @@ export type AdminProvider = {
   login: string
   email: string
   roles: string[]
+  primary_city_id?: number | null
+  primary_city_name?: string
 }
 
 export type AdminOffering = {
@@ -305,7 +308,8 @@ export const adminApi = {
     api<AdminGuide>(`/api/v1/admin/guides/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
   deleteGuide: (id: number) =>
     api<{ status: string }>(`/api/v1/admin/guides/${id}`, { method: 'DELETE' }),
-  users: () => api<{ items: AdminUser[] }>('/api/v1/admin/users'),
+  users: (params?: AdminListParams) =>
+    api<AdminPaged<AdminUser>>(`/api/v1/admin/users${adminListQuery(params)}`),
   deleteUser: (id: number) =>
     api<{ status: string }>(`/api/v1/admin/users/${id}`, { method: 'DELETE' }),
   excursions: (params?: AdminListParams) =>
@@ -371,7 +375,7 @@ export const adminApi = {
     const q = params?.status ? `?status=${encodeURIComponent(params.status)}` : ''
     return api<{ items: AdminCarrier[] }>(`/api/v1/admin/carriers${q}`)
   },
-  updateCarrier: (id: number, body: Partial<Pick<AdminCarrier, 'status' | 'identity_status' | 'ukrainian_status' | 'business_status' | 'documents_status'>>) =>
+  updateCarrier: (id: number, body: Partial<Pick<AdminCarrier, 'status' | 'identity_status' | 'ukrainian_status' | 'business_status' | 'documents_status' | 'base_city_id'>>) =>
     api<AdminCarrier>(`/api/v1/admin/carriers/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
   bypassCarrier: (id: number, planId?: number) =>
     api<{ status: string }>(`/api/v1/admin/carriers/${id}/bypass`, {
@@ -392,7 +396,7 @@ export const adminApi = {
     const q = params?.status ? `?status=${encodeURIComponent(params.status)}` : ''
     return api<{ items: AdminProvider[] }>(`/api/v1/admin/providers${q}`)
   },
-  updateProvider: (id: number, body: { status: string }) =>
+  updateProvider: (id: number, body: { status?: string; primary_city_id?: number }) =>
     api<{ items: AdminProvider[] }>(`/api/v1/admin/providers/${id}`, {
       method: 'PUT',
       body: JSON.stringify(body),

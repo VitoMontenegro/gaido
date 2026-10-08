@@ -5,6 +5,7 @@ import { providerApi, discoverApi } from '@gaido/api-client/api/discover'
 import { formatApiError } from '@gaido/api-client/api/http'
 import { Seo } from '../../lib/seo'
 import { pageTitle } from '@gaido/site-urls/brand'
+import GeoCityPicker from '@gaido/ui-primitives/GeoCityPicker'
 import PointLocationForm from '../../components/provider/PointLocationForm'
 
 function suggestSlug(name: string) {
@@ -69,7 +70,13 @@ export default function ProviderAccountPage() {
           websiteSlug={p.website_slug}
           onSaved={() => qc.invalidateQueries({ queryKey: ['provider-account'] })}
         />
-        <ProviderOfferingForm categories={categories?.items ?? []} providerId={p.id} onSaved={() => qc.invalidateQueries({ queryKey: ['provider-account'] })} />
+        <ProviderOfferingForm
+          categories={categories?.items ?? []}
+          displayName={p.display_name}
+          websiteSlug={p.website_slug}
+          primaryCityId={p.primary_city_id ?? 0}
+          onSaved={() => qc.invalidateQueries({ queryKey: ['provider-account'] })}
+        />
         <PointLocationForm onSaved={() => qc.invalidateQueries({ queryKey: ['provider-account'] })} />
         <section>
           <h2 className="section-title-sm mb-3">Ваші послуги</h2>
@@ -178,18 +185,31 @@ function ProviderIdentityForm({
 
 function ProviderOfferingForm({
   categories,
+  displayName,
+  websiteSlug,
+  primaryCityId,
   onSaved,
 }: {
   categories: Array<{ id: number; slug: string; name: string }>
-  providerId: number
+  displayName: string
+  websiteSlug: string
+  primaryCityId: number
   onSaved: () => void
 }) {
   const [title, setTitle] = useState('')
   const [categoryId, setCategoryId] = useState(0)
   const [description, setDescription] = useState('')
+  const [cityId, setCityId] = useState(primaryCityId)
   const mut = useMutation({
-    mutationFn: () =>
-      providerApi.upsertOffering({
+    mutationFn: async () => {
+      if (cityId > 0) {
+        await providerApi.updateProfile({
+          display_name: displayName,
+          website_slug: websiteSlug,
+          primary_city_id: cityId,
+        })
+      }
+      return providerApi.upsertOffering({
         title,
         slug: title.toLowerCase().replace(/\s+/g, '-'),
         category_id: categoryId,
@@ -197,8 +217,14 @@ function ProviderOfferingForm({
         formats: ['on_site'],
         languages: ['uk'],
         status: 'published',
-      }),
-    onSuccess: onSaved,
+      })
+    },
+    onSuccess: () => {
+      setTitle('')
+      setDescription('')
+      setCategoryId(0)
+      onSaved()
+    },
   })
 
   return (
@@ -206,6 +232,7 @@ function ProviderOfferingForm({
       className="card space-y-3 p-5"
       onSubmit={(e) => {
         e.preventDefault()
+        if (cityId <= 0) return
         mut.mutate()
       }}
     >
@@ -219,8 +246,13 @@ function ProviderOfferingForm({
           </option>
         ))}
       </select>
+      <div className="space-y-1">
+        <p className="text-sm font-medium">Країна та місто</p>
+        <GeoCityPicker value={cityId} onChange={setCityId} required />
+      </div>
       <textarea className="input" placeholder="Опис" value={description} onChange={(e) => setDescription(e.target.value)} />
-      <button type="submit" className="btn-primary" disabled={mut.isPending}>
+      {mut.isError && <p className="text-sm text-red-600">{formatApiError(mut.error)}</p>}
+      <button type="submit" className="btn-primary" disabled={mut.isPending || cityId <= 0}>
         Зберегти
       </button>
     </form>

@@ -20,7 +20,8 @@ import (
 )
 
 func (h *Handlers) AdminUsers(w http.ResponseWriter, r *http.Request) {
-	items, err := h.Users.List(r.Context(), 100, 0)
+	q := adminListQuery(r)
+	items, total, err := h.Users.ListAdmin(r.Context(), q)
 	if err != nil {
 		response.Error(w, r, apperrors.ErrInternal)
 		return
@@ -33,7 +34,7 @@ func (h *Handlers) AdminUsers(w http.ResponseWriter, r *http.Request) {
 			"roles": u.Roles, "status": u.Status, "created_at": u.CreatedAt,
 		})
 	}
-	response.JSON(w, r, 200, map[string]any{"items": out})
+	response.JSON(w, r, 200, map[string]any{"items": out, "total": total, "limit": q.Limit, "offset": q.Offset})
 }
 func (h *Handlers) AdminDeleteUser(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
