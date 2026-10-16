@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/vitomonte/experts-tourister/internal/repo/postgres"
 )
 
 func (h *Handlers) RobotsTxt(w http.ResponseWriter, r *http.Request) {
@@ -111,7 +113,7 @@ func (h *Handlers) SitemapXML(w http.ResponseWriter, r *http.Request) {
 	if rows, err := h.DB.Pool.Query(ctx, `
 		SELECT website_slug, COALESCE(updated_at, created_at)::date
 		FROM guide_profiles
-		WHERE status = 'ACTIVE' AND website_slug <> ''
+		WHERE status = 'ACTIVE' AND website_slug <> '' AND ` + postgres.GuideHasPublicContactSQL("") + `
 		ORDER BY id
 		LIMIT 5000
 	`); err == nil {

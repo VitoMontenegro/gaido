@@ -13,10 +13,10 @@ type ForumRepo struct{ db *DB }
 
 func NewForumRepo(db *DB) *ForumRepo { return &ForumRepo{db: db} }
 
-const forumAuthorSelect = `
+var forumAuthorSelect = `
 	NULLIF(TRIM(COALESCE(NULLIF(gp.display_name, ''), NULLIF(TRIM(CONCAT(u.first_name, ' ', u.last_name)), ''), u.login)), ''),
 	` + authorAvatarSQL + `,
-	CASE WHEN gp.status = 'ACTIVE' AND COALESCE(gp.website_slug, '') <> '' THEN gp.website_slug ELSE NULL END
+	` + PublicGuideSlugExpr("gp") + `
 `
 
 func forumAuthorFromScan(display, avatar, slug *string) *domain.ForumAuthor {
@@ -123,10 +123,10 @@ func (r *ForumRepo) ListTopics(ctx context.Context, forumID int64, limit, offset
 		       t.title, t.author_id, t.post_count, t.last_post_at, t.created_at,
 		       NULLIF(TRIM(COALESCE(NULLIF(gp.display_name, ''), NULLIF(TRIM(CONCAT(u.first_name, ' ', u.last_name)), ''), u.login)), ''),
 		       `+authorAvatarSQL+`,
-		       CASE WHEN gp.status = 'ACTIVE' AND COALESCE(gp.website_slug, '') <> '' THEN gp.website_slug ELSE NULL END,
+		       ` + PublicGuideSlugExpr("gp") + `,
 		       NULLIF(TRIM(COALESCE(NULLIF(lgp.display_name, ''), NULLIF(TRIM(CONCAT(lu.first_name, ' ', lu.last_name)), ''), lu.login)), ''),
 		       `+lastAuthorAvatarSQL+`,
-		       CASE WHEN lgp.status = 'ACTIVE' AND COALESCE(lgp.website_slug, '') <> '' THEN lgp.website_slug ELSE NULL END
+		       ` + PublicGuideSlugExpr("lgp") + `
 		FROM forum_topics t
 		JOIN forums f ON f.id = t.forum_id
 		JOIN users u ON u.id = t.author_id
@@ -162,10 +162,10 @@ func (r *ForumRepo) ListRecentPublicTopics(ctx context.Context, limit int) ([]do
 		       t.title, t.author_id, t.post_count, t.last_post_at, t.created_at,
 		       NULLIF(TRIM(COALESCE(NULLIF(gp.display_name, ''), NULLIF(TRIM(CONCAT(u.first_name, ' ', u.last_name)), ''), u.login)), ''),
 		       `+authorAvatarSQL+`,
-		       CASE WHEN gp.status = 'ACTIVE' AND COALESCE(gp.website_slug, '') <> '' THEN gp.website_slug ELSE NULL END,
+		       ` + PublicGuideSlugExpr("gp") + `,
 		       NULLIF(TRIM(COALESCE(NULLIF(lgp.display_name, ''), NULLIF(TRIM(CONCAT(lu.first_name, ' ', lu.last_name)), ''), lu.login)), ''),
 		       `+lastAuthorAvatarSQL+`,
-		       CASE WHEN lgp.status = 'ACTIVE' AND COALESCE(lgp.website_slug, '') <> '' THEN lgp.website_slug ELSE NULL END
+		       ` + PublicGuideSlugExpr("lgp") + `
 		FROM forum_topics t
 		JOIN forums f ON f.id = t.forum_id
 		JOIN users u ON u.id = t.author_id
@@ -201,10 +201,10 @@ func (r *ForumRepo) GetTopic(ctx context.Context, id int64) (*domain.ForumTopic,
 		       t.title, t.author_id, t.post_count, t.last_post_at, t.created_at,
 		       NULLIF(TRIM(COALESCE(NULLIF(gp.display_name, ''), NULLIF(TRIM(CONCAT(u.first_name, ' ', u.last_name)), ''), u.login)), ''),
 		       `+authorAvatarSQL+`,
-		       CASE WHEN gp.status = 'ACTIVE' AND COALESCE(gp.website_slug, '') <> '' THEN gp.website_slug ELSE NULL END,
+		       ` + PublicGuideSlugExpr("gp") + `,
 		       NULLIF(TRIM(COALESCE(NULLIF(lgp.display_name, ''), NULLIF(TRIM(CONCAT(lu.first_name, ' ', lu.last_name)), ''), lu.login)), ''),
 		       `+lastAuthorAvatarSQL+`,
-		       CASE WHEN lgp.status = 'ACTIVE' AND COALESCE(lgp.website_slug, '') <> '' THEN lgp.website_slug ELSE NULL END
+		       ` + PublicGuideSlugExpr("lgp") + `
 		FROM forum_topics t
 		JOIN forums f ON f.id = t.forum_id
 		JOIN users u ON u.id = t.author_id

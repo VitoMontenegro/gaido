@@ -44,6 +44,19 @@ type GuideProfile struct {
 	CreatedAt              time.Time  `json:"created_at,omitempty"`
 }
 
+// HasPublicContact is true when a visitor can reach the guide by phone, WhatsApp, Telegram, or email.
+func (g *GuideProfile) HasPublicContact() bool {
+	if g == nil {
+		return false
+	}
+	for _, v := range []string{g.Phone, g.Whatsapp, g.Telegram, g.Email} {
+		if strings.TrimSpace(v) != "" {
+			return true
+		}
+	}
+	return false
+}
+
 type GuideCityBrief struct {
 	ID          int64  `json:"id"`
 	Name        string `json:"name"`

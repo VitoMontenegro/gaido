@@ -195,7 +195,7 @@ func (h *Handlers) ResolveFeaturedGuides(ctx context.Context, limit int) []domai
 			break
 		}
 		g, _ := h.Guides.GetByID(ctx, p.GuideID)
-		if g == nil || g.Status != domain.GuideStatusActive || seen[g.ID] {
+		if !guideVisiblePublicly(g) || seen[g.ID] {
 			continue
 		}
 		seen[g.ID] = true

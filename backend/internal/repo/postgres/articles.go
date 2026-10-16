@@ -14,10 +14,10 @@ type ArticleRepo struct{ db *DB }
 
 func NewArticleRepo(db *DB) *ArticleRepo { return &ArticleRepo{db: db} }
 
-const articleAuthorSelect = `
+var articleAuthorSelect = `
 	NULLIF(TRIM(COALESCE(NULLIF(gp.display_name, ''), NULLIF(TRIM(CONCAT(u.first_name, ' ', u.last_name)), ''), u.login)), ''),
 	` + authorAvatarSQL + `,
-	CASE WHEN gp.status = 'ACTIVE' AND COALESCE(gp.website_slug, '') <> '' THEN gp.website_slug ELSE NULL END
+	` + PublicGuideSlugExpr("gp") + `
 `
 
 const articleAuthorJoin = `
@@ -101,7 +101,7 @@ func (r *ArticleRepo) ListPublishedByGuideSlug(ctx context.Context, slug string,
 		`+articleAuthorSelect+`
 		FROM articles a
 		`+articleAuthorJoin+`
-		WHERE a.status = $1 AND gp.website_slug = $2 AND gp.status = $3 AND a.kind = $4
+		WHERE a.status = $1 AND gp.website_slug = $2 AND gp.status = $3 AND a.kind = $4 AND ` + GuideHasPublicContactSQL("gp") + `
 		ORDER BY a.published_at DESC NULLS LAST, a.id DESC
 		LIMIT $5 OFFSET $6
 	`, domain.ArticlePublished, slug, domain.GuideStatusActive, domain.ArticleKindJournal, limit, offset)

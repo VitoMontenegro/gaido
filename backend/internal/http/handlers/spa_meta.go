@@ -399,7 +399,7 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 			return nil
 		}
 		g, err := h.Guides.GetBySlug(ctx, parts[1])
-		if err != nil || g == nil || g.Status != domain.GuideStatusActive {
+		if err != nil || !guideVisiblePublicly(g) {
 			return nil
 		}
 		cityName := ""

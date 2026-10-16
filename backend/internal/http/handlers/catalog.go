@@ -87,7 +87,7 @@ func (h *Handlers) ResolveTopGuides(ctx context.Context, limit int) []domain.Pub
 			break
 		}
 		g, _ := h.Guides.GetByID(ctx, p.GuideID)
-		if g == nil || g.Status != domain.GuideStatusActive || seen[g.ID] {
+		if !guideVisiblePublicly(g) || seen[g.ID] {
 			continue
 		}
 		seen[g.ID] = true
@@ -126,7 +126,7 @@ func (h *Handlers) ResolveTopGuides(ctx context.Context, limit int) []domain.Pub
 }
 func (h *Handlers) GetGuide(w http.ResponseWriter, r *http.Request) {
 	g, err := h.Guides.GetBySlug(r.Context(), chi.URLParam(r, "slug"))
-	if err != nil || g == nil || g.Status != domain.GuideStatusActive {
+	if err != nil || !guideVisiblePublicly(g) {
 		response.Error(w, r, apperrors.ErrNotFound)
 		return
 	}
@@ -167,7 +167,7 @@ func (h *Handlers) GetExcursion(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	e.MapEmbedURL = guidesvc.ResolveMapEmbed(e.MapEmbedURL)
-	if g, err := h.Guides.GetByID(r.Context(), e.GuideID); err == nil && g != nil {
+	if g, err := h.Guides.GetByID(r.Context(), e.GuideID); err == nil && g != nil && g.HasPublicContact() {
 		e.GuideContacts = h.publicGuideDTO(r.Context(), g).Contacts
 		e.GuideAbout = domain.PublicGuideAbout(g.About)
 	}
@@ -179,7 +179,7 @@ func (h *Handlers) GetExcursion(w http.ResponseWriter, r *http.Request) {
 }
 func (h *Handlers) ListGuideExcursions(w http.ResponseWriter, r *http.Request) {
 	g, err := h.Guides.GetBySlug(r.Context(), chi.URLParam(r, "slug"))
-	if err != nil || g == nil || g.Status != domain.GuideStatusActive {
+	if err != nil || !guideVisiblePublicly(g) {
 		response.Error(w, r, apperrors.ErrNotFound)
 		return
 	}

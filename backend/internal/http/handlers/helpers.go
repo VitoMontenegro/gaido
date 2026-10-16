@@ -91,6 +91,10 @@ func (h *Handlers) canViewExcursion(ctx context.Context, e *domain.ExcursionView
 	return h.canPreviewUnpublishedExcursion(ctx, e.GuideID)
 }
 
+func guideVisiblePublicly(g *domain.GuideProfile) bool {
+	return g != nil && g.Status == domain.GuideStatusActive && g.HasPublicContact()
+}
+
 func (h *Handlers) publicGuideDTO(ctx context.Context, g *domain.GuideProfile) domain.PublicGuideDTO {
 	sub, _ := h.Subs.GetActive(ctx, g.ID)
 	hasLicense := h.HasUploadedLicense(ctx, g)

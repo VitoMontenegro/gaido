@@ -108,7 +108,7 @@ func (r *GeoRepo) ListCountriesWithGuideCount(ctx context.Context) ([]CountryWit
 		SELECT co.id, co.slug, co.name, COUNT(DISTINCT ccg.guide_id)::int
 		FROM countries co
 		JOIN catalog_country_guides ccg ON ccg.country_id = co.id
-		JOIN guide_profiles gp ON gp.id = ccg.guide_id AND gp.status = $1
+		JOIN guide_profiles gp ON gp.id = ccg.guide_id AND gp.status = $1 AND ` + GuideHasPublicContactSQL("gp") + `
 		WHERE co.is_active = true
 		GROUP BY co.id, co.slug, co.name
 		HAVING COUNT(DISTINCT ccg.guide_id) > 0

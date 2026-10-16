@@ -62,6 +62,40 @@ func catalogEligibleClause(catalogOnly bool) string {
 	return ""
 }
 
+// GuideHasPublicContactSQL is true when phone, WhatsApp, Telegram, or email is set.
+// alias is a guide_profiles table alias; empty means unqualified columns.
+func GuideHasPublicContactSQL(alias string) string {
+	col := func(name string) string {
+		if alias == "" {
+			return name
+		}
+		return alias + "." + name
+	}
+	return fmt.Sprintf(`(
+		BTRIM(COALESCE(%s, '')) <> ''
+		OR BTRIM(COALESCE(%s, '')) <> ''
+		OR BTRIM(COALESCE(%s, '')) <> ''
+		OR BTRIM(COALESCE(%s, '')) <> ''
+	)`, col("phone"), col("whatsapp"), col("telegram"), col("email"))
+}
+
+// PublicGuideSlugExpr returns website_slug only for an active guide visitors can contact.
+func PublicGuideSlugExpr(alias string) string {
+	return fmt.Sprintf(
+		`CASE WHEN %s.status = 'ACTIVE' AND BTRIM(COALESCE(%s.website_slug, '')) <> '' AND %s THEN %s.website_slug ELSE NULL END`,
+		alias, alias, GuideHasPublicContactSQL(alias), alias,
+	)
+}
+
+// PublicGuideIdentityCols blanks name, slug, and avatar when the guide has no public contact.
+func PublicGuideIdentityCols(alias string) string {
+	ok := GuideHasPublicContactSQL(alias)
+	return fmt.Sprintf(
+		`CASE WHEN %[1]s THEN %[2]s.display_name ELSE '' END, CASE WHEN %[1]s THEN %[2]s.website_slug ELSE '' END, CASE WHEN %[1]s THEN COALESCE(%[2]s.avatar_url, '') ELSE '' END`,
+		ok, alias,
+	)
+}
+
 func (r *GuideRepo) GetByUserID(ctx context.Context, userID int64) (*domain.GuideProfile, error) {
 	row := r.db.Pool.QueryRow(ctx, `
 		SELECT `+guideProfileSelect+` FROM guide_profiles WHERE user_id=$1
@@ -308,7 +342,7 @@ func (r *GuideRepo) AdminDelete(ctx context.Context, id int64) error {
 }
 
 func publicGuideFilter(cityID, countryID *int64, guideType string) (string, []any) {
-	q := ` FROM guide_profiles WHERE status=$1`
+	q := ` FROM guide_profiles WHERE status=$1 AND ` + GuideHasPublicContactSQL("")
 	args := []any{domain.GuideStatusActive}
 	n := 2
 	if cityID != nil {
@@ -436,7 +470,7 @@ func (r *GuideRepo) ListPublicByName(ctx context.Context, cityID, countryID *int
 }
 
 func (r *GuideRepo) ListTopRated(ctx context.Context, limit int, exclude []int64, catalogOnly bool) ([]domain.GuideProfile, error) {
-	q := `SELECT ` + guideProfileSelect + ` FROM guide_profiles WHERE status=$1 AND rating_count > 0` + catalogEligibleClause(catalogOnly)
+	q := `SELECT ` + guideProfileSelect + ` FROM guide_profiles WHERE status=$1 AND ` + GuideHasPublicContactSQL("") + ` AND rating_count > 0` + catalogEligibleClause(catalogOnly)
 	args := []any{domain.GuideStatusActive}
 	n := 2
 	if len(exclude) > 0 {
@@ -463,7 +497,7 @@ func (r *GuideRepo) ListTopRated(ctx context.Context, limit int, exclude []int64
 }
 
 func (r *GuideRepo) ListByExcursionCount(ctx context.Context, limit int, exclude []int64, catalogOnly bool) ([]domain.GuideProfile, error) {
-	q := `SELECT ` + guideProfileSelect + ` FROM guide_profiles WHERE status=$1` + catalogEligibleClause(catalogOnly)
+	q := `SELECT ` + guideProfileSelect + ` FROM guide_profiles WHERE status=$1 AND ` + GuideHasPublicContactSQL("") + catalogEligibleClause(catalogOnly)
 	args := []any{domain.GuideStatusActive}
 	n := 2
 	if len(exclude) > 0 {
@@ -492,7 +526,7 @@ func (r *GuideRepo) ListByExcursionCount(ctx context.Context, limit int, exclude
 }
 
 func (r *GuideRepo) ListPublicRandom(ctx context.Context, limit int, exclude []int64, catalogOnly bool) ([]domain.GuideProfile, error) {
-	q := `SELECT ` + guideProfileSelect + ` FROM guide_profiles WHERE status=$1` + catalogEligibleClause(catalogOnly)
+	q := `SELECT ` + guideProfileSelect + ` FROM guide_profiles WHERE status=$1 AND ` + GuideHasPublicContactSQL("") + catalogEligibleClause(catalogOnly)
 	args := []any{domain.GuideStatusActive}
 	n := 2
 	if len(exclude) > 0 {

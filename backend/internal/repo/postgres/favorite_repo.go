@@ -103,7 +103,7 @@ func (r *FavoriteRepo) Enrich(ctx context.Context, items []domain.FavoriteRef, p
 			q := `SELECT display_name, website_slug, COALESCE(avatar_url,'') FROM guide_profiles WHERE id=$1`
 			args := []any{f.TargetID}
 			if publicOnly {
-				q += ` AND status=$2`
+				q += ` AND status=$2 AND ` + GuideHasPublicContactSQL("")
 				args = append(args, domain.GuideStatusActive)
 			}
 			err := r.db.Pool.QueryRow(ctx, q, args...).

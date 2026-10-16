@@ -442,9 +442,7 @@ func (r *ExcursionRepo) GetViewBySlug(ctx context.Context, slug string) (*domain
 	row := r.db.Pool.QueryRow(ctx, `
 		SELECT `+excursionSelectColsAliased+`,
 			`+excursionCityCols+`,
-			g.display_name,
-			g.website_slug,
-			COALESCE(g.avatar_url, ''),
+			` + PublicGuideIdentityCols("g") + `,
 			COALESCE((SELECT AVG(r.rating)::float8 FROM guide_reviews r WHERE r.excursion_id=e.id AND r.status=$2), 0),
 			COALESCE((SELECT COUNT(*)::int FROM guide_reviews r WHERE r.excursion_id=e.id AND r.status=$2), 0)
 		FROM excursions e
@@ -467,9 +465,7 @@ func (r *ExcursionRepo) GetViewByID(ctx context.Context, id int64) (*domain.Excu
 	row := r.db.Pool.QueryRow(ctx, `
 		SELECT `+excursionSelectColsAliased+`,
 			`+excursionCityCols+`,
-			g.display_name,
-			g.website_slug,
-			COALESCE(g.avatar_url, '')`+excursionReviewRatingCols+`
+			`+PublicGuideIdentityCols("g")+excursionReviewRatingCols+`
 		FROM excursions e
 		`+excursionCityJoins+`
 		JOIN guide_profiles g ON g.id = e.guide_id
@@ -499,9 +495,7 @@ func scanExcursionViews(rows pgx.Rows, withRating bool) ([]domain.ExcursionView,
 func (r *ExcursionRepo) ListPublicEnriched(ctx context.Context, cityID *int64, countrySlug, q string, date *time.Time, limit, offset int) ([]domain.ExcursionView, error) {
 	sql := `SELECT ` + excursionSelectColsAliased + `,
 			` + excursionCityCols + `,
-			g.display_name,
-			g.website_slug,
-			COALESCE(g.avatar_url, '')` + excursionReviewRatingCols + `
+			` + PublicGuideIdentityCols("g") + excursionReviewRatingCols + `
 		FROM excursions e
 		JOIN guide_profiles g ON g.id=e.guide_id
 		` + excursionCityJoins + `
@@ -558,9 +552,7 @@ func (r *ExcursionRepo) ListPublicEnriched(ctx context.Context, cityID *int64, c
 func (r *ExcursionRepo) ListPublicEnrichedNewest(ctx context.Context, limit int) ([]domain.ExcursionView, error) {
 	sql := `SELECT ` + excursionSelectColsAliased + `,
 			` + excursionCityCols + `,
-			g.display_name,
-			g.website_slug,
-			COALESCE(g.avatar_url, '')` + excursionReviewRatingCols + `
+			` + PublicGuideIdentityCols("g") + excursionReviewRatingCols + `
 		FROM excursions e
 		JOIN guide_profiles g ON g.id=e.guide_id
 		` + excursionCityJoins + `
