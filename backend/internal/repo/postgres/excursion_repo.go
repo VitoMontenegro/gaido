@@ -162,8 +162,21 @@ func scanExcursionViewFields(v *domain.ExcursionView, row pgx.Row, withGuide, wi
 	v.IncludedItems = unmarshalStringSlice(includedRaw)
 	v.ExcludedItems = unmarshalStringSlice(excludedRaw)
 	v.StructuredContent = unmarshalStructuredContent(structuredRaw)
+	applyExcursionCoverFallback(&v.CoverImageURL, v.StructuredContent)
 	normalizeExcursionPlainText(&v.Excursion)
 	return nil
+}
+
+func applyExcursionCoverFallback(cover *string, content domain.ExcursionStructuredContent) {
+	if strings.TrimSpace(*cover) != "" {
+		return
+	}
+	for _, photo := range content.PhotoLocations {
+		if photo = strings.TrimSpace(photo); photo != "" {
+			*cover = photo
+			return
+		}
+	}
 }
 
 func (r *ExcursionRepo) Create(ctx context.Context, e *domain.Excursion) (int64, error) {

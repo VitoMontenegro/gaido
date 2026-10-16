@@ -83,7 +83,7 @@ func (r *FavoriteRepo) Enrich(ctx context.Context, items []domain.FavoriteRef, p
 		switch f.TargetType {
 		case domain.FavoriteExcursion:
 			q := `
-				SELECT e.title, e.slug, COALESCE(e.cover_image_url,''), COALESCE(c.name,''), e.price_from, e.currency,
+				SELECT e.title, e.slug, COALESCE(NULLIF(BTRIM(e.cover_image_url), ''), NULLIF(BTRIM(e.structured_content->'photo_locations'->>0), ''), ''), COALESCE(c.name,''), e.price_from, e.currency,
 					COALESCE(e.description, ''),
 					COALESCE((SELECT AVG(r.rating)::float8 FROM guide_reviews r WHERE r.excursion_id=e.id AND r.status=$2), 0),
 					COALESCE((SELECT COUNT(*)::int FROM guide_reviews r WHERE r.excursion_id=e.id AND r.status=$2), 0)
