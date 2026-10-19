@@ -8,9 +8,9 @@ import CitiesMap from '../CitiesMap'
 import {
   REGION_OPTIONS,
   UK_ALPHABET,
+  countryCca2,
   countryContinent,
   countryFirstLetter,
-  countryFlagEmoji,
   type RegionId,
 } from '../../lib/countryMeta'
 import { SEO_COUNTRIES_DESCRIPTION, SEO_COUNTRIES_HEADING } from '../../lib/seoTemplates'
@@ -52,13 +52,19 @@ function scrollToCountries() {
   })
 }
 
-function CountryFlag({ slug, name }: { slug: string; name: string }) {
-  const flag = countryFlagEmoji(slug)
-  if (flag) {
+function CountryFlag({ slug, name, large = false }: { slug: string; name: string; large?: boolean }) {
+  const code = countryCca2(slug)
+  if (code) {
     return (
-      <span className="text-2xl leading-none" aria-hidden>
-        {flag}
-      </span>
+      <img
+        src={`/flags/${code}.svg`}
+        alt=""
+        width={large ? 36 : 20}
+        height={large ? 27 : 15}
+        className={cn('countries-flag', large && 'countries-flag-lg')}
+        title={name}
+        draggable={false}
+      />
     )
   }
   const letter = name.trim().charAt(0).toLocaleUpperCase('uk')
@@ -270,34 +276,37 @@ export default function CountriesDirectory({ points, countries, loading }: Props
 
           {popularCountries.length > 0 && (
             <section className="mt-8 lg:hidden" aria-label="Популярні напрямки">
-              <div className="mb-4 flex items-end justify-between gap-3">
+              <div className="mb-4 flex items-baseline justify-between gap-3">
                 <h2 className="section-title-sm">Популярні напрямки</h2>
                 <button type="button" className="link-accent text-sm normal-case" onClick={scrollToCountries}>
                   Дивитись усі
                 </button>
               </div>
-              <div className="-mx-5 overflow-x-auto px-5 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                <ul className="flex snap-x snap-mandatory gap-3">
+              <div className="countries-cities -mx-5 px-5 md:mx-0 md:px-0">
+                <ul className="flex gap-3">
                   {popularCountries.map((country) => (
-                    <li key={country.slug} className="w-[72vw] max-w-[280px] shrink-0 snap-start">
+                    <li key={country.slug} className="w-[168px] shrink-0 sm:w-[200px]">
                       <Link
                         to={`/countries/${country.slug}`}
-                        className="block overflow-hidden rounded-2xl bg-surface"
+                        className="countries-city-card relative block overflow-hidden rounded-2xl bg-sand-100"
                       >
-                        <div className="relative aspect-[4/3] bg-sand-100">
-                          <CoverImage src={country.cover_image_url} alt={country.name} />
-                          {!country.cover_image_url && (
-                            <span className="absolute inset-0 flex items-center justify-center">
-                              <CountryFlag slug={country.slug} name={country.name} />
+                        <CoverImage src={country.cover_image_url} alt={country.name} />
+                        {country.cover_image_url ? (
+                          <span className="absolute inset-x-0 bottom-0 bg-linear-to-t from-ink/75 to-transparent p-3">
+                            <span className="block truncate font-medium text-white">{country.name}</span>
+                            <span className="mt-0.5 block truncate text-xs text-white/80">
+                              {placeStats(country.city_count, country.excursion_count)}
                             </span>
-                          )}
-                        </div>
-                        <div className="p-3">
-                          <p className="font-medium text-ink">{country.name}</p>
-                          <p className="mt-1 text-sm text-muted">
-                            {placeStats(country.city_count, country.excursion_count)}
-                          </p>
-                        </div>
+                          </span>
+                        ) : (
+                          <span className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-3 text-center">
+                            <CountryFlag slug={country.slug} name={country.name} large />
+                            <span className="font-medium text-ink">{country.name}</span>
+                            <span className="text-xs text-muted">
+                              {placeStats(country.city_count, country.excursion_count)}
+                            </span>
+                          </span>
+                        )}
                       </Link>
                     </li>
                   ))}
@@ -401,7 +410,7 @@ export default function CountriesDirectory({ points, countries, loading }: Props
                           </span>
                         ) : (
                           <span className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-3 text-center">
-                            <CountryFlag slug={city.countrySlug} name={city.countryName} />
+                            <CountryFlag slug={city.countrySlug} name={city.countryName} large />
                             <span className="font-medium text-ink">{city.name}</span>
                             <span className="text-xs text-muted">{city.countryName}</span>
                           </span>
@@ -451,7 +460,7 @@ function CountryRow({ country }: { country: CountryCatalogItem }) {
 
 function CountryCard({ country, cities }: { country: CountryCatalogItem; cities: CountryCatalogCity[] }) {
   return (
-    <article className="h-full rounded-2xl bg-surface">
+    <article className="h-full rounded-2xl bg-surface overflow-hidden">
       <Link
         to={`/countries/${country.slug}`}
         className="flex items-center gap-3 px-4 py-3 transition hover:bg-sand-50"

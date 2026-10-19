@@ -20,10 +20,9 @@ export function countryContinent(slug: string): ContinentId | null {
   return COUNTRY_META[slug]?.continent ?? null
 }
 
-export function countryFlagEmoji(slug: string): string {
-  const cca2 = COUNTRY_META[slug]?.cca2
-  if (!cca2 || !/^[A-Z]{2}$/.test(cca2)) return ''
-  return String.fromCodePoint(...[...cca2].map((char) => 0x1f1e6 + char.charCodeAt(0) - 65))
+export function countryCca2(slug: string): string {
+  const code = COUNTRY_META[slug]?.cca2?.toLowerCase() ?? ''
+  return /^[a-z]{2}$/.test(code) ? code : ''
 }
 
 export function countryFirstLetter(name: string): string {

@@ -107,7 +107,7 @@
   }
 
   .input {
-    @apply w-full rounded-xl border border-border bg-surface px-4 py-3 text-base text-ink outline-none transition placeholder:text-muted-light focus:border-brand-500 focus:ring-2 focus:ring-brand-50;
+    @apply w-full rounded-xl border border-border bg-surface px-4 py-3 text-[16px] text-ink outline-none transition placeholder:text-muted-light focus:border-brand-500 focus:ring-2 focus:ring-brand-50;
     caret-color: #fb7036;
     letter-spacing: -0.02em;
   }
