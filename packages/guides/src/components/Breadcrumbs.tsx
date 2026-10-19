@@ -46,7 +46,7 @@ export default function Breadcrumbs({ items, currentPath }: Props) {
 
   return (
     <>
-      <div className="border-b border-divider bg-page">
+      <div className="border-b border-divider">
         <nav className="container-site py-4 text-sm text-stone-500" aria-label="Навігаційний ланцюжок">
           <ol className="flex flex-wrap items-center">
             {trail.map((item, index) => (

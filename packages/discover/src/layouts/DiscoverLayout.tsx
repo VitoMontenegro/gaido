@@ -26,7 +26,7 @@ export function DiscoverPublicLayout() {
   useTelegramBotURL()
   return (
     <LocationProvider>
-      <div className="flex min-h-screen flex-col bg-page">
+      <div className="flex min-h-screen flex-col">
         <DiscoverHeader />
         <main className="flex-1">
           <ErrorBoundary>
@@ -61,7 +61,7 @@ export function DiscoverAccountLayout() {
 
   return (
     <LocationProvider>
-      <div className="min-h-screen bg-page">
+      <div className="min-h-screen">
         <DiscoverHeader />
         <div className="container-site grid gap-6 py-8 md:grid-cols-[240px_1fr]">
           <aside className="card h-fit space-y-1 p-4">
@@ -117,7 +117,7 @@ export function DiscoverAdminLayout() {
 
   if (!isAdmin && !isModerator) {
     return (
-      <div className="flex min-h-screen flex-col bg-page">
+      <div className="flex min-h-screen flex-col">
         <DiscoverHeader />
         <div className="container-site py-12">
           <div className="card space-y-2">
@@ -131,7 +131,7 @@ export function DiscoverAdminLayout() {
   }
 
   return (
-    <div className="admin-ui min-h-screen bg-page">
+    <div className="admin-ui min-h-screen">
       <DiscoverHeader />
       <div className="container-site grid gap-6 py-8 md:grid-cols-[240px_1fr]">
         <aside className="card h-fit space-y-1 p-4">

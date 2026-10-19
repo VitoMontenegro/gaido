@@ -9,7 +9,7 @@ import AccountNavLink from '../components/crm/AccountNavLink'
 
 export function PortalPublicLayout() {
   return (
-    <div className="flex min-h-screen flex-col bg-page">
+    <div className="flex min-h-screen flex-col">
       <PortalHeader />
       <main className="flex-1">
         <ErrorBoundary>
@@ -56,7 +56,7 @@ export function PortalAdminLayout() {
   }
 
   return (
-    <div className="admin-ui min-h-screen bg-page">
+    <div className="admin-ui min-h-screen">
       <PortalHeader />
       <div className="container-site grid gap-6 py-8 md:grid-cols-[240px_1fr]">
         <aside className="card h-fit space-y-1 p-4">

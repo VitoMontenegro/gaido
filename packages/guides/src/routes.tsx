@@ -11,7 +11,7 @@ import CityPage, { CountriesPage } from './pages/CityMapPages'
 export function PageFallback() {
   return (
     <>
-      <div className="border-b border-divider bg-page">
+      <div className="border-b border-divider">
         <div className="container-site py-4">
           <div className="h-5 w-40 animate-pulse rounded bg-sand-100" aria-hidden />
         </div>

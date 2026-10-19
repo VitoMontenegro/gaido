@@ -129,7 +129,7 @@ export default function AboutPage() {
         </div>
       </section>
 
-      <section className="bg-page py-14 md:py-16">
+      <section className="py-14 md:py-16">
         <div className="container-site max-w-3xl space-y-6">
           <div className="about-note">
             <p className="about-note__label">Важливо</p>

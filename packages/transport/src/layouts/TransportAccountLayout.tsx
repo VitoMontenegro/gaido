@@ -45,7 +45,7 @@ export function TransportAccountLayout() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-page">
+    <div className="flex min-h-screen flex-col">
       <TransportHeader />
       <main className="flex-1">
         <ErrorBoundary>

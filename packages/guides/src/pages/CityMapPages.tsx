@@ -28,7 +28,7 @@ import { pageTitle } from '@gaido/site-urls/brand'
 
 function BreadcrumbSkeleton() {
   return (
-    <div className="border-b border-divider bg-page">
+    <div className="border-b border-divider">
       <div className="container-site py-4">
         <div className="h-5 w-48 max-w-full animate-pulse rounded bg-sand-100" aria-hidden />
       </div>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { catalogApi, articlesApi, resolveMediaUrl, type CountryWithGuides, type Excursion, type PublicGuide, type ArticleListItem } from '@gaido/api-client/api/client'
@@ -266,13 +266,6 @@ export default function PortalHomePage() {
   const newsArticles = articlesData?.items ?? []
   const forumTopics = forumRecent?.items ?? []
   const showForumHome = forumTopics.length > 0
-  const [showWorldBg, setShowWorldBg] = useState(false)
-  useEffect(() => {
-    const start = () => setShowWorldBg(true)
-    if (document.readyState === 'complete') start()
-    else window.addEventListener('load', start, { once: true })
-    return () => window.removeEventListener('load', start)
-  }, [])
   const jsonLd = buildPortalHomeJsonLd({
     guides: featuredGuides,
     excursions: latestExcursions.length > 0 ? latestExcursions : featuredExcursions,
@@ -288,15 +281,6 @@ export default function PortalHomePage() {
         jsonLd={jsonLd}
       />
 
-      <div className="pointer-events-none fixed inset-0 z-0" aria-hidden>
-        <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={showWorldBg ? { backgroundImage: `url(${staticAssetUrl('/images/home/world-bg.jpg')})` } : undefined}
-        />
-        <div className="absolute inset-0 bg-page/50" />
-      </div>
-
-      <div className="relative z-10">
       <section className="container-site py-10 md:py-14">
         <p className="text-sm font-medium uppercase tracking-wide text-teal">Українці в усьому світі</p>
         <h1 className="section-title mt-2">{hub.title}</h1>
@@ -445,7 +429,6 @@ export default function PortalHomePage() {
           </div>
         </div>
       </section>
-      </div>
     </>
   )
 }
