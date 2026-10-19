@@ -148,7 +148,7 @@ export const SEO_FORUMS_HEADING = 'Форуми'
 export const SEO_FORUMS_DESCRIPTION = 'Обговорення подорожей українською: поради, маршрути та враження мандрівників'
 
 export const SEO_COUNTRIES_HEADING = 'Країни'
-export const SEO_COUNTRIES_DESCRIPTION = 'Оберіть країну або місто: на сторінці напрямку зібрані міста, україномовні гіди й екскурсії.'
+export const SEO_COUNTRIES_DESCRIPTION = 'Знайдіть україномовного гіда та екскурсії у потрібній країні або місті. На сторінці зібрані напрямки, міста і каталог україномовних гідів за кордоном.'
 
 export function seoExcursionTitle(title: string, cityName?: string, price?: number, currency?: string) {
   if (cityName && price != null && currency) {

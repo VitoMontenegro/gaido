@@ -301,6 +301,32 @@ func TestResolveSpaPageMeta_noIndexHasEmptyBody(t *testing.T) {
 	}
 }
 
+func TestCountriesCollectionJSON(t *testing.T) {
+	if n := utf8.RuneCountInString(seoCountriesDescription); n < 140 || n > 160 {
+		t.Fatalf("countries description length = %d", n)
+	}
+	got := buildCountriesCollectionJSON("https://gaido-ua.com/svit", seoCountriesDescription, []countryGuideEntry{
+		{Name: "Італія", Slug: "italy"},
+	})
+	if got["@type"] != "CollectionPage" {
+		t.Fatalf("type = %#v", got["@type"])
+	}
+	if got["url"] != "https://gaido-ua.com/svit/countries" {
+		t.Fatalf("url = %#v", got["url"])
+	}
+	main, ok := got["mainEntity"].(map[string]any)
+	if !ok || main["@type"] != "ItemList" || main["numberOfItems"] != 1 {
+		t.Fatalf("mainEntity = %#v", got["mainEntity"])
+	}
+	items := main["itemListElement"].([]map[string]any)
+	if items[0]["url"] != "https://gaido-ua.com/svit/countries/italy" || items[0]["name"] != "Італія" {
+		t.Fatalf("item = %#v", items[0])
+	}
+	if buildCountriesCollectionJSON("https://gaido-ua.com/svit", seoCountriesDescription, nil) != nil {
+		t.Fatal("empty list must be nil")
+	}
+}
+
 func TestFaqAnswerTextStripsLinks(t *testing.T) {
 	got := faqAnswerText(`місто — <a href="/city/london">Лондон</a>.`)
 	if got != "місто — Лондон." {

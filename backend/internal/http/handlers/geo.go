@@ -12,7 +12,56 @@ import (
 	"github.com/vitomonte/experts-tourister/internal/repo/postgres"
 )
 
+func (h *Handlers) ListCountriesAdmin(w http.ResponseWriter, r *http.Request) {
+	items, err := h.Geo.ListCountriesAdmin(r.Context())
+	if err != nil {
+		response.Error(w, r, apperrors.ErrInternal)
+		return
+	}
+	if items == nil {
+		items = []postgres.CountryAdmin{}
+	}
+	response.JSON(w, r, 200, map[string]any{"items": items})
+}
+
+func (h *Handlers) UpdateCountryCover(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if err != nil || id <= 0 {
+		response.Error(w, r, apperrors.ErrValidation)
+		return
+	}
+	var req struct {
+		CoverImageURL string `json:"cover_image_url"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Error(w, r, apperrors.ErrValidation)
+		return
+	}
+	ok, err := h.Geo.UpdateCountryCover(r.Context(), id, req.CoverImageURL)
+	if err != nil {
+		response.Error(w, r, apperrors.ErrInternal)
+		return
+	}
+	if !ok {
+		response.Error(w, r, apperrors.ErrNotFound)
+		return
+	}
+	response.JSON(w, r, 200, map[string]string{"status": "ok"})
+}
+
 func (h *Handlers) ListCountries(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Query().Get("catalog") == "1" {
+		items, err := h.Geo.ListCountryCatalog(r.Context())
+		if err != nil {
+			response.Error(w, r, apperrors.ErrInternal)
+			return
+		}
+		if items == nil {
+			items = []postgres.CountryCatalog{}
+		}
+		response.JSON(w, r, 200, map[string]any{"items": items})
+		return
+	}
 	if r.URL.Query().Get("with_guides") == "1" {
 		items, err := h.Geo.ListCountriesWithGuideCount(r.Context())
 		if err != nil {

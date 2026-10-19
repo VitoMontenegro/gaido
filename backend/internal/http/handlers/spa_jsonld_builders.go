@@ -310,6 +310,34 @@ type countryGuideEntry struct {
 	Slug string
 }
 
+func buildCountriesCollectionJSON(base, description string, countries []countryGuideEntry) map[string]any {
+	if len(countries) == 0 {
+		return nil
+	}
+	elements := make([]map[string]any, len(countries))
+	for i, c := range countries {
+		elements[i] = map[string]any{
+			"@type":    "ListItem",
+			"position": i + 1,
+			"name":     c.Name,
+			"url":      base + "/countries/" + c.Slug,
+		}
+	}
+	return map[string]any{
+		"@context":    "https://schema.org",
+		"@type":       "CollectionPage",
+		"name":        seoCountriesHeading,
+		"description": description,
+		"url":         base + "/countries",
+		"mainEntity": map[string]any{
+			"@type":           "ItemList",
+			"name":            seoCountriesHeading,
+			"numberOfItems":   len(elements),
+			"itemListElement": elements,
+		},
+	}
+}
+
 func buildCountryGuideItemListJSON(countries []countryGuideEntry, base string) map[string]any {
 	if len(countries) == 0 {
 		return nil

@@ -974,3 +974,63 @@
 button {
   @apply cursor-pointer;
 }
+
+.countries-page .countries-region-select {
+  appearance: none;
+  background-image: none;
+  padding-right: 2.5rem;
+}
+
+.countries-page .countries-map,
+.countries-page .countries-aside {
+  height: 22rem;
+}
+
+.countries-page .countries-map .map-wrap,
+.countries-page .countries-map .leaflet-map {
+  height: 100%;
+}
+
+@media (min-width: 640px) {
+  .countries-page .countries-map,
+  .countries-page .countries-aside {
+    height: 28rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .countries-page .countries-map,
+  .countries-page .countries-aside {
+    height: 32rem;
+  }
+}
+
+.countries-page .countries-destinations {
+  scrollbar-width: none;
+}
+
+.countries-page .countries-destinations::-webkit-scrollbar {
+  display: none;
+}
+
+.countries-page .countries-cities {
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+
+.countries-page .countries-cities::-webkit-scrollbar {
+  display: none;
+}
+
+.countries-page .countries-city-card {
+  height: 13.5rem;
+}
+
+.countries-page .countries-city-card img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}

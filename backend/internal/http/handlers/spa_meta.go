@@ -696,6 +696,7 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 
 func (h *Handlers) countriesIndexMeta(ctx context.Context, base, defaultImage string) *SpaPageMeta {
 	var countryLinks []CrawlLink
+	var countryEntries []countryGuideEntry
 	var cityLinks []CrawlLink
 	if h.Geo != nil {
 		if countries, err := h.Geo.ListCountriesWithExcursions(ctx); err == nil {
@@ -704,6 +705,7 @@ func (h *Handlers) countriesIndexMeta(ctx context.Context, base, defaultImage st
 					continue
 				}
 				countryLinks = append(countryLinks, crawlLink(c.Name, absURL(base, "/countries/"+c.Slug)))
+				countryEntries = append(countryEntries, countryGuideEntry{Name: c.Name, Slug: c.Slug})
 			}
 		}
 		if points, err := h.Geo.ListMapPoints(ctx); err == nil {
@@ -732,12 +734,14 @@ func (h *Handlers) countriesIndexMeta(ctx context.Context, base, defaultImage st
 		withSection("Міста", nil, cityLinks).
 		withSection("Екскурсії", nil, excursionLinks).
 		withSection("Гіди", nil, guideLinks)
+	jsonLd := h.simpleBreadcrumbJsonLd(base, "Країни", "/countries")
+	jsonLd = appendJsonLd(jsonLd, buildCountriesCollectionJSON(base, seoCountriesDescription, countryEntries))
 	return (&SpaPageMeta{
 		Title:       pageTitleSuffix(seoCountriesHeading),
 		Description: seoCountriesDescription,
 		Canonical:   base + "/countries",
 		OgImage:     defaultImage,
-		JsonLd:      h.simpleBreadcrumbJsonLd(base, "Країни", "/countries"),
+		JsonLd:      jsonLd,
 	}).withBody(body)
 }
 

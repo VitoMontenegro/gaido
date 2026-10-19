@@ -143,6 +143,33 @@ export function buildExcursionListingJsonLd(
   return schemas
 }
 
+export function buildCountriesIndexJsonLd(
+  countries: { name: string; slug: string }[],
+  description: string,
+) {
+  if (countries.length === 0) return undefined
+  return [
+    {
+      '@context': 'https://schema.org',
+      '@type': 'CollectionPage',
+      name: 'Країни',
+      description,
+      url: '/countries',
+      mainEntity: {
+        '@type': 'ItemList',
+        name: 'Країни',
+        numberOfItems: countries.length,
+        itemListElement: countries.map((country, index) => ({
+          '@type': 'ListItem',
+          position: index + 1,
+          name: country.name,
+          url: `/countries/${country.slug}`,
+        })),
+      },
+    },
+  ]
+}
+
 function itemListJsonLd(name: string, items: { name: string; url: string }[]) {
   if (items.length === 0) return null
   return {

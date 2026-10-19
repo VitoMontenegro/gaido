@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { adminApi, api, authApi, type AdminAnalytics, type AdminPaymentRow, type CookieConsentRecord, type MailSettings } from '@gaido/api-client/api/client'
 import StatCard, { StatGrid } from '../components/crm/StatCard'
+import CountryCoverList from '../components/CountryCoverList'
 import { ImageUrlField } from '../components/ImageUrlField'
 import { useHasRole, useMe } from '@gaido/api-client/hooks/useAuth'
 import { SiteContentEditor } from '../components/SiteContentEditor'
@@ -816,7 +817,7 @@ const MOD_SECTIONS: { id: ModSection; label: string; siteModes: SiteMode[] }[] =
   { id: 'excursions', label: 'Екскурсії', siteModes: ['portal', 'guides'] },
   { id: 'reviews', label: 'Відгуки', siteModes: ['portal', 'guides'] },
   { id: 'documents', label: 'Документи', siteModes: ['portal', 'guides'] },
-  { id: 'geo', label: 'Гео', siteModes: ['portal'] },
+  { id: 'geo', label: 'Гео', siteModes: ['portal', 'guides'] },
   { id: 'transport', label: 'Vezu рейси', siteModes: ['portal', 'transport'] },
   { id: 'carriers', label: 'Перевізники', siteModes: ['portal', 'transport'] },
   { id: 'providers', label: 'Автори оголошень', siteModes: ['portal', 'services'] },
@@ -1116,6 +1117,7 @@ export function ModeratorPage() {
           <div className="card space-y-6">
             <h1 className="font-display text-2xl font-bold">Географія</h1>
             {geoMsg && <p className="text-sm text-muted">{geoMsg}</p>}
+            <CountryCoverList />
 
             <form
               className="grid gap-2 sm:grid-cols-3"
@@ -1125,6 +1127,7 @@ export function ModeratorPage() {
                 setGeoMsg(`Країну «${geoCountry.name}» додано`)
                 setGeoCountry({ slug: '', name: '' })
                 qc.invalidateQueries({ queryKey: ['countries'] })
+                qc.invalidateQueries({ queryKey: ['mod-geo-countries'] })
               }}
             >
               <p className="sm:col-span-3 font-medium">Країна</p>

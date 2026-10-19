@@ -48,6 +48,20 @@ export type Excursion = {
 }
 
 export type Country = { id: number; slug: string; name: string }
+export type CountryCatalogCity = {
+  slug: string
+  name: string
+  excursion_count: number
+  cover_image_url?: string
+}
+export type CountryCatalogItem = {
+  slug: string
+  name: string
+  city_count: number
+  excursion_count: number
+  cover_image_url?: string
+  cities: CountryCatalogCity[]
+}
 export type CountryWithGuides = Country & { guide_count: number }
 export type City = {
   id: number

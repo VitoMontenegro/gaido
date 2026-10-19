@@ -6,12 +6,14 @@ const WORLD_FIT = { singleZoom: 4, maxZoom: 5, padding: [48, 48] as [number, num
 
 type Props = {
   points: MapPoint[]
+  showAttribution?: boolean
 }
 
-export default function CitiesMap({ points }: Props) {
+export default function CitiesMap({ points, showAttribution = true }: Props) {
   return (
     <LeafletMap
       points={points}
+      showAttribution={showAttribution}
       fitOptions={WORLD_FIT}
       getTooltip={(p) => p.name}
       renderPopup={(p) => {

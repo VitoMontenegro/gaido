@@ -328,8 +328,17 @@ export const adminApi = {
     api(`/api/v1/moderator/reviews/${id}/approve`, { method: 'POST' }),
   deleteReview: (id: number) =>
     api<{ status: string }>(`/api/v1/admin/reviews/${id}`, { method: 'DELETE' }),
+  geoCountries: () =>
+    api<{ items: { id: number; slug: string; name: string; cover_image_url: string }[] }>(
+      '/api/v1/moderator/geo/countries',
+    ),
   createCountry: (body: { slug: string; name: string }) =>
     api<{ id: number }>('/api/v1/moderator/geo/countries', { method: 'POST', body: JSON.stringify(body) }),
+  updateCountryCover: (id: number, coverImageURL: string) =>
+    api<{ status: string }>(`/api/v1/moderator/geo/countries/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ cover_image_url: coverImageURL }),
+    }),
   createRegion: (body: { country_id: number; slug: string; name: string }) =>
     api<{ id: number }>('/api/v1/moderator/geo/regions', { method: 'POST', body: JSON.stringify(body) }),
   createCity: (body: { country_id: number; region_id: number; slug: string; name: string; latitude?: number; longitude?: number }) =>

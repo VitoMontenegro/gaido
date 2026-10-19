@@ -15,6 +15,8 @@ export const catalogApi = {
     return api<{ items: Excursion[] }>(`/api/v1/excursions${q}`)
   },
   countries: () => api<{ items: import('./types/catalog').Country[] }>('/api/v1/geo/countries'),
+  countryCatalog: () =>
+    api<{ items: import('./types/catalog').CountryCatalogItem[] }>('/api/v1/geo/countries?catalog=1'),
   countriesWithGuides: () =>
     api<{ items: import('./types/catalog').CountryWithGuides[] }>('/api/v1/geo/countries?with_guides=1'),
   countriesWithExcursions: () =>

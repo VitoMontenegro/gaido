@@ -3,12 +3,12 @@ import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { catalogApi, placePagesApi } from '@gaido/api-client/api/client'
 import Breadcrumbs from '../components/Breadcrumbs'
-import CitiesMap from '../components/CitiesMap'
-import MapDestinationsList from '../components/MapDestinationsList'
+import CountriesDirectory from '../components/countries/CountriesDirectory'
 import ExcursionCard from '../components/ExcursionCard'
 import { PlaceBody, PlaceExcerpt } from '../components/PlacePageBlocks'
 import SeoFaqSection from '../components/SeoFaqSection'
-import { buildExcursionListingJsonLd, buildPlaceJsonLd } from '../lib/excursionListingSchema'
+import { buildCountriesIndexJsonLd, buildExcursionListingJsonLd, buildPlaceJsonLd } from '../lib/excursionListingSchema'
+import { resolveCountryCatalog } from '../lib/countryCatalog'
 import GuideCard, { GuideCardGrid } from '../components/GuideCard'
 import { Seo } from '../lib/seo'
 import {
@@ -206,6 +206,10 @@ export function CountriesPage() {
     queryKey: ['map-points'],
     queryFn: () => catalogApi.mapPoints(),
   })
+  const { data: catalogData, isLoading: catalogLoading } = useQuery({
+    queryKey: ['country-catalog'],
+    queryFn: () => catalogApi.countryCatalog(),
+  })
   const { data: topGuides } = useQuery({
     queryKey: ['guides-top', 'countries', 10],
     queryFn: () => catalogApi.topGuides(10),
@@ -216,31 +220,29 @@ export function CountriesPage() {
   })
 
   const points = pointsData?.items ?? []
+  const countries = useMemo(
+    () => resolveCountryCatalog(catalogData?.items, points, catalogLoading),
+    [catalogData?.items, points, catalogLoading],
+  )
+  const jsonLd = useMemo(
+    () => buildCountriesIndexJsonLd(countries, SEO_COUNTRIES_DESCRIPTION),
+    [countries],
+  )
   const guideItems = topGuides?.items ?? []
   const excursionItems = excursions?.items ?? []
+  const directoryLoading = countries.length === 0 && (pointsLoading || catalogLoading)
 
   return (
     <>
-      <Seo title={pageTitle(SEO_COUNTRIES_HEADING)} description={SEO_COUNTRIES_DESCRIPTION} path="/countries" />
+      <Seo
+        title={pageTitle(SEO_COUNTRIES_HEADING)}
+        description={SEO_COUNTRIES_DESCRIPTION}
+        path="/countries"
+        jsonLd={jsonLd}
+      />
       <Breadcrumbs items={[{ label: 'Країни' }]} currentPath="/countries" />
-      <div className="container-site py-5 sm:py-8">
-        <h1 className="font-display text-xl font-bold leading-tight break-normal sm:text-3xl">{SEO_COUNTRIES_HEADING}</h1>
-        <p className="mt-1.5 max-w-3xl text-sm text-stone-600 sm:mt-2 sm:text-base">{SEO_COUNTRIES_DESCRIPTION}</p>
-
-        <section className="mt-8">
-          {pointsLoading ? (
-            <div className="min-h-40 animate-pulse rounded-2xl bg-sand-100" aria-label="Завантаження напрямків" />
-          ) : points.length === 0 ? (
-            <p className="text-sm text-muted">Поки немає країн з опублікованими екскурсіями.</p>
-          ) : (
-            <>
-              <MapDestinationsList points={points} />
-              <div className="mt-6">
-                <CitiesMap points={points} />
-              </div>
-            </>
-          )}
-        </section>
+      <div className="countries-page container-site py-5 sm:py-8">
+        <CountriesDirectory points={points} countries={countries} loading={directoryLoading} />
 
         {excursionItems.length > 0 && (
           <section className="mt-10">

@@ -21,6 +21,13 @@ type Country struct {
 	IsActive bool   `json:"is_active"`
 }
 
+type CountryAdmin struct {
+	ID            int64  `json:"id"`
+	Slug          string `json:"slug"`
+	Name          string `json:"name"`
+	CoverImageURL string `json:"cover_image_url"`
+}
+
 type CountryWithGuideCount struct {
 	ID         int64  `json:"id"`
 	Slug       string `json:"slug"`
@@ -56,6 +63,22 @@ type MapPoint struct {
 	Lng         float64 `json:"lng"`
 }
 
+type CountryCatalogCity struct {
+	Slug           string `json:"slug"`
+	Name           string `json:"name"`
+	ExcursionCount int    `json:"excursion_count"`
+	CoverImageURL  string `json:"cover_image_url,omitempty"`
+}
+
+type CountryCatalog struct {
+	Slug           string               `json:"slug"`
+	Name           string               `json:"name"`
+	CityCount      int                  `json:"city_count"`
+	ExcursionCount int                  `json:"excursion_count"`
+	CoverImageURL  string               `json:"cover_image_url,omitempty"`
+	Cities         []CountryCatalogCity `json:"cities"`
+}
+
 type CityNameSyncRow struct {
 	ID          int64
 	Name        string
@@ -85,6 +108,43 @@ func (r *GeoRepo) GetCountryByID(ctx context.Context, id int64) (*Country, error
 	return &c, err
 }
 
+func (r *GeoRepo) ListCountriesAdmin(ctx context.Context) ([]CountryAdmin, error) {
+	rows, err := r.db.Pool.Query(ctx, `
+		SELECT id, slug, name, COALESCE(cover_image_url, '')
+		FROM countries
+		WHERE is_active = true
+		ORDER BY name
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := make([]CountryAdmin, 0)
+	for rows.Next() {
+		var c CountryAdmin
+		if err := rows.Scan(&c.ID, &c.Slug, &c.Name, &c.CoverImageURL); err != nil {
+			return nil, err
+		}
+		out = append(out, c)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	locale.SortByName(out, func(c CountryAdmin) string { return c.Name })
+	return out, nil
+}
+
+func (r *GeoRepo) UpdateCountryCover(ctx context.Context, id int64, cover string) (bool, error) {
+	tag, err := r.db.Pool.Exec(ctx, `
+		UPDATE countries SET cover_image_url = $2, updated_at = NOW()
+		WHERE id = $1 AND is_active = true
+	`, id, strings.TrimSpace(cover))
+	if err != nil {
+		return false, err
+	}
+	return tag.RowsAffected() > 0, nil
+}
+
 func (r *GeoRepo) ListCountries(ctx context.Context) ([]Country, error) {
 	rows, err := r.db.Pool.Query(ctx, `SELECT id, slug, name, is_active FROM countries WHERE is_active=true ORDER BY name`)
 	if err != nil {
@@ -108,7 +168,7 @@ func (r *GeoRepo) ListCountriesWithGuideCount(ctx context.Context) ([]CountryWit
 		SELECT co.id, co.slug, co.name, COUNT(DISTINCT ccg.guide_id)::int
 		FROM countries co
 		JOIN catalog_country_guides ccg ON ccg.country_id = co.id
-		JOIN guide_profiles gp ON gp.id = ccg.guide_id AND gp.status = $1 AND ` + GuideHasPublicContactSQL("gp") + `
+		JOIN guide_profiles gp ON gp.id = ccg.guide_id AND gp.status = $1 AND `+GuideHasPublicContactSQL("gp")+`
 		WHERE co.is_active = true
 		GROUP BY co.id, co.slug, co.name
 		HAVING COUNT(DISTINCT ccg.guide_id) > 0
@@ -228,6 +288,84 @@ func (r *GeoRepo) ListCitiesByCountry(ctx context.Context, countrySlug string) (
 		out = append(out, c)
 	}
 	return out, rows.Err()
+}
+
+// ListCountryCatalog returns countries that appear on the public map:
+// active cities with coordinates and at least one published excursion.
+func (r *GeoRepo) ListCountryCatalog(ctx context.Context) ([]CountryCatalog, error) {
+	rows, err := r.db.Pool.Query(ctx, `
+		SELECT co.slug, co.name, COALESCE(NULLIF(BTRIM(co.cover_image_url), ''), ''),
+			c.slug, c.name, COUNT(DISTINCT e.id)::int,
+			COALESCE(MAX(NULLIF(BTRIM(e.cover_image_url), '')), '')
+		FROM cities c
+		JOIN countries co ON co.id = c.country_id
+		JOIN excursions e ON e.city_id = c.id
+		JOIN guide_profiles g ON g.id = e.guide_id
+		WHERE c.is_active = true
+		  AND c.latitude IS NOT NULL AND c.longitude IS NOT NULL
+		  AND c.latitude <> 0 AND c.longitude <> 0
+		  AND e.status = $1
+		  AND g.status = $2
+		GROUP BY co.id, co.slug, co.name, co.cover_image_url, c.id, c.slug, c.name
+		ORDER BY co.name, c.name
+	`, domain.ExcursionPublished, domain.GuideStatusActive)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	out := make([]CountryCatalog, 0)
+	index := map[string]int{}
+	for rows.Next() {
+		var countrySlug, countryName, countryCover, citySlug, cityName, cover string
+		var excursionCount int
+		if err := rows.Scan(&countrySlug, &countryName, &countryCover, &citySlug, &cityName, &excursionCount, &cover); err != nil {
+			return nil, err
+		}
+		i, ok := index[countrySlug]
+		if !ok {
+			i = len(out)
+			index[countrySlug] = i
+			out = append(out, CountryCatalog{
+				Slug:          countrySlug,
+				Name:          countryName,
+				CoverImageURL: countryCover,
+				Cities:        []CountryCatalogCity{},
+			})
+		}
+		out[i].Cities = append(out[i].Cities, CountryCatalogCity{
+			Slug:           citySlug,
+			Name:           cityName,
+			ExcursionCount: excursionCount,
+			CoverImageURL:  cover,
+		})
+		out[i].CityCount++
+		out[i].ExcursionCount += excursionCount
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	for i := range out {
+		if out[i].CoverImageURL == "" {
+			best := -1
+			for _, city := range out[i].Cities {
+				if city.CoverImageURL != "" && city.ExcursionCount > best {
+					best = city.ExcursionCount
+					out[i].CoverImageURL = city.CoverImageURL
+				}
+			}
+		}
+		if out[i].CoverImageURL != "" {
+			for j := range out[i].Cities {
+				if out[i].Cities[j].CoverImageURL == "" {
+					out[i].Cities[j].CoverImageURL = out[i].CoverImageURL
+				}
+			}
+		}
+		locale.SortByName(out[i].Cities, func(c CountryCatalogCity) string { return c.Name })
+	}
+	locale.SortByName(out, func(c CountryCatalog) string { return c.Name })
+	return out, nil
 }
 
 func (r *GeoRepo) ListMapPoints(ctx context.Context) ([]MapPoint, error) {
