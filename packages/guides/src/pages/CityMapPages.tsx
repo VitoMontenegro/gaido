@@ -233,7 +233,9 @@ export function CountriesPage() {
   const seoDescription = placeSeoDescription(placePage?.seo_description, SEO_COUNTRIES_DESCRIPTION)
   const faqItems = (placePage?.faq ?? []).filter((item) => item.question.trim() && item.answer.trim())
   const jsonLd = useMemo(() => {
-    const schemas: Record<string, unknown>[] = [buildCountriesIndexJsonLd(countries, seoDescription)]
+    const schemas: Record<string, unknown>[] = []
+    const index = buildCountriesIndexJsonLd(countries, seoDescription)
+    if (index) schemas.push(...index)
     if (faqItems.length > 0) schemas.push(buildFaqPageJsonLd(faqItems))
     return schemas
   }, [countries, seoDescription, faqItems])
@@ -248,7 +250,7 @@ export function CountriesPage() {
         description={seoDescription}
         path="/countries"
         image={placePage?.seo_image_url || undefined}
-        jsonLd={jsonLd}
+        jsonLd={jsonLd.length > 0 ? jsonLd : undefined}
       />
       <Breadcrumbs items={[{ label: 'Країни' }]} currentPath="/countries" />
       <div className="countries-page container-site py-5 sm:py-8">
