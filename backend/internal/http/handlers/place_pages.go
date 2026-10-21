@@ -15,6 +15,7 @@ import (
 )
 
 type placePageRequest struct {
+	Heading        string            `json:"heading"`
 	Excerpt        string            `json:"excerpt"`
 	IntroHTML      string            `json:"intro_html"`
 	SEOTitle       string            `json:"seo_title"`
@@ -93,11 +94,11 @@ func (h *Handlers) AdminSavePlacePage(w http.ResponseWriter, r *http.Request) {
 		req.FAQ[i].Question = sanitize.Text(req.FAQ[i].Question)
 		req.FAQ[i].Answer = sanitize.Text(req.FAQ[i].Answer)
 	}
-	excerpt, intro, seoTitle, seoDesc, seoImage, faq := domain.NormalizePlacePageFields(
-		sanitize.Text(req.Excerpt), intro, req.SEOTitle, req.SEODescription, req.SEOImageURL, req.FAQ,
+	heading, excerpt, intro, seoTitle, seoDesc, seoImage, faq := domain.NormalizePlacePageFields(
+		sanitize.Text(req.Heading), sanitize.Text(req.Excerpt), intro, req.SEOTitle, req.SEODescription, req.SEOImageURL, req.FAQ,
 	)
 
-	if err := h.PlacePages.Upsert(r.Context(), placeType, placeID, excerpt, intro, seoTitle, seoDesc, seoImage, faq); err != nil {
+	if err := h.PlacePages.Upsert(r.Context(), placeType, placeID, heading, excerpt, intro, seoTitle, seoDesc, seoImage, faq); err != nil {
 		response.Error(w, r, apperrors.ErrInternal)
 		return
 	}
@@ -135,7 +136,16 @@ func parsePlacePageParams(r *http.Request) (string, int64, bool) {
 		return "", 0, false
 	}
 	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
-	if err != nil || id <= 0 {
+	if err != nil {
+		return "", 0, false
+	}
+	if placeType == domain.PlaceTypeCountriesIndex {
+		if id != domain.PlaceCountriesIndexID {
+			return "", 0, false
+		}
+		return placeType, id, true
+	}
+	if id <= 0 {
 		return "", 0, false
 	}
 	return placeType, id, true
@@ -157,6 +167,10 @@ func (h *Handlers) emptyPlacePage(r *http.Request, placeType string, placeID int
 		PlaceType: placeType,
 		PlaceID:   placeID,
 		FAQ:       []domain.PlaceFAQ{},
+	}
+	if placeType == domain.PlaceTypeCountriesIndex {
+		page := domain.NewCountriesIndexPlacePage()
+		return page, nil
 	}
 	if placeType == domain.PlaceTypeCountry {
 		c, err := h.Geo.GetCountryByID(r.Context(), placeID)

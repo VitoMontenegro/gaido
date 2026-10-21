@@ -1,6 +1,6 @@
 import { api } from './http'
 
-export type PlaceType = 'country' | 'city'
+export type PlaceType = 'country' | 'city' | 'countries_index'
 
 export type PlaceFAQ = {
   question: string
@@ -15,6 +15,7 @@ export type PlacePage = {
   country_name?: string
   country_slug?: string
   public_path: string
+  heading: string
   excerpt: string
   intro_html: string
   seo_title: string
@@ -34,6 +35,7 @@ export type PlacePageListItem = {
 }
 
 export type PlacePageInput = {
+  heading: string
   excerpt: string
   intro_html: string
   seo_title: string

@@ -13,12 +13,15 @@ import {
   countryFirstLetter,
   type RegionId,
 } from '../../lib/countryMeta'
+import { PlaceExcerpt } from '../PlacePageBlocks'
 import { SEO_COUNTRIES_DESCRIPTION, SEO_COUNTRIES_HEADING } from '../../lib/seoTemplates'
 
 type Props = {
   points: MapPoint[]
   countries: CountryCatalogItem[]
   loading: boolean
+  heading?: string
+  excerpt?: string
 }
 
 function ukPlural(count: number, one: string, few: string, many: string) {
@@ -148,7 +151,8 @@ function CoverImage({ src, alt }: { src?: string; alt: string }) {
   return <img src={url} alt={alt} className="h-full w-full object-cover" loading="lazy" decoding="async" />
 }
 
-export default function CountriesDirectory({ points, countries, loading }: Props) {
+export default function CountriesDirectory({ points, countries, loading, heading, excerpt }: Props) {
+  const pageHeading = (heading ?? '').trim() || SEO_COUNTRIES_HEADING
   const [query, setQuery] = useState('')
   const [region, setRegion] = useState<RegionId>('all')
   const [letter, setLetter] = useState<string | null>(null)
@@ -219,8 +223,8 @@ export default function CountriesDirectory({ points, countries, loading }: Props
 
   return (
     <div>
-      <h1 className="font-display text-3xl font-medium leading-tight sm:text-4xl">{SEO_COUNTRIES_HEADING}</h1>
-      <p className="mt-2 max-w-3xl text-base text-muted">{SEO_COUNTRIES_DESCRIPTION}</p>
+      <h1 className="font-display text-3xl font-medium leading-tight sm:text-4xl">{pageHeading}</h1>
+      <PlaceExcerpt value={excerpt} fallback={SEO_COUNTRIES_DESCRIPTION} />
 
       <div role="radiogroup" aria-label="Регіон" className="mt-6 flex flex-wrap gap-2">
         {REGION_OPTIONS.map((option) => {

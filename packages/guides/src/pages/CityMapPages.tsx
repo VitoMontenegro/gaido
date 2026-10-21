@@ -202,6 +202,11 @@ export default function CityPage() {
 }
 
 export function CountriesPage() {
+  const { data: placePage } = useQuery({
+    queryKey: ['place-page', 'countries_index', 'index'],
+    queryFn: () => placePagesApi.public('countries_index', 'index'),
+    retry: false,
+  })
   const { data: pointsData, isLoading: pointsLoading } = useQuery({
     queryKey: ['map-points'],
     queryFn: () => catalogApi.mapPoints(),
@@ -224,10 +229,14 @@ export function CountriesPage() {
     () => resolveCountryCatalog(catalogData?.items, points, catalogLoading),
     [catalogData?.items, points, catalogLoading],
   )
-  const jsonLd = useMemo(
-    () => buildCountriesIndexJsonLd(countries, SEO_COUNTRIES_DESCRIPTION),
-    [countries],
-  )
+  const pageHeading = (placePage?.heading ?? '').trim() || SEO_COUNTRIES_HEADING
+  const seoDescription = placeSeoDescription(placePage?.seo_description, SEO_COUNTRIES_DESCRIPTION)
+  const faqItems = (placePage?.faq ?? []).filter((item) => item.question.trim() && item.answer.trim())
+  const jsonLd = useMemo(() => {
+    const schemas: Record<string, unknown>[] = [buildCountriesIndexJsonLd(countries, seoDescription)]
+    if (faqItems.length > 0) schemas.push(buildFaqPageJsonLd(faqItems))
+    return schemas
+  }, [countries, seoDescription, faqItems])
   const guideItems = topGuides?.items ?? []
   const excursionItems = excursions?.items ?? []
   const directoryLoading = countries.length === 0 && (pointsLoading || catalogLoading)
@@ -235,14 +244,21 @@ export function CountriesPage() {
   return (
     <>
       <Seo
-        title={pageTitle(SEO_COUNTRIES_HEADING)}
-        description={SEO_COUNTRIES_DESCRIPTION}
+        title={placeSeoTitle(placePage?.seo_title, pageTitle(pageHeading))}
+        description={seoDescription}
         path="/countries"
+        image={placePage?.seo_image_url || undefined}
         jsonLd={jsonLd}
       />
       <Breadcrumbs items={[{ label: 'Країни' }]} currentPath="/countries" />
       <div className="countries-page container-site py-5 sm:py-8">
-        <CountriesDirectory points={points} countries={countries} loading={directoryLoading} />
+        <CountriesDirectory
+          points={points}
+          countries={countries}
+          loading={directoryLoading}
+          heading={pageHeading}
+          excerpt={placePage?.excerpt}
+        />
 
         {excursionItems.length > 0 && (
           <section className="mt-10">
@@ -270,6 +286,11 @@ export function CountriesPage() {
             </GuideCardGrid>
           </section>
         )}
+
+        <div className="mt-10">
+          <PlaceBody html={placePage?.intro_html} />
+          {faqItems.length > 0 && <SeoFaqSection items={faqItems} />}
+        </div>
       </div>
     </>
   )

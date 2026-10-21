@@ -6,10 +6,15 @@ import (
 )
 
 const (
-	PlaceTypeCountry = "country"
-	PlaceTypeCity    = "city"
+	PlaceTypeCountry        = "country"
+	PlaceTypeCity           = "city"
+	PlaceTypeCountriesIndex = "countries_index"
+
+	PlaceCountriesIndexID   = 0
+	PlaceCountriesIndexSlug = "index"
 
 	PlaceFAQMaxItems    = 20
+	PlaceHeadingMax     = 120
 	PlaceFAQQuestionMax = 200
 	PlaceFAQAnswerMax   = 2000
 	PlaceSEOTitleMax    = 120
@@ -32,6 +37,7 @@ type PlacePage struct {
 	CountryName    string     `json:"country_name,omitempty"`
 	CountrySlug    string     `json:"country_slug,omitempty"`
 	PublicPath     string     `json:"public_path"`
+	Heading        string     `json:"heading"`
 	Excerpt        string     `json:"excerpt"`
 	IntroHTML      string     `json:"intro_html"`
 	SEOTitle       string     `json:"seo_title"`
@@ -56,6 +62,8 @@ func ParsePlaceType(raw string) (string, bool) {
 		return PlaceTypeCountry, true
 	case PlaceTypeCity:
 		return PlaceTypeCity, true
+	case PlaceTypeCountriesIndex:
+		return PlaceTypeCountriesIndex, true
 	default:
 		return "", false
 	}
@@ -67,6 +75,8 @@ func PlacePublicPath(placeType, slug string) string {
 		return "/countries/" + slug
 	case PlaceTypeCity:
 		return "/city/" + slug
+	case PlaceTypeCountriesIndex:
+		return "/countries"
 	default:
 		return ""
 	}
@@ -100,15 +110,27 @@ func NormalizePlaceFAQ(items []PlaceFAQ) []PlaceFAQ {
 	return out
 }
 
-func NormalizePlacePageFields(excerpt, introHTML, seoTitle, seoDesc, seoImage string, faq []PlaceFAQ) (short, intro, title, desc, image string, items []PlaceFAQ) {
+func NormalizePlacePageFields(heading, excerpt, introHTML, seoTitle, seoDesc, seoImage string, faq []PlaceFAQ) (h1, short, intro, title, desc, image string, items []PlaceFAQ) {
 	intro = strings.TrimSpace(introHTML)
 	if utf8.RuneCountInString(intro) > PlaceIntroHTMLMax {
 		intro = string([]rune(intro)[:PlaceIntroHTMLMax])
 	}
-	return ClampRunes(excerpt, PlaceExcerptMax),
+	return ClampRunes(heading, PlaceHeadingMax),
+		ClampRunes(excerpt, PlaceExcerptMax),
 		intro,
 		ClampRunes(seoTitle, PlaceSEOTitleMax),
 		ClampRunes(seoDesc, PlaceSEODescMax),
 		ClampRunes(seoImage, PlaceSEOImageURLMax),
 		NormalizePlaceFAQ(faq)
+}
+
+func NewCountriesIndexPlacePage() *PlacePage {
+	return &PlacePage{
+		PlaceType:  PlaceTypeCountriesIndex,
+		PlaceID:    PlaceCountriesIndexID,
+		Slug:       PlaceCountriesIndexSlug,
+		Name:       "Каталог країн",
+		PublicPath: PlacePublicPath(PlaceTypeCountriesIndex, PlaceCountriesIndexSlug),
+		FAQ:        []PlaceFAQ{},
+	}
 }

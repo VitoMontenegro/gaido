@@ -20,7 +20,9 @@ function emptyPage(type: PlaceType, id: number, slug: string, name: string, coun
     slug,
     name,
     country_name: countryName,
-    public_path: type === 'country' ? `/countries/${slug}` : `/city/${slug}`,
+    public_path:
+      type === 'countries_index' ? '/countries' : type === 'country' ? `/countries/${slug}` : `/city/${slug}`,
+    heading: '',
     excerpt: '',
     intro_html: '',
     seo_title: '',
@@ -70,6 +72,29 @@ export function PlacePagesEditor() {
     setMessage('')
   }
 
+  const openCountriesIndex = async () => {
+    setCountryId(0)
+    setCityId(0)
+    setOpening(true)
+    setMessage('')
+    try {
+      const page = await placePagesApi.admin.get('countries_index', 0)
+      setDraft({
+        ...emptyPage('countries_index', 0, 'index', 'Каталог країн'),
+        ...page,
+        heading: page.heading ?? '',
+        excerpt: page.excerpt ?? '',
+        intro_html: page.intro_html ?? '',
+        faq: page.faq ?? [],
+      })
+    } catch {
+      setDraft(emptyPage('countries_index', 0, 'index', 'Каталог країн'))
+      setMessage('Не вдалося завантажити сторінку')
+    } finally {
+      setOpening(false)
+    }
+  }
+
   const openEdit = async () => {
     if (!country) return
     const type: PlaceType = city ? 'city' : 'country'
@@ -83,6 +108,7 @@ export function PlacePagesEditor() {
       setDraft({
         ...emptyPage(type, id, slug, name, city ? country.name : undefined),
         ...page,
+        heading: page.heading ?? '',
         excerpt: page.excerpt ?? '',
         intro_html: page.intro_html ?? '',
         faq: page.faq ?? [],
@@ -101,6 +127,7 @@ export function PlacePagesEditor() {
     setMessage('')
     try {
       const saved = await placePagesApi.admin.save(draft.place_type, draft.place_id, {
+        heading: draft.heading ?? '',
         excerpt: draft.excerpt,
         intro_html: draft.intro_html,
         seo_title: draft.seo_title,
@@ -108,7 +135,13 @@ export function PlacePagesEditor() {
         seo_image_url: draft.seo_image_url,
         faq: (draft.faq ?? []).filter((item) => item.question.trim() && item.answer.trim()),
       })
-      setDraft({ ...saved, excerpt: saved.excerpt ?? '', intro_html: saved.intro_html ?? '', faq: saved.faq ?? [] })
+      setDraft({
+        ...saved,
+        heading: saved.heading ?? '',
+        excerpt: saved.excerpt ?? '',
+        intro_html: saved.intro_html ?? '',
+        faq: saved.faq ?? [],
+      })
       qc.invalidateQueries({ queryKey: ['place-page'] })
       setMessage('Збережено')
     } catch (e) {
@@ -136,6 +169,21 @@ export function PlacePagesEditor() {
 
   return (
     <div className="space-y-5">
+      <div className="card flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h2 className="font-semibold">Каталог країн</h2>
+          <p className="mt-1 text-sm text-stone-500">Сторінка /countries — заголовки, тексти та FAQ.</p>
+        </div>
+        <button
+          type="button"
+          className="btn-primary"
+          disabled={opening}
+          onClick={openCountriesIndex}
+        >
+          {opening && !countryId ? 'Відкриття…' : 'Редагувати каталог'}
+        </button>
+      </div>
+
       <div className="card space-y-4">
         <div>
           <h2 className="font-semibold">Сторінки країн і міст</h2>
@@ -215,14 +263,15 @@ function PlacePageForm({
     ? `${draft.name}, ${draft.country_name}`
     : draft.name
   const patch = (next: Partial<PlacePage>) => onChange({ ...draft, ...next })
+  const isCountriesIndex = draft.place_type === 'countries_index'
 
   return (
     <div className="card space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="font-display text-xl font-bold">{title}</h2>
+          <h2 className="font-display text-xl font-bold">{isCountriesIndex ? 'Каталог країн' : title}</h2>
           <p className="mt-1 text-sm text-stone-500">
-            {draft.place_type === 'city' ? 'Місто' : 'Країна'} · {draft.public_path}
+            {isCountriesIndex ? 'Каталог' : draft.place_type === 'city' ? 'Місто' : 'Країна'} · {draft.public_path}
           </p>
         </div>
         <a className="text-sm text-teal hover:underline" href={guidesUrl(draft.public_path)} target="_blank" rel="noreferrer">
@@ -230,21 +279,46 @@ function PlacePageForm({
         </a>
       </div>
 
+      {isCountriesIndex && (
+        <label className="block space-y-1">
+          <span className="text-sm font-medium">H1 заголовок</span>
+          <input
+            className="input w-full"
+            maxLength={120}
+            value={draft.heading ?? ''}
+            placeholder="Країни"
+            onChange={(e) => patch({ heading: e.target.value })}
+          />
+          <span className="text-xs text-stone-500">Якщо порожньо — «Країни». {(draft.heading ?? '').length}/120</span>
+        </label>
+      )}
+
       <label className="block space-y-1">
-        <span className="text-sm font-medium">Короткий опис</span>
+        <span className="text-sm font-medium">{isCountriesIndex ? 'Текст перед картками країн' : 'Короткий опис'}</span>
         <textarea
           className="input min-h-[88px] w-full"
           maxLength={500}
           value={draft.excerpt ?? ''}
-          placeholder="Під заголовком сторінки, перед гідами та екскурсіями"
+          placeholder={
+            isCountriesIndex
+              ? 'Під H1, перед каталогом і картками країн'
+              : 'Під заголовком сторінки, перед гідами та екскурсіями'
+          }
           onChange={(e) => patch({ excerpt: e.target.value })}
         />
-        <span className="text-xs text-stone-500">Якщо порожньо — стандартний абзац. {(draft.excerpt ?? '').length}/500</span>
+        <span className="text-xs text-stone-500">
+          {isCountriesIndex ? 'Якщо порожньо — стандартний вступ.' : 'Якщо порожньо — стандартний абзац.'}{' '}
+          {(draft.excerpt ?? '').length}/500
+        </span>
       </label>
 
       <div>
-        <p className="mb-2 text-sm font-medium">Контент</p>
-        <p className="mb-2 text-xs text-stone-500">Під гідами та екскурсіями, над питаннями-відповідями.</p>
+        <p className="mb-2 text-sm font-medium">{isCountriesIndex ? 'Текст після каталогу' : 'Контент'}</p>
+        <p className="mb-2 text-xs text-stone-500">
+          {isCountriesIndex
+            ? 'Після списку країн, блоків екскурсій і гідів, над FAQ.'
+            : 'Під гідами та екскурсіями, над питаннями-відповідями.'}
+        </p>
         <Suspense fallback={<p className="text-sm text-stone-500">Редактор...</p>}>
           <RichTextEditor
             value={draft.intro_html}
@@ -254,7 +328,11 @@ function PlacePageForm({
         </Suspense>
       </div>
 
-      <FaqEditor items={draft.faq ?? []} onChange={(faq) => patch({ faq })} />
+      <FaqEditor
+        items={draft.faq ?? []}
+        emptyHint={isCountriesIndex ? 'Порожній список — FAQ не показуємо.' : 'Якщо порожньо — покажемо стандартний FAQ.'}
+        onChange={(faq) => patch({ faq })}
+      />
 
       <section className="space-y-3 border-t border-border pt-5">
         <h3 className="font-medium text-ink">SEO</h3>
@@ -303,13 +381,21 @@ function PlacePageForm({
   )
 }
 
-function FaqEditor({ items, onChange }: { items: PlaceFAQ[]; onChange: (items: PlaceFAQ[]) => void }) {
+function FaqEditor({
+  items,
+  emptyHint,
+  onChange,
+}: {
+  items: PlaceFAQ[]
+  emptyHint: string
+  onChange: (items: PlaceFAQ[]) => void
+}) {
   return (
     <section className="space-y-3">
       <div className="flex items-center justify-between gap-2">
         <div>
           <h3 className="font-medium text-ink">Питання та відповіді</h3>
-          <p className="text-xs text-stone-500">Якщо порожньо — покажемо стандартний FAQ.</p>
+          <p className="text-xs text-stone-500">{emptyHint}</p>
         </div>
         <button
           type="button"

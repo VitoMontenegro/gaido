@@ -32,7 +32,8 @@ func TestNormalizePlaceFAQ(t *testing.T) {
 }
 
 func TestNormalizePlacePageFields(t *testing.T) {
-	excerpt, intro, title, desc, image, faq := NormalizePlacePageFields(
+	h1, excerpt, intro, title, desc, image, faq := NormalizePlacePageFields(
+		" Заголовок ",
 		"  короткий  ",
 		" <p>стаття</p> ",
 		"SEO",
@@ -40,11 +41,11 @@ func TestNormalizePlacePageFields(t *testing.T) {
 		"/img.jpg",
 		[]PlaceFAQ{{Question: "Q", Answer: "A"}},
 	)
-	if excerpt != "короткий" || intro != "<p>стаття</p>" || title != "SEO" || desc != "desc" || image != "/img.jpg" || len(faq) != 1 {
-		t.Fatalf("got excerpt=%q intro=%q title=%q desc=%q image=%q faq=%+v", excerpt, intro, title, desc, image, faq)
+	if h1 != "Заголовок" || excerpt != "короткий" || intro != "<p>стаття</p>" || title != "SEO" || desc != "desc" || image != "/img.jpg" || len(faq) != 1 {
+		t.Fatalf("got h1=%q excerpt=%q intro=%q title=%q desc=%q image=%q faq=%+v", h1, excerpt, intro, title, desc, image, faq)
 	}
 	long := strings.Repeat("я", PlaceExcerptMax+10)
-	short, _, _, _, _, _ := NormalizePlacePageFields(long, "", "", "", "", nil)
+	_, short, _, _, _, _, _ := NormalizePlacePageFields("", long, "", "", "", "", nil)
 	if len([]rune(short)) != PlaceExcerptMax {
 		t.Fatalf("excerpt clamp: %d", len([]rune(short)))
 	}
@@ -56,5 +57,8 @@ func TestPlacePublicPath(t *testing.T) {
 	}
 	if got := PlacePublicPath(PlaceTypeCity, "tbilisi"); got != "/city/tbilisi" {
 		t.Fatalf("city path: %s", got)
+	}
+	if got := PlacePublicPath(PlaceTypeCountriesIndex, "index"); got != "/countries" {
+		t.Fatalf("countries index path: %s", got)
 	}
 }

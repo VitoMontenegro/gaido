@@ -41,7 +41,7 @@ func scanPlacePage(row pgx.Row) (*domain.PlacePage, error) {
 	var faqRaw []byte
 	err := row.Scan(
 		&p.PlaceType, &p.PlaceID, &p.Slug, &p.Name, &p.CountryName, &p.CountrySlug,
-		&p.Excerpt, &p.IntroHTML, &p.SEOTitle, &p.SEODescription, &p.SEOImageURL, &faqRaw,
+		&p.Heading, &p.Excerpt, &p.IntroHTML, &p.SEOTitle, &p.SEODescription, &p.SEOImageURL, &faqRaw,
 	)
 	if err != nil {
 		return nil, err
@@ -52,13 +52,33 @@ func scanPlacePage(row pgx.Row) (*domain.PlacePage, error) {
 }
 
 func (r *PlacePageRepo) GetByPlace(ctx context.Context, placeType string, placeID int64) (*domain.PlacePage, error) {
+	if placeType == domain.PlaceTypeCountriesIndex {
+		if placeID != domain.PlaceCountriesIndexID {
+			return nil, nil
+		}
+		row := r.db.Pool.QueryRow(ctx, `
+			SELECT pp.place_type, pp.place_id,
+				$2::text, $3::text, ''::text, ''::text,
+				COALESCE(pp.heading, ''), COALESCE(pp.excerpt, ''), COALESCE(pp.intro_html, ''),
+				COALESCE(pp.seo_title, ''), COALESCE(pp.seo_description, ''), COALESCE(pp.seo_image_url, ''),
+				COALESCE(pp.faq, '[]'::jsonb)
+			FROM place_pages pp
+			WHERE pp.place_type = $1 AND pp.place_id = 0
+		`, placeType, domain.PlaceCountriesIndexSlug, domain.NewCountriesIndexPlacePage().Name)
+		p, err := scanPlacePage(row)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domain.NewCountriesIndexPlacePage(), nil
+		}
+		return p, err
+	}
+
 	row := r.db.Pool.QueryRow(ctx, `
 		SELECT pp.place_type, pp.place_id,
 			COALESCE(co.slug, c.slug, ''),
 			COALESCE(co.name, c.name, ''),
 			COALESCE(coc.name, ''),
 			COALESCE(coc.slug, ''),
-			pp.excerpt, pp.intro_html, pp.seo_title, pp.seo_description, pp.seo_image_url, pp.faq
+			COALESCE(pp.heading, ''), pp.excerpt, pp.intro_html, pp.seo_title, pp.seo_description, pp.seo_image_url, pp.faq
 		FROM place_pages pp
 		LEFT JOIN countries co ON pp.place_type = 'country' AND co.id = pp.place_id
 		LEFT JOIN cities c ON pp.place_type = 'city' AND c.id = pp.place_id
@@ -77,11 +97,18 @@ func (r *PlacePageRepo) GetBySlug(ctx context.Context, placeType, slug string) (
 	if slug == "" {
 		return nil, nil
 	}
+	if placeType == domain.PlaceTypeCountriesIndex {
+		if slug != domain.PlaceCountriesIndexSlug {
+			return nil, nil
+		}
+		return r.GetByPlace(ctx, placeType, domain.PlaceCountriesIndexID)
+	}
+
 	var row pgx.Row
 	if placeType == domain.PlaceTypeCountry {
 		row = r.db.Pool.QueryRow(ctx, `
 			SELECT $1::text, co.id, co.slug, co.name, ''::text, ''::text,
-				COALESCE(pp.excerpt, ''), COALESCE(pp.intro_html, ''), COALESCE(pp.seo_title, ''),
+				COALESCE(pp.heading, ''), COALESCE(pp.excerpt, ''), COALESCE(pp.intro_html, ''), COALESCE(pp.seo_title, ''),
 				COALESCE(pp.seo_description, ''), COALESCE(pp.seo_image_url, ''),
 				COALESCE(pp.faq, '[]'::jsonb)
 			FROM countries co
@@ -91,7 +118,7 @@ func (r *PlacePageRepo) GetBySlug(ctx context.Context, placeType, slug string) (
 	} else {
 		row = r.db.Pool.QueryRow(ctx, `
 			SELECT $1::text, c.id, c.slug, c.name, COALESCE(co.name, ''), COALESCE(co.slug, ''),
-				COALESCE(pp.excerpt, ''), COALESCE(pp.intro_html, ''), COALESCE(pp.seo_title, ''),
+				COALESCE(pp.heading, ''), COALESCE(pp.excerpt, ''), COALESCE(pp.intro_html, ''), COALESCE(pp.seo_title, ''),
 				COALESCE(pp.seo_description, ''), COALESCE(pp.seo_image_url, ''),
 				COALESCE(pp.faq, '[]'::jsonb)
 			FROM cities c
@@ -111,10 +138,21 @@ func (r *PlacePageRepo) ListAdmin(ctx context.Context) ([]domain.PlacePageListIt
 	rows, err := r.db.Pool.Query(ctx, `
 		SELECT place_type, place_id, slug, name, country_name, public_path, has_content
 		FROM (
+			SELECT 'countries_index'::text AS place_type, 0::bigint AS place_id, 'index'::text AS slug,
+				'Каталог країн'::text AS name, ''::text AS country_name, '/countries'::text AS public_path,
+				COALESCE((
+					SELECT pp.heading <> '' OR pp.excerpt <> '' OR pp.intro_html <> '' OR pp.seo_title <> ''
+						OR pp.seo_description <> '' OR pp.seo_image_url <> '' OR pp.faq <> '[]'::jsonb
+					FROM place_pages pp
+					WHERE pp.place_type = 'countries_index' AND pp.place_id = 0
+				), false) AS has_content
+
+			UNION ALL
+
 			SELECT 'country'::text AS place_type, co.id AS place_id, co.slug, co.name,
 				''::text AS country_name, '/countries/' || co.slug AS public_path,
 				(pp.id IS NOT NULL AND (
-					pp.excerpt <> '' OR pp.intro_html <> '' OR pp.seo_title <> '' OR pp.seo_description <> ''
+					pp.heading <> '' OR pp.excerpt <> '' OR pp.intro_html <> '' OR pp.seo_title <> '' OR pp.seo_description <> ''
 					OR pp.seo_image_url <> '' OR pp.faq <> '[]'::jsonb
 				)) AS has_content
 			FROM countries co
@@ -125,7 +163,7 @@ func (r *PlacePageRepo) ListAdmin(ctx context.Context) ([]domain.PlacePageListIt
 
 			SELECT 'city', c.id, c.slug, c.name, co.name, '/city/' || c.slug,
 				(pp.id IS NOT NULL AND (
-					pp.excerpt <> '' OR pp.intro_html <> '' OR pp.seo_title <> '' OR pp.seo_description <> ''
+					pp.heading <> '' OR pp.excerpt <> '' OR pp.intro_html <> '' OR pp.seo_title <> '' OR pp.seo_description <> ''
 					OR pp.seo_image_url <> '' OR pp.faq <> '[]'::jsonb
 				))
 			FROM cities c
@@ -141,7 +179,7 @@ func (r *PlacePageRepo) ListAdmin(ctx context.Context) ([]domain.PlacePageListIt
 			    )
 			  )
 		) pages
-		ORDER BY CASE place_type WHEN 'country' THEN 0 ELSE 1 END, name
+		ORDER BY CASE place_type WHEN 'countries_index' THEN -1 WHEN 'country' THEN 0 ELSE 1 END, name
 	`, domain.ExcursionPublished, domain.GuideStatusActive)
 	if err != nil {
 		return nil, err
@@ -158,11 +196,12 @@ func (r *PlacePageRepo) ListAdmin(ctx context.Context) ([]domain.PlacePageListIt
 	return out, rows.Err()
 }
 
-func (r *PlacePageRepo) Upsert(ctx context.Context, placeType string, placeID int64, excerpt, intro, seoTitle, seoDesc, seoImage string, faq []domain.PlaceFAQ) error {
+func (r *PlacePageRepo) Upsert(ctx context.Context, placeType string, placeID int64, heading, excerpt, intro, seoTitle, seoDesc, seoImage string, faq []domain.PlaceFAQ) error {
 	_, err := r.db.Pool.Exec(ctx, `
-		INSERT INTO place_pages (place_type, place_id, excerpt, intro_html, seo_title, seo_description, seo_image_url, faq, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, NOW())
+		INSERT INTO place_pages (place_type, place_id, heading, excerpt, intro_html, seo_title, seo_description, seo_image_url, faq, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, NOW())
 		ON CONFLICT (place_type, place_id) DO UPDATE SET
+			heading = EXCLUDED.heading,
 			excerpt = EXCLUDED.excerpt,
 			intro_html = EXCLUDED.intro_html,
 			seo_title = EXCLUDED.seo_title,
@@ -170,7 +209,7 @@ func (r *PlacePageRepo) Upsert(ctx context.Context, placeType string, placeID in
 			seo_image_url = EXCLUDED.seo_image_url,
 			faq = EXCLUDED.faq,
 			updated_at = NOW()
-	`, placeType, placeID, excerpt, intro, seoTitle, seoDesc, seoImage, marshalPlaceFAQ(faq))
+	`, placeType, placeID, heading, excerpt, intro, seoTitle, seoDesc, seoImage, marshalPlaceFAQ(faq))
 	return err
 }
 

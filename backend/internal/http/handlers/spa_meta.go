@@ -729,20 +729,51 @@ func (h *Handlers) countriesIndexMeta(ctx context.Context, base, defaultImage st
 			excursionLinks = excursionCrawlLinks(base, items)
 		}
 	}
-	body := newCrawlBody(seoCountriesHeading, seoCountriesDescription).
+	var page *domain.PlacePage
+	if h.PlacePages != nil {
+		page, _ = h.PlacePages.GetBySlug(ctx, domain.PlaceTypeCountriesIndex, domain.PlaceCountriesIndexSlug)
+	}
+	heading := seoCountriesHeading
+	lead := seoCountriesDescription
+	if page != nil {
+		if h1 := strings.TrimSpace(page.Heading); h1 != "" {
+			heading = h1
+		}
+		if ex := strings.TrimSpace(page.Excerpt); ex != "" {
+			lead = ex
+		}
+	}
+	body := newCrawlBody(heading, lead).
 		withSection("Країни", nil, countryLinks).
 		withSection("Міста", nil, cityLinks).
 		withSection("Екскурсії", nil, excursionLinks).
 		withSection("Гіди", nil, guideLinks)
-	jsonLd := h.simpleBreadcrumbJsonLd(base, "Країни", "/countries")
-	jsonLd = appendJsonLd(jsonLd, buildCountriesCollectionJSON(base, seoCountriesDescription, countryEntries))
-	return (&SpaPageMeta{
-		Title:       pageTitleSuffix(seoCountriesHeading),
-		Description: seoCountriesDescription,
+	if page != nil {
+		if paras := htmlParagraphs(page.IntroHTML); len(paras) > 0 {
+			body.Paragraphs = append(body.Paragraphs, paras...)
+		}
+		if faq := placeFAQItems(page); len(faq) > 0 {
+			body = body.withFAQ(faq)
+		}
+	}
+	desc := seoCountriesDescription
+	jsonLd := h.simpleBreadcrumbJsonLd(base, heading, "/countries")
+	jsonLd = appendJsonLd(jsonLd, buildCountriesCollectionJSON(base, desc, countryEntries))
+	meta := &SpaPageMeta{
+		Title:       pageTitleSuffix(heading),
+		Description: desc,
 		Canonical:   base + "/countries",
 		OgImage:     defaultImage,
 		JsonLd:      jsonLd,
-	}).withBody(body)
+	}
+	h.applyPlacePageMeta(meta, page, defaultImage)
+	if meta.Description == seoCountriesDescription && page != nil && strings.TrimSpace(page.SEODescription) == "" {
+		meta.Description = truncateDesc(lead, 160)
+	}
+	if faq := placeFAQItems(page); len(faq) > 0 {
+		meta.JsonLd = appendJsonLd(meta.JsonLd, buildFaqPageJSON(faq))
+	}
+	return meta.withBody(body)
 }
 
 func guidesPage(host, path, publicBase string) (ok bool, routePath, pageBase string) {
