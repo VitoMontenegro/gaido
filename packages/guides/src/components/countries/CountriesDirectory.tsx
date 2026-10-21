@@ -266,7 +266,7 @@ export default function CountriesDirectory({ points, countries, loading, heading
             </div>
             {popularCountries.length > 0 && (
               <aside className="countries-aside hidden min-h-0 lg:flex lg:flex-col">
-                <h2 className="section-title-sm mb-2 shrink-0">Популярні напрямки</h2>
+                <h2 className="section-title-mini mb-2 shrink-0">Популярні напрямки</h2>
                 <ul className={cn('card countries-destinations', 'min-h-0 flex-1 divide-y divide-divider overflow-y-auto p-0')}>
                   {popularCountries.map((country) => (
                     <li key={country.slug}>
