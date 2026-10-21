@@ -38,7 +38,7 @@ func pageTitleSuffix(name string) string {
 	if name == "" {
 		return "Gaido UA"
 	}
-	return name + " — Gaido UA"
+	return name + " | Gaido UA"
 }
 
 func truncateDesc(s string, max int) string {
