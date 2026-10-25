@@ -86,7 +86,7 @@ function HomePageLoading() {
     <>
       <Seo title={homeSeoTitle()} path="/" />
       <div
-        className="home-hero-v2 relative min-h-[min(52vh,520px)] animate-pulse bg-sand-100"
+        className="home-hero-v2 relative h-[min(24rem,calc(100dvh-4.75rem))] max-h-[24rem] animate-pulse bg-sky-100"
         aria-busy="true"
         aria-label="Завантаження головної сторінки"
       />
@@ -167,17 +167,13 @@ export default function GuidesHomePage() {
     : site.home.featured_excursions) ?? []) as ExcursionItem[]
   const destinations = site.home.popular_destinations ?? []
   const homeFaq = content.faq.map((item) => ({ question: item.question, answer: item.answer }))
-  const heroHeading = homeSeoHeading(content.seo_title) || 'Куди вирушаємо?'
-  const heroSubtitle =
-    content.hero_subtitle?.trim() ||
-    'Знайдіть україномовного гіда та екскурсію у потрібному місті'
-  const seoDescription = homeSeoDescription(content.seo_description, heroSubtitle)
+  const seoDescription = homeSeoDescription(content.seo_description, content.hero_subtitle)
   const homeJsonLd = buildGuidesHomeJsonLd({
     excursions: featuredExcursions,
     guides: featuredGuides.map((g) => ({ display_name: g.display_name, slug: g.slug })),
     countries: destinations.map((g) => ({ name: g.country_name, slug: g.country_slug })),
     faq: homeFaq,
-    pageName: heroHeading,
+    pageName: homeSeoHeading(content.seo_title),
     pageDescription: seoDescription,
     pagePath: '/',
     pageImage: content.seo_image_url || undefined,
@@ -201,7 +197,11 @@ export default function GuidesHomePage() {
         jsonLd={homeJsonLd.length > 0 ? homeJsonLd : undefined}
       />
 
-      <HomeHero heading={heroHeading} eyebrow={content.hero_title} subtitle={heroSubtitle} />
+      <HomeHero
+        heading={homeSeoHeading(content.seo_title)}
+        eyebrow={(content.hero_title ?? '').trim() || undefined}
+        subtitle={(content.hero_subtitle ?? '').trim()}
+      />
 
       {popularCountries.length > 0 && (
         <section className="container-site py-10 md:py-12">

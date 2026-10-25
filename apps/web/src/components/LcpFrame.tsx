@@ -3,7 +3,7 @@ import { staticAssetUrl } from '@gaido/site-urls/staticAsset'
 type LcpKind = 'hero' | 'card'
 
 const HERO = {
-  '/svit': { src: '/images/home/excursions.webp', alt: 'Авторська екскурсія містом' },
+  '/svit': { src: '/images/home/hero-svit.jpg', alt: 'Куди вирушаємо — напрямки та екскурсії' },
   '/servis': { src: '/images/home/about.webp', alt: 'Послуги поруч' },
   '/vezu': { src: '/images/home/excursions.webp', alt: 'Міжнародні рейси' },
 } as const

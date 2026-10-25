@@ -300,8 +300,19 @@ func (h *Handlers) DestinationsFromCitySlugs(ctx context.Context, slugs []string
 	return out
 }
 func (h *Handlers) AdminGetSiteContent(w http.ResponseWriter, r *http.Request) {
+	home := h.LoadHomeContent(r.Context())
+	var stored domain.HomeContent
+	if h.Settings != nil {
+		if err := h.Settings.GetJSON(r.Context(), keyHomeContent, &stored); err == nil {
+			home.HeroTitle = stored.HeroTitle
+			home.HeroSubtitle = stored.HeroSubtitle
+		} else {
+			home.HeroTitle = ""
+			home.HeroSubtitle = ""
+		}
+	}
 	response.JSON(w, r, 200, map[string]any{
-		"home":             h.LoadHomeContent(r.Context()),
+		"home":             home,
 		"portal_hub":       h.LoadPortalHubContent(r.Context()),
 		"footer":           h.LoadFooterContent(r.Context()),
 		"footer_transport": h.LoadTransportFooter(r.Context()),

@@ -281,7 +281,7 @@ const (
 
 func defaultHomeContent() domain.HomeContent {
 	return domain.HomeContent{
-		HeroTitle:      "Знайди свій спосіб мандрувати",
+		HeroTitle:      "",
 		HeroSubtitle:   "Авторські маршрути від місцевих гідів — обирайте програму та звʼязуйтеся напряму",
 		SEOTitle:       seoHomeTitle,
 		SEODescription: seoHomeDescription,
@@ -323,12 +323,6 @@ func defaultHomeContent() domain.HomeContent {
 }
 func mergeHomeContent(stored domain.HomeContent) domain.HomeContent {
 	def := defaultHomeContent()
-	if stored.HeroTitle == "" {
-		stored.HeroTitle = def.HeroTitle
-	}
-	if stored.HeroSubtitle == "" {
-		stored.HeroSubtitle = def.HeroSubtitle
-	}
 	if stored.SEOTitle == "" || stored.SEOTitle == legacyHomeSEOTitle {
 		stored.SEOTitle = def.SEOTitle
 	}

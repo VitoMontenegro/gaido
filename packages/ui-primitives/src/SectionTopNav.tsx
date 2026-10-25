@@ -23,7 +23,10 @@ export function SectionTopNav({ current }: { current: SectionId }) {
         <a
           key={item.id}
           href={item.href()}
-          className={cn('text-xs font-medium text-white/80 transition hover:text-white')}
+          className={cn(
+            'text-xs font-medium text-white transition hover:text-white',
+            '[text-shadow:0_1px_2px_rgba(15,26,40,0.75),0_2px_10px_rgba(15,26,40,0.45)]',
+          )}
         >
           {item.label}
         </a>

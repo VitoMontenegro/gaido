@@ -278,8 +278,18 @@ export function SiteContentEditor() {
 
       <section className="space-y-3">
         <h3 className="font-medium text-ink">Hero</h3>
-        <input className="input" value={home.hero_title} onChange={(e) => updateHome({ hero_title: e.target.value })} placeholder="Заголовок" />
-        <textarea className="input min-h-20" value={home.hero_subtitle} onChange={(e) => updateHome({ hero_subtitle: e.target.value })} placeholder="Підзаголовок" />
+        <input
+          className="input"
+          value={home.hero_title ?? ''}
+          onChange={(e) => updateHome({ hero_title: e.target.value })}
+          placeholder="Над H1. Порожнє — не показуємо"
+        />
+        <textarea
+          className="input min-h-20"
+          value={home.hero_subtitle ?? ''}
+          onChange={(e) => updateHome({ hero_subtitle: e.target.value })}
+          placeholder="Під H1. Порожнє — не показуємо"
+        />
       </section>
 
       <section className="space-y-3">

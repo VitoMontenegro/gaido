@@ -99,7 +99,7 @@ export default function GuidesHeader() {
           'site-header fixed inset-x-0 top-0 z-50 transition-[background-color,border-color,box-shadow,backdrop-filter] duration-300',
           solidHeader
             ? 'border-b border-divider/80 bg-page/95 shadow-sm backdrop-blur-md'
-            : 'border-b border-transparent bg-transparent',
+            : 'site-header--overlay border-b border-transparent bg-transparent',
         )}
       >
         <div className="container-site">
@@ -116,10 +116,10 @@ export default function GuidesHeader() {
                     navActive(location.pathname, item.to)
                       ? solidHeader
                         ? 'bg-teal text-white'
-                        : 'bg-white/15 text-white'
+                        : 'bg-white/15 text-white [text-shadow:0_1px_2px_rgba(15,26,40,0.75),0_2px_12px_rgba(15,26,40,0.5)]'
                       : solidHeader
-                        ? 'text-ink hover:bg-sand-100'
-                        : 'text-white/90 hover:bg-teal/10',
+                        ? 'text-ink hover:bg-sand-200/90 hover:text-ink'
+                        : 'text-white [text-shadow:0_1px_2px_rgba(15,26,40,0.75),0_2px_12px_rgba(15,26,40,0.5)] hover:bg-white/20',
                   )}
                 >
                   {item.label}
@@ -134,10 +134,10 @@ export default function GuidesHeader() {
                   navActive(location.pathname, '/favorites')
                     ? solidHeader
                       ? 'bg-ink text-white'
-                      : 'bg-white/15 text-white'
+                      : 'bg-white/15 text-white drop-shadow-[0_1px_3px_rgba(15,26,40,0.65)]'
                     : solidHeader
-                      ? 'text-ink hover:bg-sand-100'
-                      : 'text-white/90 hover:bg-white/10',
+                      ? 'text-ink hover:bg-sand-200/90'
+                      : 'text-white drop-shadow-[0_1px_3px_rgba(15,26,40,0.65)] hover:bg-white/20',
                 )}
                 aria-label={count > 0 ? `Обране, ${count}` : 'Обране'}
               >
@@ -168,12 +168,12 @@ export default function GuidesHeader() {
                   >
                     <UserAvatar avatar={profileAvatar} name={profileName} className="h-9 w-9" />
                   </Link>
-                  <span className={cn('hidden text-sm lg:inline', solidHeader ? 'text-muted' : 'text-white/80')}>
+                  <span className={cn('hidden text-sm lg:inline', solidHeader ? 'text-muted' : 'text-white [text-shadow:0_1px_2px_rgba(15,26,40,0.75)]')}>
                     {me.login}
                   </span>
                   <Link
                     to={accountHref}
-                    className={cn('hidden py-2 sm:inline-flex', solidHeader ? 'btn-secondary' : 'btn-ghost text-white hover:bg-white/10')}
+                    className={cn('hidden py-2 sm:inline-flex', solidHeader ? 'btn-secondary' : 'btn-ghost text-white [text-shadow:0_1px_2px_rgba(15,26,40,0.75)] hover:bg-white/10')}
                   >
                     Кабінет
                   </Link>
@@ -183,7 +183,7 @@ export default function GuidesHeader() {
                   to="/login"
                   className={cn(
                     'px-2.5 py-1.5 text-sm md:py-2',
-                    solidHeader ? 'btn-ghost' : 'btn-ghost text-white hover:bg-white/10',
+                    solidHeader ? 'btn-ghost' : 'btn-ghost text-white [text-shadow:0_1px_2px_rgba(15,26,40,0.75),0_2px_12px_rgba(15,26,40,0.5)] hover:bg-white/10',
                   )}
                 >
                   Вхід
@@ -195,7 +195,7 @@ export default function GuidesHeader() {
                   'inline-flex h-9 w-9 items-center justify-center rounded-xl border transition md:hidden',
                   solidHeader
                     ? 'border-border bg-surface text-ink hover:bg-sand-100'
-                    : 'border-white/25 bg-white/10 text-white hover:bg-white/20',
+                    : 'border-white/25 bg-white/10 text-white drop-shadow-[0_1px_3px_rgba(15,26,40,0.65)] hover:bg-white/20',
                 )}
                 aria-expanded={menuOpen}
                 aria-controls="mobile-nav"
@@ -220,7 +220,7 @@ export default function GuidesHeader() {
                     to={item.to}
                     className={cn(
                       'flex min-h-11 items-center rounded-xl px-3 text-base font-medium transition',
-                      navActive(location.pathname, item.to) ? 'bg-ink text-white' : 'text-ink hover:bg-sand-100',
+                      navActive(location.pathname, item.to) ? 'bg-ink text-white' : 'text-ink hover:bg-sand-200/90',
                     )}
                   >
                     {item.label}

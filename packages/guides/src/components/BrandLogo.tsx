@@ -22,9 +22,9 @@ type Props = {
 function BrandMark({ className, dark = false }: { className?: string; dark?: boolean }) {
   return (
     <img
-      src={dark ? LOGO.light : LOGO.dark}
+      src={LOGO.dark}
       alt=""
-      className={cn('shrink-0 object-contain', className)}
+      className={cn('shrink-0 object-contain', className, dark && 'drop-shadow-[0_1px_3px_rgba(15,26,40,0.55)]')}
       aria-hidden
     />
   )
@@ -50,14 +50,16 @@ export default function BrandLogo({
   const nameClass = compactOnMobile
     ? cn(
         'font-display text-base font-bold normal-case tracking-tight md:text-2xl',
-        dark ? 'text-white' : 'text-ink',
+        dark
+          ? 'text-white [text-shadow:0_1px_2px_rgba(15,26,40,0.7),0_2px_10px_rgba(15,26,40,0.45)]'
+          : 'text-ink',
       )
     : compact
       ? 'font-display text-base font-bold normal-case tracking-tight text-ink'
       : variant === 'hero'
         ? 'font-display text-lg font-bold normal-case tracking-tight text-white md:text-xl'
         : variant === 'inverse'
-          ? 'font-display text-xl font-bold normal-case tracking-tight text-white md:text-2xl'
+          ? 'font-display text-xl font-bold normal-case tracking-tight text-white [text-shadow:0_1px_2px_rgba(15,26,40,0.7),0_2px_10px_rgba(15,26,40,0.45)] md:text-2xl'
           : 'font-display text-xl font-bold normal-case tracking-tight text-ink md:text-2xl'
 
   const rootClass = cn(

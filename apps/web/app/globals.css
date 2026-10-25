@@ -420,6 +420,11 @@
     min-height: min(78vh, 720px);
   }
 
+  .home-hero-v2__copy :is(h1, p, a, span, strong, em, b, i) {
+    color: #fff;
+    text-shadow: 0 1px 2px rgb(15 26 40 / 0.75), 0 2px 12px rgb(15 26 40 / 0.5);
+  }
+
   .home-hero-v2__search {
     @apply relative flex items-center rounded-2xl border border-white/80 bg-white shadow-[0_12px_40px_rgba(15,26,40,0.12)];
   }
@@ -429,7 +434,7 @@
   }
 
   .home-hero-v2__search-input {
-    @apply min-h-14 w-full flex-1 rounded-2xl border-0 bg-transparent py-3 pl-12 pr-16 text-base text-ink placeholder:text-muted-light focus:outline-none;
+    @apply min-h-12 w-full flex-1 rounded-2xl border-0 bg-transparent py-2.5 pl-12 pr-14 text-base text-ink placeholder:text-muted-light focus:outline-none md:min-h-14 md:py-3 md:pr-16;
   }
 
   .home-hero-v2__search-btn {

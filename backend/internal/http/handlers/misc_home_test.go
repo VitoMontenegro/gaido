@@ -6,6 +6,20 @@ import (
 	"github.com/vitomonte/experts-tourister/internal/domain"
 )
 
+func TestMergeHomeContent_keepsEmptyHeroTitle(t *testing.T) {
+	got := mergeHomeContent(domain.HomeContent{HeroSubtitle: "Hero text"})
+	if got.HeroTitle != "" {
+		t.Fatalf("hero title should stay empty, got %q", got.HeroTitle)
+	}
+}
+
+func TestMergeHomeContent_keepsEmptyHeroSubtitle(t *testing.T) {
+	got := mergeHomeContent(domain.HomeContent{})
+	if got.HeroSubtitle != "" {
+		t.Fatalf("hero subtitle should stay empty, got %q", got.HeroSubtitle)
+	}
+}
+
 func TestMergeHomeContent_fillsSEOFromCurrentHome(t *testing.T) {
 	got := mergeHomeContent(domain.HomeContent{HeroSubtitle: "Hero text"})
 	if got.SEOTitle != seoHomeTitle {
