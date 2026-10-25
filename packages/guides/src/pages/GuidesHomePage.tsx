@@ -162,14 +162,13 @@ export default function GuidesHomePage() {
 
   const content = site.home.content
   const featuredGuides = site.home.featured_guides ?? []
-  const featuredExcursions = ((site.home.latest_excursions?.length
-    ? site.home.latest_excursions
-    : site.home.featured_excursions) ?? []) as ExcursionItem[]
+  const latestExcursions = (site.home.latest_excursions ?? []) as ExcursionItem[]
+  const newExcursions = latestExcursions.slice(0, 8)
   const destinations = site.home.popular_destinations ?? []
   const homeFaq = content.faq.map((item) => ({ question: item.question, answer: item.answer }))
   const seoDescription = homeSeoDescription(content.seo_description, content.hero_subtitle)
   const homeJsonLd = buildGuidesHomeJsonLd({
-    excursions: featuredExcursions,
+    excursions: newExcursions.length > 0 ? newExcursions : ((site.home.featured_excursions ?? []) as ExcursionItem[]),
     guides: featuredGuides.map((g) => ({ display_name: g.display_name, slug: g.slug })),
     countries: destinations.map((g) => ({ name: g.country_name, slug: g.country_slug })),
     faq: homeFaq,
@@ -226,22 +225,22 @@ export default function GuidesHomePage() {
         />
       </section>
 
-      {featuredExcursions.length > 0 && (
-        <section className="border-t border-divider bg-surface py-10 md:py-14">
+      {newExcursions.length > 0 && (
+        <section className="border-t border-divider py-8 md:py-10">
           <div className="container-site">
             <SectionTitle
-              title="Рекомендовані екскурсії"
+              title="Нові екскурсії"
               action={
                 <Link to="/search" className="link-accent text-sm normal-case">
-                  Дивитись усі →
+                  Усі екскурсії →
                 </Link>
               }
             />
-            <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-              {featuredExcursions.slice(0, 3).map((e, index) => (
-                <ExcursionCard key={e.id} e={e} priority={index === 0} />
+            <HorizontalSwiper>
+              {newExcursions.map((e) => (
+                <ExcursionCard key={e.id} e={e} compact />
               ))}
-            </div>
+            </HorizontalSwiper>
           </div>
         </section>
       )}
