@@ -1,30 +1,33 @@
-import { type ReactNode } from 'react'
+import { type ReactNode, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { catalogApi, articlesApi, resolveMediaUrl, type HomeCategoryTile, type PublicGuide } from '@gaido/api-client/api/client'
+import { catalogApi, articlesApi, resolveMediaUrl, type PublicGuide } from '@gaido/api-client/api/client'
 import { reviewsApi } from '@gaido/api-client/api/reviews'
 import JournalArticleCard from '../components/JournalArticleCard'
 import ExcursionCard, { excursionCardPropsFromPartial } from '../components/ExcursionCard'
 import GuideCard from '../components/GuideCard'
 import HorizontalSwiper from '../components/HorizontalSwiper'
 import HomeHero from '../components/HomeHero'
-import CountryNameLink from '../components/CountryNameLink'
+import PopularDestinationsRow from '../components/home/PopularDestinationsRow'
+import CountriesDirectory from '../components/countries/CountriesDirectory'
 import ApiErrorBanner from '../components/ApiErrorBanner'
 import { Seo } from '../lib/seo'
 import HomeReviews from '../components/HomeReviews'
 import { buildGuidesHomeJsonLd } from '../lib/excursionListingSchema'
+import { resolveCountryCatalog } from '../lib/countryCatalog'
 import { GUIDES_HOME_SEO_TEXT, homeSeoDescription, homeSeoHeading, homeSeoTitle } from '../lib/seoTemplates'
-import { normalizeCategoryTiles } from '../lib/categoryTiles'
 import type { ExcursionItem } from '../components/excursionUi'
 import { useRecentViews, validateRecentViews, type RecentView } from '../hooks/useRecentViews'
-
-function SectionTitle({ title, subtitle, action }: { title: string; subtitle?: string; action?: ReactNode }) {
+function SectionTitle({
+  title,
+  action,
+}: {
+  title: string
+  action?: ReactNode
+}) {
   return (
-    <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
-      <div>
-        <h2 className="section-title">{title}</h2>
-        {subtitle && <p className="mt-2 text-base text-muted">{subtitle}</p>}
-      </div>
+    <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+      <h2 className="section-title">{title}</h2>
       {action}
     </div>
   )
@@ -40,10 +43,6 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
       <p className="pb-5 leading-relaxed text-muted">{answer}</p>
     </details>
   )
-}
-
-function GuideCardFeatured({ guide }: { guide: PublicGuide }) {
-  return <GuideCard guide={guide} />
 }
 
 function RecentCard({ item }: { item: RecentView }) {
@@ -82,22 +81,12 @@ function RecentCard({ item }: { item: RecentView }) {
   )
 }
 
-function CategoryTile({ tile }: { tile: HomeCategoryTile }) {
-  const img = resolveMediaUrl(tile.image_url)
-  return (
-    <Link to={tile.url} className="category-tile">
-      {img && <img src={img} alt={tile.label} className="category-tile__img" loading="lazy" />}
-      <span className="category-tile__label">{tile.label}</span>
-    </Link>
-  )
-}
-
 function HomePageLoading() {
   return (
     <>
       <Seo title={homeSeoTitle()} path="/" />
       <div
-        className="home-hero relative min-h-[min(78vh,720px)] animate-pulse bg-ink"
+        className="home-hero-v2 relative min-h-[min(52vh,520px)] animate-pulse bg-sand-100"
         aria-busy="true"
         aria-label="Завантаження головної сторінки"
       />
@@ -110,6 +99,14 @@ export default function GuidesHomePage() {
     queryKey: ['site'],
     queryFn: () => catalogApi.site(),
     staleTime: 60_000,
+  })
+  const { data: pointsData, isLoading: pointsLoading } = useQuery({
+    queryKey: ['map-points'],
+    queryFn: () => catalogApi.mapPoints(),
+  })
+  const { data: catalogData, isLoading: catalogLoading } = useQuery({
+    queryKey: ['country-catalog'],
+    queryFn: () => catalogApi.countryCatalog(),
   })
   const { data: articlesData } = useQuery({
     queryKey: ['articles', 'journal', 'home'],
@@ -132,6 +129,25 @@ export default function GuidesHomePage() {
     .filter((item) => item.type === 'excursion')
     .slice(0, 8)
 
+  const points = pointsData?.items ?? []
+  const countries = useMemo(
+    () => resolveCountryCatalog(catalogData?.items, points, catalogLoading),
+    [catalogData?.items, points, catalogLoading],
+  )
+  const popularCountries = useMemo(
+    () =>
+      [...countries]
+        .sort(
+          (a, b) =>
+            b.excursion_count - a.excursion_count ||
+            b.city_count - a.city_count ||
+            a.name.localeCompare(b.name, 'uk'),
+        )
+        .slice(0, 6),
+    [countries],
+  )
+  const directoryLoading = countries.length === 0 && (pointsLoading || catalogLoading)
+
   if (siteLoading) {
     return <HomePageLoading />
   }
@@ -151,19 +167,22 @@ export default function GuidesHomePage() {
     : site.home.featured_excursions) ?? []) as ExcursionItem[]
   const destinations = site.home.popular_destinations ?? []
   const homeFaq = content.faq.map((item) => ({ question: item.question, answer: item.answer }))
-  const seoDescription = homeSeoDescription(content.seo_description, content.hero_subtitle)
+  const heroHeading = homeSeoHeading(content.seo_title) || 'Куди вирушаємо?'
+  const heroSubtitle =
+    content.hero_subtitle?.trim() ||
+    'Знайдіть україномовного гіда та екскурсію у потрібному місті'
+  const seoDescription = homeSeoDescription(content.seo_description, heroSubtitle)
   const homeJsonLd = buildGuidesHomeJsonLd({
     excursions: featuredExcursions,
     guides: featuredGuides.map((g) => ({ display_name: g.display_name, slug: g.slug })),
     countries: destinations.map((g) => ({ name: g.country_name, slug: g.country_slug })),
     faq: homeFaq,
-    pageName: homeSeoHeading(content.seo_title),
+    pageName: heroHeading,
     pageDescription: seoDescription,
     pagePath: '/',
     pageImage: content.seo_image_url || undefined,
   })
   const seoTextParagraphs = GUIDES_HOME_SEO_TEXT.split(/\n\n+/).map((p) => p.trim()).filter(Boolean)
-  const categoryTiles = normalizeCategoryTiles(content.category_tiles)
   const journalArticles = articlesData?.items ?? []
   const cta = content.cta
   const aboutImage = resolveMediaUrl(content.about_image_url)
@@ -173,7 +192,7 @@ export default function GuidesHomePage() {
   const aboutButtonUrl = content.about_button_url || '/about'
 
   return (
-    <>
+    <div className="guides-home">
       <Seo
         title={homeSeoTitle(content.seo_title)}
         description={seoDescription}
@@ -182,22 +201,53 @@ export default function GuidesHomePage() {
         jsonLd={homeJsonLd.length > 0 ? homeJsonLd : undefined}
       />
 
-      <HomeHero
-        heading={homeSeoHeading(content.seo_title)}
-        eyebrow={content.hero_title}
-        subtitle={content.hero_subtitle}
-      />
+      <HomeHero heading={heroHeading} eyebrow={content.hero_title} subtitle={heroSubtitle} />
 
-      <section className="container-site py-6 md:py-10">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-2.5">
-          {categoryTiles.map((tile) => (
-            <CategoryTile key={`${tile.url}-${tile.label}`} tile={tile} />
-          ))}
-        </div>
+      {popularCountries.length > 0 && (
+        <section className="container-site py-10 md:py-12">
+          <SectionTitle
+            title="Популярні напрямки"
+            action={
+              <Link to="/countries" className="link-accent text-sm normal-case">
+                Дивитись усі →
+              </Link>
+            }
+          />
+          <PopularDestinationsRow countries={popularCountries} />
+        </section>
+      )}
+
+      <section className="container-site pb-10 md:pb-14">
+        <CountriesDirectory
+          variant="home"
+          points={points}
+          countries={countries}
+          loading={directoryLoading}
+        />
       </section>
 
+      {featuredExcursions.length > 0 && (
+        <section className="border-t border-divider bg-surface py-10 md:py-14">
+          <div className="container-site">
+            <SectionTitle
+              title="Рекомендовані екскурсії"
+              action={
+                <Link to="/search" className="link-accent text-sm normal-case">
+                  Дивитись усі →
+                </Link>
+              }
+            />
+            <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+              {featuredExcursions.slice(0, 3).map((e, index) => (
+                <ExcursionCard key={e.id} e={e} priority={index === 0} />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
       {recentRaw.length > 0 && !recentValidating && recent.length > 0 && (
-        <section className="border-y border-divider bg-surface py-8 md:py-10">
+        <section className="border-y border-divider py-8 md:py-10">
           <div className="container-site">
             <SectionTitle title="Ви недавно переглядали" />
             <HorizontalSwiper>
@@ -205,25 +255,6 @@ export default function GuidesHomePage() {
                 <RecentCard key={`${item.type}-${item.slug}`} item={item} />
               ))}
             </HorizontalSwiper>
-          </div>
-        </section>
-      )}
-
-      {featuredExcursions.length > 0 && (
-        <section className="container-site py-14">
-          <SectionTitle
-            title="Нові маршрути"
-            subtitle="Свіжі пропозиції від перевірених гідів"
-            action={
-              <Link to="/search" className="link-accent text-sm normal-case">
-                Усі екскурсії →
-              </Link>
-            }
-          />
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-            {featuredExcursions.slice(0, 5).map((e, index) => (
-              <ExcursionCard key={e.id} e={e} compact priority={index === 0} />
-            ))}
           </div>
         </section>
       )}
@@ -237,11 +268,10 @@ export default function GuidesHomePage() {
       )}
 
       {featuredGuides.length > 0 && (
-        <section className="py-14">
+        <section className="py-12 md:py-14">
           <div className="container-site">
             <SectionTitle
               title="Фаворити мандрівників"
-              subtitle="Місцеві експерти з авторськими маршрутами"
               action={
                 <Link to="/guides" className="link-accent text-sm normal-case">
                   Усі гіди →
@@ -250,80 +280,43 @@ export default function GuidesHomePage() {
             />
             <div className="grid gap-4 sm:grid-cols-2">
               {featuredGuides.map((g) => (
-                <GuideCardFeatured key={g.id} guide={g} />
+                <GuideCard key={g.id} guide={g} />
               ))}
             </div>
           </div>
         </section>
       )}
 
-      <section className="container-site py-14">
-        <h2 className="section-title-sm mb-4">Екскурсії українською за кордоном</h2>
-        {seoTextParagraphs.map((paragraph, i) => (
-          <p key={i} className={`max-w-4xl text-base leading-relaxed text-muted${i > 0 ? ' mt-4' : ''}`}>
-            {paragraph}
-          </p>
-        ))}
-      </section>
-
-      {destinations.length > 0 && (
-        <section className="container-site py-14">
-          <SectionTitle
-            title="Популярні напрямки"
-            subtitle="Оберіть місто — знайдіть гіда та екскурсію"
-            action={
-              <Link to="/countries" className="link-accent text-sm normal-case">
-                Усі країни →
-              </Link>
-            }
-          />
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {destinations.map((group) => (
-              <div key={group.country_slug} className="card">
-                <h3 className="section-title-sm mb-3">
-                  <CountryNameLink
-                    slug={group.country_slug}
-                    name={group.country_name}
-                    className="text-teal font-semibold text-[16px] hover:text-teal-dark"
-                  />
-                </h3>
-                <ul className="space-y-2 flex flex-wrap gap-2 align-center">
-                  {group.cities.map((city) => (
-                    <li className={'mb-0'} key={city.slug}>
-                      <Link to={`/city/${city.slug}`} className="text-base text-[#4b4b4b] transition hover:text-ink hover:underline">
-                        {city.name}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
+      {seoTextParagraphs.length > 0 && (
+        <section className="container-site py-12">
+          <h2 className="section-title-sm mb-4">Екскурсії українською за кордоном</h2>
+          {seoTextParagraphs.map((paragraph, i) => (
+            <p key={i} className={`max-w-4xl text-base leading-relaxed text-muted${i > 0 ? ' mt-4' : ''}`}>
+              {paragraph}
+            </p>
+          ))}
         </section>
       )}
 
-
-
-        {journalArticles.length > 0 && (
-            <section className="border-y border-divider bg-surface py-8 md:py-10">
-                <div className="container-site">
-                    <SectionTitle
-                        title="Журнал"
-                        subtitle="Поради для мандрівників"
-                        action={
-                            <Link to="/journal" className="link-accent text-sm normal-case">
-                                Усі статті →
-                            </Link>
-                        }
-                    />
-                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                        {journalArticles.map((article) => (
-                            <JournalArticleCard key={article.id} article={article} heading="h3" />
-                        ))}
-                    </div>
-                </div>
-            </section>
-        )}
+      {journalArticles.length > 0 && (
+        <section className="border-y border-divider bg-surface py-8 md:py-10">
+          <div className="container-site">
+            <SectionTitle
+              title="Журнал"
+              action={
+                <Link to="/journal" className="link-accent text-sm normal-case">
+                  Усі статті →
+                </Link>
+              }
+            />
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {journalArticles.map((article) => (
+                <JournalArticleCard key={article.id} article={article} heading="h3" />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {showAbout && (
         <section className="bg-surface py-14">
@@ -398,6 +391,6 @@ export default function GuidesHomePage() {
           </div>
         </div>
       </section>
-    </>
+    </div>
   )
 }

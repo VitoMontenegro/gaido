@@ -1,13 +1,10 @@
-import { useEffect, useState, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { type FormEvent } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { MagnifyingGlassIcon } from '@heroicons/react/24/outline'
 import { staticAssetUrl } from '@gaido/site-urls/staticAsset'
 import { sanitizeHtml } from '../lib/html'
 
-const SLIDES = [
-  { src: staticAssetUrl('/images/home/excursions.webp'), alt: 'Авторська екскурсія містом' },
-  { src: staticAssetUrl('/images/home/about.jpg'), alt: 'Атмосфера подорожі' },
-  { src: staticAssetUrl('/images/home/guides.jpg'), alt: 'Місцевий гід' },
-] as const
+const HERO_IMAGE = staticAssetUrl('/images/home/about.jpg')
 
 type Props = {
   heading: string
@@ -17,18 +14,6 @@ type Props = {
 
 export default function HomeHero({ heading, eyebrow, subtitle }: Props) {
   const navigate = useNavigate()
-  const [active, setActive] = useState(0)
-  const [motionOk, setMotionOk] = useState(false)
-
-  useEffect(() => {
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    if (reduce) return
-    setMotionOk(true)
-    const id = window.setInterval(() => {
-      setActive((i) => (i + 1) % SLIDES.length)
-    }, 6500)
-    return () => window.clearInterval(id)
-  }, [])
 
   const onSearch = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -37,86 +22,47 @@ export default function HomeHero({ heading, eyebrow, subtitle }: Props) {
   }
 
   return (
-    <section className="home-hero relative isolate overflow-hidden bg-ink text-white">
-      <div className="absolute inset-0" aria-hidden>
-        {SLIDES.map((slide, i) => (
-          <img
-            key={slide.src}
-            src={slide.src}
-            alt={slide.alt}
-            className={`home-hero__slide absolute inset-0 h-full w-full object-cover transition-opacity duration-1400 ease-out ${
-              i === active ? 'opacity-100' : 'opacity-0'
-            }`}
-            loading={i === 0 ? 'eager' : 'lazy'}
-            fetchPriority={i === 0 ? 'high' : 'low'}
-            decoding={i === 0 ? 'sync' : 'async'}
-          />
-        ))}
-        <div className="absolute inset-0 bg-linear-to-r from-ink/80 via-ink/55 to-ink/25" />
-        <div className="absolute inset-0 bg-linear-to-t from-ink/50 via-transparent to-ink/30" />
-      </div>
+    <section className="home-hero-v2 relative isolate overflow-hidden bg-sand-100">
+      <img
+        src={HERO_IMAGE}
+        alt=""
+        className="absolute inset-0 h-full w-full object-cover"
+        fetchPriority="high"
+        decoding="sync"
+      />
+      <div
+        className="absolute inset-0 bg-linear-to-b from-white/55 via-white/35 to-white/95"
+        aria-hidden
+      />
 
-      <div className="container-site relative z-10 flex min-h-[min(78vh,720px)] flex-col justify-center pb-14 pt-24 md:pb-20 md:pt-28">
+      <div className="container-site relative z-10 flex min-h-[min(52vh,520px)] flex-col justify-end pb-10 pt-28 md:min-h-[min(58vh,560px)] md:pb-14 md:pt-32">
         {eyebrow ? (
-          <p className="mb-3 text-sm font-medium uppercase tracking-wide text-white/70 md:text-base">
-            {eyebrow}
-          </p>
+          <p className="mb-2 text-sm font-medium text-muted md:text-base">{eyebrow}</p>
         ) : null}
-        <h1 className="max-w-4xl font-display text-[28px] font-medium uppercase leading-[1.15] text-white sm:text-4xl md:text-5xl">
+        <h1 className="max-w-3xl font-display text-[32px] font-semibold leading-tight text-ink sm:text-4xl md:text-[44px]">
           {heading}
         </h1>
         <p
-          className="mt-4 text-base leading-relaxed text-white/80 md:text-lg"
+          className="mt-3 max-w-2xl text-base leading-relaxed text-muted md:text-lg"
           dangerouslySetInnerHTML={{ __html: sanitizeHtml(subtitle) }}
         />
 
-        <form
-          onSubmit={onSearch}
-          className="mt-8 flex w-full max-w-xl flex-col gap-3 sm:flex-row sm:items-stretch"
-          role="search"
-        >
+        <form onSubmit={onSearch} className="home-hero-v2__search mt-8 w-full max-w-3xl" role="search">
           <label className="sr-only" htmlFor="home-hero-q">
-            Пошук екскурсій
+            Пошук країни, міста або екскурсії
           </label>
+          <MagnifyingGlassIcon className="home-hero-v2__search-icon" aria-hidden />
           <input
             id="home-hero-q"
             name="q"
-            className="input min-h-12 flex-1 border-0 bg-white text-ink shadow-lg placeholder:text-muted-light"
-            placeholder="Місто, тема або назва екскурсії"
+            className="home-hero-v2__search-input"
+            placeholder="Знайти країну, місто або екскурсію"
             autoComplete="off"
           />
-          <button type="submit" className="btn-accent min-h-12 shrink-0 px-6 shadow-lg">
-            Знайти
+          <button type="submit" className="home-hero-v2__search-btn" aria-label="Шукати">
+            <MagnifyingGlassIcon className="h-5 w-5" aria-hidden />
           </button>
         </form>
-
-        <div className="mt-5 flex flex-wrap items-center gap-3">
-          <Link
-            to="/countries"
-            className="inline-flex min-h-10 items-center rounded-xl border border-white/25 bg-white/10 px-4 text-sm font-medium text-white transition hover:bg-white/20"
-          >
-            Країни та міста
-          </Link>
-          <Link to="/guides" className="text-sm font-medium text-white/85 underline-offset-4 hover:underline">
-            Дивитись гідів →
-          </Link>
-        </div>
-
-        {motionOk && (
-          <div className="mt-10 flex gap-2" aria-hidden>
-            {SLIDES.map((slide, i) => (
-              <button
-                key={slide.src}
-                type="button"
-                className={`h-1.5 rounded-full transition-all ${
-                  i === active ? 'w-8 badge-teal' : 'w-3 bg-white/35 hover:bg-white/55'
-                }`}
-                onClick={() => setActive(i)}
-                aria-label={`Слайд ${i + 1}`}
-              />
-            ))}
-          </div>
-        )}
       </div>
     </section>
   )

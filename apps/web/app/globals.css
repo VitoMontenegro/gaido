@@ -420,6 +420,35 @@
     min-height: min(78vh, 720px);
   }
 
+  .home-hero-v2__search {
+    @apply relative flex items-center rounded-2xl border border-white/80 bg-white shadow-[0_12px_40px_rgba(15,26,40,0.12)];
+  }
+
+  .home-hero-v2__search-icon {
+    @apply pointer-events-none absolute left-4 h-5 w-5 text-muted-light;
+  }
+
+  .home-hero-v2__search-input {
+    @apply min-h-14 w-full flex-1 rounded-2xl border-0 bg-transparent py-3 pl-12 pr-16 text-base text-ink placeholder:text-muted-light focus:outline-none;
+  }
+
+  .home-hero-v2__search-btn {
+    @apply absolute right-2 flex h-11 w-11 items-center justify-center rounded-full bg-teal text-white transition hover:bg-teal-dark;
+  }
+
+  .guides-home-dest-scroll {
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .guides-home-dest-scroll::-webkit-scrollbar {
+    display: none;
+  }
+
+  .guides-home-dest-card {
+    height: 15.5rem;
+  }
+
   .partner-bar {
     @apply border-b border-divider bg-surface;
   }
@@ -993,6 +1022,7 @@ button {
   @apply cursor-pointer;
 }
 
+.guides-home .countries-region-select,
 .countries-page .countries-region-select {
   appearance: none;
   background-image: none;
@@ -1031,20 +1061,24 @@ button {
   display: none;
 }
 
+.guides-home .countries-cities,
 .countries-page .countries-cities {
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-width: none;
 }
 
+.guides-home .countries-cities::-webkit-scrollbar,
 .countries-page .countries-cities::-webkit-scrollbar {
   display: none;
 }
 
+.guides-home .countries-city-card,
 .countries-page .countries-city-card {
   height: 13.5rem;
 }
 
+.guides-home .countries-city-card img,
 .countries-page .countries-city-card img {
   position: absolute;
   inset: 0;
