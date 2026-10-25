@@ -27,7 +27,7 @@ function SectionTitle({
 }) {
   return (
     <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-      <h2 className="section-title">{title}</h2>
+      <h2 className="section-title min-w-0">{title}</h2>
       {action}
     </div>
   )

@@ -16,8 +16,8 @@ export default function HorizontalSwiper({
 
   return (
     <>
-      <div className="md:hidden">
-        <div className="-mx-5 overflow-x-auto overscroll-x-contain pb-1 [-ms-overflow-style:none] scrollbar-none [&::-webkit-scrollbar]:hidden">
+      <div className="min-w-0 md:hidden">
+        <div className="-mx-5 min-w-0 overflow-x-auto overscroll-x-contain pb-1 [-ms-overflow-style:none] scrollbar-none [&::-webkit-scrollbar]:hidden">
           <div className="flex snap-x snap-mandatory gap-3 px-5">
             {items.map((child, index) => (
               <div key={index} className={slideClassName}>

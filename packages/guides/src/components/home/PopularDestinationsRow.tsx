@@ -53,7 +53,7 @@ export default function PopularDestinationsRow({ countries, limit = 6 }: Props) 
   if (items.length === 0) return null
 
   return (
-    <div className="guides-home-dest-scroll -mx-5 px-5 md:mx-0 md:px-0">
+    <div className="guides-home-dest-scroll -mx-5 min-w-0 overflow-x-auto px-5 md:mx-0 md:px-0">
       <ul className="flex gap-4">
         {items.map((country) => {
           const cover = country.cover_image_url ? resolveMediaUrl(country.cover_image_url) : ''

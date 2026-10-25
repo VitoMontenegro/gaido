@@ -419,6 +419,7 @@
   }
 
   .guides-home-dest-scroll {
+    min-width: 0;
     overflow-x: auto;
     scrollbar-width: none;
   }
@@ -1012,6 +1013,7 @@ button {
 
 .guides-home .countries-cities,
 .countries-page .countries-cities {
+  min-width: 0;
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-width: none;

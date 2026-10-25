@@ -18,7 +18,7 @@ export function sectionLinksExcept(current: SectionId) {
 export function SectionTopNav({ current }: { current: SectionId }) {
   const items = sectionLinksExcept(current)
   return (
-    <nav aria-label="Розділи" className="flex h-8 w-full items-center justify-end gap-4">
+    <nav aria-label="Розділи" className="flex h-8 w-full min-w-0 items-center justify-end gap-3 overflow-x-auto">
       {items.map((item) => (
         <a
           key={item.id}

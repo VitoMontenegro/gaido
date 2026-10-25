@@ -13,9 +13,9 @@ export function GuidesPublicLayout() {
   useTelegramBotURL()
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-screen min-w-0 flex-col">
       <GuidesHeader />
-      <main className="flex-1">
+      <main className="min-w-0 flex-1">
         <ErrorBoundary>
           <Outlet />
         </ErrorBoundary>

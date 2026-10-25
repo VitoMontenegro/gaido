@@ -63,7 +63,8 @@ export default function BrandLogo({
           : 'font-display text-xl font-bold normal-case tracking-tight text-ink md:text-2xl'
 
   const rootClass = cn(
-    'inline-flex shrink-0 items-center gap-2.5',
+    'inline-flex items-center gap-2.5',
+    compactOnMobile ? 'min-w-0' : 'shrink-0',
     asLink && 'transition hover:opacity-80',
     className,
   )
@@ -72,7 +73,7 @@ export default function BrandLogo({
     <>
       <BrandMark className={markSize} dark={dark} />
       <span className="min-w-0">
-        <span className={nameClass}>{SITE_NAME}</span>
+        <span className={cn(nameClass, compactOnMobile && 'block truncate')}>{SITE_NAME}</span>
         {showTagline && (
           <span
             className={cn(

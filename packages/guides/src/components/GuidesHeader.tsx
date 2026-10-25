@@ -104,8 +104,8 @@ export default function GuidesHeader() {
       >
         <div className="container-site">
           {!solidHeader && <SectionTopNav current="guides" />}
-          <div className="flex h-14 items-center gap-3 md:h-18 md:gap-6">
-            <BrandLogo compactOnMobile homeTo="/" variant={solidHeader ? 'default' : 'inverse'} />
+          <div className="flex h-14 min-w-0 items-center gap-2 md:h-18 md:gap-6">
+            <BrandLogo compactOnMobile className="min-w-0" homeTo="/" variant={solidHeader ? 'default' : 'inverse'} />
             <nav className="ml-auto hidden items-center gap-1 md:flex" aria-label="Головна навігація">
               {navItems.map((item) => (
                 <Link
@@ -126,7 +126,7 @@ export default function GuidesHeader() {
                 </Link>
               ))}
             </nav>
-            <div className="ml-auto flex h-9 min-w-33 items-center justify-end gap-1.5 md:ml-0 md:min-w-55 md:gap-2">
+            <div className="ml-auto flex h-9 shrink-0 items-center justify-end gap-1.5 md:ml-0 md:gap-2">
               <Link
                 to="/favorites"
                 className={cn(

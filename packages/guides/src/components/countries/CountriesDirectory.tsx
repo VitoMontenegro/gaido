@@ -253,7 +253,7 @@ export default function CountriesDirectory({
         <RegionSelect id={isHome ? 'home-countries-region' : 'countries-list-region'} value={region} onChange={setRegion} />
       </form>
 
-      <nav aria-label="Алфавіт" className="mt-4 -mx-5 overflow-x-auto px-5 md:mx-0 md:px-0">
+      <nav aria-label="Алфавіт" className="mt-4 -mx-5 min-w-0 overflow-x-auto px-5 md:mx-0 md:px-0">
         <ul className="flex min-w-max gap-1">
           <li>
             <button
@@ -457,8 +457,8 @@ export default function CountriesDirectory({
             aria-labelledby="countries-list-title"
           >
             {isHome ? (
-              <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start">
-                <div>{countriesList}</div>
+              <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start">
+                <div className="min-w-0">{countriesList}</div>
                 {popularCitiesSidebar}
               </div>
             ) : (
