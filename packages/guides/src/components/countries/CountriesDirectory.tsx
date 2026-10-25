@@ -314,7 +314,7 @@ export default function CountriesDirectory({
 
   const popularCitiesSidebar =
     popularCities.length > 0 ? (
-      <aside className={cn('min-h-0', isHome ? 'hidden lg:block' : 'mt-12 lg:mt-0')}>
+      <aside className={cn('min-h-0', isHome ? 'hidden lg:block mt-13.75' : 'mt-12 lg:mt-0')}>
         <h2 className="section-title-sm mb-4 flex items-center gap-2">
           <span className="text-teal" aria-hidden>◎</span>
           Популярні міста
