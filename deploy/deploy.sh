@@ -33,8 +33,19 @@ write_status() {
 EOF
 }
 
+WEB_STOPPED=0
+
+restore_web_if_stopped() {
+  if [ "$WEB_STOPPED" = 1 ]; then
+    echo "→ restore tourister-web (build did not finish)"
+    sudo systemctl start tourister-web || true
+    WEB_STOPPED=0
+  fi
+}
+
 on_error() {
   local code=$?
+  restore_web_if_stopped
   write_status "failed" "$code" "1"
   echo "=== DEPLOY FAILED $(date -Is) exit=$code ==="
 }
@@ -78,13 +89,21 @@ APEX_ORIGIN="https://${PROD_DOMAIN}"
 BUILD_ID="$(git -C "$REPO" rev-parse --short HEAD 2>/dev/null || date +%s)"
 echo "→ build id: $BUILD_ID"
 
-echo "→ frontend build (Next.js standalone)"
+echo "→ frontend build (Next.js standalone, bare metal)"
 cd "$REPO"
-npm ci
+# Cap Node heap so next build cannot eat the whole VPS. Override via NODE_OPTIONS in .env.
+export NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=2048}"
 export NEXT_PUBLIC_SITE_URL="$APEX_ORIGIN"
 export NEXT_PUBLIC_API_URL=""
 export API_INTERNAL_URL="http://127.0.0.1:8081"
 export NEXT_PUBLIC_BUILD_ID="$BUILD_ID"
+npm ci
+# Running tourister-web + next build on the same host OOMs. HTML is down until restart below.
+if command -v systemctl >/dev/null 2>&1 && systemctl is-active --quiet tourister-web; then
+  echo "→ stop tourister-web for Next build (free RAM, no Docker)"
+  sudo systemctl stop tourister-web
+  WEB_STOPPED=1
+fi
 npm run build -w @gaido/web
 
 echo "→ publish Next standalone to $WEB_ROOT"
@@ -124,6 +143,8 @@ if ! command -v "$GO_BIN" >/dev/null 2>&1 && [ -x /usr/local/go/bin/go ]; then
   GO_BIN=/usr/local/go/bin/go
 fi
 mkdir -p "$APP_ROOT/bin"
+# One compile thread: go build + leftover Node should not fight for RAM.
+export GOMAXPROCS="${GOMAXPROCS:-1}"
 "$GO_BIN" build -ldflags="-s -w" -o "$APP_ROOT/bin/tourister-api" ./cmd/api
 "$GO_BIN" build -ldflags="-s -w" -o "$APP_ROOT/bin/tourister-migrate" ./cmd/migrate
 "$GO_BIN" build -ldflags="-s -w" -o "$APP_ROOT/bin/tourister-news" ./cmd/news
@@ -135,6 +156,7 @@ echo "→ migrations"
 write_status "success" 0 "1"
 echo "→ HTML отдаёт tourister-web :3000. Если nginx ещё проксирует сайт на API, переключите его сразу после DEPLOY OK — новый API страницы не отдаёт."
 echo "→ restart api + web (deferred)"
+WEB_STOPPED=0
 if command -v systemd-run >/dev/null 2>&1; then
   sudo systemd-run --quiet --collect --on-active=2s /bin/systemctl restart tourister-api
   sudo systemd-run --quiet --collect --on-active=3s /bin/systemctl restart tourister-web

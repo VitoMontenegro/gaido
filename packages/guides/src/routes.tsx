@@ -6,7 +6,6 @@ import GuideLayout from './components/crm/GuideLayout'
 import ExternalRedirect from '@gaido/ui-primitives/ExternalRedirect'
 import { lazyImport } from '@gaido/ui-primitives/lazyImport'
 import { servicesUrl } from '@gaido/site-urls/site'
-import CityPage, { CountriesPage } from './pages/CityMapPages'
 
 export function PageFallback() {
   return (
@@ -50,22 +49,54 @@ const LegalDocumentPage = lazyImport(() => import('@gaido/guides/components/Lega
 const AccountPage = lazyImport(() => import('@gaido/guides/pages/AccountPages').then((m) => ({ default: m.default })))
 const TouristInquiriesPage = lazyImport(() => import('@gaido/guides/pages/TouristInquiriesPage'))
 const TouristInquiryThreadPage = lazyImport(() => import('@gaido/guides/pages/TouristInquiriesPage').then((m) => ({ default: m.TouristInquiryThreadPage })))
-const GuideInquiriesPage = lazyImport(() => import('@gaido/guides/pages/guide').then((m) => ({ default: m.GuideInquiriesPage })))
-const GuideInquiryThreadPage = lazyImport(() => import('@gaido/guides/pages/guide').then((m) => ({ default: m.GuideInquiryThreadPage })))
-const GuideClientsPage = lazyImport(() => import('@gaido/guides/pages/guide').then((m) => ({ default: m.GuideClientsPage })))
-const GuideStatsPage = lazyImport(() => import('@gaido/guides/pages/guide').then((m) => ({ default: m.GuideStatsPage })))
-const GuideMorePage = lazyImport(() => import('@gaido/guides/pages/guide').then((m) => ({ default: m.GuideMorePage })))
+const GuideInquiriesPage = lazyImport(() =>
+  import('@gaido/guides/pages/guide/GuideInquiriesPage').then((m) => ({ default: m.GuideInquiriesPage })),
+)
+const GuideInquiryThreadPage = lazyImport(() =>
+  import('@gaido/guides/pages/guide/GuideInquiryThreadPage').then((m) => ({ default: m.GuideInquiryThreadPage })),
+)
+const GuideClientsPage = lazyImport(() =>
+  import('@gaido/guides/pages/guide/GuideClientsPage').then((m) => ({ default: m.GuideClientsPage })),
+)
+const GuideStatsPage = lazyImport(() =>
+  import('@gaido/guides/pages/guide/GuideStatsPage').then((m) => ({ default: m.GuideStatsPage })),
+)
+const GuideMorePage = lazyImport(() =>
+  import('@gaido/guides/pages/guide/GuideMorePage').then((m) => ({ default: m.GuideMorePage })),
+)
 const FavoritesPage = lazyImport(() => import('@gaido/guides/pages/FavoritesPage'))
 const SettingsPage = lazyImport(() => import('@gaido/guides/pages/AccountPages').then((m) => ({ default: m.SettingsPage })))
-const GuideOverviewPage = lazyImport(() => import('@gaido/guides/pages/guide').then((m) => ({ default: m.GuideOverviewPage })))
-const GuideProfilePage = lazyImport(() => import('@gaido/guides/pages/guide').then((m) => ({ default: m.GuideProfilePage })))
-const GuideBillingPage = lazyImport(() => import('@gaido/guides/pages/guide').then((m) => ({ default: m.GuideBillingPage })))
-const GuideDocumentsPage = lazyImport(() => import('@gaido/guides/pages/guide').then((m) => ({ default: m.GuideDocumentsPage })))
-const GuideExcursionsPage = lazyImport(() => import('@gaido/guides/pages/guide').then((m) => ({ default: m.GuideExcursionsPage })))
-const GuideCalendarPage = lazyImport(() => import('@gaido/guides/pages/guide').then((m) => ({ default: m.GuideCalendarPage })))
-const GuideArticlesPage = lazyImport(() => import('@gaido/guides/pages/guide').then((m) => ({ default: m.GuideArticlesPage })))
-const GuideReviewsPage = lazyImport(() => import('@gaido/guides/pages/guide').then((m) => ({ default: m.GuideReviewsPage })))
-const GuideInstructionsPage = lazyImport(() => import('@gaido/guides/pages/guide').then((m) => ({ default: m.GuideInstructionsPage })))
+const GuideOverviewPage = lazyImport(() =>
+  import('@gaido/guides/pages/guide/GuideOverviewPage').then((m) => ({ default: m.GuideOverviewPage })),
+)
+const GuideProfilePage = lazyImport(() =>
+  import('@gaido/guides/pages/guide/GuideProfilePage').then((m) => ({ default: m.GuideProfilePage })),
+)
+const GuideBillingPage = lazyImport(() =>
+  import('@gaido/guides/pages/guide/GuideBillingPage').then((m) => ({ default: m.GuideBillingPage })),
+)
+const GuideDocumentsPage = lazyImport(() =>
+  import('@gaido/guides/pages/guide/GuideDocumentsPage').then((m) => ({ default: m.GuideDocumentsPage })),
+)
+const GuideExcursionsPage = lazyImport(() =>
+  import('@gaido/guides/pages/guide/GuideExcursionsPage').then((m) => ({ default: m.GuideExcursionsPage })),
+)
+const GuideCalendarPage = lazyImport(() =>
+  import('@gaido/guides/pages/guide/GuideCalendarPage').then((m) => ({ default: m.GuideCalendarPage })),
+)
+const GuideArticlesPage = lazyImport(() =>
+  import('@gaido/guides/pages/guide/GuideArticlesPage').then((m) => ({ default: m.GuideArticlesPage })),
+)
+const GuideReviewsPage = lazyImport(() =>
+  import('@gaido/guides/pages/guide/GuideReviewsPage').then((m) => ({ default: m.GuideReviewsPage })),
+)
+const GuideInstructionsPage = lazyImport(() =>
+  import('@gaido/guides/pages/guide/GuideInstructionsPage').then((m) => ({ default: m.GuideInstructionsPage })),
+)
+const CityPage = lazyImport(() => import('@gaido/guides/pages/CityMapPages'))
+const CountriesPage = lazyImport(() =>
+  import('@gaido/guides/pages/CityMapPages').then((m) => ({ default: m.CountriesPage })),
+)
 const CreateExcursionPage = lazyImport(() => import('@gaido/guides/pages/CreateExcursionPage'))
 const EditExcursionPage = lazyImport(() => import('@gaido/guides/pages/EditExcursionPage'))
 const JournalListPage = lazyImport(() => import('@gaido/guides/pages/JournalPages').then((m) => ({ default: m.JournalListPage })))
@@ -128,9 +159,9 @@ export function svitPublicRoutes() {
       <Route path="search" element={<Lazy><SearchPage /></Lazy>} />
       <Route path="favorites" element={<Lazy><FavoritesPage /></Lazy>} />
       <Route path="map" element={<Navigate to="/countries" replace />} />
-      <Route path="city/:slug" element={<CityPage />} />
+      <Route path="city/:slug" element={<Lazy><CityPage /></Lazy>} />
       <Route path="countries/:countrySlug" element={<Lazy><CountryExcursionsPage /></Lazy>} />
-      <Route path="countries" element={<CountriesPage />} />
+      <Route path="countries" element={<Lazy><CountriesPage /></Lazy>} />
       <Route path="guide/:slug" element={<Lazy><GuidePage /></Lazy>} />
       <Route path="excursions" element={<Navigate to="/search" replace />} />
       <Route path="excursion/:slug" element={<Lazy><ExcursionPage /></Lazy>} />
