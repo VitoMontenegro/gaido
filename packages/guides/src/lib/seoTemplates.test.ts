@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isBlankHtml, placeFaqOrDefault, placeSeoDescription, placeSeoTitle, homeSeoDescription, homeSeoHeading, homeSeoTitle, seoCityExcursionsDescription, seoCityExcursionsHeading, seoCountryExcursionsDescription, seoGuideHeading, seoGuideSubtitle, buildFaqPageJsonLd } from './seoTemplates'
+import { isBlankHtml, placeFaqOrDefault, placeHeading, placeSeoDescription, placeSeoTitle, homeSeoDescription, homeSeoHeading, homeSeoTitle, seoCityExcursionsDescription, seoCityExcursionsHeading, seoCountryExcursionsDescription, seoGuideHeading, seoGuideSubtitle, buildFaqPageJsonLd } from './seoTemplates'
 
 describe('place page helpers', () => {
   it('treats empty editor html as blank', () => {
@@ -26,6 +26,8 @@ describe('place page helpers', () => {
   })
 
   it('keeps custom seo fields', () => {
+    expect(placeHeading('  Екскурсії українською в Єгипті  ', 'fallback')).toBe('Екскурсії українською в Єгипті')
+    expect(placeHeading('', 'Екскурсії українською в Єгипеті')).toBe('Екскурсії українською в Єгипеті')
     expect(placeSeoDescription('  Custom  ', 'fallback')).toBe('Custom')
     expect(placeSeoDescription('', 'fallback')).toBe('fallback')
     expect(placeSeoTitle('Грузія', 'fallback')).toContain('Грузія')

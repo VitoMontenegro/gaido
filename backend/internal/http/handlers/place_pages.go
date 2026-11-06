@@ -218,6 +218,15 @@ func (h *Handlers) auditPlacePage(r *http.Request, action string, id int64, oldV
 	_ = h.Audit.Log(r.Context(), &actor, action, "place_page", &entityID, oldJSON, newJSON, r.RemoteAddr, r.UserAgent())
 }
 
+func placeHeading(page *domain.PlacePage, fallback string) string {
+	if page != nil {
+		if h := strings.TrimSpace(page.Heading); h != "" {
+			return h
+		}
+	}
+	return fallback
+}
+
 func (h *Handlers) applyPlacePageMeta(meta *SpaPageMeta, page *domain.PlacePage, defaultImage string) {
 	if meta == nil || page == nil {
 		return

@@ -16,13 +16,14 @@ import {
   countryExcursionFaq,
   defaultCountryIntro,
   placeFaqOrDefault,
+  placeHeading,
   placeSeoDescription,
   placeSeoTitle,
   seoCountryExcursionsDescription,
   seoCountryExcursionsHeading,
-  seoCountryExcursionsTitle,
   seoCountryPriceLine,
 } from '../lib/seoTemplates'
+import { pageTitle } from '@gaido/site-urls/brand'
 import { cn } from '@gaido/ui-primitives/cn'
 
 function lowestOffer(items: ExcursionItem[]) {
@@ -133,7 +134,7 @@ export default function CountryExcursionsPage() {
   }
   const excerptFallback = !isLoading && items.length > 0 ? defaultCountryIntro(title) : ''
   const priceLine = seoCountryPriceLine(title, priceLabel)
-  const pageHeading = seoCountryExcursionsHeading(title)
+  const pageHeading = placeHeading(placePage?.heading, seoCountryExcursionsHeading(title))
 
   const jsonLd = useMemo(() => {
     const schemas: Record<string, unknown>[] = []
@@ -153,7 +154,7 @@ export default function CountryExcursionsPage() {
   return (
     <>
       <Seo
-        title={placeSeoTitle(placePage?.seo_title, seoCountryExcursionsTitle(title))}
+        title={placeSeoTitle(placePage?.seo_title, pageTitle(pageHeading))}
         description={seoDescription}
         path={`/countries/${countrySlug}`}
         image={coverImage || placePage?.seo_image_url || undefined}

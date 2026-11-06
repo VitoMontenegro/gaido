@@ -447,7 +447,7 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 			items, _ = h.Exc.ListPublicEnriched(ctx, nil, c.Slug, "", nil, 50, 0)
 		}
 		priceLabel, coverKey := countryListingOffer(items)
-		heading := seoCountryExcursionsHeading(c.Name)
+		heading := placeHeading(page, seoCountryExcursionsHeading(c.Name))
 		meta := &SpaPageMeta{
 			Title:             pageTitleSuffix(heading),
 			Description:       truncateDesc(seoCountryExcursionsDescription(c.Name, priceLabel), 160),
@@ -474,7 +474,7 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 				intro = []string{defaultCountryIntro(c.Name)}
 			}
 		}
-		body := newCrawlBody(headingFromTitle(meta.Title), intro...)
+		body := newCrawlBody(heading, intro...)
 		body = body.withSection("Екскурсії", nil, excursionCrawlLinks(base, items))
 		if cities := cityCrawlLinks(base, items); len(cities) > 0 {
 			body = body.withSection("Міста", nil, cities)
@@ -520,7 +520,7 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 		if h.Exc != nil {
 			items, _ = h.Exc.ListPublicEnriched(ctx, &cityID, "", "", nil, 50, 0)
 		}
-		heading := seoCityExcursionsHeading(city.Name)
+		heading := placeHeading(page, seoCityExcursionsHeading(city.Name))
 		meta := &SpaPageMeta{
 			Title:       pageTitleSuffix(heading),
 			Description: truncateDesc(seoCityExcursionsDescription(city.Name, countryName), 160),
@@ -540,7 +540,7 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 				intro = []string{defaultCityIntro(city.Name, countryName)}
 			}
 		}
-		body := newCrawlBody(headingFromTitle(meta.Title), intro...)
+		body := newCrawlBody(heading, intro...)
 		body = body.withSection("Екскурсії", nil, excursionCrawlLinks(base, items))
 		if h.Guides != nil {
 			if guides, err := h.Guides.ListPublic(ctx, &cityID, nil, "", 50, 0); err == nil {
@@ -733,12 +733,9 @@ func (h *Handlers) countriesIndexMeta(ctx context.Context, base, defaultImage st
 	if h.PlacePages != nil {
 		page, _ = h.PlacePages.GetBySlug(ctx, domain.PlaceTypeCountriesIndex, domain.PlaceCountriesIndexSlug)
 	}
-	heading := seoCountriesHeading
+	heading := placeHeading(page, seoCountriesHeading)
 	lead := seoCountriesDescription
 	if page != nil {
-		if h1 := strings.TrimSpace(page.Heading); h1 != "" {
-			heading = h1
-		}
 		if ex := strings.TrimSpace(page.Excerpt); ex != "" {
 			lead = ex
 		}

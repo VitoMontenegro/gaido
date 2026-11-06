@@ -1,6 +1,10 @@
 package handlers
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/vitomonte/experts-tourister/internal/domain"
+)
 
 func TestCountryPriceLine(t *testing.T) {
 	got := seoCountryExcursionsDescription("Австрія", formatFromPrice(180, "EUR"))
@@ -32,5 +36,17 @@ func TestUkInLocative(t *testing.T) {
 		if got := ukInLocative(in); got != want {
 			t.Errorf("%s: got %q want %q", in, got, want)
 		}
+	}
+}
+
+func TestPlaceHeading(t *testing.T) {
+	if got := placeHeading(nil, "шаблон"); got != "шаблон" {
+		t.Fatalf("nil page: got %q", got)
+	}
+	if got := placeHeading(&domain.PlacePage{Heading: "  "}, "шаблон"); got != "шаблон" {
+		t.Fatalf("blank heading: got %q", got)
+	}
+	if got := placeHeading(&domain.PlacePage{Heading: "  Екскурсії українською в Єгипті  "}, "шаблон"); got != "Екскурсії українською в Єгипті" {
+		t.Fatalf("custom heading: got %q", got)
 	}
 }

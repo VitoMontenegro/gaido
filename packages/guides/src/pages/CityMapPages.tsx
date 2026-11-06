@@ -16,11 +16,11 @@ import {
   cityExcursionFaq,
   defaultCityIntro,
   placeFaqOrDefault,
+  placeHeading,
   placeSeoDescription,
   placeSeoTitle,
   seoCityExcursionsDescription,
   seoCityExcursionsHeading,
-  seoCityExcursionsTitle,
   SEO_COUNTRIES_DESCRIPTION,
   SEO_COUNTRIES_HEADING,
 } from '../lib/seoTemplates'
@@ -103,11 +103,14 @@ export default function CityPage() {
   const excerptFallback = city && !guidesLoading && !excursionsLoading && (guideItems.length > 0 || excursionItems.length > 0)
     ? defaultCityIntro(city.name, countryName)
     : ''
+  const pageHeading = city
+    ? placeHeading(placePage?.heading, seoCityExcursionsHeading(city.name))
+    : ''
 
   const jsonLd = useMemo(() => {
     if (!city) return []
     const schemas = buildExcursionListingJsonLd(excursionItems, {
-      name: seoCityExcursionsHeading(city.name),
+      name: pageHeading,
       description: seoDescription ?? '',
     })
     schemas.push(buildPlaceJsonLd({
@@ -117,7 +120,7 @@ export default function CityPage() {
     }))
     if (faqItems.length > 0) schemas.push(buildFaqPageJsonLd(faqItems))
     return schemas
-  }, [city, excursionItems, slug, countryName, seoDescription, faqItems])
+  }, [city, excursionItems, slug, countryName, seoDescription, faqItems, pageHeading])
 
   const breadcrumbItems = city
     ? [
@@ -134,7 +137,7 @@ export default function CityPage() {
   return (
     <>
       <Seo
-        title={city ? placeSeoTitle(placePage?.seo_title, seoCityExcursionsTitle(city.name)) : pageTitle('Місто')}
+        title={city ? placeSeoTitle(placePage?.seo_title, pageTitle(pageHeading)) : pageTitle('Місто')}
         description={seoDescription}
         path={city ? `/city/${slug}` : undefined}
         image={placePage?.seo_image_url || undefined}
@@ -147,7 +150,7 @@ export default function CityPage() {
       )}
       <div className="container-site py-8">
         {city ? (
-          <h1 className="font-display text-3xl font-bold">{seoCityExcursionsHeading(city.name)}</h1>
+          <h1 className="font-display text-3xl font-bold">{pageHeading}</h1>
         ) : cityLoading ? (
           <div className="h-9 w-64 max-w-full animate-pulse rounded bg-sand-100" aria-label="Завантаження" />
         ) : (

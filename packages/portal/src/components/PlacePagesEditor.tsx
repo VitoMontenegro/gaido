@@ -279,19 +279,20 @@ function PlacePageForm({
         </a>
       </div>
 
-      {isCountriesIndex && (
-        <label className="block space-y-1">
-          <span className="text-sm font-medium">H1 заголовок</span>
-          <input
-            className="input w-full"
-            maxLength={120}
-            value={draft.heading ?? ''}
-            placeholder="Країни"
-            onChange={(e) => patch({ heading: e.target.value })}
-          />
-          <span className="text-xs text-stone-500">Якщо порожньо — «Країни». {(draft.heading ?? '').length}/120</span>
-        </label>
-      )}
+      <label className="block space-y-1">
+        <span className="text-sm font-medium">H1 заголовок</span>
+        <input
+          className="input w-full"
+          maxLength={120}
+          value={draft.heading ?? ''}
+          placeholder={isCountriesIndex ? 'Країни' : `Екскурсії українською в ${draft.name}`}
+          onChange={(e) => patch({ heading: e.target.value })}
+        />
+        <span className="text-xs text-stone-500">
+          {isCountriesIndex ? 'Якщо порожньо — «Країни».' : 'Якщо порожньо — стандартний заголовок.'}{' '}
+          {(draft.heading ?? '').length}/120
+        </span>
+      </label>
 
       <label className="block space-y-1">
         <span className="text-sm font-medium">{isCountriesIndex ? 'Текст перед картками країн' : 'Короткий опис'}</span>

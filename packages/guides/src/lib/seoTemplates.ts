@@ -68,6 +68,10 @@ export function placeFaqOrDefault(custom: FaqItem[] | undefined, fallback: FaqIt
   return items.length > 0 ? items : fallback
 }
 
+export function placeHeading(custom: string | undefined, fallback: string) {
+  return (custom ?? '').trim() || fallback
+}
+
 export function placeSeoTitle(custom: string | undefined, fallback: string) {
   const t = (custom ?? '').trim()
   return t ? pageTitle(t) : fallback

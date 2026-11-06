@@ -126,7 +126,7 @@ func (h *Handlers) countryPageJsonLd(ctx context.Context, c *postgres.Country, b
 		items, _ = h.Exc.ListPublicEnriched(ctx, nil, c.Slug, "", nil, 50, 0)
 	}
 	priceLabel, coverKey := countryListingOffer(items)
-	listName := seoCountryExcursionsHeading(c.Name)
+	listName := placeHeading(page, seoCountryExcursionsHeading(c.Name))
 	desc := seoCountryExcursionsDescription(c.Name, priceLabel)
 	if page != nil && strings.TrimSpace(page.SEODescription) != "" {
 		desc = strings.TrimSpace(page.SEODescription)
@@ -172,7 +172,7 @@ func (h *Handlers) cityPageJsonLd(ctx context.Context, city *postgres.City, base
 		countryName = country.Name
 	}
 
-	listName := seoCityExcursionsHeading(city.Name)
+	listName := placeHeading(page, seoCityExcursionsHeading(city.Name))
 	desc := seoCityExcursionsDescription(city.Name, countryName)
 	if page != nil && strings.TrimSpace(page.SEODescription) != "" {
 		desc = page.SEODescription
