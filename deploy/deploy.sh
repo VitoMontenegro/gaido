@@ -38,7 +38,7 @@ WEB_STOPPED=0
 restore_web_if_stopped() {
   if [ "$WEB_STOPPED" = 1 ]; then
     echo "→ restore tourister-web (build did not finish)"
-    sudo systemctl start tourister-web || true
+    sudo -n /bin/systemctl restart tourister-web || true
     WEB_STOPPED=0
   fi
 }
@@ -101,7 +101,8 @@ npm ci
 # Running tourister-web + next build on the same host OOMs. HTML is down until restart below.
 if command -v systemctl >/dev/null 2>&1 && systemctl is-active --quiet tourister-web; then
   echo "→ stop tourister-web for Next build (free RAM, no Docker)"
-  sudo systemctl stop tourister-web
+  # deploy sudoers: restart + systemd-run, not stop/start
+  sudo -n /usr/bin/systemd-run --quiet --wait /bin/systemctl stop tourister-web
   WEB_STOPPED=1
 fi
 npm run build -w @gaido/web
