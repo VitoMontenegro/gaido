@@ -105,6 +105,49 @@ func (h *Handlers) publishInquiry(ctx context.Context, inquiryID int64) {
 	_ = h.Redis.Signal.Publish(ctx, "inquiry-chat:"+strconv.FormatInt(inquiryID, 10), "1").Err()
 }
 
+func inquiryPeerUserID(in *domain.Inquiry, role string) int64 {
+	if in == nil {
+		return 0
+	}
+	switch role {
+	case domain.InquiryAuthorTourist:
+		return in.GuideUserID
+	case domain.InquiryAuthorGuide:
+		return in.TouristUserID
+	default:
+		return 0
+	}
+}
+
+func (h *Handlers) fillPeerLastRead(ctx context.Context, in *domain.Inquiry, role string) {
+	if in == nil {
+		return
+	}
+	peer := inquiryPeerUserID(in, role)
+	if peer == 0 {
+		in.PeerLastReadID = 0
+		return
+	}
+	id, err := h.Inquiries.PeerLastRead(ctx, in.ID, peer)
+	if err != nil {
+		return
+	}
+	in.PeerLastReadID = id
+}
+
+func (h *Handlers) inquiryMessagesPayload(ctx context.Context, in *domain.Inquiry, role string, after int64, limit int) (map[string]any, error) {
+	include := role == domain.InquiryAuthorAdmin
+	items, err := h.Inquiries.ListMessages(ctx, in.ID, after, include, limit)
+	if err != nil {
+		return nil, err
+	}
+	if items == nil {
+		items = []domain.InquiryMessage{}
+	}
+	h.fillPeerLastRead(ctx, in, role)
+	return map[string]any{"items": items, "peer_last_read_id": in.PeerLastReadID}, nil
+}
+
 type createInquiryReq struct {
 	GuideID       int64  `json:"guide_id"`
 	ExcursionID   *int64 `json:"excursion_id"`
@@ -264,6 +307,7 @@ func (h *Handlers) GetInquiry(w http.ResponseWriter, r *http.Request) {
 	if role == domain.InquiryAuthorAdmin {
 		_ = h.Inquiries.LogAdmin(r.Context(), in.ID, uid, "view")
 	}
+	h.fillPeerLastRead(r.Context(), in, role)
 	response.JSON(w, r, 200, in)
 }
 
@@ -419,16 +463,12 @@ func (h *Handlers) ListInquiryMessages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	after, _ := strconv.ParseInt(r.URL.Query().Get("after"), 10, 64)
-	include := role == domain.InquiryAuthorAdmin
-	items, err := h.Inquiries.ListMessages(r.Context(), in.ID, after, include, 200)
+	payload, err := h.inquiryMessagesPayload(r.Context(), in, role, after, 200)
 	if err != nil {
 		response.Error(w, r, apperrors.ErrInternal)
 		return
 	}
-	if items == nil {
-		items = []domain.InquiryMessage{}
-	}
-	response.JSON(w, r, 200, map[string]any{"items": items})
+	response.JSON(w, r, 200, payload)
 }
 
 func (h *Handlers) LongpollInquiryMessages(w http.ResponseWriter, r *http.Request) {
@@ -441,15 +481,14 @@ func (h *Handlers) LongpollInquiryMessages(w http.ResponseWriter, r *http.Reques
 	if timeout <= 0 || timeout > 25 {
 		timeout = 25
 	}
-	include := role == domain.InquiryAuthorAdmin
 	ctx := r.Context()
-	items, err := h.Inquiries.ListMessages(ctx, in.ID, after, include, 200)
+	payload, err := h.inquiryMessagesPayload(ctx, in, role, after, 200)
 	if err != nil {
 		response.Error(w, r, apperrors.ErrInternal)
 		return
 	}
-	if len(items) > 0 {
-		response.JSON(w, r, 200, map[string]any{"items": items})
+	if items, _ := payload["items"].([]domain.InquiryMessage); len(items) > 0 {
+		response.JSON(w, r, 200, payload)
 		return
 	}
 	sub := h.Redis.Signal.Subscribe(ctx, "inquiry-chat:"+strconv.FormatInt(in.ID, 10))
@@ -458,19 +497,13 @@ func (h *Handlers) LongpollInquiryMessages(w http.ResponseWriter, r *http.Reques
 	defer timer.Stop()
 	select {
 	case <-ctx.Done():
-		response.JSON(w, r, 200, map[string]any{"items": []any{}})
+		response.JSON(w, r, 200, payload)
 	case <-timer.C:
-		items, _ = h.Inquiries.ListMessages(ctx, in.ID, after, include, 200)
-		if items == nil {
-			items = []domain.InquiryMessage{}
-		}
-		response.JSON(w, r, 200, map[string]any{"items": items})
+		payload, _ = h.inquiryMessagesPayload(ctx, in, role, after, 200)
+		response.JSON(w, r, 200, payload)
 	case <-sub.Channel():
-		items, _ = h.Inquiries.ListMessages(ctx, in.ID, after, include, 200)
-		if items == nil {
-			items = []domain.InquiryMessage{}
-		}
-		response.JSON(w, r, 200, map[string]any{"items": items})
+		payload, _ = h.inquiryMessagesPayload(ctx, in, role, after, 200)
+		response.JSON(w, r, 200, payload)
 	}
 }
 
@@ -590,6 +623,7 @@ func (h *Handlers) MarkInquiryRead(w http.ResponseWriter, r *http.Request) {
 	}
 	uid := middleware.UserIDFromContext(r.Context())
 	_ = h.Inquiries.MarkRead(r.Context(), in.ID, uid, req.LastID)
+	h.publishInquiry(r.Context(), in.ID)
 	response.JSON(w, r, 200, map[string]string{"status": "ok"})
 }
 

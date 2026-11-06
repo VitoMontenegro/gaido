@@ -58,8 +58,24 @@ type Inquiry struct {
 	ExcursionSlug            string     `json:"excursion_slug,omitempty"`
 	ExcursionDurationMinutes int        `json:"excursion_duration_minutes,omitempty"`
 	Unread                   int        `json:"unread"`
+	PeerLastReadID           int64      `json:"peer_last_read_id"`
 	LastMessageAt            *time.Time `json:"last_message_at,omitempty"`
 	LastPreview              string     `json:"last_preview,omitempty"`
+}
+
+type UnreadInquiryMail struct {
+	MessageID     int64
+	InquiryID     int64
+	Kind          string
+	Body          string
+	AuthorRole    string
+	AuthorName    string
+	TouristUserID int64
+	GuideUserID   int64
+	TouristName   string
+	GuideName     string
+	TouristUnread bool
+	GuideUnread   bool
 }
 
 type InquiryMessage struct {

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
@@ -18,17 +18,34 @@ export default function InquiryThread({ inquiryId, viewer }: { inquiryId: number
   const [note, setNote] = useState('')
   const bottom = useRef<HTMLDivElement>(null)
 
+  const bumpPeerRead = useCallback(
+    (id?: number) => {
+      if (!id || id <= 0) return
+      qc.setQueryData<Inquiry>(['inquiry', inquiryId], (prev) => {
+        if (!prev) return prev
+        if ((prev.peer_last_read_id ?? 0) >= id) return prev
+        return { ...prev, peer_last_read_id: id }
+      })
+    },
+    [inquiryId, qc],
+  )
+
   const inquiryQ = useQuery({
     queryKey: ['inquiry', inquiryId],
     queryFn: () => inquiriesApi.get(inquiryId),
   })
   const messagesQ = useQuery({
     queryKey: ['inquiry-messages', inquiryId],
-    queryFn: () => inquiriesApi.messages(inquiryId).then((r) => r.items),
+    queryFn: async () => {
+      const r = await inquiriesApi.messages(inquiryId)
+      bumpPeerRead(r.peer_last_read_id)
+      return r.items
+    },
   })
 
   const items = messagesQ.data ?? []
   const lastId = items[items.length - 1]?.id ?? 0
+  const peerLastReadId = inquiryQ.data?.peer_last_read_id ?? 0
 
   useEffect(() => {
     if (!inquiryId || !lastId) return
@@ -49,6 +66,7 @@ export default function InquiryThread({ inquiryId, viewer }: { inquiryId: number
       while (!stopped) {
         try {
           const res = await inquiriesApi.longpoll(inquiryId, cursor.current, 25, ac.signal)
+          bumpPeerRead(res.peer_last_read_id)
           if (res.items.length) {
             cursor.current = res.items[res.items.length - 1].id
             qc.setQueryData<InquiryMessage[]>(['inquiry-messages', inquiryId], (prev) => mergeMessages(prev, res.items))
@@ -67,7 +85,8 @@ export default function InquiryThread({ inquiryId, viewer }: { inquiryId: number
         const ws = new WebSocket(inquiriesApi.websocketUrl(inquiryId, lastId))
         ws.onmessage = (ev) => {
           try {
-            const data = JSON.parse(ev.data) as { items?: InquiryMessage[] }
+            const data = JSON.parse(ev.data) as { items?: InquiryMessage[]; peer_last_read_id?: number }
+            bumpPeerRead(data.peer_last_read_id)
             if (data.items?.length) {
               qc.setQueryData<InquiryMessage[]>(['inquiry-messages', inquiryId], (prev) => mergeMessages(prev, data.items!))
             }
@@ -145,7 +164,7 @@ export default function InquiryThread({ inquiryId, viewer }: { inquiryId: number
       <InquiryCrmActions inquiry={inquiry} viewer={viewer} />
       <div className="card max-h-[28rem] space-y-3 overflow-y-auto p-4">
         {items.map((m) => (
-          <MessageBubble key={m.id} message={m} viewer={viewer} />
+          <MessageBubble key={m.id} message={m} viewer={viewer} peerLastReadId={peerLastReadId} />
         ))}
         <div ref={bottom} />
       </div>
@@ -258,7 +277,15 @@ function InquiryHeader({ inquiry, viewer }: { inquiry: Inquiry; viewer: Viewer }
   )
 }
 
-function MessageBubble({ message, viewer }: { message: InquiryMessage; viewer: Viewer }) {
+function MessageBubble({
+  message,
+  viewer,
+  peerLastReadId,
+}: {
+  message: InquiryMessage
+  viewer: Viewer
+  peerLastReadId: number
+}) {
   if (message.kind === 'internal_note') {
     if (viewer !== 'admin') return null
     return (
@@ -287,6 +314,11 @@ function MessageBubble({ message, viewer }: { message: InquiryMessage; viewer: V
         <a href={resolveMediaUrl(message.media_key)} target="_blank" rel="noreferrer" className="mt-2 block">
           <img src={resolveMediaUrl(message.media_key)} alt="" className="max-h-48 rounded-lg" />
         </a>
+      )}
+      {mine && viewer !== 'admin' && (
+        <p className="mt-1 text-[11px] text-white/60">
+          {message.id <= peerLastReadId ? 'Прочитано' : 'Надіслано'}
+        </p>
       )}
     </div>
   )

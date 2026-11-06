@@ -26,7 +26,6 @@ func (h *Handlers) InquiryWebSocket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer conn.Close()
-	include := role == domain.InquiryAuthorAdmin
 	after := int64(0)
 	if v := r.URL.Query().Get("after"); v != "" {
 		after, _ = strconv.ParseInt(v, 10, 64)
@@ -42,15 +41,14 @@ func (h *Handlers) InquiryWebSocket(w http.ResponseWriter, r *http.Request) {
 	})
 
 	flush := func() error {
-		items, err := h.Inquiries.ListMessages(ctx, in.ID, after, include, 200)
+		payload, err := h.inquiryMessagesPayload(ctx, in, role, after, 200)
 		if err != nil {
 			return err
 		}
-		if len(items) == 0 {
-			return nil
+		if items, _ := payload["items"].([]domain.InquiryMessage); len(items) > 0 {
+			after = items[len(items)-1].ID
 		}
-		after = items[len(items)-1].ID
-		return conn.WriteJSON(map[string]any{"items": items})
+		return conn.WriteJSON(payload)
 	}
 	if err := flush(); err != nil {
 		return

@@ -109,13 +109,18 @@ func New(ctx context.Context, cfg config.Config, log *slog.Logger) (*App, error)
 	h.SyncCatalogFillingMode(ctx)
 
 	a := &App{cfg: cfg, log: log, db: db, redis: rdb, handlers: h, billing: billingSvc}
-	a.startExpirationLoop()
+	a.startBackgroundJobs()
 	return a, nil
 }
 
-func (a *App) startExpirationLoop() {
+func (a *App) startBackgroundJobs() {
 	ctx, cancel := context.WithCancel(context.Background())
 	a.expireCancel = cancel
+	a.startExpirationLoop(ctx)
+	a.startUnreadInquiryMailLoop(ctx)
+}
+
+func (a *App) startExpirationLoop(ctx context.Context) {
 	a.expireWG.Add(1)
 	go func() {
 		defer a.expireWG.Done()
@@ -129,6 +134,34 @@ func (a *App) startExpirationLoop() {
 			}
 			if n > 0 {
 				a.log.Info("subscription expiration job", "updated", n)
+			}
+		}
+		run()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				run()
+			}
+		}
+	}()
+}
+
+func (a *App) startUnreadInquiryMailLoop(ctx context.Context) {
+	a.expireWG.Add(1)
+	go func() {
+		defer a.expireWG.Done()
+		ticker := time.NewTicker(45 * time.Second)
+		defer ticker.Stop()
+		run := func() {
+			n, err := a.handlers.NotifyUnreadInquiryMails(ctx)
+			if err != nil {
+				a.log.Warn("inquiry unread mail job failed", "error", err)
+				return
+			}
+			if n > 0 {
+				a.log.Info("inquiry unread mail job", "sent", n)
 			}
 		}
 		run()

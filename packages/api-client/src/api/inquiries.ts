@@ -29,6 +29,7 @@ export type Inquiry = {
   excursion_slug?: string
   excursion_duration_minutes?: number
   unread: number
+  peer_last_read_id?: number
   last_message_at?: string | null
   last_preview?: string
 }
@@ -89,9 +90,11 @@ export const inquiriesApi = {
   patch: (id: number, body: { status?: InquiryStatus; scheduled_at?: string; scheduled_end_at?: string; cancel_reason?: string }) =>
     api<Inquiry>(`/api/v1/inquiries/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
   messages: (id: number, after = 0) =>
-    api<{ items: InquiryMessage[] }>(`/api/v1/inquiries/${id}/messages?after=${after}`),
+    api<{ items: InquiryMessage[]; peer_last_read_id?: number }>(
+      `/api/v1/inquiries/${id}/messages?after=${after}`,
+    ),
   longpoll: (id: number, after: number, timeout = 25, signal?: AbortSignal) =>
-    api<{ items: InquiryMessage[] }>(
+    api<{ items: InquiryMessage[]; peer_last_read_id?: number }>(
       `/api/v1/inquiries/${id}/messages/longpoll?after=${after}&timeout=${timeout}`,
       { signal },
     ),

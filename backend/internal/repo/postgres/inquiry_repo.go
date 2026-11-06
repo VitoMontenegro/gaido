@@ -314,6 +314,90 @@ func (r *InquiryRepo) MarkRead(ctx context.Context, inquiryID, userID, lastID in
 	return err
 }
 
+func (r *InquiryRepo) PeerLastRead(ctx context.Context, inquiryID, userID int64) (int64, error) {
+	if inquiryID <= 0 || userID <= 0 {
+		return 0, nil
+	}
+	var lastID int64
+	err := r.db.Pool.QueryRow(ctx, `
+		SELECT last_read_message_id FROM inquiry_reads
+		WHERE inquiry_id = $1 AND user_id = $2
+	`, inquiryID, userID).Scan(&lastID)
+	if err == pgx.ErrNoRows {
+		return 0, nil
+	}
+	return lastID, err
+}
+
+func (r *InquiryRepo) ListDueUnreadEmails(ctx context.Context, limit int) ([]domain.UnreadInquiryMail, error) {
+	if limit <= 0 || limit > 100 {
+		limit = 50
+	}
+	rows, err := r.db.Pool.Query(ctx, `
+		SELECT m.id, m.inquiry_id, m.kind, m.body, m.author_role,
+			CASE
+				WHEN m.author_role = 'admin' THEN 'Підтримка Gaido'
+				WHEN m.author_role = 'guide' THEN COALESCE(NULLIF(TRIM(gp.display_name), ''), 'Гід')
+				ELSE TRIM(BOTH FROM COALESCE(tu.first_name,'') || ' ' || COALESCE(tu.last_name,''))
+			END AS author_name,
+			i.tourist_user_id, gp.user_id,
+			TRIM(BOTH FROM COALESCE(tu.first_name,'') || ' ' || COALESCE(tu.last_name,'')),
+			COALESCE(NULLIF(TRIM(gp.display_name), ''), 'Гід'),
+			COALESCE(tr.last_read_message_id, 0) < m.id AS tourist_unread,
+			COALESCE(gr.last_read_message_id, 0) < m.id AS guide_unread
+		FROM inquiry_messages m
+		JOIN inquiries i ON i.id = m.inquiry_id
+		JOIN guide_profiles gp ON gp.id = i.guide_id
+		JOIN users tu ON tu.id = i.tourist_user_id
+		LEFT JOIN inquiry_reads tr ON tr.inquiry_id = i.id AND tr.user_id = i.tourist_user_id
+		LEFT JOIN inquiry_reads gr ON gr.inquiry_id = i.id AND gr.user_id = gp.user_id
+		WHERE m.unread_email_sent_at IS NULL
+		  AND m.kind IN ('text', 'attachment')
+		  AND m.author_role IN ('tourist', 'guide', 'admin')
+		  AND m.created_at <= NOW() - INTERVAL '5 minutes'
+		  AND (
+			(m.author_role = 'tourist' AND COALESCE(gr.last_read_message_id, 0) < m.id)
+			OR (m.author_role = 'guide' AND COALESCE(tr.last_read_message_id, 0) < m.id)
+			OR (m.author_role = 'admin' AND (
+				COALESCE(tr.last_read_message_id, 0) < m.id
+				OR COALESCE(gr.last_read_message_id, 0) < m.id
+			))
+		  )
+		ORDER BY m.id ASC
+		LIMIT $1
+	`, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []domain.UnreadInquiryMail
+	for rows.Next() {
+		var m domain.UnreadInquiryMail
+		if err := rows.Scan(
+			&m.MessageID, &m.InquiryID, &m.Kind, &m.Body, &m.AuthorRole, &m.AuthorName,
+			&m.TouristUserID, &m.GuideUserID, &m.TouristName, &m.GuideName,
+			&m.TouristUnread, &m.GuideUnread,
+		); err != nil {
+			return nil, err
+		}
+		m.AuthorName = strings.TrimSpace(m.AuthorName)
+		m.TouristName = strings.TrimSpace(m.TouristName)
+		out = append(out, m)
+	}
+	return out, rows.Err()
+}
+
+func (r *InquiryRepo) MarkUnreadEmailSent(ctx context.Context, ids []int64) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	_, err := r.db.Pool.Exec(ctx, `
+		UPDATE inquiry_messages SET unread_email_sent_at = NOW()
+		WHERE id = ANY($1) AND unread_email_sent_at IS NULL
+	`, ids)
+	return err
+}
+
 func (r *InquiryRepo) LogAdmin(ctx context.Context, inquiryID, adminID int64, action string) error {
 	_, err := r.db.Pool.Exec(ctx, `
 		INSERT INTO inquiry_admin_log (inquiry_id, admin_user_id, action) VALUES ($1,$2,$3)
