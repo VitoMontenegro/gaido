@@ -99,6 +99,49 @@ export function getApiErrorCode(error: unknown): string | undefined {
 let accessToken: string | null = null
 let refreshPromise: Promise<boolean> | null = null
 
+export const ACT_AS_GUIDE_HEADER = 'X-Act-As-Guide-Id'
+const ACT_AS_GUIDE_STORAGE_KEY = 'gaido.actAsGuideId'
+
+function readSessionStorage(key: string): string | null {
+  try {
+    if (typeof sessionStorage === 'undefined') return null
+    return sessionStorage.getItem(key)
+  } catch {
+    return null
+  }
+}
+
+function writeSessionStorage(key: string, value: string | null) {
+  try {
+    if (typeof sessionStorage === 'undefined') return
+    if (value == null || value === '') sessionStorage.removeItem(key)
+    else sessionStorage.setItem(key, value)
+  } catch {
+    // private mode / disabled storage
+  }
+}
+
+export function getActAsGuideId(): string | null {
+  return readSessionStorage(ACT_AS_GUIDE_STORAGE_KEY)
+}
+
+export function setActAsGuideId(id: number | string | null) {
+  if (id == null || id === '') {
+    writeSessionStorage(ACT_AS_GUIDE_STORAGE_KEY, null)
+    return
+  }
+  writeSessionStorage(ACT_AS_GUIDE_STORAGE_KEY, String(id))
+}
+
+export function clearActAsGuideId() {
+  setActAsGuideId(null)
+}
+
+function applyActAsGuideHeader(headers: Headers) {
+  const id = getActAsGuideId()
+  if (id) headers.set(ACT_AS_GUIDE_HEADER, id)
+}
+
 export function setAccessToken(token: string | null) {
   accessToken = token
 }
@@ -178,6 +221,7 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
     headers.set('Content-Type', 'application/json')
   }
   if (accessToken) headers.set('Authorization', `Bearer ${accessToken}`)
+  applyActAsGuideHeader(headers)
 
   const doFetch = () =>
     fetch(`${API_BASE}${path}`, {
@@ -205,6 +249,7 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
 export async function apiBlob(path: string): Promise<{ blob: Blob; contentType: string }> {
   const headers = new Headers()
   if (accessToken) headers.set('Authorization', `Bearer ${accessToken}`)
+  applyActAsGuideHeader(headers)
 
   const doFetch = () =>
     fetch(`${API_BASE}${path}`, {

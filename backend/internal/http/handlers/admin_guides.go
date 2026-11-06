@@ -153,6 +153,39 @@ func (h *Handlers) AdminUpdateGuide(w http.ResponseWriter, r *http.Request) {
 		"avatar_url":   g.AvatarURL,
 	})
 }
+func (h *Handlers) AdminImpersonateGuide(w http.ResponseWriter, r *http.Request) {
+	id, _ := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if id <= 0 {
+		response.Error(w, r, apperrors.ErrNotFound)
+		return
+	}
+	g, err := h.Guides.GetByID(r.Context(), id)
+	if err != nil || g == nil {
+		response.Error(w, r, apperrors.ErrNotFound)
+		return
+	}
+	u, err := h.Users.GetByID(r.Context(), g.UserID)
+	if err != nil || u == nil {
+		response.Error(w, r, apperrors.ErrNotFound)
+		return
+	}
+	for _, role := range u.Roles {
+		if role == domain.RoleAdmin {
+			response.Error(w, r, apperrors.ErrForbidden)
+			return
+		}
+	}
+	actor := middleware.UserIDFromContext(r.Context())
+	_ = h.Audit.Log(r.Context(), &actor, "GUIDE_IMPERSONATE", "guide", &id, "", g.DisplayName, r.RemoteAddr, r.UserAgent())
+	response.JSON(w, r, 200, map[string]any{
+		"guide_id":     g.ID,
+		"user_id":      g.UserID,
+		"display_name": g.DisplayName,
+		"slug":         g.WebsiteSlug,
+		"status":       g.Status,
+	})
+}
+
 func (h *Handlers) AdminDeleteGuide(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 	if id <= 0 {

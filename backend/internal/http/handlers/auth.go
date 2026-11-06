@@ -15,6 +15,7 @@ import (
 	"github.com/vitomonte/experts-tourister/internal/domain"
 	"github.com/vitomonte/experts-tourister/internal/http/middleware"
 	"github.com/vitomonte/experts-tourister/internal/http/response"
+	"github.com/vitomonte/experts-tourister/internal/impersonate"
 )
 
 var (
@@ -235,7 +236,21 @@ func (h *Handlers) Me(w http.ResponseWriter, r *http.Request) {
 		response.Error(w, r, apperrors.ErrNotFound)
 		return
 	}
-	response.JSON(w, r, 200, accountUserJSON(u))
+	out := accountUserJSON(u)
+	if info := impersonate.FromContext(r.Context()); info != nil {
+		actorLogin := ""
+		if actor, err := h.Users.GetByID(r.Context(), info.ActorID); err == nil && actor != nil {
+			actorLogin = actor.Login
+		}
+		out["impersonation"] = map[string]any{
+			"active":       true,
+			"actor_id":     info.ActorID,
+			"actor_login":  actorLogin,
+			"guide_id":     info.GuideID,
+			"display_name": info.GuideName,
+		}
+	}
+	response.JSON(w, r, 200, out)
 }
 
 func accountUserJSON(u *domain.User) map[string]any {
@@ -297,6 +312,10 @@ func (h *Handlers) UpdateAccountAvatar(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, r, 200, accountUserJSON(u))
 }
 func (h *Handlers) ChangeAccountPassword(w http.ResponseWriter, r *http.Request) {
+	if impersonate.FromContext(r.Context()) != nil {
+		response.Error(w, r, apperrors.ErrForbidden)
+		return
+	}
 	var req struct {
 		CurrentPassword string `json:"current_password"`
 		NewPassword     string `json:"new_password"`

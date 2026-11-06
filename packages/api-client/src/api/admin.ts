@@ -367,6 +367,11 @@ export const adminApi = {
       method: 'POST',
       body: JSON.stringify(planId ? { plan_id: planId } : {}),
     }),
+  impersonateGuide: (id: number) =>
+    api<{ guide_id: number; user_id: number; display_name: string; slug: string; status: string }>(
+      `/api/v1/admin/guides/${id}/impersonate`,
+      { method: 'POST' },
+    ),
   deployInfo: () => api<DeployInfo>('/api/v1/admin/deploy/info'),
   deployStatus: (app: string) =>
     api<DeployStatus>(`/api/v1/admin/deploy/status?app=${encodeURIComponent(app)}`),

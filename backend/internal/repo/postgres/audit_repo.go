@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/vitomonte/experts-tourister/internal/domain"
+	"github.com/vitomonte/experts-tourister/internal/impersonate"
 )
 
 type AuditRepo struct{ db *DB }
@@ -11,6 +12,10 @@ type AuditRepo struct{ db *DB }
 func NewAuditRepo(db *DB) *AuditRepo { return &AuditRepo{db: db} }
 
 func (r *AuditRepo) Log(ctx context.Context, actorID *int64, action, entityType string, entityID *int64, oldVal, newVal, ip, ua string) error {
+	if info := impersonate.FromContext(ctx); info != nil {
+		id := info.ActorID
+		actorID = &id
+	}
 	_, err := r.db.Pool.Exec(ctx, `
 		INSERT INTO audit_logs (actor_id, action, entity_type, entity_id, old_value, new_value, ip, user_agent)
 		VALUES ($1,$2,$3,$4, NULLIF($5,'')::jsonb, NULLIF($6,'')::jsonb, $7, $8)

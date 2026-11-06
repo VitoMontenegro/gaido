@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { adminApi, api, authApi, type AdminAnalytics, type AdminPaymentRow, type CookieConsentRecord, type MailSettings } from '@gaido/api-client/api/client'
 import StatCard, { StatGrid } from '../components/crm/StatCard'
@@ -43,12 +44,20 @@ function tabsFor(mode: SiteMode) {
   return TABS.filter((t) => t.siteModes.includes(mode))
 }
 
+function tabFromSearch(search: URLSearchParams, mode: SiteMode): AdminTab | undefined {
+  const raw = search.get('tab')
+  if (!raw) return undefined
+  const allowed = tabsFor(mode)
+  return allowed.find((t) => t.id === raw)?.id
+}
+
 export default function AdminPage() {
   const isAdmin = useHasRole('ROLE_ADMIN')
   const qc = useQueryClient()
   const siteMode = getSiteMode()
   const visibleTabs = tabsFor(siteMode)
-  const [tab, setTab] = useState<AdminTab>(() => tabsFor(getSiteMode())[0]?.id ?? 'analytics')
+  const [searchParams] = useSearchParams()
+  const [tab, setTab] = useState<AdminTab>(() => tabFromSearch(searchParams, getSiteMode()) ?? tabsFor(getSiteMode())[0]?.id ?? 'analytics')
   const [guidesFilter, setGuidesFilter] = useState<string | undefined>()
   const [carriersFilter, setCarriersFilter] = useState<string | undefined>()
   const [vezuFilter, setVezuFilter] = useState<string | undefined>()

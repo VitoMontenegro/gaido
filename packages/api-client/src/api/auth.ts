@@ -1,5 +1,13 @@
 import { api } from './http'
 
+export type MeImpersonation = {
+  active: boolean
+  actor_id: number
+  actor_login: string
+  guide_id: number
+  display_name: string
+}
+
 export type MeUser = {
   id: number
   login: string
@@ -8,6 +16,7 @@ export type MeUser = {
   last_name: string
   roles: string[]
   avatar_url?: string
+  impersonation?: MeImpersonation
 }
 
 export function userDisplayName(me: Pick<MeUser, 'first_name' | 'last_name' | 'login'>): string {

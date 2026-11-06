@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, afterEach } from 'vitest'
-import { formatApiError, ApiClientError, bootstrapAuth, setAccessToken, getAccessToken, api, requireAccessToken } from './http'
+import { formatApiError, ApiClientError, bootstrapAuth, setAccessToken, getAccessToken, api, requireAccessToken, setActAsGuideId, clearActAsGuideId, ACT_AS_GUIDE_HEADER } from './http'
 import { favoritesApi, reviewsApi } from './reviews'
 import { queryKeys } from './queryKeys'
 
@@ -79,6 +79,7 @@ describe('auth token storage', () => {
 describe('guest auth requests', () => {
   afterEach(() => {
     setAccessToken(null)
+    clearActAsGuideId()
     vi.unstubAllGlobals()
   })
 
@@ -120,6 +121,28 @@ describe('guest auth requests', () => {
     expect(() => favoritesApi.list()).toThrow(ApiClientError)
     expect(() => reviewsApi.create({ excursion_id: 1, rating: 5, text: 'ok' })).toThrow(ApiClientError)
     expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('sends act-as-guide header when impersonation is stored', async () => {
+    const store: Record<string, string> = {}
+    vi.stubGlobal('sessionStorage', {
+      getItem: (key: string) => store[key] ?? null,
+      setItem: (key: string, value: string) => {
+        store[key] = value
+      },
+      removeItem: (key: string) => {
+        delete store[key]
+      },
+    })
+    setActAsGuideId(42)
+    const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
+      const headers = new Headers(init?.headers)
+      expect(headers.get(ACT_AS_GUIDE_HEADER)).toBe('42')
+      return jsonResponse({ id: 1 })
+    })
+    vi.stubGlobal('fetch', fetchMock as unknown as typeof fetch)
+    await expect(api('/api/v1/account/me')).resolves.toEqual({ id: 1 })
+    clearActAsGuideId()
   })
 
   it('resolves guest favorites without a session', async () => {

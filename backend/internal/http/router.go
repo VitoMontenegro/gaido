@@ -26,7 +26,7 @@ func NewRouter(cfg config.Config, log *slog.Logger, h *handlers.Handlers) http.H
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   cfg.CORSOrigins,
 		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-Request-ID"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-Request-ID", middleware.ActAsGuideHeader},
 		AllowCredentials: true,
 	}))
 
@@ -66,7 +66,7 @@ func NewRouter(cfg config.Config, log *slog.Logger, h *handlers.Handlers) http.H
 		api.Get("/categories", h.ListServiceCategories)
 		api.Get("/categories/{slug}/services", h.ListCategoryServices)
 
-		optionalAuth := middleware.OptionalAuth(h.JWT, h.Users)
+		optionalAuth := middleware.OptionalAuth(h.JWT, h.Users, h.Guides)
 		api.With(optionalAuth).Get("/providers/{slug}", h.GetProviderPublic)
 		api.Get("/jobs", h.ListJobs)
 		api.Get("/looking-requests", h.ListLookingRequests)
@@ -107,7 +107,7 @@ func NewRouter(cfg config.Config, log *slog.Logger, h *handlers.Handlers) http.H
 		api.Get("/media/public/{key}", h.ServePublicMedia)
 		api.With(middleware.AuthRateLimit(30, time.Minute, cfg.TrustProxy)).Post("/favorites/resolve", h.ResolveFavorites)
 
-		authMW := middleware.Auth(h.JWT, h.Users)
+		authMW := middleware.Auth(h.JWT, h.Users, h.Guides)
 		rbacMW := middleware.RBAC(h.Enforcer)
 
 		api.Group(func(pr chi.Router) {
@@ -271,6 +271,7 @@ func NewRouter(cfg config.Config, log *slog.Logger, h *handlers.Handlers) http.H
 			ar.Delete("/admin/guides/{id}", h.AdminDeleteGuide)
 			ar.Post("/admin/guides/{id}/bypass", h.AdminBypass)
 			ar.Post("/admin/guides/{id}/approve", h.AdminApproveGuide)
+			ar.Post("/admin/guides/{id}/impersonate", h.AdminImpersonateGuide)
 			ar.Get("/admin/excursions", h.AdminListExcursions)
 			ar.Delete("/admin/excursions/{id}", h.AdminDeleteExcursion)
 			ar.Get("/admin/reviews", h.AdminListReviews)

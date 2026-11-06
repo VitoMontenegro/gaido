@@ -2,12 +2,14 @@
 
 import { Routes, Route, Navigate } from 'react-router-dom'
 import ScrollToTop from '@gaido/ui-primitives/ScrollToTop'
+import ImpersonationBanner from '@gaido/ui-primitives/ImpersonationBanner'
 import { GuidesPublicLayout, GuidesAccountLayout, GuidesAdminLayout } from '@gaido/guides/layouts/GuidesLayout'
 import { guideAccountRoutes, svitAdminRoutes, svitPublicRoutes } from '@gaido/guides/routes'
 
 export default function SvitApp() {
   return (
     <>
+      <ImpersonationBanner />
       <ScrollToTop />
       <Routes>
         <Route element={<GuidesPublicLayout />}>{svitPublicRoutes()}</Route>

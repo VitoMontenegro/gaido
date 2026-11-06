@@ -1,7 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { authApi } from '../api/auth'
-import { setAccessToken } from '../api/http'
+import { clearActAsGuideId, setAccessToken } from '../api/http'
 
 export function useLogout() {
   const qc = useQueryClient()
@@ -13,6 +13,7 @@ export function useLogout() {
     } catch {
       // ignore — token cleared locally anyway
     }
+    clearActAsGuideId()
     setAccessToken(null)
     qc.clear()
     navigate('/')

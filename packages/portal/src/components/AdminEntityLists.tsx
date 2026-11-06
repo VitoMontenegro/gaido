@@ -1,8 +1,9 @@
 import { Fragment, useEffect, useState } from 'react'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { adminApi, userDisplayName, type AdminCarrier, type AdminExcursion, type AdminGuide, type AdminListParams, type AdminProvider, type AdminOffering, type AdminComplaint, type AdminReview, type AdminTransportRide, type AdminUser } from '@gaido/api-client/api/client'
-import { isTransportSite, isServicesSite, transportUrl, servicesUrl } from '@gaido/site-urls/site'
+import { adminApi, formatApiError, userDisplayName, type AdminCarrier, type AdminExcursion, type AdminGuide, type AdminListParams, type AdminProvider, type AdminOffering, type AdminComplaint, type AdminReview, type AdminTransportRide, type AdminUser } from '@gaido/api-client/api/client'
+import { setActAsGuideId } from '@gaido/api-client/api/http'
+import { isTransportSite, isServicesSite, transportUrl, servicesUrl, guidesUrl } from '@gaido/site-urls/site'
 import { useMe } from '@gaido/api-client/hooks/useAuth'
 import { formatPrice } from './excursionUi'
 import GuideAvatar from './GuideAvatar'
@@ -366,6 +367,17 @@ export function AdminGuidesList({ statusFilter }: { statusFilter?: string }) {
     },
   })
 
+  const openCabinet = useMutation({
+    mutationFn: (id: number) => adminApi.impersonateGuide(id),
+    onSuccess: (data) => {
+      setActAsGuideId(data.guide_id)
+      window.location.assign(guidesUrl('/account/guide'))
+    },
+    onError: (err) => {
+      window.alert(formatApiError(err))
+    },
+  })
+
   const title = statusFilter === 'ACTIVE'
     ? 'Активні гіди'
     : statusFilter === 'DRAFT'
@@ -437,6 +449,15 @@ export function AdminGuidesList({ statusFilter }: { statusFilter?: string }) {
                 <Link to={`/guide/${g.slug}`} className="text-sm text-teal hover:underline" target="_blank">
                   Відкрити
                 </Link>
+                <button
+                  type="button"
+                  className="text-sm text-teal hover:underline disabled:opacity-50"
+                  disabled={openCabinet.isPending}
+                  title={openCabinet.isError ? formatApiError(openCabinet.error) : undefined}
+                  onClick={() => openCabinet.mutate(g.id)}
+                >
+                  Кабінет гіда
+                </button>
                 <button
                   type="button"
                   className="rounded-lg border border-red-200 px-2 py-1 text-xs text-red-700 hover:bg-red-50 disabled:opacity-50"

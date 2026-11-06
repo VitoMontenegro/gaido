@@ -1,6 +1,7 @@
 import { Link, Outlet, Navigate } from 'react-router-dom'
 import { useBootstrapAuth, useHasRole, useMe } from '@gaido/api-client/hooks/useAuth'
 import { useLogout } from '@gaido/api-client/hooks/useLogout'
+import { useStopImpersonation } from '@gaido/api-client/hooks/useStopImpersonation'
 import { useNotifications } from '@gaido/api-client/hooks/useNotifications'
 import ErrorBoundary from '@gaido/ui-primitives/ErrorBoundary'
 import GuidesHeader from '../components/GuidesHeader'
@@ -28,6 +29,7 @@ export function GuidesPublicLayout() {
 
 export function GuidesAccountLayout() {
   const logout = useLogout()
+  const stopImpersonation = useStopImpersonation()
   const { isLoading: authLoading } = useBootstrapAuth()
   const { data: me, isLoading, isError } = useMe()
   const isGuide = useHasRole('ROLE_GUIDE')
@@ -99,8 +101,12 @@ export function GuidesAccountLayout() {
             </>
           )}
           <p className="px-3 pt-3 text-xs text-muted-light">{me.login}</p>
-          <button type="button" onClick={logout} className="mt-3 w-full rounded-xl px-3 py-2 text-left text-red-600 transition hover:bg-red-50">
-            Вийти
+          <button
+            type="button"
+            onClick={me.impersonation?.active ? stopImpersonation : logout}
+            className="mt-3 w-full rounded-xl px-3 py-2 text-left text-red-600 transition hover:bg-red-50"
+          >
+            {me.impersonation?.active ? 'Повернутися в адмінку' : 'Вийти'}
           </button>
           {!isGuide && (
               <AccountNavLink to="/account/guide/profile">Стати гідом</AccountNavLink>

@@ -14,8 +14,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/vitomonte/experts-tourister/internal/app"
 	"github.com/vitomonte/experts-tourister/internal/config"
+	"github.com/vitomonte/experts-tourister/internal/domain"
 )
 
 func testConfig() config.Config {
@@ -61,6 +63,11 @@ type smokeResp struct {
 
 func smokeRequest(t *testing.T, a *app.App, method, path string, body any, token string, cookies []*http.Cookie) smokeResp {
 	t.Helper()
+	return smokeRequestHeader(t, a, method, path, body, token, cookies, nil)
+}
+
+func smokeRequestHeader(t *testing.T, a *app.App, method, path string, body any, token string, cookies []*http.Cookie, extra http.Header) smokeResp {
+	t.Helper()
 	var rdr io.Reader
 	if body != nil {
 		raw, err := json.Marshal(body)
@@ -78,6 +85,11 @@ func smokeRequest(t *testing.T, a *app.App, method, path string, body any, token
 	}
 	for _, c := range cookies {
 		req.AddCookie(c)
+	}
+	for k, vs := range extra {
+		for _, v := range vs {
+			req.Header.Add(k, v)
+		}
 	}
 	rec := httptest.NewRecorder()
 	a.Router().ServeHTTP(rec, req)
@@ -700,5 +712,100 @@ func TestSmoke_inquiryChat(t *testing.T) {
 	}, touristToken, nil)
 	if confirm.code != http.StatusOK {
 		t.Fatalf("tourist confirm: %d %s", confirm.code, confirm.body)
+	}
+}
+
+func grantRole(t *testing.T, login, role string) {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	conn, err := pgx.Connect(ctx, testConfig().DatabaseURL)
+	if err != nil {
+		t.Fatalf("grant role connect: %v", err)
+	}
+	defer conn.Close(ctx)
+	tag, err := conn.Exec(ctx, `
+		UPDATE users SET roles = array_append(roles, $2), updated_at=NOW()
+		WHERE login=$1 AND NOT ($2 = ANY(roles)) AND deleted_at IS NULL`, login, role)
+	if err != nil {
+		t.Fatalf("grant role: %v", err)
+	}
+	if tag.RowsAffected() == 0 {
+		t.Fatalf("grant role: no user %s", login)
+	}
+}
+
+func TestSmoke_adminImpersonateGuide(t *testing.T) {
+	a := newTestApp(t)
+	adminLogin := uniqueLogin("imp_a_")
+	adminToken, _ := registerUser(t, a, adminLogin, false)
+	grantRole(t, adminLogin, domain.RoleAdmin)
+	guideLogin := uniqueLogin("imp_g_")
+	guideToken, _ := registerUser(t, a, guideLogin, true)
+	put := smokeRequest(t, a, http.MethodPut, "/api/v1/account/guide/profile", map[string]any{
+		"display_name": "Impersonated Guide",
+	}, guideToken, nil)
+	if put.code != http.StatusOK {
+		t.Fatalf("guide profile: %d %s", put.code, put.body)
+	}
+	profile := decodeJSON[struct {
+		ID int64 `json:"id"`
+	}](t, put.body)
+	if profile.ID == 0 {
+		t.Fatalf("missing guide id: %s", put.body)
+	}
+
+	start := smokeRequest(t, a, http.MethodPost, "/api/v1/admin/guides/"+strconv.FormatInt(profile.ID, 10)+"/impersonate", map[string]any{}, adminToken, nil)
+	if start.code != http.StatusOK {
+		t.Fatalf("impersonate start: %d %s", start.code, start.body)
+	}
+
+	hdr := http.Header{}
+	hdr.Set("X-Act-As-Guide-Id", strconv.FormatInt(profile.ID, 10))
+
+	me := smokeRequestHeader(t, a, http.MethodGet, "/api/v1/account/me", nil, adminToken, nil, hdr)
+	if me.code != http.StatusOK {
+		t.Fatalf("me as guide: %d %s", me.code, me.body)
+	}
+	meBody := decodeJSON[struct {
+		Login         string   `json:"login"`
+		Roles         []string `json:"roles"`
+		Impersonation struct {
+			Active  bool  `json:"active"`
+			GuideID int64 `json:"guide_id"`
+		} `json:"impersonation"`
+	}](t, me.body)
+	hasGuide := false
+	for _, role := range meBody.Roles {
+		if role == "ROLE_GUIDE" {
+			hasGuide = true
+			break
+		}
+	}
+	if meBody.Login != guideLogin || !meBody.Impersonation.Active || meBody.Impersonation.GuideID != profile.ID || !hasGuide {
+		t.Fatalf("expected impersonated guide user, got %+v body=%s", meBody, me.body)
+	}
+
+	prof := smokeRequestHeader(t, a, http.MethodGet, "/api/v1/account/guide/profile", nil, adminToken, nil, hdr)
+	if prof.code != http.StatusOK {
+		t.Fatalf("guide profile as admin: %d %s", prof.code, prof.body)
+	}
+	exc := smokeRequestHeader(t, a, http.MethodGet, "/api/v1/account/guide/excursions", nil, adminToken, nil, hdr)
+	if exc.code != http.StatusOK {
+		t.Fatalf("guide excursions as admin: %d %s", exc.code, exc.body)
+	}
+
+	pw := smokeRequestHeader(t, a, http.MethodPut, "/api/v1/account/password", map[string]any{
+		"current_password": "admin12345",
+		"new_password":     "shouldnotwork1",
+	}, adminToken, nil, hdr)
+	if pw.code != http.StatusForbidden {
+		t.Fatalf("expected 403 password while impersonating, got %d %s", pw.code, pw.body)
+	}
+
+	touristToken, _ := registerUser(t, a, uniqueLogin("imp_t_"), false)
+	denied := smokeRequestHeader(t, a, http.MethodGet, "/api/v1/account/me", nil, touristToken, nil, hdr)
+	if denied.code != http.StatusForbidden {
+		t.Fatalf("expected 403 for non-admin impersonation, got %d %s", denied.code, denied.body)
 	}
 }
