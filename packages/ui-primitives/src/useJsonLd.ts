@@ -3,17 +3,23 @@ import { useEffect } from 'react'
 const MARK = 'data-gaido-jsonld'
 
 /**
- * JSON-LD stays outside the React tree. React 19 hoists <script> into <head>,
- * and a later route change then calls removeChild on a node that is no longer
- * a child of the component that rendered it.
+ * Client JSON-LD is inserted outside the React tree.
+ * Server <script type="application/ld+json"> stays a React child (often inside
+ * the layout div). Detaching it here makes the next App Router navigation
+ * throw removeChild, because React still owns that node. Clear it in place.
  */
+function retireServerJsonLd(node: Element) {
+  node.removeAttribute('type')
+  node.textContent = ''
+}
+
 export function useJsonLd(scripts: readonly unknown[]) {
   const payload = JSON.stringify(scripts)
 
   useEffect(() => {
     const parsed = JSON.parse(payload) as unknown[]
     document.querySelectorAll(`script[type="application/ld+json"]:not([${MARK}])`).forEach((node) => {
-      node.remove()
+      retireServerJsonLd(node)
     })
 
     const nodes = parsed.map((obj) => {
