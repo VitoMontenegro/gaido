@@ -48,6 +48,13 @@ const ForgotPasswordPage = lazyImport(() => import('@gaido/guides/pages/AuthPage
 const ResetPasswordPage = lazyImport(() => import('@gaido/guides/pages/AuthPages').then((m) => ({ default: m.ResetPasswordPage })))
 const LegalDocumentPage = lazyImport(() => import('@gaido/guides/components/LegalDocumentPage'))
 const AccountPage = lazyImport(() => import('@gaido/guides/pages/AccountPages').then((m) => ({ default: m.default })))
+const TouristInquiriesPage = lazyImport(() => import('@gaido/guides/pages/TouristInquiriesPage'))
+const TouristInquiryThreadPage = lazyImport(() => import('@gaido/guides/pages/TouristInquiriesPage').then((m) => ({ default: m.TouristInquiryThreadPage })))
+const GuideInquiriesPage = lazyImport(() => import('@gaido/guides/pages/guide').then((m) => ({ default: m.GuideInquiriesPage })))
+const GuideInquiryThreadPage = lazyImport(() => import('@gaido/guides/pages/guide').then((m) => ({ default: m.GuideInquiryThreadPage })))
+const GuideClientsPage = lazyImport(() => import('@gaido/guides/pages/guide').then((m) => ({ default: m.GuideClientsPage })))
+const GuideStatsPage = lazyImport(() => import('@gaido/guides/pages/guide').then((m) => ({ default: m.GuideStatsPage })))
+const GuideMorePage = lazyImport(() => import('@gaido/guides/pages/guide').then((m) => ({ default: m.GuideMorePage })))
 const FavoritesPage = lazyImport(() => import('@gaido/guides/pages/FavoritesPage'))
 const SettingsPage = lazyImport(() => import('@gaido/guides/pages/AccountPages').then((m) => ({ default: m.SettingsPage })))
 const GuideOverviewPage = lazyImport(() => import('@gaido/guides/pages/guide').then((m) => ({ default: m.GuideOverviewPage })))
@@ -57,6 +64,7 @@ const GuideDocumentsPage = lazyImport(() => import('@gaido/guides/pages/guide').
 const GuideExcursionsPage = lazyImport(() => import('@gaido/guides/pages/guide').then((m) => ({ default: m.GuideExcursionsPage })))
 const GuideCalendarPage = lazyImport(() => import('@gaido/guides/pages/guide').then((m) => ({ default: m.GuideCalendarPage })))
 const GuideArticlesPage = lazyImport(() => import('@gaido/guides/pages/guide').then((m) => ({ default: m.GuideArticlesPage })))
+const GuideReviewsPage = lazyImport(() => import('@gaido/guides/pages/guide').then((m) => ({ default: m.GuideReviewsPage })))
 const GuideInstructionsPage = lazyImport(() => import('@gaido/guides/pages/guide').then((m) => ({ default: m.GuideInstructionsPage })))
 const CreateExcursionPage = lazyImport(() => import('@gaido/guides/pages/CreateExcursionPage'))
 const EditExcursionPage = lazyImport(() => import('@gaido/guides/pages/EditExcursionPage'))
@@ -76,19 +84,27 @@ export function guideAccountRoutes() {
   return (
     <>
       <Route path="/account" element={<Lazy><AccountPage /></Lazy>} />
+      <Route path="/account/inquiries/:id" element={<Lazy><TouristInquiryThreadPage /></Lazy>} />
+      <Route path="/account/inquiries" element={<Lazy><TouristInquiriesPage /></Lazy>} />
       <Route path="/account/favorites" element={<Navigate to="/favorites" replace />} />
       <Route path="/account/settings" element={<Lazy><SettingsPage /></Lazy>} />
       <Route path="/account/guide/billing" element={<GuideGate><Lazy><GuideBillingPage /></Lazy></GuideGate>} />
       <Route path="/account/guide/instructions" element={<GuideGate><Lazy><GuideInstructionsPage /></Lazy></GuideGate>} />
+      <Route path="/account/guide/profile" element={<Lazy><GuideProfilePage /></Lazy>} />
+      <Route path="/account/guide/documents" element={<GuideGate><Lazy><GuideDocumentsPage /></Lazy></GuideGate>} />
+      <Route path="/account/guide/excursions/new" element={<GuideGate><Lazy><CreateExcursionPage /></Lazy></GuideGate>} />
+      <Route path="/account/guide/excursions/:id/edit" element={<GuideGate><Lazy><EditExcursionPage /></Lazy></GuideGate>} />
+      <Route path="/account/guide/excursions" element={<GuideGate><Lazy><GuideExcursionsPage /></Lazy></GuideGate>} />
+      <Route path="/account/guide/reviews" element={<GuideGate><Lazy><GuideReviewsPage /></Lazy></GuideGate>} />
+      <Route path="/account/guide/articles" element={<GuideGate><Lazy><GuideArticlesPage /></Lazy></GuideGate>} />
       <Route path="/account/guide" element={<GuideLayout />}>
         <Route index element={<GuideGate><Lazy><GuideOverviewPage /></Lazy></GuideGate>} />
-        <Route path="profile" element={<Lazy><GuideProfilePage /></Lazy>} />
-        <Route path="documents" element={<GuideGate><Lazy><GuideDocumentsPage /></Lazy></GuideGate>} />
-        <Route path="excursions/new" element={<GuideGate><Lazy><CreateExcursionPage /></Lazy></GuideGate>} />
-        <Route path="excursions/:id/edit" element={<GuideGate><Lazy><EditExcursionPage /></Lazy></GuideGate>} />
-        <Route path="excursions" element={<GuideGate><Lazy><GuideExcursionsPage /></Lazy></GuideGate>} />
-        <Route path="articles" element={<GuideGate><Lazy><GuideArticlesPage /></Lazy></GuideGate>} />
         <Route path="calendar" element={<GuideGate><Lazy><GuideCalendarPage /></Lazy></GuideGate>} />
+        <Route path="inquiries/:id" element={<GuideGate><Lazy><GuideInquiryThreadPage /></Lazy></GuideGate>} />
+        <Route path="inquiries" element={<GuideGate><Lazy><GuideInquiriesPage /></Lazy></GuideGate>} />
+        <Route path="clients" element={<GuideGate><Lazy><GuideClientsPage /></Lazy></GuideGate>} />
+        <Route path="stats" element={<GuideGate><Lazy><GuideStatsPage /></Lazy></GuideGate>} />
+        <Route path="more" element={<GuideGate><Lazy><GuideMorePage /></Lazy></GuideGate>} />
       </Route>
     </>
   )

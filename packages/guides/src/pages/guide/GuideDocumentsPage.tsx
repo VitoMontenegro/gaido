@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, guideApi } from '@gaido/api-client/api/client'
 import type { GuideDocument, GuideProfile } from './shared'
 import { CatalogStatusBanner, formatSize } from './shared'
+import GuideProfileTabs from '../../components/crm/GuideProfileTabs'
 
 export function GuideDocumentsPage() {
   const qc = useQueryClient()
@@ -26,6 +27,7 @@ export function GuideDocumentsPage() {
 
   return (
     <div className="space-y-6">
+      <GuideProfileTabs />
       <div>
         <h2 className="font-display text-xl font-bold">Документи</h2>
         <p className="mt-2 text-sm text-stone-600">

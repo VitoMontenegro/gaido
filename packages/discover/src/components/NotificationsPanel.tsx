@@ -8,6 +8,9 @@ const LABELS: Record<string, string> = {
   SUBSCRIPTION_ACTIVATED: 'Підписку активовано',
   SUBSCRIPTION_EXPIRED: 'Підписка закінчилась',
   NEW_REVIEW: 'Новий відгук',
+  INQUIRY_NEW: 'Нова заявка від туриста',
+  INQUIRY_MESSAGE: 'Нове повідомлення в заявці',
+  INQUIRY_HELP: 'Запит допомоги в чаті',
   REVIEW_COMMENT: 'Відповідь на відгук',
   REVIEW_DISPUTE: 'Оскарження відгуку',
 }

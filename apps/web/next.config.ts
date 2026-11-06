@@ -10,6 +10,7 @@ const apiTarget =
 
 const nextConfig: NextConfig = {
   output: 'standalone',
+  outputFileTracingRoot: repoRoot,
   poweredByHeader: false,
   // Slash only on section roots (/svit/, /servis/, /vezu/). See middleware.ts.
   trailingSlash: false,
@@ -86,6 +87,11 @@ const nextConfig: NextConfig = {
     ]
   },
   webpack: (config) => {
+    config.resolve.modules = [
+      path.join(__dirname, 'node_modules'),
+      path.join(repoRoot, 'node_modules'),
+      ...(config.resolve.modules ?? ['node_modules']),
+    ]
     config.resolve.alias = {
       ...config.resolve.alias,
       '@gaido/api-client': path.join(repoRoot, 'packages/api-client/src'),

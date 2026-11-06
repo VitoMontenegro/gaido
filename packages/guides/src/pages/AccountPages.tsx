@@ -34,6 +34,7 @@ export default function AccountPage() {
                 <Link to="/downloads?app=web-prod-2026" className="btn-secondary">Деплой</Link>
               </>
             )}
+            <Link to="/account/inquiries" className="btn-secondary">Заявки гідам</Link>
             <Link to="/account/settings" className="btn-secondary">Налаштування профілю</Link>
           </div>
         </div>

@@ -56,4 +56,5 @@ type Handlers struct {
 	Looking           *postgres.LookingRepo
 	EmailTokens       *postgres.EmailTokenRepo
 	Mail              *mailsvc.Service
+	Inquiries         *postgres.InquiryRepo
 }

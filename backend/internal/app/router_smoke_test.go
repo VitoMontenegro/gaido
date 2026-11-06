@@ -635,3 +635,70 @@ func TestSmoke_excursionCRUD(t *testing.T) {
 		t.Fatalf("expected PUBLISHED without moderation, got %q", submitted.Status)
 	}
 }
+
+func TestSmoke_inquiryChat(t *testing.T) {
+	a := newTestApp(t)
+	guideToken, _ := registerUser(t, a, uniqueLogin("inq_g_"), true)
+	profile := smokeRequest(t, a, http.MethodGet, "/api/v1/account/guide/profile", nil, guideToken, nil)
+	if profile.code != http.StatusOK {
+		t.Fatalf("guide profile: %d %s", profile.code, profile.body)
+	}
+	guide := decodeJSON[struct {
+		ID int64 `json:"id"`
+	}](t, profile.body)
+	touristToken, _ := registerUser(t, a, uniqueLogin("inq_t_"), false)
+	created := smokeRequest(t, a, http.MethodPost, "/api/v1/inquiries", map[string]any{
+		"guide_id":       guide.ID,
+		"party_size":     2,
+		"language":       "uk",
+		"preferred_date": time.Now().AddDate(0, 0, 7).Format("2006-01-02"),
+		"notes":          "Чи є вільна дата?",
+	}, touristToken, nil)
+	if created.code != http.StatusCreated && created.code != http.StatusOK {
+		t.Fatalf("create inquiry: %d %s", created.code, created.body)
+	}
+	inq := decodeJSON[struct {
+		ID     int64  `json:"id"`
+		Status string `json:"status"`
+	}](t, created.body)
+	if inq.ID <= 0 {
+		t.Fatalf("expected inquiry id, got %s", created.body)
+	}
+	inbox := smokeRequest(t, a, http.MethodGet, "/api/v1/account/guide/inquiries?status=new", nil, guideToken, nil)
+	if inbox.code != http.StatusOK {
+		t.Fatalf("guide inbox: %d %s", inbox.code, inbox.body)
+	}
+	reply := smokeRequest(t, a, http.MethodPost, "/api/v1/inquiries/"+strconv.FormatInt(inq.ID, 10)+"/messages", map[string]any{
+		"body": "Так, дата вільна.",
+	}, guideToken, nil)
+	if reply.code != http.StatusCreated {
+		t.Fatalf("guide reply: %d %s", reply.code, reply.body)
+	}
+	msgs := smokeRequest(t, a, http.MethodGet, "/api/v1/inquiries/"+strconv.FormatInt(inq.ID, 10)+"/messages", nil, touristToken, nil)
+	if msgs.code != http.StatusOK {
+		t.Fatalf("tourist messages: %d %s", msgs.code, msgs.body)
+	}
+	decoded := decodeJSON[struct {
+		Items []struct {
+			AuthorRole string `json:"author_role"`
+			Kind       string `json:"kind"`
+		} `json:"items"`
+	}](t, msgs.body)
+	if len(decoded.Items) < 2 {
+		t.Fatalf("expected system+notes+reply messages, got %s", msgs.body)
+	}
+	when := time.Now().AddDate(0, 0, 8).Truncate(time.Hour).UTC()
+	book := smokeRequest(t, a, http.MethodPatch, "/api/v1/inquiries/"+strconv.FormatInt(inq.ID, 10), map[string]any{
+		"status":       "pending",
+		"scheduled_at": when.Format(time.RFC3339),
+	}, guideToken, nil)
+	if book.code != http.StatusOK {
+		t.Fatalf("guide schedule: %d %s", book.code, book.body)
+	}
+	confirm := smokeRequest(t, a, http.MethodPatch, "/api/v1/inquiries/"+strconv.FormatInt(inq.ID, 10), map[string]any{
+		"status": "booked",
+	}, touristToken, nil)
+	if confirm.code != http.StatusOK {
+		t.Fatalf("tourist confirm: %d %s", confirm.code, confirm.body)
+	}
+}

@@ -92,6 +92,7 @@ func New(ctx context.Context, cfg config.Config, log *slog.Logger) (*App, error)
 		Jobs:              postgres.NewJobRepo(db),
 		Looking:           postgres.NewLookingRepo(db),
 		EmailTokens:       postgres.NewEmailTokenRepo(db),
+		Inquiries:         postgres.NewInquiryRepo(db),
 	}
 	h.Mail = mailsvc.NewService(h.Settings)
 	billingSvc := &billing.Service{

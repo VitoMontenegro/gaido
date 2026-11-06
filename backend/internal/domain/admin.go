@@ -40,6 +40,15 @@ type AdminAnalytics struct {
 	TotalComplaints       int
 	PendingComplaints     int
 	ProviderSubscriptions int
+	InquiriesTotal        int
+	InquiriesNew          int
+	InquiriesDiscussing   int
+	InquiriesPending      int
+	InquiriesBooked       int
+	InquiriesDone         int
+	InquiriesCancelled    int
+	InquiryGuides         int
+	InquiryTourists       int
 }
 
 type AdminPaymentRow struct {

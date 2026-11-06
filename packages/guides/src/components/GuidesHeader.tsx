@@ -9,9 +9,9 @@ import BrandLogo from './BrandLogo'
 import UserAvatar from './UserAvatar'
 import { cn } from '@gaido/ui-primitives/cn'
 import { SectionTopNav } from '@gaido/ui-primitives/SectionTopNav'
-import { HeartIcon as HeartOutline } from '@heroicons/react/24/outline'
-import { HeartIcon as HeartSolid } from '@heroicons/react/24/solid'
+import { BellIcon as BellOutline } from '@heroicons/react/24/outline'
 import { useFavorites, useSyncGuestFavorites } from '../hooks/useFavorites'
+import NotificationBell from './NotificationBell'
 
 const GUIDES_NAV = [
   { to: '/search', label: 'Пошук' },
@@ -127,27 +127,22 @@ export default function GuidesHeader() {
               ))}
             </nav>
             <div className="ml-auto flex h-9 shrink-0 items-center justify-end gap-1.5 md:ml-0 md:gap-2">
-              <Link
-                to="/favorites"
-                className={cn(
-                  'relative inline-flex h-9 w-9 items-center justify-center rounded-xl transition',
-                  navActive(location.pathname, '/favorites')
-                    ? solidHeader
-                      ? 'bg-ink text-white'
-                      : 'bg-white/15 text-white drop-shadow-[0_1px_3px_rgba(15,26,40,0.65)]'
-                    : solidHeader
+              {me ? (
+                <NotificationBell solidHeader={solidHeader} />
+              ) : (
+                <Link
+                  to="/login"
+                  className={cn(
+                    'relative inline-flex h-9 w-9 items-center justify-center rounded-xl transition',
+                    solidHeader
                       ? 'text-ink hover:bg-sand-200/90'
                       : 'text-white drop-shadow-[0_1px_3px_rgba(15,26,40,0.65)] hover:bg-white/20',
-                )}
-                aria-label={count > 0 ? `Обране, ${count}` : 'Обране'}
-              >
-                {count > 0 ? <HeartSolid className="h-5 w-5" /> : <HeartOutline className="h-5 w-5" />}
-                {count > 0 && (
-                  <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold leading-none text-white">
-                    {count > 99 ? '99+' : count}
-                  </span>
-                )}
-              </Link>
+                  )}
+                  aria-label="Сповіщення"
+                >
+                  <BellOutline className="h-5 w-5" />
+                </Link>
+              )}
               {authPending ? (
                 <div
                   className={cn(

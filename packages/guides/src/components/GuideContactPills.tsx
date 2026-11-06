@@ -50,9 +50,10 @@ function ContactIcon({ kind }: { kind: GuideContactLink['key'] }) {
 type Props = {
   links: GuideContactLink[]
   className?: string
+  onContactClick?: (key: GuideContactLink['key']) => void
 }
 
-export default function GuideContactPills({ links, className = '' }: Props) {
+export default function GuideContactPills({ links, className = '', onContactClick }: Props) {
   if (links.length === 0) return null
 
   return (
@@ -64,6 +65,7 @@ export default function GuideContactPills({ links, className = '' }: Props) {
           target={link.key === 'email' ? undefined : '_blank'}
           rel={link.key === 'email' ? undefined : 'noopener noreferrer'}
           className={`excursion-parus-organizer__pill excursion-parus-organizer__pill--${link.key}`}
+          onClick={() => onContactClick?.(link.key)}
         >
           <ContactIcon kind={link.key} />
           <span>{pillLabel(link)}</span>

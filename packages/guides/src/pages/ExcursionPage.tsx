@@ -32,6 +32,8 @@ import { useHasRole, useMe } from '@gaido/api-client/hooks/useAuth'
 import { getApiErrorCode } from '@gaido/api-client/api/http'
 import CatalogNotFound from '../components/CatalogNotFound'
 import FavoriteButton from '../components/FavoriteButton'
+import DiscussInquiryDialog from '../components/crm/DiscussInquiryDialog'
+import { trackGuideEvent } from '../lib/funnelSession'
 import { resolveMapEmbed } from '../lib/mapEmbed'
 import {
   hasStructuredContent,
@@ -49,17 +51,21 @@ function ExcursionBookingPanel({
   compact = false,
   contacts,
   extraActions,
+  onDiscuss,
+  onContactClick,
 }: {
   excursion: ExcursionItem
   compact?: boolean
   contacts?: Contacts
   extraActions?: ReactNode
+  onDiscuss?: () => void
+  onContactClick?: (key: string) => void
 }) {
   const links = contacts ? guideContactLinks(contacts) : []
 
   const contactBlock =
     links.length > 0 ? (
-      <GuideContactPills links={links} className={compact ? 'mt-2' : undefined} />
+      <GuideContactPills links={links} className={compact ? 'mt-2' : undefined} onContactClick={onContactClick} />
     ) : contacts?.visible === false ? (
       <p className="text-sm text-stone-600">Контакти доступні після активації розміщення гіда.</p>
     ) : excursion.guide_slug ? (
@@ -91,6 +97,11 @@ function ExcursionBookingPanel({
             <p className="excursion-parus-muted truncate text-xs">{excursionPriceCaption(excursion.type)}</p>
           </div>
           {favButton}
+          {onDiscuss && (
+            <button type="button" className="btn-primary shrink-0 px-3 py-2.5 text-sm" onClick={onDiscuss}>
+              Обговорити
+            </button>
+          )}
           {extraActions}
         </div>
         {contactBlock}
@@ -110,10 +121,15 @@ function ExcursionBookingPanel({
       <div className="space-y-4">
         {contactBlock}
         {responseHours}
+        {onDiscuss && (
+          <button type="button" className="btn-primary w-full" onClick={onDiscuss}>
+            Обговорити з гідом
+          </button>
+        )}
         {favButton}
         <div className="border-t border-stone-100 pt-3 excursion-parus-text">
           <p className="font-medium text-stone-800">Як це працює</p>
-          <p className="mt-1">Звʼяжіться з гідом напряму — бронювання та оплата поза платформою.</p>
+          <p className="mt-1">Напишіть гіду в чаті на платформі або звʼяжіться напряму. Оплата екскурсії поки поза Gaido.</p>
         </div>
       </div>
     </>
@@ -125,6 +141,7 @@ export default function ExcursionPage() {
   const { data: me } = useMe()
   const isGuideRole = useHasRole('ROLE_GUIDE')
   const [availabilityOpen, setAvailabilityOpen] = useState(false)
+  const [discussOpen, setDiscussOpen] = useState(false)
 
   const { data: excursion, isLoading, isError, error } = useQuery({
     queryKey: ['excursion', slug],
@@ -151,6 +168,15 @@ export default function ExcursionPage() {
       ),
     enabled: !!slug && !!excursion && excursion.status === 'PUBLISHED',
   })
+
+  useEffect(() => {
+    if (!excursion || excursion.status !== 'PUBLISHED' || !excursion.guide_id) return
+    void trackGuideEvent({
+      guide_id: excursion.guide_id,
+      excursion_id: excursion.id,
+      event_type: 'excursion_view',
+    })
+  }, [excursion])
 
   useEffect(() => {
     if (!excursion || excursion.status !== 'PUBLISHED') return
@@ -370,6 +396,16 @@ export default function ExcursionPage() {
               <ExcursionBookingPanel
                 excursion={excursion}
                 contacts={excursion.guide_contacts}
+                onDiscuss={excursion.guide_id ? () => setDiscussOpen(true) : undefined}
+                onContactClick={(key) => {
+                  if (!excursion.guide_id) return
+                  void trackGuideEvent({
+                    guide_id: excursion.guide_id,
+                    excursion_id: excursion.id,
+                    event_type: 'contact_click',
+                    contact_type: key,
+                  })
+                }}
               />
               <ExcursionAvailabilityButton onClick={() => setAvailabilityOpen(true)} />
             </div>
@@ -386,6 +422,16 @@ export default function ExcursionPage() {
             excursion={excursion}
             contacts={excursion.guide_contacts}
             compact
+            onDiscuss={excursion.guide_id ? () => setDiscussOpen(true) : undefined}
+            onContactClick={(key) => {
+              if (!excursion.guide_id) return
+              void trackGuideEvent({
+                guide_id: excursion.guide_id,
+                excursion_id: excursion.id,
+                event_type: 'contact_click',
+                contact_type: key,
+              })
+            }}
             extraActions={
               <button
                 type="button"
@@ -410,6 +456,15 @@ export default function ExcursionPage() {
         slug={excursion.slug}
         excursionType={excursion.type}
       />
+      {excursion.guide_id ? (
+        <DiscussInquiryDialog
+          open={discussOpen}
+          onClose={() => setDiscussOpen(false)}
+          guideId={excursion.guide_id}
+          excursionId={excursion.id}
+          guideOwns={isGuideOwner}
+        />
+      ) : null}
     </div>
   )
 }

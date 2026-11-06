@@ -7,6 +7,9 @@ export type CalendarDateItem = {
   currency?: string
   starts_at?: string
   ends_at?: string
+  pendingCount?: number
+  bookedCount?: number
+  discussingCount?: number
 }
 
 export function dateKeyFromISO(iso: string): string {

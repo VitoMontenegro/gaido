@@ -26,12 +26,20 @@ func RolesFromContext(ctx context.Context) []string {
 	return roles
 }
 
-func attachUser(ctx context.Context, jwt *auth.JWTService, users UserLookup, r *http.Request) context.Context {
+func bearerToken(r *http.Request) string {
 	h := r.Header.Get("Authorization")
-	if !strings.HasPrefix(h, "Bearer ") {
+	if strings.HasPrefix(h, "Bearer ") {
+		return strings.TrimPrefix(h, "Bearer ")
+	}
+	return strings.TrimSpace(r.URL.Query().Get("access_token"))
+}
+
+func attachUser(ctx context.Context, jwt *auth.JWTService, users UserLookup, r *http.Request) context.Context {
+	token := bearerToken(r)
+	if token == "" {
 		return ctx
 	}
-	claims, err := jwt.ParseAccessToken(strings.TrimPrefix(h, "Bearer "))
+	claims, err := jwt.ParseAccessToken(token)
 	if err != nil {
 		return ctx
 	}

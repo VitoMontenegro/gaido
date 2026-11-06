@@ -10,9 +10,15 @@ import { ImageUrlField } from '../../components/ImageUrlField'
 import type { GuideCity, GuideCountry, GuideProfile } from './shared'
 import { CatalogStatusBanner, guideProfilePayload } from './shared'
 import { GUIDE_ABOUT_MAX_LEN, guideAboutLen, nextGuideAbout } from '../../lib/guideAbout'
+import GuideProfileTabs from '../../components/crm/GuideProfileTabs'
 
 export function GuideProfilePage() {
-  return <GuideProfileForm />
+  return (
+    <>
+      <GuideProfileTabs />
+      <GuideProfileForm />
+    </>
+  )
 }
 
 function resolveCountries(data?: GuideProfile): GuideCountry[] {

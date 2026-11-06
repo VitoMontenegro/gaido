@@ -20,4 +20,6 @@ export const notificationsApi = {
     ),
   markRead: (id: number) =>
     api<{ status: string }>(`/api/v1/notifications/${id}/read`, { method: 'PATCH' }),
+  markAllRead: () =>
+    api<{ status: string }>('/api/v1/notifications/read-all', { method: 'PATCH' }),
 }

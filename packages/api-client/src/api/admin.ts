@@ -216,6 +216,15 @@ export type AdminAnalytics = {
   total_complaints: number
   pending_complaints: number
   provider_subscriptions: number
+  inquiries_total: number
+  inquiries_new: number
+  inquiries_discussing: number
+  inquiries_pending: number
+  inquiries_booked: number
+  inquiries_done: number
+  inquiries_cancelled: number
+  inquiry_guides: number
+  inquiry_tourists: number
   recent_payments: AdminPaymentRow[]
 }
 

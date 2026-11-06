@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api, articlesApi, catalogApi, type PublicGuide } from '@gaido/api-client/api/client'
@@ -19,6 +19,8 @@ import { seoGuideHeading, seoGuideSubtitle, seoGuideTitle } from '../lib/seoTemp
 import { buildExcursionItemListJsonLd, buildPersonJsonLd } from '../lib/excursionListingSchema'
 import { displayGuideAbout } from '../lib/guideAbout'
 import { Seo } from '../lib/seo'
+import DiscussInquiryDialog from '../components/crm/DiscussInquiryDialog'
+import { trackGuideEvent } from '../lib/funnelSession'
 
 export default function GuidePage() {
   const { slug = '' } = useParams()
@@ -46,9 +48,11 @@ export default function GuidePage() {
   })
 
   const isGuideOwner = !!guide && myGuide?.id === guide.id
+  const [discussOpen, setDiscussOpen] = useState(false)
 
   useEffect(() => {
     if (!guide) return
+    void trackGuideEvent({ guide_id: guide.id, event_type: 'profile_view' })
     trackRecentView({
       type: 'guide',
       slug: guide.slug,
@@ -168,9 +172,15 @@ export default function GuidePage() {
         </div>
 
         <aside className="h-fit lg:sticky lg:top-24">
-          <ContactBlock guide={guide} />
+          <ContactBlock guide={guide} onDiscuss={() => setDiscussOpen(true)} />
         </aside>
       </div>
+      <DiscussInquiryDialog
+        open={discussOpen}
+        onClose={() => setDiscussOpen(false)}
+        guideId={guide.id}
+        guideOwns={isGuideOwner}
+      />
 
       <div className="container-site pb-10">
         <Link to="/guides" className="text-brand-700 hover:underline">← Усі гіди</Link>
@@ -207,7 +217,13 @@ function GuideHero({ guide, excursionCount }: { guide: PublicGuide; excursionCou
   )
 }
 
-function ContactBlock({ guide }: { guide: PublicGuide }) {
+function ContactBlock({
+  guide,
+  onDiscuss,
+}: {
+  guide: PublicGuide
+  onDiscuss?: () => void
+}) {
   // const telegramBotURL = useTelegramBotURL()
   const links = guideContactLinks(guide.contacts)
 
@@ -216,7 +232,12 @@ function ContactBlock({ guide }: { guide: PublicGuide }) {
       <p className="font-display text-lg font-bold">Зв&apos;язатися з гідом</p>
       {links.length > 0 ? (
         <div className="mt-4 space-y-3">
-          <GuideContactPills links={links} />
+          <GuideContactPills
+            links={links}
+            onContactClick={(key) => {
+              void trackGuideEvent({ guide_id: guide.id, event_type: 'contact_click', contact_type: key })
+            }}
+          />
           {guide.contacts.response_hours && (
             <p className="text-sm text-stone-600">{guide.contacts.response_hours}</p>
           )}
@@ -227,6 +248,11 @@ function ContactBlock({ guide }: { guide: PublicGuide }) {
             ? 'Гід поки не додав контакти для звʼязку.'
             : 'Контакти доступні після активації розміщення гіда.'}
         </p>
+      )}
+      {onDiscuss && (
+        <button type="button" className="btn-primary mt-4 w-full" onClick={onDiscuss}>
+          Обговорити
+        </button>
       )}
       {/*{telegramBotURL && (*/}
       {/*  <button*/}

@@ -150,6 +150,25 @@ func (r *AdminRepo) DashboardStats(ctx context.Context) (domain.AdminAnalytics, 
 		WHERE ps.status='ACTIVE' AND ps.expires_at > NOW() AND sp.code LIKE 'provider-%'`); err != nil {
 		return stats, err
 	}
+	err = r.db.Pool.QueryRow(ctx, `
+		SELECT COUNT(*)::int,
+			COUNT(*) FILTER (WHERE status='new')::int,
+			COUNT(*) FILTER (WHERE status='discussing')::int,
+			COUNT(*) FILTER (WHERE status='pending')::int,
+			COUNT(*) FILTER (WHERE status='booked')::int,
+			COUNT(*) FILTER (WHERE status IN ('done','closed'))::int,
+			COUNT(*) FILTER (WHERE status='cancelled')::int,
+			COUNT(DISTINCT guide_id)::int,
+			COUNT(DISTINCT tourist_user_id)::int
+		FROM inquiries
+	`).Scan(
+		&stats.InquiriesTotal, &stats.InquiriesNew, &stats.InquiriesDiscussing,
+		&stats.InquiriesPending, &stats.InquiriesBooked, &stats.InquiriesDone,
+		&stats.InquiriesCancelled, &stats.InquiryGuides, &stats.InquiryTourists,
+	)
+	if err != nil {
+		return stats, err
+	}
 
 	rows, err := r.db.Pool.Query(ctx, `
 		SELECT p.id, p.amount, p.currency, p.purpose, p.status, p.created_at,

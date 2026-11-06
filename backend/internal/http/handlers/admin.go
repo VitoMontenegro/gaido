@@ -109,6 +109,15 @@ func (h *Handlers) AdminAnalytics(w http.ResponseWriter, r *http.Request) {
 		"published_offerings": stats.PublishedOfferings, "pending_offerings": stats.PendingOfferings,
 		"total_complaints": stats.TotalComplaints, "pending_complaints": stats.PendingComplaints,
 		"provider_subscriptions": stats.ProviderSubscriptions,
+		"inquiries_total":        stats.InquiriesTotal,
+		"inquiries_new":          stats.InquiriesNew,
+		"inquiries_discussing":   stats.InquiriesDiscussing,
+		"inquiries_pending":      stats.InquiriesPending,
+		"inquiries_booked":       stats.InquiriesBooked,
+		"inquiries_done":         stats.InquiriesDone,
+		"inquiries_cancelled":    stats.InquiriesCancelled,
+		"inquiry_guides":         stats.InquiryGuides,
+		"inquiry_tourists":       stats.InquiryTourists,
 		"recent_payments":        recentPayments,
 	})
 }

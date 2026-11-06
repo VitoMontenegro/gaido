@@ -1,16 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { notificationsApi, type NotificationItem } from '@gaido/api-client/api/notifications'
 import { useNotifications } from '@gaido/api-client/hooks/useNotifications'
-
-const LABELS: Record<string, string> = {
-  EXCURSION_APPROVED: 'Екскурсію схвалено',
-  EXCURSION_REJECTED: 'Екскурсію відхилено',
-  SUBSCRIPTION_ACTIVATED: 'Підписку активовано',
-  SUBSCRIPTION_EXPIRED: 'Підписка закінчилась',
-  NEW_REVIEW: 'Новий відгук',
-  REVIEW_COMMENT: 'Відповідь на відгук',
-  REVIEW_DISPUTE: 'Оскарження відгуку',
-}
+import { NOTIFICATION_LABELS } from '../lib/notificationLabels'
 
 type DisputePayload = {
   review_id?: number
@@ -72,7 +63,7 @@ export default function NotificationsPanel() {
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="font-medium text-ink">{LABELS[n.type] ?? n.type}</p>
+                <p className="font-medium text-ink">{NOTIFICATION_LABELS[n.type] ?? n.type}</p>
                 <NotificationBody item={n} />
                 <p className="mt-1 text-xs text-muted">
                   {new Date(n.created_at).toLocaleString('uk-UA')}

@@ -7,6 +7,7 @@ import { ImageUrlField } from '../components/ImageUrlField'
 import { useHasRole, useMe } from '@gaido/api-client/hooks/useAuth'
 import { SiteContentEditor } from '../components/SiteContentEditor'
 import { AdminExcursionsList, AdminGuidesList, AdminReviewsList, AdminUsersList, AdminCarriersList, AdminTransportRidesList, AdminProvidersList, AdminOfferingsList, AdminComplaintsList } from '../components/AdminEntityLists'
+import AdminInquiriesPanel from '../components/AdminInquiriesPanel'
 import { ArticlesEditor } from '../components/ArticlesEditor'
 import { PlacePagesEditor } from '../components/PlacePagesEditor'
 import { formatPrice } from '../components/excursionUi'
@@ -14,7 +15,7 @@ import { getSiteMode, type SiteMode } from '@gaido/site-urls/site'
 import { BODY_FONT_STACK } from '@gaido/ui-primitives/bodyFont'
 import { useDocumentTitle } from '@gaido/ui-primitives/useDocumentTitle'
 
-type AdminTab = 'analytics' | 'users' | 'guides' | 'excursions' | 'reviews' | 'carriers' | 'vezu' | 'providers' | 'offerings' | 'complaints' | 'settings' | 'content' | 'journal' | 'places' | 'audit' | 'cookies'
+type AdminTab = 'analytics' | 'users' | 'guides' | 'excursions' | 'reviews' | 'carriers' | 'vezu' | 'providers' | 'offerings' | 'complaints' | 'inquiries' | 'settings' | 'content' | 'journal' | 'places' | 'audit' | 'cookies'
 
 const ALL_SITES: SiteMode[] = ['portal', 'guides', 'transport', 'services']
 
@@ -28,6 +29,7 @@ const TABS: { id: AdminTab; label: string; siteModes: SiteMode[] }[] = [
   { id: 'providers', label: 'Автори оголошень', siteModes: ['portal', 'services'] },
   { id: 'offerings', label: 'Оголошення', siteModes: ['portal', 'services'] },
   { id: 'complaints', label: 'Скарги', siteModes: ['portal', 'services'] },
+  { id: 'inquiries', label: 'Заявки', siteModes: ['portal', 'guides'] },
   { id: 'reviews', label: 'Відгуки', siteModes: ['portal', 'guides'] },
   { id: 'settings', label: 'Налаштування', siteModes: ALL_SITES },
   { id: 'content', label: 'Контент сайту', siteModes: ALL_SITES },
@@ -133,6 +135,7 @@ export default function AdminPage() {
             onOpenProviders={() => { setProvidersFilter(undefined); setTab('providers') }}
             onOpenOfferings={() => { setOfferingsFilter(undefined); setTab('offerings') }}
             onOpenComplaints={() => { setComplaintsFilter('open'); setTab('complaints') }}
+            onOpenInquiries={() => setTab('inquiries')}
           />
         )}
 
@@ -247,6 +250,7 @@ export default function AdminPage() {
             <AdminComplaintsList statusFilter={complaintsFilter} />
           </div>
         )}
+        {tab === 'inquiries' && <AdminInquiriesPanel />}
         {tab === 'reviews' && <AdminReviewsList />}
 
         {tab === 'settings' && (
@@ -658,6 +662,7 @@ function AnalyticsDashboard({
   onOpenProviders,
   onOpenOfferings,
   onOpenComplaints,
+  onOpenInquiries,
 }: {
   data: AdminAnalytics
   onOpenUsers: () => void
@@ -669,6 +674,7 @@ function AnalyticsDashboard({
   onOpenProviders: () => void
   onOpenOfferings: () => void
   onOpenComplaints: () => void
+  onOpenInquiries: () => void
 }) {
   return (
     <div className="space-y-5">
@@ -679,6 +685,28 @@ function AnalyticsDashboard({
           <StatCard label="Активні гіди" value={data.active_guides} tone="teal" onClick={onOpenGuides} />
           <StatCard label="Екскурсії" value={data.published_excursions} hint={`${data.pending_moderation_excursions} на модерації`} onClick={onOpenExcursions} />
           <StatCard label="Відгуки" value={data.published_reviews} hint={`${data.pending_reviews} очікують`} onClick={onOpenReviews} />
+        </StatGrid>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="font-display text-lg font-bold">Заявки гідів</h2>
+        <StatGrid cols={4}>
+          <StatCard
+            label="Усього заявок"
+            value={data.inquiries_total}
+            hint={`${data.inquiry_tourists} туристів · ${data.inquiry_guides} гідів`}
+            tone="brand"
+            onClick={onOpenInquiries}
+          />
+          <StatCard label="Первинний діалог" value={data.inquiries_new} tone={data.inquiries_new ? 'amber' : 'default'} onClick={onOpenInquiries} />
+          <StatCard label="В роботі / очікують" value={data.inquiries_discussing + data.inquiries_pending} hint={`${data.inquiries_pending} на підтвердженні`} onClick={onOpenInquiries} />
+          <StatCard
+            label="Бронь / виконано"
+            value={data.inquiries_booked}
+            hint={`${data.inquiries_done} виконано · ${data.inquiries_cancelled} скасовано`}
+            tone="teal"
+            onClick={onOpenInquiries}
+          />
         </StatGrid>
       </section>
 

@@ -56,16 +56,36 @@ export function GuidesAccountLayout() {
             ← На головну
           </Link>
           <p className="section-title-sm mb-4">Кабінет</p>
-          {isGuide && (
+          {isGuide ? (
             <>
-              <AccountNavLink to="/account/guide" exceptPrefixes={['/account/guide/billing', '/account/guide/instructions']}>
-                Кабінет гіда{unread > 0 ? ` (${unread})` : ''}
+              <AccountNavLink
+                to="/account/guide"
+                exceptPrefixes={[
+                  '/account/guide/profile',
+                  '/account/guide/documents',
+                  '/account/guide/excursions',
+                  '/account/guide/reviews',
+                  '/account/guide/articles',
+                  '/account/guide/instructions',
+                  '/account/guide/billing',
+                ]}
+              >
+                Кабінет{unread > 0 ? ` (${unread})` : ''}
               </AccountNavLink>
-              <AccountNavLink to="/account/guide/billing">Білінг</AccountNavLink>
+              <AccountNavLink to="/account/guide/profile" alsoPrefixes={['/account/guide/documents']}>
+                Профіль
+              </AccountNavLink>
+              <AccountNavLink to="/account/guide/excursions">Мої екскурсії</AccountNavLink>
+              <AccountNavLink to="/account/guide/reviews">Відгуки</AccountNavLink>
+              <AccountNavLink to="/account/guide/articles">Статті</AccountNavLink>
+              <AccountNavLink to="/account/guide/instructions">Інструкції</AccountNavLink>
+            </>
+          ) : (
+            <>
+              <AccountNavLink to="/account/inquiries">Заявки гідам</AccountNavLink>
+              <AccountNavLink to="/account/settings">Налаштування</AccountNavLink>
             </>
           )}
-          <AccountNavLink to="/account/settings">Налаштування</AccountNavLink>
-          {isGuide && <AccountNavLink to="/account/guide/instructions">Інструкції</AccountNavLink>}
           {(isAdmin || isModerator) && (
             <>
 

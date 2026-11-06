@@ -52,6 +52,15 @@ func (h *Handlers) MarkNotificationRead(w http.ResponseWriter, r *http.Request) 
 	response.JSON(w, r, 200, map[string]string{"status": "ok"})
 }
 
+func (h *Handlers) MarkAllNotificationsRead(w http.ResponseWriter, r *http.Request) {
+	uid := middleware.UserIDFromContext(r.Context())
+	if err := h.Notif.MarkAllRead(r.Context(), uid); err != nil {
+		response.Error(w, r, apperrors.ErrInternal)
+		return
+	}
+	response.JSON(w, r, 200, map[string]string{"status": "ok"})
+}
+
 func (h *Handlers) Longpoll(w http.ResponseWriter, r *http.Request) {
 	uid := middleware.UserIDFromContext(r.Context())
 	after, _ := strconv.ParseInt(r.URL.Query().Get("after"), 10, 64)

@@ -56,6 +56,14 @@ func (r *NotificationRepo) MarkRead(ctx context.Context, userID, id int64) error
 	return nil
 }
 
+func (r *NotificationRepo) MarkAllRead(ctx context.Context, userID int64) error {
+	_, err := r.db.Pool.Exec(ctx, `
+		UPDATE notifications SET read_at = COALESCE(read_at, NOW())
+		WHERE user_id = $1 AND read_at IS NULL
+	`, userID)
+	return err
+}
+
 func (r *NotificationRepo) ListRecent(ctx context.Context, userID int64, limit int) ([]map[string]any, error) {
 	if limit <= 0 || limit > 100 {
 		limit = 50

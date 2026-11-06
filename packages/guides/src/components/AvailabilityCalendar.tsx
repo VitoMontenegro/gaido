@@ -27,6 +27,9 @@ type Props = {
   loading?: boolean
   emptyHint?: string
   footnote?: string
+  selectMode?: boolean
+  pickMode?: boolean
+  onToggleMonthDays?: (dateKeys: string[]) => void
 }
 
 function MonthGrid({
@@ -38,6 +41,9 @@ function MonthGrid({
   onDateClick,
   hideTitle,
   readOnly,
+  selectMode,
+  pickMode,
+  onToggleMonthDays,
 }: {
   year: number
   month: number
@@ -47,15 +53,33 @@ function MonthGrid({
   onDateClick?: (dateKey: string, item?: CalendarDateItem) => void
   hideTitle?: boolean
   readOnly?: boolean
+  selectMode?: boolean
+  pickMode?: boolean
+  onToggleMonthDays?: (dateKeys: string[]) => void
 }) {
   const cells = buildMonthGrid(year, month)
+  const monthDays = cells.map((c) => c.dateKey).filter((key): key is string => !!key && !isPastDate(key))
+  const monthAllOpen = monthDays.length > 0 && monthDays.every((key) => !!byDate.get(key)?.id)
 
   return (
     <div className="min-w-0 flex-1">
-      {!hideTitle && (
-        <p className="mb-2 text-center text-sm font-semibold text-stone-800">
-          {monthLabelShort(year, month)} {year}
-        </p>
+      {(!hideTitle || pickMode) && (
+        <div className={`mb-2 flex items-center gap-2 ${hideTitle ? 'justify-end' : 'justify-between'}`}>
+          {!hideTitle && (
+            <p className="text-sm font-semibold text-stone-800">
+              {monthLabelShort(year, month)} {year}
+            </p>
+          )}
+          {pickMode && onToggleMonthDays && monthDays.length > 0 && (
+            <button
+              type="button"
+              className="shrink-0 text-xs font-medium text-teal hover:underline"
+              onClick={() => onToggleMonthDays(monthDays)}
+            >
+              {monthAllOpen ? 'Зняти всі' : 'Вибрати всі дні'}
+            </button>
+          )}
+        </div>
       )}
       <div className="grid grid-cols-7 gap-px text-center text-[11px] font-medium text-stone-400">
         {WEEKDAYS.map((d) => (
@@ -70,26 +94,38 @@ function MonthGrid({
           const dateKey = cell.dateKey
           const item = byDate.get(dateKey)
           const past = isPastDate(dateKey)
-          const available = !!item && !past
+          const available = !!item?.id && !past
+          const booked = (item?.bookedCount ?? 0) > 0
+          const pending = (item?.pendingCount ?? 0) > 0
+          const discussing = (item?.discussingCount ?? 0) > 0
           const isSelected = !readOnly && selected === dateKey
-          const clickable = !readOnly && (mode === 'edit' ? !past : available)
-          const cellClass = `flex h-12 flex-col items-center justify-center rounded-lg px-0.5 ${
+          const clickable = !readOnly && (pickMode ? !past : selectMode ? true : mode === 'edit' ? !past : available)
+          const cellClass = `relative flex h-12 flex-col items-center justify-center rounded-lg px-0.5 ${
             isSelected
-              ? 'bg-teal text-white shadow-sm'
+              ? available
+                ? 'bg-teal text-white shadow-sm ring-2 ring-ink/30'
+                : 'bg-ink text-white shadow-sm'
               : available
                 ? readOnly
                   ? 'bg-teal-100 text-brand-800'
                   : 'bg-teal-100 text-brand-800 hover:bg-brand-100'
                 : past
                   ? 'text-stone-300'
-                  : mode === 'edit'
+                  : mode === 'edit' || selectMode
                     ? 'text-stone-500 hover:bg-stone-50'
                     : 'text-stone-300'
           }`
           const content = (
             <>
               <span className="text-xs font-semibold leading-none">{cell.day}</span>
-
+              {(booked || pending || discussing) && (
+                <span className="mt-1 flex items-center justify-center gap-0.5">
+                  {available && !isSelected && <span className="h-1 w-1 rounded-full bg-teal" />}
+                  {pending && <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />}
+                  {booked && <span className="h-1.5 w-1.5 rounded-full bg-ink" />}
+                  {discussing && !pending && !booked && <span className="h-1.5 w-1.5 rounded-full bg-stone-400" />}
+                </span>
+              )}
             </>
           )
 
@@ -168,6 +204,9 @@ export default function AvailabilityCalendar({
   loading,
   emptyHint,
   footnote,
+  selectMode = false,
+  pickMode = false,
+  onToggleMonthDays,
 }: Props) {
   const byDate = useMemo(() => {
     const map = new Map<string, CalendarDateItem>()
@@ -231,6 +270,9 @@ export default function AvailabilityCalendar({
             onDateClick={onDateClick}
             hideTitle={showMonthTabs}
             readOnly={readOnly}
+            selectMode={selectMode}
+            pickMode={pickMode}
+            onToggleMonthDays={onToggleMonthDays}
           />
           {!singleMonth && (
             <MonthGrid
@@ -240,6 +282,9 @@ export default function AvailabilityCalendar({
               selected={selected}
               mode={mode}
               onDateClick={onDateClick}
+              selectMode={selectMode}
+              pickMode={pickMode}
+              onToggleMonthDays={onToggleMonthDays}
             />
           )}
         </div>
@@ -253,8 +298,15 @@ export default function AvailabilityCalendar({
         <p className="text-sm text-stone-500">{footnote}</p>
       )}
 
-      {mode === 'edit' && (
+      {mode === 'edit' && !selectMode && (
         <p className="text-xs text-stone-500">Натисніть день, щоб додати або зняти дату.</p>
+      )}
+      {selectMode && (
+        <div className="flex flex-wrap gap-3 text-xs text-stone-500">
+          <span className="inline-flex items-center gap-1"><span className="h-3 w-3 rounded bg-teal-100" /> вільний</span>
+          <span className="inline-flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-amber-500" /> очікує підтвердження</span>
+          <span className="inline-flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-ink" /> заброньовано</span>
+        </div>
       )}
     </div>
   )
