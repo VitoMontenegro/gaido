@@ -479,7 +479,7 @@ func (r *InquiryRepo) FunnelStats(ctx context.Context, guideID int64, from, to t
 				NOT (
 					e.event_type IN ('profile_view', 'excursion_view')
 					AND (
-						e.user_id = gp.user_id
+						(e.user_id IS NOT NULL AND e.user_id = gp.user_id)
 						OR COALESCE('ROLE_ADMIN' = ANY(u.roles), false)
 					)
 				) AS visitor
