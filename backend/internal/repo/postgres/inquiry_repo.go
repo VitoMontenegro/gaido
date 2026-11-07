@@ -471,11 +471,23 @@ func (r *InquiryRepo) FunnelStats(ctx context.Context, guideID int64, from, to t
 	st.To = to.Format("2006-01-02")
 	err := r.db.Pool.QueryRow(ctx, `
 		SELECT
-			COUNT(*) FILTER (WHERE event_type='profile_view')::int,
-			COUNT(*) FILTER (WHERE event_type='excursion_view')::int,
+			COUNT(*) FILTER (WHERE event_type='profile_view' AND visitor)::int,
+			COUNT(*) FILTER (WHERE event_type='excursion_view' AND visitor)::int,
 			COUNT(*) FILTER (WHERE event_type='contact_click')::int
-		FROM guide_funnel_events
-		WHERE guide_id=$1 AND created_at >= $2 AND created_at < $3
+		FROM (
+			SELECT e.event_type,
+				NOT (
+					e.event_type IN ('profile_view', 'excursion_view')
+					AND (
+						e.user_id = gp.user_id
+						OR COALESCE('ROLE_ADMIN' = ANY(u.roles), false)
+					)
+				) AS visitor
+			FROM guide_funnel_events e
+			JOIN guide_profiles gp ON gp.id = e.guide_id
+			LEFT JOIN users u ON u.id = e.user_id
+			WHERE e.guide_id=$1 AND e.created_at >= $2 AND e.created_at < $3
+		) s
 	`, guideID, from, to).Scan(&st.ProfileViews, &st.ExcursionViews, &st.ContactClicks)
 	if err != nil {
 		return st, err

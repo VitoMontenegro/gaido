@@ -14,6 +14,7 @@ import (
 	"github.com/vitomonte/experts-tourister/internal/domain"
 	"github.com/vitomonte/experts-tourister/internal/http/middleware"
 	"github.com/vitomonte/experts-tourister/internal/http/response"
+	"github.com/vitomonte/experts-tourister/internal/impersonate"
 )
 
 func hasAnyRole(roles []string, want ...string) bool {
@@ -807,10 +808,16 @@ func (h *Handlers) TrackGuideEvent(w http.ResponseWriter, r *http.Request) {
 	var userPtr *int64
 	if uid > 0 {
 		userPtr = &uid
-		if uid == g.UserID {
-			response.JSON(w, r, 204, nil)
-			return
-		}
+	}
+	// Свой профиль гид не засчитывает ни в визиты, ни в клики.
+	// Админ и сессия «войти как гид» не попадают только в визиты профиля и экскурсий.
+	if uid > 0 && uid == g.UserID {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	if unique && internalFunnelViewer(r.Context(), uid, g.UserID) {
+		w.WriteHeader(http.StatusNoContent)
+		return
 	}
 	session := strings.TrimSpace(req.SessionKey)
 	if utf8.RuneCountInString(session) > 64 {
@@ -818,4 +825,15 @@ func (h *Handlers) TrackGuideEvent(w http.ResponseWriter, r *http.Request) {
 	}
 	_ = h.Inquiries.InsertFunnel(r.Context(), g.ID, req.ExcursionID, userPtr, session, req.EventType, unique)
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// internalFunnelViewer — сам гид, администратор или админ в режиме «войти как гид».
+func internalFunnelViewer(ctx context.Context, viewerID, guideUserID int64) bool {
+	if viewerID > 0 && viewerID == guideUserID {
+		return true
+	}
+	if impersonate.FromContext(ctx) != nil {
+		return true
+	}
+	return hasAnyRole(middleware.RolesFromContext(ctx), domain.RoleAdmin)
 }

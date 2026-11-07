@@ -35,7 +35,10 @@ export function GuideStatsPage() {
               Медіана першої відповіді:{' '}
               {data.median_reply_minutes != null ? `${data.median_reply_minutes} хв` : 'ще немає даних'}
             </p>
-            <p className="text-stone-500">Період: {data.from} — {data.to}. Правило: унікальний візит рахується раз на добу для однієї сесії.</p>
+            <p className="text-stone-500">
+              Період: {data.from} — {data.to}. Правило: унікальний візит рахується раз на добу для однієї
+              сесії.
+            </p>
           </div>
         </>
       )}
