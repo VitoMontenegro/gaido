@@ -73,12 +73,17 @@ func (h *Handlers) canPreviewUnpublishedExcursion(ctx context.Context, guideID i
 }
 
 func (h *Handlers) getExcursionViewByRef(ctx context.Context, ref string) (*domain.ExcursionView, error) {
-	if id, err := strconv.ParseInt(ref, 10, 64); err == nil && id > 0 {
-		if v, err := h.Exc.GetViewByID(ctx, id); err == nil && v != nil {
-			return v, nil
-		}
+	ref = strings.TrimSpace(ref)
+	if ref == "" {
+		return nil, nil
 	}
-	return h.Exc.GetViewBySlug(ctx, ref)
+	if v, err := h.Exc.GetViewBySlug(ctx, ref); err == nil && v != nil {
+		return v, nil
+	}
+	if id, ok := guidesvc.ExcursionIDFromRef(ref); ok {
+		return h.Exc.GetViewByID(ctx, id)
+	}
+	return nil, nil
 }
 
 func (h *Handlers) canViewExcursion(ctx context.Context, e *domain.ExcursionView) bool {

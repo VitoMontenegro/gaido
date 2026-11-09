@@ -1,5 +1,5 @@
 import { useState, useEffect, type ReactNode } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@gaido/api-client/api/client'
 import { reviewsApi } from '@gaido/api-client/api/reviews'
@@ -138,6 +138,7 @@ function ExcursionBookingPanel({
 
 export default function ExcursionPage() {
   const { slug = '' } = useParams()
+  const navigate = useNavigate()
   const { data: me } = useMe()
   const isGuideRole = useHasRole('ROLE_GUIDE')
   const [availabilityOpen, setAvailabilityOpen] = useState(false)
@@ -168,6 +169,11 @@ export default function ExcursionPage() {
       ),
     enabled: !!slug && !!excursion && excursion.status === 'PUBLISHED',
   })
+
+  useEffect(() => {
+    if (!excursion?.slug || !slug || excursion.slug === slug) return
+    navigate(`/excursion/${excursion.slug}`, { replace: true })
+  }, [excursion?.slug, slug, navigate])
 
   useEffect(() => {
     if (!excursion || excursion.status !== 'PUBLISHED' || !excursion.guide_id) return

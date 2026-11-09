@@ -9,6 +9,8 @@ import (
 	"github.com/joho/godotenv"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
+
+	_ "github.com/vitomonte/experts-tourister/internal/dbmigrate"
 )
 
 func main() {

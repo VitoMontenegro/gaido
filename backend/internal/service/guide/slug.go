@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"unicode"
 
@@ -175,6 +176,116 @@ func safeArticleSlugInput(s string) bool {
 		return false
 	}
 	return !strings.HasPrefix(lower, "http:") && !strings.HasPrefix(lower, "https:")
+}
+
+const maxExcursionThemeLen = 40
+const maxExcursionThemeTokens = 4
+
+// ExcursionPublicSlug — URL екскурсії: {місто}-{тема}-{id}. Гід його не редагує.
+func ExcursionPublicSlug(id int64, citySlug, title string) string {
+	idPart := strconv.FormatInt(id, 10)
+	if id <= 0 {
+		return asciiSlug(title)
+	}
+	city := asciiSlug(citySlug)
+	theme := excursionThemeSlug(title, city)
+	switch {
+	case city != "" && theme != "":
+		return city + "-" + theme + "-" + idPart
+	case city != "":
+		return city + "-" + idPart
+	case theme != "":
+		return theme + "-" + idPart
+	default:
+		return idPart
+	}
+}
+
+// ExcursionIDFromRef читає id з /excursion/425 або /excursion/florence-uffitsi-425.
+func ExcursionIDFromRef(ref string) (int64, bool) {
+	ref = strings.TrimSpace(ref)
+	if ref == "" {
+		return 0, false
+	}
+	if id, err := strconv.ParseInt(ref, 10, 64); err == nil && id > 0 {
+		return id, true
+	}
+	i := strings.LastIndex(ref, "-")
+	if i < 0 || i == len(ref)-1 {
+		return 0, false
+	}
+	id, err := strconv.ParseInt(ref[i+1:], 10, 64)
+	if err != nil || id <= 0 {
+		return 0, false
+	}
+	return id, true
+}
+
+func excursionThemeSlug(title, citySlug string) string {
+	raw := asciiSlug(normalizeCityName(title))
+	if raw == "" || raw == citySlug {
+		return ""
+	}
+	cityTok := map[string]struct{}{}
+	for _, tok := range strings.Split(citySlug, "-") {
+		if tok != "" {
+			cityTok[tok] = struct{}{}
+		}
+	}
+	var kept []string
+	n := 0
+	for _, tok := range strings.Split(raw, "-") {
+		if tok == "" {
+			continue
+		}
+		if _, skip := cityTok[tok]; skip {
+			continue
+		}
+		if _, stop := excursionSlugStop[tok]; stop {
+			continue
+		}
+		if len(tok) == 1 {
+			continue
+		}
+		next := tok
+		if n > 0 {
+			next = strings.Join(append(append([]string{}, kept...), tok), "-")
+		}
+		if n >= maxExcursionThemeTokens || len(next) > maxExcursionThemeLen {
+			break
+		}
+		kept = append(kept, tok)
+		n++
+	}
+	out := strings.Join(kept, "-")
+	if out == citySlug || similarSlug(out, citySlug) {
+		return ""
+	}
+	return out
+}
+
+func similarSlug(a, b string) bool {
+	if a == "" || b == "" || a == b {
+		return a == b && a != ""
+	}
+	n := 5
+	if len(a) < n || len(b) < n {
+		return false
+	}
+	return strings.HasPrefix(a, b[:n]) || strings.HasPrefix(b, a[:n])
+}
+
+var excursionSlugStop = map[string]struct{}{
+	"ekskursiia": {}, "ekskursii": {}, "ekskursiiu": {}, "ekskursiieiu": {},
+	"prohulianka": {}, "prohulianky": {}, "prohulianku": {},
+	"tur": {}, "tury": {}, "tour": {}, "tours": {}, "walk": {}, "walking": {},
+	"dlia": {}, "ta": {}, "i": {}, "z": {}, "u": {}, "v": {}, "na": {}, "po": {},
+	"vid": {}, "do": {}, "iak": {}, "shcho": {}, "tse": {}, "the": {}, "a": {}, "an": {},
+	"and": {}, "of": {}, "with": {}, "for": {},
+	"hodyna": {}, "hodyny": {}, "hodyn": {}, "hour": {}, "hours": {},
+	"indyvidualna": {}, "indyvidualnu": {}, "hrupova": {}, "hrupovu": {},
+	"pryvatna": {}, "pryvatnu": {},
+	"misto": {}, "mistom": {}, "mistu": {}, "city": {},
 }
 
 func asciiSlug(s string) string {

@@ -38,6 +38,7 @@ const RESERVED_SVIT_SEGMENTS = new Set([
 
 const CITY_TAIL = /^\/svit\/city\/([^/]+)\/(guides|excursions)\/?$/
 const SHORT_CITY = /^\/svit\/([^/]+)\/?$/
+const EXCURSION_PAGE = /^\/svit\/excursion\/([^/]+)\/?$/
 
 function apiOrigin(): string {
   return (
@@ -67,6 +68,25 @@ function publicURL(request: NextRequest, pathname: string, search: string): stri
     return `${origin.replace('://www.gaido-ua.com', '://gaido-ua.com')}${pathname}${search}`
   }
   return `${origin}${pathname}${search}`
+}
+
+async function canonicalExcursionSlug(ref: string): Promise<string | null> {
+  const ctrl = new AbortController()
+  const timer = setTimeout(() => ctrl.abort(), 1500)
+  try {
+    const res = await fetch(`${apiOrigin()}/api/v1/excursions/${encodeURIComponent(ref)}`, {
+      signal: ctrl.signal,
+      cache: 'no-store',
+    })
+    if (!res.ok) return null
+    const data = (await res.json()) as { slug?: string }
+    const slug = (data.slug || '').trim()
+    return slug || null
+  } catch {
+    return null
+  } finally {
+    clearTimeout(timer)
+  }
 }
 
 async function isActiveCitySlug(slug: string): Promise<boolean> {
@@ -100,6 +120,14 @@ export async function middleware(request: NextRequest) {
   const tail = pathname.match(CITY_TAIL)
   if (tail) {
     return NextResponse.redirect(publicURL(request, `/svit/city/${tail[1]}`, search), 308)
+  }
+
+  const excursion = pathname.match(EXCURSION_PAGE)
+  if (excursion && /^\d+$/.test(excursion[1])) {
+    const canonical = await canonicalExcursionSlug(excursion[1])
+    if (canonical && canonical !== excursion[1]) {
+      return NextResponse.redirect(publicURL(request, `/svit/excursion/${canonical}`, search), 308)
+    }
   }
 
   const short = pathname.match(SHORT_CITY)

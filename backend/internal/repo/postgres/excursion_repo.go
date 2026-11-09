@@ -12,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/vitomonte/experts-tourister/internal/domain"
 	"github.com/vitomonte/experts-tourister/internal/sanitize"
+	guidesvc "github.com/vitomonte/experts-tourister/internal/service/guide"
 )
 
 type ExcursionRepo struct{ db *DB }
@@ -200,7 +201,14 @@ func (r *ExcursionRepo) Create(ctx context.Context, e *domain.Excursion) (int64,
 		return 0, err
 	}
 
-	slug := strconv.FormatInt(id, 10)
+	var citySlug string
+	if e.CityID > 0 {
+		_ = tx.QueryRow(ctx, `SELECT COALESCE(slug, '') FROM cities WHERE id=$1`, e.CityID).Scan(&citySlug)
+	}
+	slug := guidesvc.ExcursionPublicSlug(id, citySlug, e.Title)
+	if slug == "" {
+		slug = strconv.FormatInt(id, 10)
+	}
 	if _, err = tx.Exec(ctx, `UPDATE excursions SET slug=$1, updated_at=NOW() WHERE id=$2`, slug, id); err != nil {
 		return 0, err
 	}

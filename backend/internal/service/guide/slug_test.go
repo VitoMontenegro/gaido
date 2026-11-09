@@ -65,6 +65,38 @@ func TestAllocateUnique(t *testing.T) {
 	}
 }
 
+func TestExcursionPublicSlug(t *testing.T) {
+	tests := []struct {
+		id         int64
+		city, title, want string
+	}{
+		{425, "florentsiia", "Уффіці.  Зустріч з прекрасним.", "florentsiia-uffitsi-zustrich-prekrasnym-425"},
+		{434, "bilbao", "БІЛЬБАО- МІСТО ФЕНОМЕН", "bilbao-fenomen-434"},
+		{435, "san-sebastian", "Сан-Себастьян", "san-sebastian-435"},
+		{437, "biarritz", "Біарріц", "biarritz-437"},
+		{429, "niu-york", "Музей Метрополітан - головні шедеври", "niu-york-muzey-metropolitan-holovni-shedevry-429"},
+		{208, "rome", "Екскурсія Колізеєм для дітей", "rome-kolizeiem-ditey-208"},
+		{12, "", "!!!", "12"},
+	}
+	for _, tt := range tests {
+		if got := ExcursionPublicSlug(tt.id, tt.city, tt.title); got != tt.want {
+			t.Fatalf("ExcursionPublicSlug(%d, %q, %q) = %q, want %q", tt.id, tt.city, tt.title, got, tt.want)
+		}
+	}
+}
+
+func TestExcursionIDFromRef(t *testing.T) {
+	if id, ok := ExcursionIDFromRef("425"); !ok || id != 425 {
+		t.Fatalf("numeric: %d %v", id, ok)
+	}
+	if id, ok := ExcursionIDFromRef("florentsiia-uffitsi-425"); !ok || id != 425 {
+		t.Fatalf("pretty: %d %v", id, ok)
+	}
+	if _, ok := ExcursionIDFromRef("rome"); ok {
+		t.Fatal("city slug is not an id")
+	}
+}
+
 func TestCitySlug(t *testing.T) {
 	tests := map[string]string{
 		"Краків":   "krakiv",

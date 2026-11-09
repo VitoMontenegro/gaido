@@ -362,7 +362,7 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 		if len(parts) != 2 || h.Exc == nil {
 			return nil
 		}
-		e, err := h.Exc.GetViewBySlug(ctx, parts[1])
+		e, err := h.getExcursionViewByRef(ctx, parts[1])
 		if err != nil || e == nil || e.Status != domain.ExcursionPublished {
 			return nil
 		}
