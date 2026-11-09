@@ -12,6 +12,7 @@ import (
 func (h *Handlers) RobotsTxt(w http.ResponseWriter, r *http.Request) {
 	base := h.publicBaseURL()
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Header().Set("Cache-Control", "public, max-age=300")
 	lines := []string{
 		"User-agent: *",
 		"Allow: /",

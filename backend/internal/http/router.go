@@ -25,7 +25,7 @@ func NewRouter(cfg config.Config, log *slog.Logger, h *handlers.Handlers) http.H
 	r.Use(middleware.Logger(log))
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   cfg.CORSOrigins,
-		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowedMethods:   []string{"GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-Request-ID", middleware.ActAsGuideHeader},
 		AllowCredentials: true,
 	}))
@@ -34,8 +34,8 @@ func NewRouter(cfg config.Config, log *slog.Logger, h *handlers.Handlers) http.H
 		response.JSON(w, r, 200, map[string]string{"status": "ok"})
 	})
 	r.Get("/readyz", h.Ready)
-	r.Get("/robots.txt", h.RobotsTxt)
-	r.Get("/sitemap.xml", h.SitemapXML)
+	getHead(r, "/robots.txt", h.RobotsTxt)
+	getHead(r, "/sitemap.xml", h.SitemapXML)
 
 	r.Route("/api/v1", func(api chi.Router) {
 		registerLimit := middleware.AuthRateLimit(5, time.Minute, cfg.TrustProxy)
@@ -429,6 +429,11 @@ func legacySectionRedirect(w http.ResponseWriter, r *http.Request) bool {
 	}
 	http.Redirect(w, r, target, http.StatusMovedPermanently)
 	return true
+}
+
+func getHead(r chi.Router, pattern string, fn http.HandlerFunc) {
+	r.Method(http.MethodGet, pattern, fn)
+	r.Method(http.MethodHead, pattern, fn)
 }
 
 func normalizeHost(host string) string {

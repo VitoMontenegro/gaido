@@ -45,6 +45,10 @@ note "== robots.txt =="
 robots="$(curl -fsSL "$APEX/robots.txt")"
 printf '%s\n' "$robots" | head -25
 printf '%s\n' "$robots" | grep -q "Sitemap: " || bad "в robots нет Sitemap:"
+robots_head="$(curl -sI -o /dev/null -w '%{http_code}' "$APEX/robots.txt" || true)"
+if [[ "$robots_head" != "200" ]]; then
+  bad "HEAD $APEX/robots.txt → ${robots_head:-?} (ожидался 200)"
+fi
 
 note
 note "== sitemap: есть подпапки =="
@@ -58,6 +62,10 @@ fi
 printf '%s\n' "$sitemap" | grep -q "/svit/" || bad "в sitemap нет /svit/"
 printf '%s\n' "$sitemap" | grep -q "/vezu/" || bad "в sitemap нет /vezu/"
 printf '%s\n' "$sitemap" | grep -q "/servis/" || bad "в sitemap нет /servis/"
+sitemap_head="$(curl -sI -o /dev/null -w '%{http_code}' "$APEX/sitemap.xml" || true)"
+if [[ "$sitemap_head" != "200" ]]; then
+  bad "HEAD $APEX/sitemap.xml → ${sitemap_head:-?} (ожидался 200)"
+fi
 
 check_head() {
   local url="$1"

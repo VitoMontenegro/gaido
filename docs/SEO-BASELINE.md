@@ -114,7 +114,7 @@ GSC и GA4: доступа к кабинетам в момент аудита н
 
 ### P2
 
-9. `HEAD` на `sitemap.xml` → 405.
+9. ~~`HEAD` на `sitemap.xml` → 405.~~ Исправлено: Go принимает GET и HEAD на `/robots.txt` и `/sitemap.xml`.
 10. `/svit/search` без H1 в SF (страница noindex).
 11. Нет sitemap index при росте &gt;50k URL (запас есть).
 

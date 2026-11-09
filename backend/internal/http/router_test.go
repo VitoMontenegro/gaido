@@ -1,9 +1,15 @@
 package httpx
 
 import (
+	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
+
+	"github.com/vitomonte/experts-tourister/internal/config"
+	"github.com/vitomonte/experts-tourister/internal/http/handlers"
 )
 
 func TestLegacySectionRedirect_preservesPathAndQuery(t *testing.T) {
@@ -81,5 +87,30 @@ func TestLegacySectionRedirect_skipsAPI(t *testing.T) {
 	rec := httptest.NewRecorder()
 	if legacySectionRedirect(rec, req) {
 		t.Fatal("api must stay on the old host")
+	}
+}
+
+func TestRobotsTxt_getAndHead(t *testing.T) {
+	h := &handlers.Handlers{Cfg: config.Config{PublicBaseURL: "https://gaido-ua.com"}}
+	r := NewRouter(config.Config{CORSOrigins: []string{"https://gaido-ua.com"}}, slog.New(slog.NewTextHandler(io.Discard, nil)), h)
+	for _, method := range []string{http.MethodGet, http.MethodHead} {
+		req := httptest.NewRequest(method, "/robots.txt", nil)
+		rec := httptest.NewRecorder()
+		r.ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("%s /robots.txt status %d", method, rec.Code)
+		}
+		if ct := rec.Header().Get("Content-Type"); !strings.HasPrefix(ct, "text/plain") {
+			t.Fatalf("%s content-type %q", method, ct)
+		}
+		if rec.Header().Get("Cache-Control") != "public, max-age=300" {
+			t.Fatalf("%s cache-control %q", method, rec.Header().Get("Cache-Control"))
+		}
+		if method == http.MethodGet {
+			body := rec.Body.String()
+			if !strings.Contains(body, "User-agent: *") || !strings.Contains(body, "Sitemap: https://gaido-ua.com/sitemap.xml") {
+				t.Fatalf("robots body: %s", body)
+			}
+		}
 	}
 }
