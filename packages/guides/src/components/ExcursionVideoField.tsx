@@ -88,7 +88,7 @@ export default function ExcursionVideoField({ value, onChange, onPersist, onBusy
 
   const problem = videoLinkProblem(url)
   const problemText = problem === 'instagram'
-    ? 'Instagram не показуємо на сторінці екскурсії — гість піде в профіль гіда. Завантажте MP4 або вставте YouTube чи Vimeo.'
+    ? 'Instagram не показуємо на сторінці екскурсії. Завантажте MP4 або вставте YouTube чи Vimeo.'
     : problem === 'unsupported'
       ? 'Це посилання не можна показати на сайті. Завантажте MP4 або вставте YouTube чи Vimeo.'
       : ''
