@@ -10,7 +10,7 @@ BEGIN
         SELECT 1 FROM users WHERE deleted_at IS NULL
         GROUP BY lower(btrim(email)) HAVING COUNT(*) > 1
     ) THEN
-        RAISE EXCEPTION 'duplicate live emails after lower(btrim(email)); resolve before applying 000081';
+        RAISE EXCEPTION 'duplicate live emails after lower(btrim(email)); resolve before applying 000082';
     END IF;
 END $$;
 
