@@ -14,6 +14,13 @@ import (
 const txTTL = 10 * time.Minute
 const onboardTTL = 30 * time.Minute
 
+// Redis 5 has no GETDEL (6.2+). One-shot consume stays atomic via EVAL.
+var consumeOnce = goredis.NewScript(`
+local v = redis.call('GET', KEYS[1])
+if v then redis.call('DEL', KEYS[1]) end
+return v
+`)
+
 type Transaction struct {
 	Provider     string `json:"provider"`
 	State        string `json:"state"`
@@ -69,10 +76,15 @@ func (s *Store) ConsumeTx(ctx context.Context, state string) (*Transaction, erro
 		return nil, err
 	}
 	key := "oauth:tx:" + state
-	b, err := s.rdb.GetDel(ctx, key).Bytes()
+	raw, err := consumeOnce.Run(ctx, s.rdb, []string{key}).Result()
 	if err != nil {
 		return nil, err
 	}
+	sval, ok := raw.(string)
+	if !ok || sval == "" {
+		return nil, goredis.Nil
+	}
+	b := []byte(sval)
 	var tx Transaction
 	if err := json.Unmarshal(b, &tx); err != nil {
 		return nil, err
