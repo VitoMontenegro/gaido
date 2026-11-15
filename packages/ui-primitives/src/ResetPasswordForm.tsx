@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { authApi } from '@gaido/api-client/api/auth'
 import { formatApiError } from '@gaido/api-client/api/http'
+import { useMe } from '@gaido/api-client/hooks/useAuth'
 import PasswordInput from './PasswordInput'
 
 export default function ResetPasswordForm({ onSuccess }: { onSuccess: (accessToken: string) => void }) {
@@ -68,12 +69,14 @@ export default function ResetPasswordForm({ onSuccess }: { onSuccess: (accessTok
 }
 
 export function ChangePasswordForm() {
+  const { data: me } = useMe()
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState('')
   const [saved, setSaved] = useState(false)
   const [pending, setPending] = useState(false)
+  const hasPassword = me?.has_password !== false
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -112,8 +115,19 @@ export function ChangePasswordForm() {
     <form onSubmit={submit} className="card space-y-4">
       <div>
         <h2 className="font-display text-xl font-bold">Пароль</h2>
-        <p className="mt-2 text-stone-600">Змініть пароль, щоб захистити акаунт.</p>
+        <p className="mt-2 text-stone-600">
+          {hasPassword
+            ? 'Змініть пароль, щоб захистити акаунт.'
+            : 'Цей акаунт без пароля. Встановіть його через лист «Забули пароль».'}
+        </p>
       </div>
+      {!hasPassword && (
+        <p className="text-sm">
+          <Link to="/forgot-password" className="text-brand-700 hover:underline">Надіслати лист для встановлення пароля</Link>
+        </p>
+      )}
+      {hasPassword && (
+      <>
       <label className="block space-y-1">
         <span className="text-sm font-medium">Поточний пароль</span>
         <PasswordInput
@@ -151,6 +165,8 @@ export function ChangePasswordForm() {
       <button type="submit" className="btn-primary" disabled={pending}>
         {pending ? 'Збереження…' : 'Змінити пароль'}
       </button>
+      </>
+      )}
     </form>
   )
 }

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/vitomonte/experts-tourister/internal/auth"
+	"github.com/vitomonte/experts-tourister/internal/auth/oauth"
 	redisclient "github.com/vitomonte/experts-tourister/internal/cache/redis"
 	"github.com/vitomonte/experts-tourister/internal/config"
 	httpx "github.com/vitomonte/experts-tourister/internal/http"
@@ -93,6 +94,9 @@ func New(ctx context.Context, cfg config.Config, log *slog.Logger) (*App, error)
 		Looking:           postgres.NewLookingRepo(db),
 		EmailTokens:       postgres.NewEmailTokenRepo(db),
 		Inquiries:         postgres.NewInquiryRepo(db),
+		Identities:        postgres.NewUserIdentityRepo(db),
+		SlugAliases:       postgres.NewProfileSlugAliasRepo(db),
+		OAuth:             oauth.NewStore(rdb.Session),
 	}
 	h.Mail = mailsvc.NewService(h.Settings)
 	billingSvc := &billing.Service{

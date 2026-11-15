@@ -6,17 +6,22 @@ import (
 )
 
 type User struct {
-	ID           int64
-	Email        string
-	Login        string
-	FirstName    string
-	LastName     string
-	PasswordHash string
-	Roles        []string
-	Status       string
-	AvatarURL    string
-	CreatedAt    time.Time
-	DeletedAt    *time.Time
+	ID              int64
+	Email           string
+	Login           string
+	FirstName       string
+	LastName        string
+	PasswordHash    *string
+	Roles           []string
+	Status          string
+	AvatarURL       string
+	EmailVerifiedAt *time.Time
+	CreatedAt       time.Time
+	DeletedAt       *time.Time
+}
+
+func (u *User) HasPassword() bool {
+	return u != nil && u.PasswordHash != nil && strings.TrimSpace(*u.PasswordHash) != ""
 }
 
 type GuideProfile struct {

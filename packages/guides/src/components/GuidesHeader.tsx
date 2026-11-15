@@ -164,7 +164,7 @@ export default function GuidesHeader() {
                     <UserAvatar avatar={profileAvatar} name={profileName} className="h-9 w-9" />
                   </Link>
                   <span className={cn('hidden text-sm lg:inline', solidHeader ? 'text-muted' : 'text-white [text-shadow:0_1px_2px_rgba(15,26,40,0.75)]')}>
-                    {me.login}
+                    {userDisplayName(me)}
                   </span>
                   <Link
                     to={accountHref}
@@ -240,7 +240,7 @@ export default function GuidesHeader() {
                     <UserAvatar avatar={profileAvatar} name={profileName} className="h-8 w-8 shrink-0" />
                     <span>Особистий кабінет</span>
                   </Link>
-                  <p className="px-3 text-xs text-muted-light">{me.login}</p>
+                  <p className="px-3 text-xs text-muted-light">{userDisplayName(me)}</p>
                 </>
               ) : (
                 <Link to="/login" className="flex min-h-11 items-center rounded-xl px-3 text-base font-medium text-ink transition hover:bg-sand-100">

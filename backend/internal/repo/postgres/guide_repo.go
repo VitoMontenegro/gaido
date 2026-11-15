@@ -148,6 +148,11 @@ func scanGuideRow(rows pgx.Rows) (domain.GuideProfile, error) {
 	return g, err
 }
 
+func (r *GuideRepo) SetWebsiteSlug(ctx context.Context, id int64, slug string) error {
+	_, err := r.db.Pool.Exec(ctx, `UPDATE guide_profiles SET website_slug=$2, updated_at=NOW() WHERE id=$1`, id, slug)
+	return err
+}
+
 func (r *GuideRepo) UpdateProfile(ctx context.Context, g *domain.GuideProfile) error {
 	_, err := r.db.Pool.Exec(ctx, `
 		UPDATE guide_profiles SET guide_type=$2, first_name=$3, last_name=$4, display_name=$5, about=$6,

@@ -321,6 +321,14 @@ export const adminApi = {
     api<AdminPaged<AdminUser>>(`/api/v1/admin/users${adminListQuery(params)}`),
   deleteUser: (id: number) =>
     api<{ status: string }>(`/api/v1/admin/users/${id}`, { method: 'DELETE' }),
+  updateUserLogin: (id: number, login: string) =>
+    api<{ status: string; login: string }>(`/api/v1/admin/users/${id}/login`, { method: 'PATCH', body: JSON.stringify({ login }) }),
+  updateGuideSlug: (id: number, slug: string) =>
+    api<{ status: string; slug: string }>(`/api/v1/admin/guides/${id}/slug`, { method: 'PATCH', body: JSON.stringify({ slug }) }),
+  updateProviderSlug: (id: number, slug: string) =>
+    api<{ status: string; slug: string }>(`/api/v1/admin/providers/${id}/slug`, { method: 'PATCH', body: JSON.stringify({ slug }) }),
+  updateCarrierSlug: (id: number, slug: string) =>
+    api<{ status: string; slug: string }>(`/api/v1/admin/carriers/${id}/slug`, { method: 'PATCH', body: JSON.stringify({ slug }) }),
   excursions: (params?: AdminListParams) =>
     api<AdminPaged<AdminExcursion>>(`/api/v1/admin/excursions${adminListQuery(params)}`),
   deleteExcursion: (id: number) =>

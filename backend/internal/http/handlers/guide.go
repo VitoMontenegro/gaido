@@ -150,21 +150,27 @@ func (h *Handlers) ensureGuideProfile(r *http.Request, userID int64, displayName
 	if g != nil {
 		return g, nil
 	}
-	name, hintSlug := h.identityHint(r.Context(), userID, "guide")
+	name, _ := h.identityHint(r.Context(), userID, "guide")
 	if strings.TrimSpace(displayName) != "" {
 		name = strings.TrimSpace(displayName)
 	}
 	if name == "" {
 		return nil, apperrors.New("VALIDATION", "Вкажіть ім'я для відображення", 400)
 	}
-	slug, err := h.uniqueGuideSlug(r.Context(), hintSlug, name, 0)
+	slug, err := h.uniqueGuideSlug(r.Context(), "", name, 0)
 	if err != nil {
 		return nil, err
 	}
-	if _, err := h.Guides.CreateProfile(r.Context(), userID, domain.GuideTypeGuide, name, slug); err != nil {
+	guideID, err := h.Guides.CreateProfile(r.Context(), userID, domain.GuideTypeGuide, name, slug)
+	if err != nil {
 		return nil, err
 	}
-	_ = h.Users.AddRole(r.Context(), userID, domain.RoleGuide)
+	if h.SlugAliases != nil {
+		_ = h.SlugAliases.Reserve(r.Context(), "guide", slug, guideID, true)
+	}
+	if err := h.Users.AddRole(r.Context(), userID, domain.RoleGuide); err != nil {
+		return nil, err
+	}
 	g, err = h.Guides.GetByUserID(r.Context(), userID)
 	if err != nil || g == nil {
 		return g, err

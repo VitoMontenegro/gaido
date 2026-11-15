@@ -11,17 +11,7 @@ import type {
 } from '@gaido/api-client/api/types/carrier'
 import CitySelect from '../../components/CitySelect'
 import { carrierTypeNames } from '../../lib/carrierLabels'
-
-function suggestSlug(name: string) {
-  return name
-    .trim()
-    .toLowerCase()
-    .replace(/['’]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/[^a-z0-9-]/g, '')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '')
-}
+import { IdentitiesCard } from '@gaido/ui-primitives/AuthForms'
 
 function profileToInput(data?: CarrierAccount | null): CarrierProfileInput {
   const p = data?.profile
@@ -58,7 +48,6 @@ export default function CarrierAccountPage() {
     queryFn: () => carrierApi.account(),
   })
   const [edits, setEdits] = useState<Partial<CarrierProfileInput>>({})
-  const [slugTouched, setSlugTouched] = useState(false)
   const [vehicle, setVehicle] = useState<CarrierVehicleInput>({
     brand: '',
     seats: 7,
@@ -67,7 +56,6 @@ export default function CarrierAccountPage() {
   })
 
   const form: CarrierProfileInput = { ...profileToInput(data), ...edits }
-  const slugLocked = slugTouched || Boolean(profileToInput(data).website_slug)
   const patch = (next: Partial<CarrierProfileInput>) => setEdits((prev) => ({ ...prev, ...next }))
 
   const saveProfile = useMutation({
@@ -96,7 +84,7 @@ export default function CarrierAccountPage() {
   const profile = data?.profile
   const slug = form.website_slug?.trim() || data?.website_slug
   const vehicles = data?.vehicles ?? []
-  const preview = slug || suggestSlug(form.display_name || '')
+  const preview = slug
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -145,32 +133,12 @@ export default function CarrierAccountPage() {
           <input
             className="input"
             value={form.display_name || ''}
-            onChange={(e) => {
-              const next = e.target.value
-              patch({
-                display_name: next,
-                ...(slugLocked ? {} : { website_slug: suggestSlug(next) }),
-              })
-            }}
+            onChange={(e) => patch({ display_name: e.target.value })}
           />
         </label>
-        <label className="block space-y-1 text-sm">
-          <span>Адреса профілю</span>
-          <input
-            className="input"
-            value={form.website_slug || ''}
-            placeholder={suggestSlug(form.display_name || '') || 'авто з імені'}
-            onChange={(e) => {
-              setSlugTouched(true)
-              patch({ website_slug: e.target.value })
-            }}
-          />
-          <span className="text-muted">
-            {preview
-              ? `/carriers/${preview}`
-              : 'Якщо порожньо — з імені. Якщо зайнято в цьому сервісі, збереження не пройде.'}
-          </span>
-        </label>
+        <p className="text-sm text-muted">
+          Адреса: {preview ? `/carriers/${preview}` : 'зʼявиться після збереження. Змінити може лише адміністратор.'}
+        </p>
         <label className="block space-y-1 text-sm">
           <span>Про перевізника</span>
           <textarea className="input min-h-24" value={form.about || ''} onChange={(e) => patch({ about: e.target.value })} />
@@ -243,6 +211,7 @@ export default function CarrierAccountPage() {
           Додати авто
         </button>
       </section>
+      <IdentitiesCard />
     </div>
   )
 }

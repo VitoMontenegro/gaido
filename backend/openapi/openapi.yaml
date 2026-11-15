@@ -136,6 +136,159 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/auth/oauth/providers:
+    get:
+      tags: [auth]
+      summary: Which OAuth providers are enabled
+      responses:
+        '200':
+          description: Flags for Google and Facebook buttons
+  /api/v1/auth/oauth/{provider}/start:
+    get:
+      tags: [auth]
+      summary: Start Google or Facebook login
+      parameters:
+        - in: path
+          name: provider
+          required: true
+          schema: { type: string, enum: [google, facebook] }
+        - in: query
+          name: return_origin
+          schema: { type: string }
+        - in: query
+          name: accept_privacy
+          required: true
+          schema: { type: string }
+        - in: query
+          name: accept_site_rules
+          required: true
+          schema: { type: string }
+        - in: query
+          name: intent
+          schema: { type: string, enum: [login, link] }
+      responses:
+        '302':
+          description: Redirect to the provider
+  /api/v1/auth/oauth/{provider}/callback:
+    get:
+      tags: [auth]
+      summary: Provider callback
+      parameters:
+        - in: path
+          name: provider
+          required: true
+          schema: { type: string, enum: [google, facebook] }
+      responses:
+        '302':
+          description: Redirect to the site with a session or onboarding hint
+  /api/v1/auth/oauth/complete:
+    post:
+      tags: [auth]
+      summary: Send confirmation email when the provider omitted a usable address
+      responses:
+        '200':
+          description: Email queued
+    get:
+      tags: [auth]
+      summary: Confirm the OAuth email token
+      parameters:
+        - in: query
+          name: token
+          required: true
+          schema: { type: string }
+      responses:
+        '302':
+          description: Redirect with session cookie
+  /api/v1/auth/oauth/facebook/deletion:
+    post:
+      tags: [auth]
+      summary: Facebook data deletion callback
+      responses:
+        '200':
+          description: Confirmation URL and code
+  /api/v1/account/identities:
+    get:
+      tags: [account]
+      summary: Connected sign-in methods
+      responses:
+        '200':
+          description: Provider list
+  /api/v1/account/identities/{provider}:
+    delete:
+      tags: [account]
+      summary: Unlink a provider unless it is the last sign-in method
+      parameters:
+        - in: path
+          name: provider
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Unlinked
+  /api/v1/seo/profile-alias:
+    get:
+      tags: [catalog]
+      summary: Resolve a profile slug alias for 301 redirects
+      parameters:
+        - in: query
+          name: space
+          required: true
+          schema: { type: string, enum: [guide, provider, carrier] }
+        - in: query
+          name: slug
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Current slug when the requested one is an alias
+  /api/v1/admin/users/{id}/login:
+    patch:
+      tags: [admin]
+      summary: Change login of a guide, provider or carrier
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Login updated
+  /api/v1/admin/guides/{id}/slug:
+    patch:
+      tags: [admin]
+      summary: Change a guide public slug and keep the previous as 301 alias
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Slug updated
+  /api/v1/admin/providers/{id}/slug:
+    patch:
+      tags: [admin]
+      summary: Change a provider public slug
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Slug updated
+  /api/v1/admin/carriers/{id}/slug:
+    patch:
+      tags: [admin]
+      summary: Change a carrier public slug
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Slug updated
   /api/v1/geo/countries:
     get:
       tags: [geo]

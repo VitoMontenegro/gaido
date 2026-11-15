@@ -16,6 +16,7 @@ import (
 	"github.com/vitomonte/experts-tourister/internal/http/cacheheaders"
 	"github.com/vitomonte/experts-tourister/internal/http/middleware"
 	"github.com/vitomonte/experts-tourister/internal/http/response"
+	"github.com/vitomonte/experts-tourister/internal/service/identity"
 	mailsvc "github.com/vitomonte/experts-tourister/internal/service/mail"
 )
 
@@ -76,6 +77,157 @@ func (h *Handlers) AdminDeleteUser(w http.ResponseWriter, r *http.Request) {
 	}
 	_ = h.Audit.Log(r.Context(), &actor, "USER_DELETE", "user", &id, u.Login, "", r.RemoteAddr, r.UserAgent())
 	response.JSON(w, r, 200, map[string]string{"status": "deleted"})
+}
+
+func professionalRoles(roles []string) bool {
+	for _, role := range roles {
+		if role == domain.RoleGuide || role == domain.RoleProvider || role == domain.RoleCarrier {
+			return true
+		}
+	}
+	return false
+}
+
+func (h *Handlers) AdminUpdateUserLogin(w http.ResponseWriter, r *http.Request) {
+	id, _ := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	u, err := h.Users.GetByID(r.Context(), id)
+	if err != nil || u == nil {
+		response.Error(w, r, apperrors.ErrNotFound)
+		return
+	}
+	if !professionalRoles(u.Roles) {
+		response.Error(w, r, apperrors.ErrForbidden)
+		return
+	}
+	var req struct {
+		Login string `json:"login"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Error(w, r, apperrors.ErrValidation)
+		return
+	}
+	login := strings.TrimSpace(req.Login)
+	if !identity.ValidExistingLogin(login) {
+		response.Error(w, r, apperrors.New("VALIDATION_ERROR", "login must be 3-32 latin letters, digits, _, . or -", 400))
+		return
+	}
+	if other, err := h.Users.GetByLogin(r.Context(), login); err != nil {
+		response.Error(w, r, apperrors.ErrInternal)
+		return
+	} else if other != nil && other.ID != id {
+		response.Error(w, r, apperrors.New("LOGIN_ALREADY_EXISTS", "login already taken", 409))
+		return
+	}
+	old := u.Login
+	if err := h.Users.UpdateLogin(r.Context(), id, login); err != nil {
+		response.Error(w, r, apperrors.ErrConflict)
+		return
+	}
+	actor := middleware.UserIDFromContext(r.Context())
+	_ = h.Audit.Log(r.Context(), &actor, "USER_LOGIN_UPDATE", "user", &id, old, login, r.RemoteAddr, r.UserAgent())
+	response.JSON(w, r, 200, map[string]string{"status": "ok", "login": login})
+}
+
+func (h *Handlers) AdminUpdateGuideSlug(w http.ResponseWriter, r *http.Request) {
+	id, _ := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	g, err := h.Guides.GetByID(r.Context(), id)
+	if err != nil || g == nil {
+		response.Error(w, r, apperrors.ErrNotFound)
+		return
+	}
+	if u, _ := h.Users.GetByID(r.Context(), g.UserID); u == nil || !professionalRoles(u.Roles) {
+		response.Error(w, r, apperrors.ErrForbidden)
+		return
+	}
+	h.adminChangeSlug(w, r, "guide", id, g.WebsiteSlug, func(slug string) error {
+		return h.Guides.SetWebsiteSlug(r.Context(), id, slug)
+	})
+}
+
+func (h *Handlers) AdminUpdateProviderSlug(w http.ResponseWriter, r *http.Request) {
+	id, _ := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	p, err := h.Providers.GetProviderByID(r.Context(), id)
+	if err != nil || p == nil {
+		response.Error(w, r, apperrors.ErrNotFound)
+		return
+	}
+	if u, _ := h.Users.GetByID(r.Context(), p.UserID); u == nil || !professionalRoles(u.Roles) {
+		response.Error(w, r, apperrors.ErrForbidden)
+		return
+	}
+	h.adminChangeSlug(w, r, "provider", id, p.WebsiteSlug, func(slug string) error {
+		return h.Providers.SetWebsiteSlug(r.Context(), id, slug)
+	})
+}
+
+func (h *Handlers) AdminUpdateCarrierSlug(w http.ResponseWriter, r *http.Request) {
+	id, _ := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	p, err := h.Carriers.GetProfileByProviderID(r.Context(), id)
+	if err != nil || p == nil {
+		response.Error(w, r, apperrors.ErrNotFound)
+		return
+	}
+	if u, _ := h.Users.GetByID(r.Context(), p.UserID); u == nil || !professionalRoles(u.Roles) {
+		response.Error(w, r, apperrors.ErrForbidden)
+		return
+	}
+	h.adminChangeSlug(w, r, "carrier", id, p.WebsiteSlug, func(slug string) error {
+		return h.Carriers.SetWebsiteSlug(r.Context(), id, slug)
+	})
+}
+
+func (h *Handlers) adminChangeSlug(w http.ResponseWriter, r *http.Request, space string, profileID int64, old string, apply func(string) error) {
+	var req struct {
+		Slug string `json:"slug"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Error(w, r, apperrors.ErrValidation)
+		return
+	}
+	slug := strings.ToLower(strings.TrimSpace(req.Slug))
+	if !identity.ValidExistingProfileSlug(slug) {
+		response.Error(w, r, apperrors.ErrValidation)
+		return
+	}
+	if h.SlugAliases != nil {
+		taken, err := h.SlugAliases.Taken(r.Context(), space, slug, profileID)
+		if err != nil {
+			response.Error(w, r, apperrors.ErrInternal)
+			return
+		}
+		if taken {
+			response.Error(w, r, apperrors.ErrSlugTaken)
+			return
+		}
+	}
+	if err := apply(slug); err != nil {
+		response.Error(w, r, apperrors.ErrInternal)
+		return
+	}
+	if h.SlugAliases != nil {
+		if old != "" && old != slug {
+			_ = h.SlugAliases.Reserve(r.Context(), space, old, profileID, false)
+		}
+		_ = h.SlugAliases.Reserve(r.Context(), space, slug, profileID, true)
+	}
+	actor := middleware.UserIDFromContext(r.Context())
+	_ = h.Audit.Log(r.Context(), &actor, "PROFILE_SLUG_UPDATE", space, &profileID, old, slug, r.RemoteAddr, r.UserAgent())
+	response.JSON(w, r, 200, map[string]string{"status": "ok", "slug": slug})
+}
+
+func (h *Handlers) ProfileAliasLookup(w http.ResponseWriter, r *http.Request) {
+	space := strings.TrimSpace(r.URL.Query().Get("space"))
+	slug := strings.TrimSpace(r.URL.Query().Get("slug"))
+	if h.SlugAliases == nil || space == "" || slug == "" {
+		response.JSON(w, r, 200, map[string]any{"redirect": false})
+		return
+	}
+	_, current, isCurrent, err := h.SlugAliases.Lookup(r.Context(), space, slug)
+	if err != nil || current == "" || isCurrent || current == slug {
+		response.JSON(w, r, 200, map[string]any{"redirect": false, "current_slug": slug})
+		return
+	}
+	response.JSON(w, r, 200, map[string]any{"redirect": true, "current_slug": current})
 }
 func (h *Handlers) AdminAnalytics(w http.ResponseWriter, r *http.Request) {
 	stats, err := h.Admin.DashboardStats(r.Context())

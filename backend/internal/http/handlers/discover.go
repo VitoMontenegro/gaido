@@ -192,7 +192,11 @@ func (h *Handlers) ListRegions(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) GetProviderPublic(w http.ResponseWriter, r *http.Request) {
-	p, err := h.Providers.GetProviderBySlug(r.Context(), chi.URLParam(r, "slug"))
+	slug := chi.URLParam(r, "slug")
+	if h.redirectProfileAlias(w, r, "provider", "/api/v1/providers/", slug) {
+		return
+	}
+	p, err := h.Providers.GetProviderBySlug(r.Context(), slug)
 	if err != nil || p == nil || p.Status == domain.ProviderStatusBlocked {
 		response.Error(w, r, apperrors.ErrNotFound)
 		return

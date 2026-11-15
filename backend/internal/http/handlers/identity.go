@@ -3,10 +3,12 @@ package handlers
 import (
 	"context"
 	"errors"
+	"net/http"
 	"strings"
 
 	"github.com/vitomonte/experts-tourister/internal/apperrors"
 	"github.com/vitomonte/experts-tourister/internal/domain"
+	"github.com/vitomonte/experts-tourister/internal/service/identity"
 	guidesvc "github.com/vitomonte/experts-tourister/internal/service/guide"
 )
 
@@ -48,38 +50,79 @@ func (h *Handlers) identityHint(ctx context.Context, userID int64, skip string) 
 	}
 	if u, _ := h.Users.GetByID(ctx, userID); u != nil {
 		name = domain.UserDisplayName(u.FirstName, u.LastName, u.Login)
-		slug = guidesvc.WebsiteSlug("", name)
-		if slug == "provider" {
-			slug = guidesvc.WebsiteSlug(u.Login, "user")
-		}
+		slug = identity.ProfileSlug(name, "user")
 	}
 	return
 }
 
 func mapSlugErr(err error) error {
-	if errors.Is(err, guidesvc.ErrSlugConflict) {
+	if errors.Is(err, identity.ErrSlugConflict) || errors.Is(err, guidesvc.ErrSlugConflict) {
 		return apperrors.ErrSlugTaken
 	}
 	return err
 }
 
 func (h *Handlers) uniqueProviderSlug(ctx context.Context, raw, name string, exceptID int64) (string, error) {
-	slug, err := guidesvc.ReserveOrAllocate(raw, name, "provider", func(s string) (bool, error) {
+	return h.allocateProfileSlug(ctx, "provider", name, "provider", exceptID, func(s string) (bool, error) {
 		return h.Providers.SlugTaken(ctx, s, exceptID)
 	})
-	return slug, mapSlugErr(err)
 }
 
 func (h *Handlers) uniqueGuideSlug(ctx context.Context, raw, name string, exceptID int64) (string, error) {
-	slug, err := guidesvc.ReserveOrAllocate(raw, name, "guide", func(s string) (bool, error) {
+	return h.allocateProfileSlug(ctx, "guide", name, "guide", exceptID, func(s string) (bool, error) {
 		return h.Guides.SlugTaken(ctx, s, exceptID)
+	})
+}
+
+func (h *Handlers) uniqueCarrierSlug(ctx context.Context, raw, name string, exceptProviderID int64) (string, error) {
+	return h.allocateProfileSlug(ctx, "carrier", name, "carrier", exceptProviderID, func(s string) (bool, error) {
+		return h.Carriers.SlugTaken(ctx, s, exceptProviderID)
+	})
+}
+
+func (h *Handlers) allocateProfileSlug(ctx context.Context, space, name, fallback string, exceptID int64, extra func(string) (bool, error)) (string, error) {
+	slug, err := identity.AllocateProfileSlug(name, fallback, func(s string) (bool, error) {
+		if h.SlugAliases != nil {
+			taken, err := h.SlugAliases.Taken(ctx, space, s, exceptID)
+			if err != nil || taken {
+				return taken, err
+			}
+		}
+		if extra != nil {
+			return extra(s)
+		}
+		return false, nil
 	})
 	return slug, mapSlugErr(err)
 }
 
-func (h *Handlers) uniqueCarrierSlug(ctx context.Context, raw, name string, exceptProviderID int64) (string, error) {
-	slug, err := guidesvc.ReserveOrAllocate(raw, name, "carrier", func(s string) (bool, error) {
-		return h.Carriers.SlugTaken(ctx, s, exceptProviderID)
-	})
-	return slug, mapSlugErr(err)
+func (h *Handlers) createGuideProfileTx(ctx context.Context, userID int64, first, last, login string) error {
+	name := domain.UserDisplayName(first, last, login)
+	slug, err := h.uniqueGuideSlug(ctx, "", name, 0)
+	if err != nil {
+		return err
+	}
+	guideID, err := h.Guides.CreateProfile(ctx, userID, domain.GuideTypeGuide, name, slug)
+	if err != nil {
+		return err
+	}
+	if h.SlugAliases != nil {
+		if err := h.SlugAliases.Reserve(ctx, "guide", slug, guideID, true); err != nil {
+			return err
+		}
+	}
+	_ = h.GuideSvc.ActivateForCatalogFilling(ctx, guideID)
+	return nil
+}
+
+func (h *Handlers) redirectProfileAlias(w http.ResponseWriter, r *http.Request, space, prefix, slug string) bool {
+	if h.SlugAliases == nil {
+		return false
+	}
+	_, current, isCurrent, err := h.SlugAliases.Lookup(r.Context(), space, slug)
+	if err != nil || current == "" || isCurrent || current == slug {
+		return false
+	}
+	http.Redirect(w, r, prefix+current, http.StatusMovedPermanently)
+	return true
 }

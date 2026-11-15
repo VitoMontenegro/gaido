@@ -18,6 +18,11 @@
 | `JWT_ACCESS_SECRET` / `JWT_REFRESH_SECRET` | ≥32 chars, unique in prod |
 | `JWT_ACCESS_TTL` | default `15m` |
 | `TRUST_PROXY` | `true` behind nginx/Caddy so brute-force limits use `X-Forwarded-For` / `X-Real-IP`. If `false`, only `RemoteAddr` is used. |
+| `OAUTH_GOOGLE_ENABLED` | `true` after Google Web application credentials exist. Callback `https://gaido-ua.com/api/v1/auth/oauth/google/callback` |
+| `OAUTH_FACEBOOK_ENABLED` | `true` after Meta Login, Privacy Policy URL, Data Deletion Callback and App Review for `email` |
+| `GOOGLE_OAUTH_CLIENT_ID` / `GOOGLE_OAUTH_CLIENT_SECRET` | Google OIDC. Secrets only in `.local/prod.env` |
+| `FACEBOOK_APP_ID` / `FACEBOOK_APP_SECRET` | Facebook Login. Deletion URL `/api/v1/auth/oauth/facebook/deletion` |
+| `OAUTH_REDIRECT_BASE` | Public API origin for callbacks. Prod `https://gaido-ua.com`. Local `http://127.0.0.1:8091` |
 
 ### Auth rate limits (in-memory, single API instance)
 

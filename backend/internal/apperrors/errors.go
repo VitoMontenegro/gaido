@@ -33,4 +33,7 @@ var (
 	ErrCityNotGeocoded    = New("CITY_NOT_FOUND", "Місто не знайдено на карті. Перевірте правопис назви.", 400)
 	ErrMailNotConfigured  = New("MAIL_NOT_CONFIGURED", "Mail server is not configured", 503)
 	ErrInvalidToken       = New("INVALID_TOKEN", "Invalid or expired confirmation link", 400)
+	ErrNoPassword         = New("NO_PASSWORD", "Set a password via email reset first", 400)
+	ErrLastIdentity       = New("LAST_IDENTITY", "Cannot disconnect the last sign-in method", 400)
+	ErrOAuthUnavailable   = New("OAUTH_UNAVAILABLE", "This sign-in method is not available", 503)
 )

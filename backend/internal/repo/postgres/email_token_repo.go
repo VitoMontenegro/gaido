@@ -61,6 +61,19 @@ func (r *EmailTokenRepo) Delete(ctx context.Context, id int64) error {
 	return err
 }
 
+func (r *EmailTokenRepo) ConsumeByHash(ctx context.Context, hash string) (*domain.EmailToken, error) {
+	row := r.db.Pool.QueryRow(ctx, `
+		DELETE FROM email_tokens WHERE token_hash=$1 AND expires_at > NOW()
+		RETURNING id, email, purpose, token_hash, payload, expires_at, last_sent_at
+	`, hash)
+	return scanEmailToken(row)
+}
+
+func (r *EmailTokenRepo) DeleteByEmailPurpose(ctx context.Context, email, purpose string) error {
+	_, err := r.db.Pool.Exec(ctx, `DELETE FROM email_tokens WHERE email=$1 AND purpose=$2`, email, purpose)
+	return err
+}
+
 func scanEmailToken(row pgx.Row) (*domain.EmailToken, error) {
 	var t domain.EmailToken
 	err := row.Scan(&t.ID, &t.Email, &t.Purpose, &t.TokenHash, &t.Payload, &t.ExpiresAt, &t.LastSentAt)

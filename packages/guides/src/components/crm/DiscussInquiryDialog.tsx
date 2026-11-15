@@ -1,9 +1,10 @@
-import { useState } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
 import { inquiriesApi } from '@gaido/api-client/api/inquiries'
 import { useMe } from '@gaido/api-client/hooks/useAuth'
 import { formatApiError } from '@gaido/api-client/api/http'
+import { inquiryDraft } from '@gaido/ui-primitives/authDraft'
 
 export default function DiscussInquiryDialog({
   open,
@@ -26,6 +27,24 @@ export default function DiscussInquiryDialog({
   const [language, setLanguage] = useState('українська')
   const [notes, setNotes] = useState('')
 
+  useEffect(() => {
+    if (!open) return
+    const d = inquiryDraft.load(guideId, excursionId)
+    if (!d) return
+    setPreferredDate(d.preferred_date)
+    setPartySize(d.party_size)
+    setLanguage(d.language || 'українська')
+    setNotes(d.notes)
+  }, [open, guideId, excursionId])
+
+  const persist = () =>
+    inquiryDraft.save(guideId, excursionId, {
+      preferred_date: preferredDate,
+      party_size: partySize,
+      language,
+      notes,
+    })
+
   const create = useMutation({
     mutationFn: () =>
       inquiriesApi.create({
@@ -37,6 +56,7 @@ export default function DiscussInquiryDialog({
         notes,
       }),
     onSuccess: (inq) => {
+      inquiryDraft.clear(guideId, excursionId)
       onClose()
       navigate(`/account/inquiries/${inq.id}`)
     },
@@ -54,18 +74,16 @@ export default function DiscussInquiryDialog({
         </p>
         {guideOwns ? (
           <p className="mt-4 text-sm text-stone-600">Це ваша екскурсія — заявку залишає мандрівник.</p>
-        ) : !me ? (
-          <div className="mt-4 space-y-3">
-            <p className="text-sm">Щоб написати гіду, увійдіть або зареєструйтесь.</p>
-            <Link to="/login" state={{ from: location.pathname }} className="btn-primary inline-flex">
-              Увійти
-            </Link>
-          </div>
         ) : (
           <form
             className="mt-4 space-y-3"
             onSubmit={(e) => {
               e.preventDefault()
+              persist()
+              if (!me) {
+                navigate('/login', { state: { from: location.pathname } })
+                return
+              }
               create.mutate()
             }}
           >
@@ -92,10 +110,11 @@ export default function DiscussInquiryDialog({
               <span>Побажання</span>
               <textarea className="input min-h-24" value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={2000} />
             </label>
+            {!me && <p className="text-sm">Щоб надіслати заявку, увійдіть. Текст збережеться в цьому браузері.</p>}
             {create.isError && <p className="text-sm text-red-600">{formatApiError(create.error)}</p>}
             <div className="flex gap-2">
               <button type="submit" className="btn-primary" disabled={create.isPending}>
-                {create.isPending ? 'Надсилання…' : 'Надіслати заявку'}
+                {create.isPending ? 'Надсилання…' : me ? 'Надіслати заявку' : 'Увійти та продовжити'}
               </button>
               <button type="button" className="btn-secondary" onClick={onClose}>
                 Скасувати

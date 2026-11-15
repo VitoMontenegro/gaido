@@ -125,7 +125,11 @@ func (h *Handlers) ResolveTopGuides(ctx context.Context, limit int) []domain.Pub
 	return out
 }
 func (h *Handlers) GetGuide(w http.ResponseWriter, r *http.Request) {
-	g, err := h.Guides.GetBySlug(r.Context(), chi.URLParam(r, "slug"))
+	slug := chi.URLParam(r, "slug")
+	if h.redirectProfileAlias(w, r, "guide", "/api/v1/guides/", slug) {
+		return
+	}
+	g, err := h.Guides.GetBySlug(r.Context(), slug)
 	if err != nil || !guideVisiblePublicly(g) {
 		response.Error(w, r, apperrors.ErrNotFound)
 		return

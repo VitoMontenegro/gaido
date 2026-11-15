@@ -8,17 +8,6 @@ import { pageTitle } from '@gaido/site-urls/brand'
 import GeoCityPicker from '@gaido/ui-primitives/GeoCityPicker'
 import PointLocationForm from '../../components/provider/PointLocationForm'
 
-function suggestSlug(name: string) {
-  return name
-    .trim()
-    .toLowerCase()
-    .replace(/['’]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/[^a-z0-9-]/g, '')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '')
-}
-
 export default function ProviderAccountPage() {
   const qc = useQueryClient()
   const { data, isLoading } = useQuery({
@@ -119,20 +108,19 @@ function ProviderIdentityForm({
 }) {
   const [name, setName] = useState(displayName)
   const [slug, setSlug] = useState(websiteSlug)
-  const [slugTouched, setSlugTouched] = useState(Boolean(websiteSlug))
 
   const mut = useMutation({
     mutationFn: async (): Promise<{ website_slug?: string }> =>
       isEdit
-        ? providerApi.updateProfile({ display_name: name.trim(), website_slug: slug.trim() })
-        : providerApi.register(name.trim(), slug.trim()),
+        ? providerApi.updateProfile({ display_name: name.trim() })
+        : providerApi.register(name.trim()),
     onSuccess: (res) => {
       if (res && 'website_slug' in res && res.website_slug) setSlug(res.website_slug)
       onSaved()
     },
   })
 
-  const preview = slug.trim() || suggestSlug(name)
+  const preview = slug.trim()
 
   return (
     <form
@@ -149,30 +137,12 @@ function ProviderIdentityForm({
           className="input"
           value={name}
           required
-          onChange={(e) => {
-            const next = e.target.value
-            setName(next)
-            if (!slugTouched) setSlug(suggestSlug(next))
-          }}
+          onChange={(e) => setName(e.target.value)}
         />
       </label>
-      <label className="block space-y-1 text-sm">
-        <span>Адреса профілю</span>
-        <input
-          className="input"
-          value={slug}
-          placeholder={suggestSlug(name) || 'авто з імені'}
-          onChange={(e) => {
-            setSlugTouched(true)
-            setSlug(e.target.value)
-          }}
-        />
-        <span className="text-muted">
-          {preview
-            ? `/provider/${preview}`
-            : 'Якщо порожньо — з імені. Якщо зайнято, додамо випадковий числовий префікс.'}
-        </span>
-      </label>
+      <p className="text-sm text-muted">
+        Адреса: {preview ? `/provider/${preview}` : 'зʼявиться після збереження. Змінити може лише адміністратор.'}
+      </p>
       {mut.isError && (
         <p className="text-sm text-red-600">{formatApiError(mut.error)}</p>
       )}

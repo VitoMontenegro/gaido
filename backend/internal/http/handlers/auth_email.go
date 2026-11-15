@@ -17,14 +17,19 @@ import (
 	"unicode/utf8"
 
 	"github.com/vitomonte/experts-tourister/internal/http/response"
-	guidesvc "github.com/vitomonte/experts-tourister/internal/service/guide"
+	"github.com/vitomonte/experts-tourister/internal/service/identity"
 	mailsvc "github.com/vitomonte/experts-tourister/internal/service/mail"
 )
 
 func (h *Handlers) ConfirmRegister(w http.ResponseWriter, r *http.Request) {
 	plain := strings.TrimSpace(r.URL.Query().Get("token"))
-	tok, payload, err := h.loadRegisterToken(r.Context(), plain)
-	if err != nil {
+	tok, err := h.EmailTokens.ConsumeByHash(r.Context(), auth.HashToken(plain))
+	if err != nil || tok == nil || tok.Purpose != domain.EmailPurposeRegister {
+		h.redirectAuth(w, r, h.resolveAuthOrigin(r, ""), "/login?confirm=invalid")
+		return
+	}
+	var payload domain.RegisterEmailPayload
+	if err := json.Unmarshal(tok.Payload, &payload); err != nil {
 		h.redirectAuth(w, r, h.resolveAuthOrigin(r, ""), "/login?confirm=invalid")
 		return
 	}
@@ -36,31 +41,62 @@ func (h *Handlers) ConfirmRegister(w http.ResponseWriter, r *http.Request) {
 		h.redirectAuth(w, r, payload.Origin, "/login?confirm=exists")
 		return
 	}
-	if u, err := h.Users.GetByLogin(r.Context(), payload.Login); err != nil {
-		response.Error(w, r, apperrors.ErrInternal)
-		return
-	} else if u != nil {
-		_ = h.EmailTokens.Delete(r.Context(), tok.ID)
-		h.redirectAuth(w, r, payload.Origin, "/login?confirm=exists")
-		return
+	login := strings.TrimSpace(payload.Login)
+	if login != "" {
+		if u, err := h.Users.GetByLogin(r.Context(), login); err != nil {
+			response.Error(w, r, apperrors.ErrInternal)
+			return
+		} else if u != nil {
+			_ = h.EmailTokens.Delete(r.Context(), tok.ID)
+			h.redirectAuth(w, r, payload.Origin, "/login?confirm=exists")
+			return
+		}
+	} else {
+		for i := 0; i < 8; i++ {
+			cand, gerr := identity.GenerateLogin()
+			if gerr != nil {
+				response.Error(w, r, apperrors.ErrInternal)
+				return
+			}
+			if u, err := h.Users.GetByLogin(r.Context(), cand); err != nil {
+				response.Error(w, r, apperrors.ErrInternal)
+				return
+			} else if u == nil {
+				login = cand
+				break
+			}
+		}
+		if login == "" {
+			response.Error(w, r, apperrors.ErrConflict)
+			return
+		}
 	}
 	roles := []string{domain.RoleTourist}
-	if payload.AsGuide {
-		roles = append(roles, domain.RoleGuide)
-	}
-	id, err := h.Users.Create(r.Context(), tok.Email, payload.Login, payload.FirstName, payload.LastName, payload.PasswordHash, roles)
+	hash := payload.PasswordHash
+	id, err := h.Users.Create(r.Context(), tok.Email, login, payload.FirstName, payload.LastName, &hash, roles)
 	if err != nil {
 		response.Error(w, r, apperrors.ErrConflict)
 		return
 	}
-	_ = h.EmailTokens.Delete(r.Context(), tok.ID)
+	now := time.Now()
+	_ = h.Users.SetEmailVerified(r.Context(), id, now)
+	if h.Identities != nil {
+		ver, _ := h.Identities.LegalVersion(r.Context())
+		_ = h.Identities.RecordConsent(r.Context(), id, "privacy_policy", ver)
+		if payload.AcceptSiteRules {
+			_ = h.Identities.RecordConsent(r.Context(), id, "site_rules", ver)
+		}
+		if payload.AcceptPlacementRules {
+			_ = h.Identities.RecordConsent(r.Context(), id, "placement_rules", ver)
+		}
+	}
 	if payload.AsGuide {
-		slug := guidesvc.Slugify(payload.Login)
-		displayName := domain.UserDisplayName(payload.FirstName, payload.LastName, payload.Login)
-		if guideID, err := h.Guides.CreateProfile(r.Context(), id, domain.GuideTypeGuide, displayName, slug); err != nil {
+		if err := h.createGuideProfileTx(r.Context(), id, payload.FirstName, payload.LastName, login); err != nil {
 			h.Log.Warn("guide profile creation failed", "user_id", id, "error", err)
+		} else if err := h.Users.AddRole(r.Context(), id, domain.RoleGuide); err != nil {
+			h.Log.Warn("guide role after profile failed", "user_id", id, "error", err)
 		} else {
-			_ = h.GuideSvc.ActivateForCatalogFilling(r.Context(), guideID)
+			roles = append(roles, domain.RoleGuide)
 		}
 	}
 	if _, err := h.issueSession(w, r, id, roles); err != nil {
@@ -190,12 +226,12 @@ func (h *Handlers) ResetPassword(w http.ResponseWriter, r *http.Request) {
 		response.Error(w, r, apperrors.New("VALIDATION_ERROR", "password must be at least 8 characters", 400))
 		return
 	}
-	tok, err := h.EmailTokens.GetByHash(r.Context(), auth.HashToken(strings.TrimSpace(req.Token)))
+	tok, err := h.EmailTokens.ConsumeByHash(r.Context(), auth.HashToken(strings.TrimSpace(req.Token)))
 	if err != nil {
 		response.Error(w, r, apperrors.ErrInternal)
 		return
 	}
-	if tok == nil || tok.Purpose != domain.EmailPurposeReset || time.Now().After(tok.ExpiresAt) {
+	if tok == nil || tok.Purpose != domain.EmailPurposeReset {
 		response.Error(w, r, apperrors.ErrInvalidToken)
 		return
 	}
@@ -218,7 +254,6 @@ func (h *Handlers) ResetPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	_ = h.Users.DeleteRefreshTokensForUser(r.Context(), u.ID)
-	_ = h.EmailTokens.Delete(r.Context(), tok.ID)
 	h.WriteTokens(w, r, u.ID, u.Roles)
 }
 

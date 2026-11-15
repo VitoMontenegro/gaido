@@ -157,18 +157,9 @@ function GuideProfileForm() {
         value={f.display_name ?? ''}
         onChange={(e) => patch({ display_name: e.target.value })}
       />
-      <label className="block space-y-1 text-sm">
-        <span className="text-stone-500">Адреса профілю</span>
-        <input
-          className="input"
-          placeholder="vito"
-          value={f.website_slug ?? ''}
-          onChange={(e) => patch({ website_slug: e.target.value })}
-        />
-        <span className="text-stone-500">
-          {f.website_slug ? `/guide/${f.website_slug}` : 'Якщо порожньо — з імені. Якщо зайнято в гідах, збереження не пройде.'}
-        </span>
-      </label>
+      <p className="text-sm text-stone-500">
+        Адреса профілю: {f.website_slug ? `/guide/${f.website_slug}` : 'зʼявиться після збереження. Змінити може лише адміністратор.'}
+      </p>
       <label className="block space-y-1 text-sm">
         <span className="text-stone-500">Про себе</span>
         <textarea

@@ -6,6 +6,7 @@ import (
 
 	"github.com/vitomonte/experts-tourister/internal/domain"
 	"github.com/vitomonte/experts-tourister/internal/sanitize"
+	"github.com/vitomonte/experts-tourister/internal/service/identity"
 )
 
 type GuideRepository interface {
@@ -128,8 +129,8 @@ func (s *Service) UpdateProfile(ctx context.Context, userID int64, req domain.Gu
 	if err := s.ApplyProfileUpdate(ctx, g, req); err != nil {
 		return nil, err
 	}
-	if strings.TrimSpace(req.WebsiteSlug) != "" || g.WebsiteSlug == "" {
-		slug, err := ReserveOrAllocate(req.WebsiteSlug, g.DisplayName, "guide", func(candidate string) (bool, error) {
+	if strings.TrimSpace(g.WebsiteSlug) == "" {
+		slug, err := identity.AllocateProfileSlug(g.DisplayName, "guide", func(candidate string) (bool, error) {
 			return s.Guides.SlugTaken(ctx, candidate, g.ID)
 		})
 		if err != nil {

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { useMe } from '@gaido/api-client/hooks/useAuth'
+import { userDisplayName } from '@gaido/api-client/api/auth'
 
 export function RoleGate({ role, children }: { role: string; children: ReactNode }) {
   const { data: me, isLoading, isError } = useMe()
@@ -17,7 +18,7 @@ export function RoleGate({ role, children }: { role: string; children: ReactNode
     return (
       <div className="card space-y-2">
         <h1 className="font-display text-xl font-bold">Доступ заборонено</h1>
-        <p className="text-sm text-stone-600">Потрібна роль {role}. Ви увійшли як {me.login}.</p>
+        <p className="text-sm text-stone-600">Потрібна роль {role}. Ви увійшли як {userDisplayName(me)}.</p>
       </div>
     )
   }

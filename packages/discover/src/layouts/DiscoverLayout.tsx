@@ -7,6 +7,7 @@ import DiscoverFooter from '../components/DiscoverFooter'
 import CookieBanner from '../components/CookieBanner'
 import { useTelegramBotURL } from '../hooks/useTelegramBotURL'
 import { LocationProvider } from '../contexts/LocationContext'
+import { userDisplayName } from '@gaido/api-client/api/auth'
 
 function AccountNavLink({ to, children, end }: { to: string; children: React.ReactNode; end?: boolean }) {
   return (
@@ -84,7 +85,7 @@ export function DiscoverAccountLayout() {
                 )}
               </>
             )}
-            <p className="px-3 pt-3 text-xs text-muted-light">{me.login}</p>
+            <p className="px-3 pt-3 text-xs text-muted-light">{userDisplayName(me)}</p>
             <button type="button" onClick={logout} className="mt-3 w-full rounded-xl px-3 py-2 text-left text-red-600 transition hover:bg-red-50">
               Вийти
             </button>
@@ -145,7 +146,7 @@ export function DiscoverAdminLayout() {
               <AccountNavLink to="/downloads?app=web-prod-2026">Деплой</AccountNavLink>
             </>
           )}
-          <p className="px-3 pt-3 text-xs text-muted-light">{me.login}</p>
+          <p className="px-3 pt-3 text-xs text-muted-light">{userDisplayName(me)}</p>
           <button type="button" onClick={logout} className="mt-3 w-full rounded-xl px-3 py-2 text-left text-red-600 transition hover:bg-red-50">
             Вийти
           </button>

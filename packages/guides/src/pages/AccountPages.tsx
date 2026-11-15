@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { authApi, userDisplayName } from '@gaido/api-client/api/client'
 import { ChangePasswordForm } from '@gaido/ui-primitives/ResetPasswordForm'
+import { IdentitiesCard } from '@gaido/ui-primitives/AuthForms'
 import ApiErrorBanner from '../components/ApiErrorBanner'
 import { useHasRole, useMe } from '@gaido/api-client/hooks/useAuth'
 import NotificationsPanel from '../components/NotificationsPanel'
@@ -110,6 +111,7 @@ export function SettingsPage() {
       </button>
       </div>
       <ChangePasswordForm />
+      <IdentitiesCard />
     </div>
   )
 }

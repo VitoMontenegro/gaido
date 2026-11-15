@@ -1,0 +1,11 @@
+# Явно, хотя Cursor и так не берёт это из дефолтного списка и .gitignore.
+node_modules/
+**/.next/
+**/dist/
+backend/storage/
+.local/
+
+# В дефолтный список не входит, в репозитории лежит и в контекст не нужно.
+**/*.tsbuildinfo
+coverage/
+*.out

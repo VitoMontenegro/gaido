@@ -39,6 +39,11 @@ const RESERVED_SVIT_SEGMENTS = new Set([
 const CITY_TAIL = /^\/svit\/city\/([^/]+)\/(guides|excursions)\/?$/
 const SHORT_CITY = /^\/svit\/([^/]+)\/?$/
 const EXCURSION_PAGE = /^\/svit\/excursion\/([^/]+)\/?$/
+const PROFILE_PAGES: Array<{ re: RegExp; space: string; path: (slug: string, prefix: string) => string }> = [
+  { re: /^(\/(?:svit\/)?)guide\/([^/]+)\/?$/, space: 'guide', path: (slug, prefix) => `${prefix}guide/${slug}` },
+  { re: /^(\/(?:servis\/)?)provider\/([^/]+)\/?$/, space: 'provider', path: (slug, prefix) => `${prefix}provider/${slug}` },
+  { re: /^(\/(?:vezu\/)?)carriers\/([^/]+)\/?$/, space: 'carrier', path: (slug, prefix) => `${prefix}carriers/${slug}` },
+]
 
 function apiOrigin(): string {
   return (
@@ -89,6 +94,26 @@ async function canonicalExcursionSlug(ref: string): Promise<string | null> {
   }
 }
 
+async function canonicalProfileSlug(space: string, slug: string): Promise<string | null> {
+  const ctrl = new AbortController()
+  const timer = setTimeout(() => ctrl.abort(), 1500)
+  try {
+    const res = await fetch(
+      `${apiOrigin()}/api/v1/seo/profile-alias?space=${encodeURIComponent(space)}&slug=${encodeURIComponent(slug)}`,
+      { signal: ctrl.signal, cache: 'no-store' },
+    )
+    if (!res.ok) return null
+    const data = (await res.json()) as { redirect?: boolean; current_slug?: string }
+    const current = (data.current_slug || '').trim()
+    if (!data.redirect || !current || current === slug) return null
+    return current
+  } catch {
+    return null
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
 async function isActiveCitySlug(slug: string): Promise<boolean> {
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), 1500)
@@ -120,6 +145,17 @@ export async function middleware(request: NextRequest) {
   const tail = pathname.match(CITY_TAIL)
   if (tail) {
     return NextResponse.redirect(publicURL(request, `/svit/city/${tail[1]}`, search), 308)
+  }
+
+  for (const rule of PROFILE_PAGES) {
+    const match = pathname.match(rule.re)
+    if (!match) continue
+    const prefix = match[1]
+    const slug = match[2]
+    const canonical = await canonicalProfileSlug(rule.space, slug)
+    if (canonical && canonical !== slug) {
+      return NextResponse.redirect(publicURL(request, rule.path(canonical, prefix), search), 301)
+    }
   }
 
   const excursion = pathname.match(EXCURSION_PAGE)

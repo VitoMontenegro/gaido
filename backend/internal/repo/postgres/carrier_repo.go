@@ -64,7 +64,7 @@ func (r *CarrierRepo) GetProfileByUserID(ctx context.Context, userID int64) (*do
 
 func (r *CarrierRepo) GetProfileBySlug(ctx context.Context, slug string) (*domain.CarrierProfile, error) {
 	return r.scanProfile(r.db.Pool.QueryRow(ctx, profileSelectSQL+`
-		WHERE COALESCE(NULLIF(cp.website_slug, ''), p.website_slug) = $1`, slug))
+		WHERE NULLIF(btrim(cp.website_slug), '') = $1`, slug))
 }
 
 func (r *CarrierRepo) SlugTaken(ctx context.Context, slug string, exceptProviderID int64) (bool, error) {
@@ -206,6 +206,11 @@ func (r *CarrierRepo) SetBaseCity(ctx context.Context, providerID, cityID int64)
 		return pgx.ErrNoRows
 	}
 	return nil
+}
+
+func (r *CarrierRepo) SetWebsiteSlug(ctx context.Context, providerID int64, slug string) error {
+	_, err := r.db.Pool.Exec(ctx, `UPDATE carrier_profiles SET website_slug=$2, updated_at=NOW() WHERE provider_id=$1`, providerID, slug)
+	return err
 }
 
 func (r *CarrierRepo) SetStatus(ctx context.Context, providerID int64, status string) error {

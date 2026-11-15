@@ -4,6 +4,7 @@ import (
 	"log/slog"
 
 	"github.com/vitomonte/experts-tourister/internal/auth"
+	"github.com/vitomonte/experts-tourister/internal/auth/oauth"
 	redisclient "github.com/vitomonte/experts-tourister/internal/cache/redis"
 	"github.com/vitomonte/experts-tourister/internal/config"
 	"github.com/vitomonte/experts-tourister/internal/media"
@@ -57,4 +58,7 @@ type Handlers struct {
 	EmailTokens       *postgres.EmailTokenRepo
 	Mail              *mailsvc.Service
 	Inquiries         *postgres.InquiryRepo
+	Identities        *postgres.UserIdentityRepo
+	SlugAliases       *postgres.ProfileSlugAliasRepo
+	OAuth             *oauth.Store
 }

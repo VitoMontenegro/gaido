@@ -16,6 +16,7 @@ export type MeUser = {
   last_name: string
   roles: string[]
   avatar_url?: string
+  has_password?: boolean
   impersonation?: MeImpersonation
 }
 
@@ -31,16 +32,30 @@ export type RegisterPending = {
 }
 
 export const authApi = {
+  oauthProviders: () => api<{ google: boolean; facebook: boolean }>('/api/v1/auth/oauth/providers'),
+  oauthStartUrl: (
+    provider: 'google' | 'facebook',
+    q: { return_origin?: string; accept_privacy: boolean; accept_site_rules: boolean; intent?: string },
+  ) => {
+    const params = new URLSearchParams()
+    if (q.return_origin) params.set('return_origin', q.return_origin)
+    params.set('accept_privacy', q.accept_privacy ? '1' : '0')
+    params.set('accept_site_rules', q.accept_site_rules ? '1' : '0')
+    if (q.intent) params.set('intent', q.intent)
+    return `/api/v1/auth/oauth/${provider}/start?${params.toString()}`
+  },
+  completeOAuthEmail: (body: { email: string; return_origin?: string }) =>
+    api<RegisterPending>('/api/v1/auth/oauth/complete', { method: 'POST', body: JSON.stringify(body) }),
+  identities: () => api<{ items: { provider: string; connected_at: string }[]; has_password: boolean }>('/api/v1/account/identities'),
+  unlinkIdentity: (provider: string) =>
+    api(`/api/v1/account/identities/${provider}`, { method: 'DELETE' }),
   register: (body: {
     email: string
-    login: string
     password: string
     first_name: string
     last_name: string
-    as_guide?: boolean
     accept_privacy: boolean
     accept_site_rules?: boolean
-    accept_placement_rules?: boolean
     return_origin?: string
   }) =>
     api<RegisterPending>('/api/v1/auth/register', { method: 'POST', body: JSON.stringify(body) }),

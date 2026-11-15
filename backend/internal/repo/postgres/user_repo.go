@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -14,14 +15,26 @@ type UserRepo struct{ db *DB }
 
 func NewUserRepo(db *DB) *UserRepo { return &UserRepo{db: db} }
 
-const userSelectCols = `id, email, login, first_name, last_name, password_hash, roles, status, created_at, deleted_at, avatar_url`
+const userSelectCols = `id, email, login, first_name, last_name, password_hash, roles, status, created_at, deleted_at, avatar_url, email_verified_at`
 
-func (r *UserRepo) Create(ctx context.Context, email, login, firstName, lastName, hash string, roles []string) (int64, error) {
+func (r *UserRepo) Create(ctx context.Context, email, login, firstName, lastName string, hash *string, roles []string) (int64, error) {
+	return r.create(ctx, r.db.Pool, email, login, firstName, lastName, hash, roles, nil)
+}
+
+func (r *UserRepo) CreateVerified(ctx context.Context, email, login, firstName, lastName string, hash *string, roles []string, verifiedAt *time.Time) (int64, error) {
+	return r.create(ctx, r.db.Pool, email, login, firstName, lastName, hash, roles, verifiedAt)
+}
+
+type userInserter interface {
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
+}
+
+func (r *UserRepo) create(ctx context.Context, q userInserter, email, login, firstName, lastName string, hash *string, roles []string, verifiedAt *time.Time) (int64, error) {
 	var id int64
-	err := r.db.Pool.QueryRow(ctx, `
-		INSERT INTO users (email, login, first_name, last_name, password_hash, roles)
-		VALUES ($1,$2,$3,$4,$5,$6) RETURNING id
-	`, email, login, firstName, lastName, hash, roles).Scan(&id)
+	err := q.QueryRow(ctx, `
+		INSERT INTO users (email, login, first_name, last_name, password_hash, roles, email_verified_at)
+		VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id
+	`, strings.ToLower(strings.TrimSpace(email)), login, firstName, lastName, hash, roles, verifiedAt).Scan(&id)
 	return id, err
 }
 
@@ -43,7 +56,7 @@ func (r *UserRepo) GetByLoginOrEmail(ctx context.Context, ident string) (*domain
 
 func (r *UserRepo) GetByEmail(ctx context.Context, email string) (*domain.User, error) {
 	row := r.db.Pool.QueryRow(ctx, `
-		SELECT `+userSelectCols+` FROM users WHERE email=$1 AND deleted_at IS NULL
+		SELECT `+userSelectCols+` FROM users WHERE lower(btrim(email))=lower(btrim($1)) AND deleted_at IS NULL
 	`, email)
 	return scanUser(row)
 }
@@ -66,7 +79,7 @@ func scanUser(row pgx.Row) (*domain.User, error) {
 	var u domain.User
 	err := row.Scan(
 		&u.ID, &u.Email, &u.Login, &u.FirstName, &u.LastName, &u.PasswordHash,
-		&u.Roles, &u.Status, &u.CreatedAt, &u.DeletedAt, &u.AvatarURL,
+		&u.Roles, &u.Status, &u.CreatedAt, &u.DeletedAt, &u.AvatarURL, &u.EmailVerifiedAt,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
@@ -105,6 +118,22 @@ func (r *UserRepo) AddRole(ctx context.Context, userID int64, role string) error
 	return err
 }
 
+func (r *UserRepo) UpdateLogin(ctx context.Context, id int64, login string) error {
+	_, err := r.db.Pool.Exec(ctx, `
+		UPDATE users SET login=$2, updated_at=NOW()
+		WHERE id=$1 AND deleted_at IS NULL
+	`, id, login)
+	return err
+}
+
+func (r *UserRepo) SetEmailVerified(ctx context.Context, id int64, at time.Time) error {
+	_, err := r.db.Pool.Exec(ctx, `
+		UPDATE users SET email_verified_at=$2, updated_at=NOW()
+		WHERE id=$1 AND deleted_at IS NULL AND email_verified_at IS NULL
+	`, id, at)
+	return err
+}
+
 func (r *UserRepo) ListAdmin(ctx context.Context, q AdminListQuery) ([]domain.User, int, error) {
 	q.Limit, q.Offset = ClampAdminPage(q.Limit, q.Offset)
 	where, args := adminUserWhere(q)
@@ -125,7 +154,7 @@ func (r *UserRepo) ListAdmin(ctx context.Context, q AdminListQuery) ([]domain.Us
 		var u domain.User
 		if err := rows.Scan(
 			&u.ID, &u.Email, &u.Login, &u.FirstName, &u.LastName, &u.PasswordHash,
-			&u.Roles, &u.Status, &u.CreatedAt, &u.DeletedAt, &u.AvatarURL,
+			&u.Roles, &u.Status, &u.CreatedAt, &u.DeletedAt, &u.AvatarURL, &u.EmailVerifiedAt,
 		); err != nil {
 			return nil, 0, err
 		}
@@ -225,6 +254,9 @@ func (r *UserRepo) SoftDelete(ctx context.Context, id int64) error {
 	defer tx.Rollback(ctx)
 
 	if _, err = tx.Exec(ctx, `DELETE FROM refresh_tokens WHERE user_id = $1`, id); err != nil {
+		return err
+	}
+	if _, err = tx.Exec(ctx, `DELETE FROM user_identities WHERE user_id = $1`, id); err != nil {
 		return err
 	}
 

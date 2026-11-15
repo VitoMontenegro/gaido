@@ -13,7 +13,6 @@ import (
 	"github.com/vitomonte/experts-tourister/internal/http/middleware"
 	"github.com/vitomonte/experts-tourister/internal/http/response"
 	"github.com/vitomonte/experts-tourister/internal/repo/postgres"
-	guidesvc "github.com/vitomonte/experts-tourister/internal/service/guide"
 )
 
 type carrierProfileReq struct {
@@ -75,6 +74,9 @@ func (h *Handlers) ListCarriers(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handlers) GetCarrierPublic(w http.ResponseWriter, r *http.Request) {
 	slug := chi.URLParam(r, "slug")
+	if h.redirectProfileAlias(w, r, "carrier", "/api/v1/carriers/", slug) {
+		return
+	}
 	prof, err := h.Carriers.GetProfileBySlug(r.Context(), slug)
 	if err != nil {
 		response.Error(w, r, apperrors.ErrInternal)
@@ -166,10 +168,18 @@ func (h *Handlers) UpsertCarrierAccount(w http.ResponseWriter, r *http.Request) 
 		response.Error(w, r, apperrors.ErrInternal)
 		return
 	}
-	slug, err := h.uniqueCarrierSlug(r.Context(), req.WebsiteSlug, displayName, p.ID)
-	if err != nil {
-		response.Error(w, r, err)
-		return
+	existing, _ := h.Carriers.GetProfileByProviderID(r.Context(), p.ID)
+	slug := ""
+	if existing != nil {
+		slug = strings.TrimSpace(existing.WebsiteSlug)
+	}
+	if slug == "" {
+		var err error
+		slug, err = h.uniqueCarrierSlug(r.Context(), "", displayName, p.ID)
+		if err != nil {
+			response.Error(w, r, err)
+			return
+		}
 	}
 	carrierType := req.CarrierType
 	if carrierType == "" {
@@ -184,7 +194,6 @@ func (h *Handlers) UpsertCarrierAccount(w http.ResponseWriter, r *http.Request) 
 	if citizenship == "" {
 		citizenship = "UA"
 	}
-	existing, _ := h.Carriers.GetProfileByProviderID(r.Context(), p.ID)
 	status := domain.CarrierStatusPublished
 	if existing != nil && existing.Status == domain.CarrierStatusSuspended {
 		status = domain.CarrierStatusSuspended
@@ -219,7 +228,13 @@ func (h *Handlers) UpsertCarrierAccount(w http.ResponseWriter, r *http.Request) 
 		response.Error(w, r, apperrors.ErrInternal)
 		return
 	}
-	_ = h.Users.AddRole(r.Context(), userID, domain.RoleCarrier)
+	if h.SlugAliases != nil {
+		_ = h.SlugAliases.Reserve(r.Context(), "carrier", slug, p.ID, true)
+	}
+	if err := h.Users.AddRole(r.Context(), userID, domain.RoleCarrier); err != nil {
+		response.Error(w, r, apperrors.ErrInternal)
+		return
+	}
 	response.JSON(w, r, 200, map[string]any{"status": "ok", "website_slug": slug, "display_name": displayName})
 }
 
@@ -404,17 +419,17 @@ func (h *Handlers) ensureCarrierProvider(r *http.Request, userID int64, req carr
 		_ = h.Providers.UpdateProvider(r.Context(), p)
 		return p, nil
 	}
-	internalSlug, err := guidesvc.AllocateUnique(req.WebsiteSlug, displayName, "carrier", func(s string) (bool, error) {
-		return h.Providers.SlugTaken(r.Context(), s, 0)
-	})
+	internalSlug, err := h.uniqueProviderSlug(r.Context(), "", displayName, 0)
 	if err != nil {
-		return nil, mapSlugErr(err)
+		return nil, err
 	}
 	id, err := h.Providers.CreateProvider(r.Context(), userID, internalSlug, displayName)
 	if err != nil {
 		return nil, err
 	}
-	_ = h.Users.AddRole(r.Context(), userID, domain.RoleCarrier)
+	if h.SlugAliases != nil {
+		_ = h.SlugAliases.Reserve(r.Context(), "provider", internalSlug, id, true)
+	}
 	p, err = h.Providers.GetProviderByUserID(r.Context(), userID)
 	if err != nil || p == nil {
 		return &domain.Provider{ID: id, UserID: userID}, nil

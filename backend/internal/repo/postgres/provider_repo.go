@@ -93,6 +93,15 @@ func (r *ProviderRepo) GetProviderBySlug(ctx context.Context, slug string) (*dom
 	return scanProvider(row)
 }
 
+func (r *ProviderRepo) GetProviderByID(ctx context.Context, id int64) (*domain.Provider, error) {
+	row := r.db.Pool.QueryRow(ctx, `
+		SELECT id, user_id, display_name, business_name, profession, about, website_slug, avatar_url,
+			rating_avg, rating_count, response_hours, status, phone, email, telegram, whatsapp, viber,
+			instagram, facebook, website, primary_city_id, languages, created_at, updated_at
+		FROM providers WHERE id=$1`, id)
+	return scanProvider(row)
+}
+
 func (r *ProviderRepo) GetProviderByUserID(ctx context.Context, userID int64) (*domain.Provider, error) {
 	row := r.db.Pool.QueryRow(ctx, `
 		SELECT id, user_id, display_name, business_name, profession, about, website_slug, avatar_url,
@@ -127,6 +136,11 @@ func (r *ProviderRepo) SlugTaken(ctx context.Context, slug string, exceptID int6
 	var n int
 	err := r.db.Pool.QueryRow(ctx, `SELECT COUNT(*) FROM providers WHERE website_slug=$1 AND id<>$2`, slug, exceptID).Scan(&n)
 	return n > 0, err
+}
+
+func (r *ProviderRepo) SetWebsiteSlug(ctx context.Context, id int64, slug string) error {
+	_, err := r.db.Pool.Exec(ctx, `UPDATE providers SET website_slug=$2, updated_at=NOW() WHERE id=$1`, id, slug)
+	return err
 }
 
 func (r *ProviderRepo) UpdateProvider(ctx context.Context, p *domain.Provider) error {

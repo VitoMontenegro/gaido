@@ -135,7 +135,16 @@ func registerUser(t *testing.T, a *app.App, login string, asGuide bool) (token s
 	if confirm.code != http.StatusFound {
 		t.Fatalf("confirm: %d %s loc=%s", confirm.code, confirm.body, confirm.hdr.Get("Location"))
 	}
-	return refreshTokenWithCookies(t, a, parseSetCookies(confirm.hdr))
+	token, cookies := refreshTokenWithCookies(t, a, parseSetCookies(confirm.hdr))
+	if asGuide {
+		put := smokeRequest(t, a, http.MethodPut, "/api/v1/account/guide/profile", map[string]any{
+			"display_name": "Smoke Guide",
+		}, token, cookies)
+		if put.code != http.StatusOK {
+			t.Fatalf("guide profile after register: %d %s", put.code, put.body)
+		}
+	}
+	return token, cookies
 }
 
 func refreshTokenWithCookies(t *testing.T, a *app.App, cookies []*http.Cookie) (string, []*http.Cookie) {
@@ -243,13 +252,13 @@ func TestSmoke_authChangePassword(t *testing.T) {
 		t.Fatalf("change: %d %s", ok.code, ok.body)
 	}
 	oldLogin := smokeRequest(t, a, http.MethodPost, "/api/v1/auth/login", map[string]any{
-		"login": login, "password": "smokepass12345",
+		"login": login + "@test.local", "password": "smokepass12345",
 	}, "", nil)
 	if oldLogin.code == http.StatusOK {
 		t.Fatal("old password still works")
 	}
 	fresh := smokeRequest(t, a, http.MethodPost, "/api/v1/auth/login", map[string]any{
-		"login": login, "password": "newpass12345",
+		"login": login + "@test.local", "password": "newpass12345",
 	}, "", nil)
 	if fresh.code != http.StatusOK {
 		t.Fatalf("login with new password: %d %s", fresh.code, fresh.body)
@@ -290,7 +299,7 @@ func TestSmoke_authForgotReset(t *testing.T) {
 	if reset.code != http.StatusOK {
 		t.Fatalf("reset: %d %s", reset.code, reset.body)
 	}
-	if _, cookies := loginUser(t, a, login, "newpass12345"); len(cookies) == 0 {
+	if _, cookies := loginUser(t, a, login+"@test.local", "newpass12345"); len(cookies) == 0 {
 		t.Fatal("login after reset: no cookies")
 	}
 }
@@ -726,7 +735,7 @@ func grantRole(t *testing.T, login, role string) {
 	defer conn.Close(ctx)
 	tag, err := conn.Exec(ctx, `
 		UPDATE users SET roles = array_append(roles, $2), updated_at=NOW()
-		WHERE login=$1 AND NOT ($2 = ANY(roles)) AND deleted_at IS NULL`, login, role)
+		WHERE (login=$1 OR email=$1 OR email=($1 || '@test.local')) AND NOT ($2 = ANY(roles)) AND deleted_at IS NULL`, login, role)
 	if err != nil {
 		t.Fatalf("grant role: %v", err)
 	}

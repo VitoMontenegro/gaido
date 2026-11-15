@@ -20,7 +20,6 @@ import (
 
 var (
 	emailRe = regexp.MustCompile(`^[^\s@]+@[^\s@]+\.[^\s@]+$`)
-	loginRe = regexp.MustCompile(`^[a-zA-Z0-9_.-]{3,32}$`)
 )
 
 func validateRegisterReq(req registerReq) error {
@@ -31,10 +30,6 @@ func validateRegisterReq(req registerReq) error {
 		return apperrors.New("VALIDATION_ERROR", "email is required", 400)
 	case !emailRe.MatchString(req.Email):
 		return apperrors.New("VALIDATION_ERROR", "invalid email format", 400)
-	case req.Login == "":
-		return apperrors.New("VALIDATION_ERROR", "login is required", 400)
-	case !loginRe.MatchString(req.Login):
-		return apperrors.New("VALIDATION_ERROR", "login must be 3-32 latin letters, digits, _, . or -", 400)
 	case utf8.RuneCountInString(req.Password) < 8:
 		return apperrors.New("VALIDATION_ERROR", "password must be at least 8 characters", 400)
 	case firstName == "":
@@ -59,7 +54,6 @@ func (h *Handlers) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	req.Email = strings.ToLower(strings.TrimSpace(req.Email))
-	req.Login = strings.TrimSpace(req.Login)
 	req.FirstName = strings.TrimSpace(req.FirstName)
 	req.LastName = strings.TrimSpace(req.LastName)
 	if err := validateRegisterReq(req); err != nil {
@@ -78,20 +72,14 @@ func (h *Handlers) Register(w http.ResponseWriter, r *http.Request) {
 		response.Error(w, r, apperrors.New("EMAIL_ALREADY_EXISTS", "email already registered", 409))
 		return
 	}
-	if u, err := h.Users.GetByLogin(r.Context(), req.Login); err != nil {
-		response.Error(w, r, apperrors.ErrInternal)
-		return
-	} else if u != nil {
-		response.Error(w, r, apperrors.New("LOGIN_ALREADY_EXISTS", "login already taken", 409))
-		return
-	}
 	origin := h.resolveAuthOrigin(r, req.ReturnOrigin)
 	payload, err := json.Marshal(domain.RegisterEmailPayload{
-		Login: req.Login, PasswordHash: hash,
-		FirstName: req.FirstName, LastName: req.LastName,
-		AsGuide: req.AsGuide, AcceptPrivacy: req.AcceptPrivacy,
-		AcceptSiteRules: req.AcceptSiteRules, AcceptPlacementRules: req.AcceptPlacementRules,
-		Origin: origin,
+		PasswordHash: hash,
+		FirstName:    req.FirstName,
+		LastName:     req.LastName,
+		AcceptPrivacy: req.AcceptPrivacy,
+		AcceptSiteRules: req.AcceptSiteRules,
+		Origin:       origin,
 	})
 	if err != nil {
 		response.Error(w, r, apperrors.ErrInternal)
@@ -134,12 +122,12 @@ func (h *Handlers) Login(w http.ResponseWriter, r *http.Request) {
 		response.Error(w, r, apperrors.ErrInternal)
 		return
 	}
-	if u == nil {
+	if u == nil || !u.HasPassword() {
 		middleware.RecordFailedLogin(r, req.Login, h.Cfg.TrustProxy)
 		response.Error(w, r, apperrors.ErrInvalidCredentials)
 		return
 	}
-	okPw, err := password.Verify(req.Password, u.PasswordHash)
+	okPw, err := password.Verify(req.Password, *u.PasswordHash)
 	if err != nil || !okPw {
 		middleware.RecordFailedLogin(r, req.Login, h.Cfg.TrustProxy)
 		response.Error(w, r, apperrors.ErrInvalidCredentials)
@@ -255,13 +243,14 @@ func (h *Handlers) Me(w http.ResponseWriter, r *http.Request) {
 
 func accountUserJSON(u *domain.User) map[string]any {
 	return map[string]any{
-		"id":         u.ID,
-		"email":      u.Email,
-		"login":      u.Login,
-		"first_name": u.FirstName,
-		"last_name":  u.LastName,
-		"avatar_url": u.AvatarURL,
-		"roles":      u.Roles,
+		"id":           u.ID,
+		"email":        u.Email,
+		"login":        u.Login,
+		"first_name":   u.FirstName,
+		"last_name":    u.LastName,
+		"avatar_url":   u.AvatarURL,
+		"roles":        u.Roles,
+		"has_password": u.HasPassword(),
 	}
 }
 
@@ -324,6 +313,16 @@ func (h *Handlers) ChangeAccountPassword(w http.ResponseWriter, r *http.Request)
 		response.Error(w, r, apperrors.New("VALIDATION_ERROR", "invalid JSON body", 400))
 		return
 	}
+	uid := middleware.UserIDFromContext(r.Context())
+	u, err := h.Users.GetByID(r.Context(), uid)
+	if err != nil || u == nil {
+		response.Error(w, r, apperrors.ErrNotFound)
+		return
+	}
+	if !u.HasPassword() {
+		response.Error(w, r, apperrors.ErrNoPassword)
+		return
+	}
 	if strings.TrimSpace(req.CurrentPassword) == "" {
 		response.Error(w, r, apperrors.New("VALIDATION_ERROR", "current password is required", 400))
 		return
@@ -336,13 +335,7 @@ func (h *Handlers) ChangeAccountPassword(w http.ResponseWriter, r *http.Request)
 		response.Error(w, r, apperrors.New("VALIDATION_ERROR", "new password must differ", 400))
 		return
 	}
-	uid := middleware.UserIDFromContext(r.Context())
-	u, err := h.Users.GetByID(r.Context(), uid)
-	if err != nil || u == nil {
-		response.Error(w, r, apperrors.ErrNotFound)
-		return
-	}
-	ok, err := password.Verify(req.CurrentPassword, u.PasswordHash)
+	ok, err := password.Verify(req.CurrentPassword, *u.PasswordHash)
 	if err != nil || !ok {
 		response.Error(w, r, apperrors.New("INVALID_CURRENT_PASSWORD", "current password is incorrect", 400))
 		return

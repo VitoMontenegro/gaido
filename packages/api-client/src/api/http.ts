@@ -53,6 +53,9 @@ const API_ERROR_MESSAGES: Record<string, string> = {
   MAIL_SEND_FAILED: 'Не вдалося надіслати лист. Спробуйте пізніше',
   INVALID_TOKEN: 'Посилання недійсне або прострочене',
   INVALID_CURRENT_PASSWORD: 'Поточний пароль невірний',
+  NO_PASSWORD: 'Встановіть пароль через лист «Забули пароль»',
+  LAST_IDENTITY: 'Не можна вимкнути останній спосіб входу',
+  OAUTH_UNAVAILABLE: 'Цей спосіб входу зараз недоступний',
 }
 
 export type ApiErrorHints = Partial<Record<string, string>>

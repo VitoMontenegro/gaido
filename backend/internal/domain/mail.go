@@ -3,8 +3,10 @@ package domain
 import "time"
 
 const (
-	EmailPurposeRegister = "register"
-	EmailPurposeReset    = "reset"
+	EmailPurposeRegister   = "register"
+	EmailPurposeReset      = "reset"
+	EmailPurposeOAuthEmail = "oauth_email"
+	EmailPurposeOAuthLink  = "oauth_link"
 
 	MailEncryptionSTARTTLS = "starttls"
 	MailEncryptionTLS      = "tls"
@@ -57,4 +59,19 @@ type RegisterEmailPayload struct {
 
 type ResetEmailPayload struct {
 	Origin string `json:"origin"`
+}
+
+type OAuthEmailPayload struct {
+	OnboardingID string `json:"onboarding_id"`
+	Origin       string `json:"origin"`
+}
+
+type UserIdentity struct {
+	ID          int64
+	UserID      int64
+	Provider    string
+	Issuer      string
+	Subject     string
+	ConnectedAt time.Time
+	LastLoginAt *time.Time
 }

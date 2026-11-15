@@ -236,6 +236,12 @@ export function AdminUsersList() {
     },
   })
 
+  const updateLogin = useMutation({
+    mutationFn: ({ id, login }: { id: number; login: string }) => adminApi.updateUserLogin(id, login),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-users'] }),
+    onError: (err: Error) => window.alert(err.message),
+  })
+
   const clearLoginBlock = useMutation({
     mutationFn: (login: string) => adminApi.clearLoginRateLimit({ login }),
     onSuccess: (res, login) => {
@@ -291,6 +297,18 @@ export function AdminUsersList() {
                 {statusLabel(u.status)}
               </span>
               <div className="flex items-center gap-2">
+                {(u.roles.includes('ROLE_GUIDE') || u.roles.includes('ROLE_PROVIDER') || u.roles.includes('ROLE_CARRIER')) && (
+                  <button
+                    type="button"
+                    className="rounded-lg border border-divider px-2 py-1 text-xs hover:bg-sand-50"
+                    onClick={() => {
+                      const next = window.prompt('Новий логін (зміна публічної адреси не зачіпає).', u.login)
+                      if (next && next.trim() && next.trim() !== u.login) updateLogin.mutate({ id: u.id, login: next.trim() })
+                    }}
+                  >
+                    Логін
+                  </button>
+                )}
                 <button
                   type="button"
                   className="rounded-lg border border-amber-200 px-2 py-1 text-xs text-amber-800 hover:bg-amber-50 disabled:opacity-50"
@@ -365,6 +383,12 @@ export function AdminGuidesList({ statusFilter }: { statusFilter?: string }) {
       qc.invalidateQueries({ queryKey: ['site'] })
       qc.invalidateQueries({ queryKey: ['analytics'] })
     },
+  })
+
+  const updateSlug = useMutation({
+    mutationFn: ({ id, slug }: { id: number; slug: string }) => adminApi.updateGuideSlug(id, slug),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-guides'] }),
+    onError: (err: Error) => window.alert(err.message),
   })
 
   const openCabinet = useMutation({
@@ -446,6 +470,16 @@ export function AdminGuidesList({ statusFilter }: { statusFilter?: string }) {
                     Схвалити
                   </button>
                 )}
+                <button
+                  type="button"
+                  className="rounded-lg border border-divider px-2 py-1 text-xs hover:bg-sand-50"
+                  onClick={() => {
+                    const next = window.prompt('Нова адреса профілю гіда. Стара збережеться з 301.', g.slug)
+                    if (next && next.trim() && next.trim() !== g.slug) updateSlug.mutate({ id: g.id, slug: next.trim() })
+                  }}
+                >
+                  Адреса
+                </button>
                 <Link to={`/guide/${g.slug}`} className="text-sm text-teal hover:underline" target="_blank">
                   Відкрити
                 </Link>
@@ -708,6 +742,12 @@ export function AdminCarriersList({ statusFilter }: { statusFilter?: string }) {
     },
   })
 
+  const updateCarrierSlug = useMutation({
+    mutationFn: ({ id, slug }: { id: number; slug: string }) => adminApi.updateCarrierSlug(id, slug),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-carriers'] }),
+    onError: (err: Error) => window.alert(err.message),
+  })
+
   const bypass = useMutation({
     mutationFn: (id: number) => adminApi.bypassCarrier(id),
     onSuccess: () => {
@@ -753,6 +793,18 @@ export function AdminCarriersList({ statusFilter }: { statusFilter?: string }) {
                 <span className="rounded-full bg-amber/50 px-2 py-0.5 text-xs font-medium text-amber-800">Без підписки</span>
               )}
               <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  className="rounded-lg border border-divider px-2 py-1 text-xs hover:bg-sand-50"
+                  onClick={() => {
+                    const next = window.prompt('Нова адреса перевізника. Стара збережеться з 301.', c.website_slug)
+                    if (next && next.trim() && next.trim() !== c.website_slug) {
+                      updateCarrierSlug.mutate({ id: c.provider_id, slug: next.trim() })
+                    }
+                  }}
+                >
+                  Адреса
+                </button>
                 {c.status === 'pending' && (
                   <button
                     type="button"
@@ -928,6 +980,11 @@ export function AdminProvidersList({ statusFilter }: { statusFilter?: string }) 
       qc.invalidateQueries({ queryKey: ['analytics'] })
     },
   })
+  const updateProviderSlug = useMutation({
+    mutationFn: ({ id, slug }: { id: number; slug: string }) => adminApi.updateProviderSlug(id, slug),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-providers'] }),
+    onError: (err: Error) => window.alert(err.message),
+  })
 
   const title = statusFilter === 'verified'
     ? 'Верифіковані автори'
@@ -1011,6 +1068,18 @@ export function AdminProvidersList({ statusFilter }: { statusFilter?: string }) 
                       Розблокувати
                     </button>
                   )}
+                  <button
+                    type="button"
+                    className="rounded-lg border border-divider px-2 py-1 text-xs hover:bg-sand-50"
+                    onClick={() => {
+                      const next = window.prompt('Нова адреса автора. Стара збережеться з 301.', p.website_slug)
+                      if (next && next.trim() && next.trim() !== p.website_slug) {
+                        updateProviderSlug.mutate({ id: p.id, slug: next.trim() })
+                      }
+                    }}
+                  >
+                    Адреса
+                  </button>
                   {isServicesSite() ? (
                     <Link to={`/provider/${p.website_slug}`} className="text-sm text-teal hover:underline" target="_blank" rel="noreferrer">
                       Servis

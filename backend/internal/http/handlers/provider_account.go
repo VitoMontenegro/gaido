@@ -52,7 +52,6 @@ func (h *Handlers) RegisterProvider(w http.ResponseWriter, r *http.Request) {
 		response.Error(w, r, apperrors.ErrValidation)
 		return
 	}
-	req.Slug = strings.ToLower(strings.TrimSpace(req.Slug))
 	req.DisplayName = strings.TrimSpace(req.DisplayName)
 	if req.DisplayName == "" {
 		response.Error(w, r, apperrors.New("VALIDATION_ERROR", "display_name is required", 400))
@@ -62,19 +61,26 @@ func (h *Handlers) RegisterProvider(w http.ResponseWriter, r *http.Request) {
 	if existing != nil {
 		exceptID = existing.ID
 	}
-	slug, err := h.uniqueProviderSlug(r.Context(), req.Slug, req.DisplayName, exceptID)
+	slug, err := h.uniqueProviderSlug(r.Context(), "", req.DisplayName, exceptID)
 	if err != nil {
 		response.Error(w, r, err)
 		return
 	}
 	if existing != nil {
 		existing.DisplayName = req.DisplayName
-		existing.WebsiteSlug = slug
+		if existing.WebsiteSlug == "" {
+			existing.WebsiteSlug = slug
+		} else {
+			slug = existing.WebsiteSlug
+		}
 		if err := h.Providers.UpdateProvider(r.Context(), existing); err != nil {
 			response.Error(w, r, apperrors.ErrInternal)
 			return
 		}
-		_ = h.Users.AddRole(r.Context(), userID, domain.RoleProvider)
+		if err := h.Users.AddRole(r.Context(), userID, domain.RoleProvider); err != nil {
+			response.Error(w, r, apperrors.ErrInternal)
+			return
+		}
 		response.JSON(w, r, 201, map[string]any{"id": existing.ID, "website_slug": slug})
 		return
 	}
@@ -83,7 +89,16 @@ func (h *Handlers) RegisterProvider(w http.ResponseWriter, r *http.Request) {
 		response.Error(w, r, apperrors.ErrInternal)
 		return
 	}
-	_ = h.Users.AddRole(r.Context(), userID, domain.RoleProvider)
+	if h.SlugAliases != nil {
+		if err := h.SlugAliases.Reserve(r.Context(), "provider", slug, id, true); err != nil {
+			response.Error(w, r, apperrors.ErrSlugTaken)
+			return
+		}
+	}
+	if err := h.Users.AddRole(r.Context(), userID, domain.RoleProvider); err != nil {
+		response.Error(w, r, apperrors.ErrInternal)
+		return
+	}
 	response.JSON(w, r, 201, map[string]any{"id": id, "website_slug": slug})
 }
 
@@ -106,12 +121,14 @@ func (h *Handlers) UpdateProviderAccount(w http.ResponseWriter, r *http.Request)
 		response.Error(w, r, apperrors.New("VALIDATION_ERROR", "display_name is required", 400))
 		return
 	}
-	slug, err := h.uniqueProviderSlug(r.Context(), req.WebsiteSlug, p.DisplayName, p.ID)
-	if err != nil {
-		response.Error(w, r, err)
-		return
+	if strings.TrimSpace(p.WebsiteSlug) == "" {
+		slug, err := h.uniqueProviderSlug(r.Context(), "", p.DisplayName, p.ID)
+		if err != nil {
+			response.Error(w, r, err)
+			return
+		}
+		p.WebsiteSlug = slug
 	}
-	p.WebsiteSlug = slug
 	if req.BusinessName != "" {
 		p.BusinessName = req.BusinessName
 	}
@@ -161,7 +178,7 @@ func (h *Handlers) UpdateProviderAccount(w http.ResponseWriter, r *http.Request)
 		response.Error(w, r, apperrors.ErrInternal)
 		return
 	}
-	response.JSON(w, r, 200, map[string]any{"status": "ok", "website_slug": slug, "display_name": p.DisplayName})
+	response.JSON(w, r, 200, map[string]any{"status": "ok", "website_slug": p.WebsiteSlug, "display_name": p.DisplayName})
 }
 
 func (h *Handlers) UpsertProviderOffering(w http.ResponseWriter, r *http.Request) {

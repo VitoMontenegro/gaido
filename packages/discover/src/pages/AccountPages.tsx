@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { authApi, api, type FavoriteItem, userDisplayName } from '@gaido/api-client/api/client'
 import { ChangePasswordForm } from '@gaido/ui-primitives/ResetPasswordForm'
+import { IdentitiesCard } from '@gaido/ui-primitives/AuthForms'
 import ExcursionCard, { excursionCardPropsFromPartial } from '../components/ExcursionCard'
 import GuideAvatar from '../components/GuideAvatar'
 import ApiErrorBanner from '../components/ApiErrorBanner'
@@ -255,6 +256,7 @@ export function SettingsPage() {
       </button>
       </div>
       <ChangePasswordForm />
+      <IdentitiesCard />
     </div>
   )
 }

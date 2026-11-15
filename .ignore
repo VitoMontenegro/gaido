@@ -1,0 +1,15 @@
+# Зависимости и сборки
+node_modules/
+**/.next/
+**/dist/
+backend/storage/
+.local/
+
+# Артефакты сборки и тестов из репозитория
+**/*.tsbuildinfo
+coverage/
+*.out
+
+# Дополнительно для Go (если используете vendor или бинарники)
+backend/vendor/
+backend/bin/
