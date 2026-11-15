@@ -40,6 +40,7 @@ func NewRouter(cfg config.Config, log *slog.Logger, h *handlers.Handlers) http.H
 	r.Route("/api/v1", func(api chi.Router) {
 		registerLimit := middleware.AuthRateLimit(5, time.Minute, cfg.TrustProxy)
 		refreshLimit := middleware.AuthRateLimit(30, time.Minute, cfg.TrustProxy)
+		oauthLimit := middleware.AuthRateLimit(30, time.Minute, cfg.TrustProxy)
 		api.With(registerLimit).Post("/auth/register", h.Register)
 		api.With(registerLimit).Post("/auth/register/resend", h.ResendRegister)
 		api.Get("/auth/register/confirm", h.ConfirmRegister)
@@ -49,9 +50,11 @@ func NewRouter(cfg config.Config, log *slog.Logger, h *handlers.Handlers) http.H
 		api.With(refreshLimit).Post("/auth/refresh", h.Refresh)
 		api.Post("/auth/logout", h.Logout)
 		api.Get("/auth/oauth/providers", h.ListOAuthProviders)
-		api.With(registerLimit, middleware.OptionalAuth(h.JWT, h.Users, h.Guides)).Get("/auth/oauth/{provider}/start", h.OAuthStart)
-		api.With(registerLimit).Get("/auth/oauth/{provider}/callback", h.OAuthCallback)
-		api.With(registerLimit).Post("/auth/oauth/complete", h.OAuthCompleteEmail)
+		api.With(oauthLimit, middleware.OptionalAuth(h.JWT, h.Users, h.Guides)).Get("/auth/oauth/{provider}/start", h.OAuthStart)
+		// Callback is a one-shot Google redirect. Rate-limiting it shows a JSON
+		// error in the browser tab and burns the OAuth code.
+		api.Get("/auth/oauth/{provider}/callback", h.OAuthCallback)
+		api.With(oauthLimit).Post("/auth/oauth/complete", h.OAuthCompleteEmail)
 		api.Get("/auth/oauth/complete", h.OAuthCompleteConfirm)
 		api.Post("/auth/oauth/facebook/deletion", h.FacebookDataDeletion)
 

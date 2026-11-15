@@ -110,7 +110,7 @@
   }
 
   .btn-secondary {
-    @apply inline-flex min-h-10 items-center justify-center rounded-xl border border-border bg-surface px-3 py-1 text-base font-medium text-ink transition hover:bg-sand-100;
+    @apply inline-flex min-h-10 items-center justify-center rounded-xl border border-border bg-surface px-3 py-1 text-base font-medium text-ink transition hover:bg-sand-100 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-surface;
     letter-spacing: -0.02em;
   }
 

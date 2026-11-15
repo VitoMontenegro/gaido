@@ -37,6 +37,32 @@ func TestAuthRateLimit_blocksAfterMax(t *testing.T) {
 	}
 }
 
+func TestAuthRateLimit_getRedirectsInsteadOfJSON(t *testing.T) {
+	limit := AuthRateLimit(1, time.Minute, false)
+	h := limit(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	ip := "203.0.113.40"
+	okReq := httptest.NewRequest(http.MethodGet, "/auth/oauth/google/callback", nil)
+	okReq.RemoteAddr = ip + ":1234"
+	okRec := httptest.NewRecorder()
+	h.ServeHTTP(okRec, okReq)
+	if okRec.Code != http.StatusOK {
+		t.Fatalf("first GET: status %d", okRec.Code)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/auth/oauth/google/callback", nil)
+	req.RemoteAddr = ip + ":1234"
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	if rec.Code != http.StatusFound {
+		t.Fatalf("expected 302, got %d body %s", rec.Code, rec.Body.String())
+	}
+	if loc := rec.Header().Get("Location"); loc != "/login?oauth=rate" {
+		t.Fatalf("location %q", loc)
+	}
+}
+
 func TestAuthRateLimit_separateIPs(t *testing.T) {
 	limit := AuthRateLimit(1, time.Minute, false)
 	h := limit(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

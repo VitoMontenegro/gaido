@@ -154,6 +154,11 @@ func AuthRateLimit(max int, window time.Duration, trustProxy bool) func(http.Han
 				if retryAfter > 0 {
 					w.Header().Set("Retry-After", strconv.Itoa(retryAfter))
 				}
+				// Browser OAuth is GET: never dump JSON into the tab.
+				if r.Method == http.MethodGet {
+					http.Redirect(w, r, "/login?oauth=rate", http.StatusFound)
+					return
+				}
 				writeError(w, r, 429, "RATE_LIMITED", "Too many requests, try again later")
 				return
 			}

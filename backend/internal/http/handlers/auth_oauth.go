@@ -55,6 +55,14 @@ func (h *Handlers) oauthLog(provider, reason string) {
 	}
 }
 
+func (h *Handlers) oauthAbort(w http.ResponseWriter, r *http.Request, origin, reason string) {
+	h.oauthLog(strings.ToLower(chi.URLParam(r, "provider")), reason)
+	if origin == "" {
+		origin = h.resolveAuthOrigin(r, r.URL.Query().Get("return_origin"))
+	}
+	h.redirectAuth(w, r, origin, "/login?oauth=invalid")
+}
+
 func (h *Handlers) ListOAuthProviders(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, r, 200, map[string]any{
 		"google":   h.googleEnabled(),
@@ -65,13 +73,11 @@ func (h *Handlers) ListOAuthProviders(w http.ResponseWriter, r *http.Request) {
 func (h *Handlers) OAuthStart(w http.ResponseWriter, r *http.Request) {
 	provider := strings.ToLower(chi.URLParam(r, "provider"))
 	if (provider == "google" && !h.googleEnabled()) || (provider == "facebook" && !h.facebookEnabled()) || (provider != "google" && provider != "facebook") {
-		h.oauthLog(provider, "unavailable")
-		response.Error(w, r, apperrors.ErrOAuthUnavailable)
+		h.oauthAbort(w, r, "", "unavailable")
 		return
 	}
 	if h.OAuth == nil {
-		h.oauthLog(provider, "unavailable")
-		response.Error(w, r, apperrors.ErrOAuthUnavailable)
+		h.oauthAbort(w, r, "", "unavailable")
 		return
 	}
 	intent := strings.TrimSpace(r.URL.Query().Get("intent"))
@@ -80,33 +86,27 @@ func (h *Handlers) OAuthStart(w http.ResponseWriter, r *http.Request) {
 	}
 	returnURL := h.resolveAuthOrigin(r, r.URL.Query().Get("return_origin"))
 	if impersonate.FromContext(r.Context()) != nil && intent == "link" {
-		response.Error(w, r, apperrors.ErrForbidden)
+		h.redirectAuth(w, r, returnURL, "/account/settings")
 		return
 	}
 	uid := middleware.UserIDFromContext(r.Context())
 	if intent == "link" && uid == 0 {
-		response.Error(w, r, apperrors.ErrUnauthorized)
+		h.oauthAbort(w, r, returnURL, "unauthorized")
 		return
-	}
-	if intent != "link" {
-		if !parseBoolQuery(r.URL.Query().Get("accept_privacy")) || !parseBoolQuery(r.URL.Query().Get("accept_site_rules")) {
-			response.Error(w, r, apperrors.New("VALIDATION_ERROR", "privacy policy must be accepted", 400))
-			return
-		}
 	}
 	state, err := oauth.RandomID(16)
 	if err != nil {
-		response.Error(w, r, apperrors.ErrInternal)
+		h.oauthAbort(w, r, returnURL, "internal")
 		return
 	}
 	nonce, err := oauth.RandomID(16)
 	if err != nil {
-		response.Error(w, r, apperrors.ErrInternal)
+		h.oauthAbort(w, r, returnURL, "internal")
 		return
 	}
 	verifier, err := oauth.RandomID(32)
 	if err != nil {
-		response.Error(w, r, apperrors.ErrInternal)
+		h.oauthAbort(w, r, returnURL, "internal")
 		return
 	}
 	tx := oauth.Transaction{
@@ -121,8 +121,7 @@ func (h *Handlers) OAuthStart(w http.ResponseWriter, r *http.Request) {
 		AcceptSite:   parseBoolQuery(r.URL.Query().Get("accept_site_rules")),
 	}
 	if err := h.OAuth.PutTx(r.Context(), tx); err != nil {
-		h.oauthLog(provider, "unavailable")
-		response.Error(w, r, apperrors.ErrOAuthUnavailable)
+		h.oauthAbort(w, r, returnURL, "unavailable")
 		return
 	}
 	h.setOAuthCookie(w, oauthTxCookie, state, 10*time.Minute)
@@ -138,8 +137,7 @@ func (h *Handlers) OAuthStart(w http.ResponseWriter, r *http.Request) {
 	// into "&amp;" and Google then returns a mismatching state.
 	jsURL, err := json.Marshal(redirect)
 	if err != nil {
-		h.oauthLog(provider, "unavailable")
-		response.Error(w, r, apperrors.ErrOAuthUnavailable)
+		h.oauthAbort(w, r, returnURL, "unavailable")
 		return
 	}
 	w.Header().Set("Cache-Control", "no-store")
@@ -158,7 +156,7 @@ func (h *Handlers) OAuthCallback(w http.ResponseWriter, r *http.Request) {
 	}
 	state := strings.TrimSpace(r.URL.Query().Get("state"))
 	code := strings.TrimSpace(r.URL.Query().Get("code"))
-	c, err := r.Cookie(oauthTxCookie)
+	c, cookieErr := r.Cookie(oauthTxCookie)
 	reason := ""
 	switch {
 	case h.OAuth == nil:
@@ -167,9 +165,7 @@ func (h *Handlers) OAuthCallback(w http.ResponseWriter, r *http.Request) {
 		reason = "state"
 	case code == "":
 		reason = "code"
-	case err != nil || c == nil:
-		reason = "cookie"
-	case c.Value != state:
+	case cookieErr == nil && c != nil && c.Value != "" && c.Value != state:
 		reason = "mismatch"
 	}
 	if reason != "" {
@@ -180,7 +176,11 @@ func (h *Handlers) OAuthCallback(w http.ResponseWriter, r *http.Request) {
 	tx, err := h.OAuth.ConsumeTx(r.Context(), state)
 	h.clearOAuthCookie(w, oauthTxCookie)
 	if err != nil || tx == nil || tx.Provider != provider {
-		h.oauthLog(provider, "redis")
+		if cookieErr != nil || c == nil || c.Value == "" {
+			h.oauthLog(provider, "cookie")
+		} else {
+			h.oauthLog(provider, "redis")
+		}
 		h.redirectAuth(w, r, h.resolveAuthOrigin(r, ""), "/login?oauth=invalid")
 		return
 	}
@@ -215,7 +215,7 @@ func (h *Handlers) OAuthCallback(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if ident, err := h.Identities.Get(r.Context(), provider, issuer, subject); err != nil {
-		response.Error(w, r, apperrors.ErrInternal)
+		h.oauthAbort(w, r, tx.ReturnURL, "internal")
 		return
 	} else if ident != nil {
 		u, err := h.Users.GetByID(r.Context(), ident.UserID)
@@ -229,7 +229,7 @@ func (h *Handlers) OAuthCallback(w http.ResponseWriter, r *http.Request) {
 		}
 		_ = h.Identities.TouchLogin(r.Context(), ident.ID)
 		if _, err := h.issueSession(w, r, u.ID, u.Roles); err != nil {
-			response.Error(w, r, apperrors.ErrInternal)
+			h.oauthAbort(w, r, tx.ReturnURL, "session")
 			return
 		}
 		h.redirectAuth(w, r, tx.ReturnURL, "/")
@@ -237,7 +237,7 @@ func (h *Handlers) OAuthCallback(w http.ResponseWriter, r *http.Request) {
 	}
 	if tx.Intent == "link" && tx.UserID != 0 {
 		if impersonate.FromContext(r.Context()) != nil {
-			response.Error(w, r, apperrors.ErrForbidden)
+			h.redirectAuth(w, r, tx.ReturnURL, "/account/settings")
 			return
 		}
 		if err := h.Identities.Insert(r.Context(), tx.UserID, provider, issuer, subject); err != nil {
@@ -246,11 +246,11 @@ func (h *Handlers) OAuthCallback(w http.ResponseWriter, r *http.Request) {
 		}
 		u, err := h.Users.GetByID(r.Context(), tx.UserID)
 		if err != nil || u == nil {
-			response.Error(w, r, apperrors.ErrInternal)
+			h.oauthAbort(w, r, tx.ReturnURL, "internal")
 			return
 		}
 		if _, err := h.issueSession(w, r, u.ID, u.Roles); err != nil {
-			response.Error(w, r, apperrors.ErrInternal)
+			h.oauthAbort(w, r, tx.ReturnURL, "session")
 			return
 		}
 		h.redirectAuth(w, r, tx.ReturnURL, "/account/settings?oauth=linked")
@@ -261,7 +261,7 @@ func (h *Handlers) OAuthCallback(w http.ResponseWriter, r *http.Request) {
 	if email == "" || (provider == "google" && !trusted) || (provider == "facebook" && email == "") {
 		id, err := oauth.RandomID(16)
 		if err != nil {
-			response.Error(w, r, apperrors.ErrInternal)
+			h.oauthAbort(w, r, tx.ReturnURL, "internal")
 			return
 		}
 		ob := oauth.Onboarding{
@@ -283,20 +283,25 @@ func (h *Handlers) OAuthCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if existing, err := h.Users.GetByEmail(r.Context(), email); err != nil {
-		response.Error(w, r, apperrors.ErrInternal)
+		h.oauthAbort(w, r, tx.ReturnURL, "internal")
 		return
 	} else if existing != nil {
-		h.redirectAuth(w, r, tx.ReturnURL, "/login?oauth=link")
+		h.attachIdentityAndLogin(w, r, existing, provider, issuer, subject, tx.ReturnURL, "/")
 		return
 	}
 	u, err := h.createOAuthUser(r.Context(), email, first, last, provider, issuer, subject, trusted, tx.AcceptPriv, tx.AcceptSite)
 	if err != nil {
-		response.Error(w, r, apperrors.ErrInternal)
+		if again, gerr := h.Users.GetByEmail(r.Context(), email); gerr == nil && again != nil {
+			h.attachIdentityAndLogin(w, r, again, provider, issuer, subject, tx.ReturnURL, "/")
+			return
+		}
+		h.oauthLog(provider, "create")
+		h.redirectAuth(w, r, tx.ReturnURL, "/login?oauth=invalid")
 		return
 	}
 	_ = h.EmailTokens.DeleteByEmailPurpose(r.Context(), email, domain.EmailPurposeRegister)
 	if _, err := h.issueSession(w, r, u.ID, u.Roles); err != nil {
-		response.Error(w, r, apperrors.ErrInternal)
+		h.oauthAbort(w, r, tx.ReturnURL, "session")
 		return
 	}
 	h.redirectAuth(w, r, tx.ReturnURL, "/")
@@ -368,22 +373,24 @@ func (h *Handlers) OAuthCompleteConfirm(w http.ResponseWriter, r *http.Request) 
 	}
 	email := identity.NormalizeEmail(tok.Email)
 	if existing, err := h.Users.GetByEmail(r.Context(), email); err != nil {
-		response.Error(w, r, apperrors.ErrInternal)
+		h.oauthAbort(w, r, payload.Origin, "internal")
 		return
 	} else if existing != nil {
-		h.redirectAuth(w, r, payload.Origin, "/login?oauth=link")
+		h.attachIdentityAndLogin(w, r, existing, ob.Provider, ob.Issuer, ob.Subject, payload.Origin, "/")
+		h.OAuth.DeleteOnboarding(r.Context(), ob.ID)
+		h.clearOAuthCookie(w, oauthOnboardCookie)
 		return
 	}
 	u, err := h.createOAuthUser(r.Context(), email, ob.FirstName, ob.LastName, ob.Provider, ob.Issuer, ob.Subject, true, ob.AcceptPriv, ob.AcceptSite)
 	if err != nil {
-		response.Error(w, r, apperrors.ErrConflict)
+		h.redirectAuth(w, r, payload.Origin, "/login?oauth=invalid")
 		return
 	}
 	h.OAuth.DeleteOnboarding(r.Context(), ob.ID)
 	h.clearOAuthCookie(w, oauthOnboardCookie)
 	_ = h.EmailTokens.DeleteByEmailPurpose(r.Context(), email, domain.EmailPurposeRegister)
 	if _, err := h.issueSession(w, r, u.ID, u.Roles); err != nil {
-		response.Error(w, r, apperrors.ErrInternal)
+		h.oauthAbort(w, r, payload.Origin, "session")
 		return
 	}
 	h.redirectAuth(w, r, payload.Origin, "/")
@@ -462,10 +469,31 @@ func (h *Handlers) FacebookDataDeletion(w http.ResponseWriter, r *http.Request) 
 	})
 }
 
-func (h *Handlers) createOAuthUser(ctx context.Context, email, first, last, provider, issuer, subject string, verified, priv, site bool) (*domain.User, error) {
-	if !priv || !site {
-		return nil, apperrors.New("VALIDATION_ERROR", "privacy policy must be accepted", 400)
+func (h *Handlers) attachIdentityAndLogin(w http.ResponseWriter, r *http.Request, u *domain.User, provider, issuer, subject, returnURL, path string) {
+	if err := h.Identities.Insert(r.Context(), u.ID, provider, issuer, subject); err != nil {
+		if !isUniqueViolation(err) {
+			h.oauthAbort(w, r, returnURL, "internal")
+			return
+		}
+		ident, gerr := h.Identities.Get(r.Context(), provider, issuer, subject)
+		if gerr != nil {
+			h.oauthAbort(w, r, returnURL, "internal")
+			return
+		}
+		if ident == nil || ident.UserID != u.ID {
+			h.redirectAuth(w, r, returnURL, "/login?oauth=invalid")
+			return
+		}
+		_ = h.Identities.TouchLogin(r.Context(), ident.ID)
 	}
+	if _, err := h.issueSession(w, r, u.ID, u.Roles); err != nil {
+		h.oauthAbort(w, r, returnURL, "session")
+		return
+	}
+	h.redirectAuth(w, r, returnURL, path)
+}
+
+func (h *Handlers) createOAuthUser(ctx context.Context, email, first, last, provider, issuer, subject string, verified, priv, site bool) (*domain.User, error) {
 	var verifiedAt *time.Time
 	if verified {
 		now := time.Now()
@@ -494,8 +522,12 @@ func (h *Handlers) createOAuthUser(ctx context.Context, email, first, last, prov
 		return nil, err
 	}
 	ver, _ := h.Identities.LegalVersion(ctx)
-	_ = h.Identities.RecordConsent(ctx, id, "privacy_policy", ver)
-	_ = h.Identities.RecordConsent(ctx, id, "site_rules", ver)
+	if priv {
+		_ = h.Identities.RecordConsent(ctx, id, "privacy_policy", ver)
+	}
+	if site {
+		_ = h.Identities.RecordConsent(ctx, id, "site_rules", ver)
+	}
 	return h.Users.GetByID(ctx, id)
 }
 

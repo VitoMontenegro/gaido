@@ -34,8 +34,8 @@ const emptyRegisterForm = (): RegisterFormData => ({
   password_confirm: '',
   first_name: '',
   last_name: '',
-  accept_privacy: false,
-  accept_site_rules: false,
+  accept_privacy: true,
+  accept_site_rules: true,
 })
 
 export function RegisterForm() {
@@ -71,7 +71,7 @@ export function RegisterForm() {
 
   return (
     <form onSubmit={submit} className="card space-y-4">
-      <OAuthButtons acceptPrivacy={form.accept_privacy} acceptSiteRules={form.accept_site_rules} disabled={!form.accept_privacy || !form.accept_site_rules} />
+      <OAuthButtons acceptPrivacy={form.accept_privacy} acceptSiteRules={form.accept_site_rules} />
       <div className="grid gap-4 sm:grid-cols-2">
         <input className="input" autoComplete="given-name" placeholder="Імʼя" value={form.first_name} onChange={(e) => setForm({ ...form, first_name: e.target.value })} />
         <input className="input" autoComplete="family-name" placeholder="Прізвище" value={form.last_name} onChange={(e) => setForm({ ...form, last_name: e.target.value })} />
@@ -112,8 +112,8 @@ export function LoginForm({ onSuccess }: { onSuccess?: (token: string, roles: st
   const [login, setLogin] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
-  const [privacy, setPrivacy] = useState(false)
-  const [site, setSite] = useState(false)
+  const [privacy, setPrivacy] = useState(true)
+  const [site, setSite] = useState(true)
   const [oauthEmail, setOauthEmail] = useState('')
   const [pendingEmail, setPendingEmail] = useState('')
   const from = (location.state as { from?: string } | null)?.from
@@ -171,7 +171,9 @@ export function LoginForm({ onSuccess }: { onSuccess?: (token: string, roles: st
         </form>
       )}
       {oauthHint === 'cancelled' && <p className="text-sm text-stone-600">Вхід скасовано. Можна спробувати ще раз або увійти з email.</p>}
-      {oauthHint === 'link' && <p className="text-sm text-stone-600">Цей email уже є в Gaido. Увійдіть з паролем, потім підключіть Google або Facebook у налаштуваннях.</p>}
+      {oauthHint === 'invalid' && <p className="text-sm text-red-600">Не вдалося увійти через Google. Натисніть «Продовжити з Google» ще раз.</p>}
+      {oauthHint === 'rate' && <p className="text-sm text-red-600">Забагато спроб входу. Зачекайте хвилину і натисніть «Продовжити з Google» ще раз.</p>}
+      {oauthHint === 'link' && <p className="text-sm text-stone-600">Цей email уже є в Gaido. Увійдіть через Google або з паролем.</p>}
       <form onSubmit={submit} className="space-y-4" autoComplete="off">
         <input className="input" name="login" autoComplete="off" placeholder="Логін або email" value={login} onChange={(e) => setLogin(e.target.value)} />
         <PasswordInput name="password" autoComplete="current-password" placeholder="Пароль" value={password} onChange={setPassword} />
@@ -187,7 +189,7 @@ export function LoginForm({ onSuccess }: { onSuccess?: (token: string, roles: st
         {error && <p className="text-sm text-red-600">{error}</p>}
         <button type="submit" className="btn-accent w-full">Увійти</button>
       </form>
-      <OAuthButtons acceptPrivacy={privacy} acceptSiteRules={site} disabled={!privacy || !site} />
+      <OAuthButtons acceptPrivacy={privacy} acceptSiteRules={site} />
     </div>
   )
 }
