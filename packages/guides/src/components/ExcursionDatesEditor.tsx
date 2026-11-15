@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { api } from '@gaido/api-client/api/client'
+import { api, formatApiError } from '@gaido/api-client/api/client'
 import AvailabilityCalendar from './AvailabilityCalendar'
+import { buildMonthDatePlan } from '../lib/monthDatePlan'
 import { dateKeyFromISO, type CalendarDateItem } from '../lib/calendarUtils'
 
 type Slot = { id: number; starts_at: string; ends_at: string }
@@ -23,6 +24,10 @@ export default function ExcursionDatesEditor({
   const now = new Date()
   const [year, setYear] = useState(now.getFullYear())
   const [month, setMonth] = useState(now.getMonth() + 1)
+  const [bulkBusy, setBulkBusy] = useState(false)
+  const [bulkMessage, setBulkMessage] = useState<{ error: boolean; text: string } | null>(null)
+  const bulkLock = useRef(false)
+  const [retryMonth, setRetryMonth] = useState<{ keys: string[]; selected: boolean } | null>(null)
 
   const isGroup = excursionType === 'GROUP'
 
@@ -81,19 +86,52 @@ export default function ExcursionDatesEditor({
 
   const loading = isGroup ? excursionDates.isLoading : guideSlots.isLoading
   const pending =
+    bulkBusy ||
     addExcursionDate.isPending ||
     removeExcursionDate.isPending ||
     addGuideSlot.isPending ||
     removeGuideSlot.isPending
 
   const handleClick = (dateKey: string, item?: CalendarDateItem) => {
-    if (pending) return
+    if (pending || bulkLock.current || retryMonth) return
+    setBulkMessage(null)
     if (item?.id) {
       if (isGroup) removeExcursionDate.mutate(item.id)
       else removeGuideSlot.mutate(item.id)
     } else {
       if (isGroup) addExcursionDate.mutate(dateKey)
       else addGuideSlot.mutate(dateKey)
+    }
+  }
+
+  const toggleMonthDays = async (keys: string[], target?: boolean) => {
+    if (pending || bulkLock.current) return
+    bulkLock.current = true
+    setBulkBusy(true)
+    setBulkMessage(null)
+    const currentQuery = isGroup ? excursionDates : guideSlots
+    const queryKey = isGroup ? ['excursion-dates', excursionId] : ['slots']
+    try {
+      const fresh = await currentQuery.refetch()
+      if (fresh.isError || !fresh.data) throw new Error('Не вдалося завантажити наявні дати. Спробуйте ще раз.')
+      const selected = target ?? !buildMonthDatePlan(keys, fresh.data.items).remove
+      // Keep the explicit intent if the response is lost; retry never inverts it.
+      setRetryMonth({ keys, selected })
+      await api(isGroup
+        ? `/api/v1/account/guide/excursions/${excursionId}/dates/days`
+        : '/api/v1/account/guide/calendar/days', {
+        method: 'PUT', body: JSON.stringify({ dates: keys, selected }),
+      })
+      const refreshed = await currentQuery.refetch()
+      if (refreshed.isError) throw new Error('Дати збережено, але не вдалося оновити календар. Повторіть перевірку.')
+      setRetryMonth(null)
+      setBulkMessage({ error: false, text: selected ? 'Усі доступні дні цього місяця вибрано.' : 'Доступні дати цього місяця знято.' })
+    } catch (error) {
+      await qc.invalidateQueries({ queryKey })
+      setBulkMessage({ error: true, text: formatApiError(error) })
+    } finally {
+      bulkLock.current = false
+      setBulkBusy(false)
     }
   }
 
@@ -111,14 +149,27 @@ export default function ExcursionDatesEditor({
         year={year}
         month={month}
         dates={dates}
+        mobileSingleMonth
         onMonthChange={(y, m) => {
           setYear(y)
           setMonth(m)
         }}
         onDateClick={handleClick}
         mode="edit"
-        loading={loading || pending}
+        onToggleMonthDays={(keys) => { if (!retryMonth) void toggleMonthDays(keys) }}
+        loading={loading}
+        busy={pending || !!retryMonth}
       />
+      {bulkBusy && <p role="status" className="text-sm text-stone-600">Оновлюємо дати місяця…</p>}
+      {bulkMessage && <p role={bulkMessage.error ? 'alert' : 'status'} className={bulkMessage.error ? 'text-sm text-red-700' : 'text-sm text-emerald-700'}>{bulkMessage.text}</p>}
+      {retryMonth && !bulkBusy && (
+        <button type="button" className="btn btn-outline" onClick={() => void toggleMonthDays(retryMonth.keys, retryMonth.selected)}>
+          Спробувати ще раз
+        </button>
+      )}
+      {(excursionDates.isError || guideSlots.isError || addExcursionDate.isError || removeExcursionDate.isError || addGuideSlot.isError || removeGuideSlot.isError) && (
+        <p role="alert" className="text-sm text-red-700">Не вдалося завантажити або оновити дати. Спробуйте ще раз.</p>
+      )}
     </div>
   )
 }

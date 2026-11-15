@@ -1,3 +1,4 @@
+import { useSaveNotification } from '@gaido/ui-primitives/SaveNotification'
 import { useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import {
@@ -66,6 +67,7 @@ function normalizeHome(home: HomeContent): HomeContent {
 }
 
 export function SiteContentEditor() {
+  const notify = useSaveNotification()
   const qc = useQueryClient()
   const [draft, setDraft] = useState<SiteContentPayload | null>(null)
   const [saving, setSaving] = useState(false)
@@ -102,8 +104,10 @@ export function SiteContentEditor() {
       })
       qc.invalidateQueries({ queryKey: ['site'] })
       setMessage('Збережено')
+      notify(`Контент сайту оновлено.`)
     } catch (e) {
       setMessage(e instanceof Error ? e.message : 'Помилка збереження')
+      notify(e instanceof Error ? e.message : 'Спробуйте ще раз.', 'error')
     } finally {
       setSaving(false)
     }

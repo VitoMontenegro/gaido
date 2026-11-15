@@ -42,7 +42,7 @@ func appendExcursionTextSearch(sql string, args []any, n int, q string, withCity
 	if len(terms) == 0 {
 		return sql, args, n
 	}
-	cols := []string{"e.title", "e.description", "g.display_name"}
+	cols := []string{"e.title", "regexp_replace(COALESCE(NULLIF(BTRIM(e.description_html), ''), NULLIF(BTRIM(e.body_html), ''), e.description, ''), '<[^>]*>', ' ', 'g')", "g.display_name"}
 	if withCityJoin {
 		cols = append(cols, "c.name")
 	}

@@ -23,6 +23,7 @@ export type ImageUrlFieldProps = {
   maxBytes?: number
   /** Примусовий формат для гідів / аватарів */
   outputFormat?: RasterFormat
+  simpleUpload?: boolean
 }
 
 export function ImageUrlField({
@@ -34,6 +35,7 @@ export function ImageUrlField({
   cropAspect = 1,
   maxBytes = 150 * 1024,
   outputFormat = 'webp',
+  simpleUpload = false,
 }: ImageUrlFieldProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const cropRef = useRef<CropImageSource | null>(null)
@@ -91,7 +93,7 @@ export function ImageUrlField({
   return (
     <>
       <div className="space-y-2">
-        <label className="block text-sm text-muted">
+        {simpleUpload ? <p className="text-sm font-medium text-ink">{label}</p> : <label className="block text-sm text-muted">
           {label}
           <input
             className="input mt-1"
@@ -99,8 +101,8 @@ export function ImageUrlField({
             placeholder="https://… або завантажте файл"
             onChange={(e) => onChange(e.target.value)}
           />
-        </label>
-        <p className="text-xs text-muted-light">{defaultHint}</p>
+        </label>}
+        <p className="text-xs text-muted-light">{simpleUpload ? 'Оберіть фото, на якому добре видно ваше обличчя.' : defaultHint}</p>
         <div className="flex flex-wrap items-center gap-3">
           <button
             type="button"
@@ -108,7 +110,7 @@ export function ImageUrlField({
             disabled={uploading || preparing}
             onClick={() => inputRef.current?.click()}
           >
-            {uploading ? 'Завантаження…' : preparing ? 'Підготовка…' : 'Завантажити та обрізати'}
+            {uploading ? 'Завантаження…' : preparing ? 'Підготовка…' : simpleUpload ? (value ? 'Змінити фото' : 'Обрати фото') : 'Завантажити та обрізати'}
           </button>
           {value && (
             <button type="button" className="text-sm text-muted hover:text-ink" onClick={() => { onChange(''); onPersist?.(''); setLastSize(null) }}>
@@ -126,11 +128,11 @@ export function ImageUrlField({
               e.target.value = ''
             }}
           />
-          {preview && (
+          {preview && !simpleUpload && (
             <img src={preview} alt="" className="h-16 w-16 rounded-2xl object-cover border border-border" />
           )}
         </div>
-        {lastSize != null && (
+        {lastSize != null && !simpleUpload && (
           <p className="text-xs text-muted-light">Останнє завантаження: {formatBytes(lastSize)}</p>
         )}
         {error && <p className="text-xs text-red-600">{error}</p>}

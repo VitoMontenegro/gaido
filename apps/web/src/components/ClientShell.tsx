@@ -11,6 +11,7 @@ import BodyFontSync from '@gaido/ui-primitives/BodyFontSync'
 import { applyBodyFont } from '@gaido/ui-primitives/bodyFont'
 import { UniqueDocumentTitle } from '@gaido/ui-primitives/useDocumentTitle'
 import dynamic from 'next/dynamic'
+import { SaveNotificationProvider } from '@gaido/ui-primitives/SaveNotification'
 
 const PortalApp = dynamic(() => import('../shells/PortalApp'), { ssr: false })
 const SvitApp = dynamic(() => import('../shells/SvitApp'), { ssr: false })
@@ -104,12 +105,14 @@ export function ClientShell({ pathname, children }: { pathname: string; children
     <StrictMode>
       <HelmetProvider>
         <QueryClientProvider client={queryClient}>
-          <BrowserRouter basename={basename}>
-            <BodyFontSync />
-            <UniqueDocumentTitle />
-            <DefaultSocialMeta />
-            <App />
-          </BrowserRouter>
+          <SaveNotificationProvider>
+            <BrowserRouter basename={basename}>
+              <BodyFontSync />
+              <UniqueDocumentTitle />
+              <DefaultSocialMeta />
+              <App />
+            </BrowserRouter>
+          </SaveNotificationProvider>
         </QueryClientProvider>
       </HelmetProvider>
     </StrictMode>

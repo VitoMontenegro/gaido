@@ -50,6 +50,12 @@ func encodeFavoriteItems(items []domain.FavoriteEnriched) []map[string]any {
 			item["price_from"] = f.PriceFrom
 			item["currency"] = f.Currency
 		}
+		if f.BodyHTML != "" {
+			item["body_html"] = f.BodyHTML
+		}
+		if f.DescriptionHTML != "" {
+			item["description_html"] = f.DescriptionHTML
+		}
 		if f.Description != "" {
 			item["description"] = f.Description
 		}

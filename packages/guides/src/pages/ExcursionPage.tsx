@@ -1,3 +1,4 @@
+import { excursionPreviewText } from '../components/excursionUi'
 import { useState, useEffect, type ReactNode } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
@@ -191,7 +192,7 @@ export default function ExcursionPage() {
       slug: excursion.slug,
       title: excursion.title,
       subtitle: excursion.city_name,
-      description: excursion.description,
+      description: excursionPreviewText(excursion),
       price: excursion.price_from,
       currency: excursion.currency,
       cover_url: excursion.cover_image_url,
@@ -219,7 +220,7 @@ export default function ExcursionPage() {
   const ratingCount = excursion.rating_count ?? 0
   const isUnpublished = excursion.status !== 'PUBLISHED'
   const isGuideOwner = !!myGuide && myGuide.id === excursion.guide_id
-  const body = excursion.body_html?.trim() || (excursion.description ? `<p>${excursion.description}</p>` : '')
+  const body = excursion.description_html?.trim() || excursion.body_html?.trim() || (excursion.description ? `<p>${excursion.description}</p>` : '')
   const mapUrl = resolveMapEmbed(excursion.map_embed_url)
   const hasBooking =
     (excursion.included_items?.length ?? 0) > 0 ||
@@ -251,7 +252,7 @@ export default function ExcursionPage() {
     <div className="excursion-parus pb-28 lg:pb-10">
       <Seo
         title={seoExcursionTitle(excursion.title, excursion.city_name, excursion.price_from, excursion.currency)}
-        description={excursion.description ?? ''}
+        description={excursionPreviewText(excursion)}
         path={`/excursion/${excursion.slug}`}
         image={excursion.cover_image_url}
         noIndex={isUnpublished}
@@ -298,7 +299,6 @@ export default function ExcursionPage() {
           {useParusLayout && gallery.length > 0 ? (
               <ExcursionHeroGallery
                   images={gallery}
-                  mobileCover={structured.gallery_mobile_cover}
                   title={excursion.title}
               />
           ) : (
@@ -332,9 +332,9 @@ export default function ExcursionPage() {
                 stops={structured.route_stops}
                 disclaimer={structured.route_disclaimer}
               />
-              <ExcursionReadMore teaser={excursion.description} bodyHtml={excursion.body_html} />
+              <ExcursionReadMore teaser={excursion.description} bodyHtml={excursion.description_html?.trim() || excursion.body_html} />
               <ExcursionPhotoLocations images={structured.photo_locations} />
-              <ExcursionVideoBlock video={structured.video} />
+              <ExcursionVideoBlock video={structured.video} poster={gallery[0] || excursion.cover_image_url} />
               <ExcursionComfortBlock items={structured.comfort_items} />
             </>
           ) : (

@@ -1,4 +1,4 @@
-import { Link, Outlet, Navigate } from 'react-router-dom'
+import { Link, NavLink, Outlet, Navigate, useLocation } from 'react-router-dom'
 import { useBootstrapAuth, useHasRole, useMe } from '@gaido/api-client/hooks/useAuth'
 import { useLogout } from '@gaido/api-client/hooks/useLogout'
 import { useStopImpersonation } from '@gaido/api-client/hooks/useStopImpersonation'
@@ -29,6 +29,7 @@ export function GuidesPublicLayout() {
 }
 
 export function GuidesAccountLayout() {
+  const { pathname } = useLocation()
   const logout = useLogout()
   const stopImpersonation = useStopImpersonation()
   const { isLoading: authLoading } = useBootstrapAuth()
@@ -53,8 +54,36 @@ export function GuidesAccountLayout() {
   return (
     <div className="min-h-screen">
       <GuidesHeader />
+      {isGuide && pathname.startsWith('/account/guide') && (
+        <>
+          <nav aria-label="Навігація кабінету гіда" className="fixed inset-x-0 top-14 z-30 border-b border-divider bg-white shadow-sm md:hidden">
+            <div className="grid h-12 grid-cols-5 px-1">
+              {[
+                { to: '/account/guide', label: 'Головна', end: true },
+                { to: '/account/guide/inquiries', label: 'Заявки' },
+                { to: '/account/guide/excursions', label: 'Екскурсії' },
+                { to: '/account/guide/calendar', label: 'Календар' },
+                { to: '/account/guide/more', label: 'Ще' },
+              ].map((item) => {
+                const moreActive = item.label === 'Ще' && ['/profile', '/documents', '/reviews', '/articles', '/instructions', '/billing', '/clients', '/stats'].some((path) => pathname.startsWith(`/account/guide${path}`))
+                return (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    end={item.end}
+                    className={({ isActive }) => `flex min-w-0 items-center justify-center border-b-2 px-1 text-center text-xs font-semibold ${isActive || moreActive ? 'border-teal text-teal-dark' : 'border-transparent text-stone-600'}`}
+                  >
+                    {item.label}
+                  </NavLink>
+                )
+              })}
+            </div>
+          </nav>
+          <div className="h-12 md:hidden" aria-hidden="true" />
+        </>
+      )}
       <div className="container-site grid gap-6 py-8 md:grid-cols-[240px_1fr]">
-        <aside className="card h-fit space-y-1 p-4">
+        <aside className={`${isGuide && pathname.startsWith('/account/guide') ? 'hidden md:block' : ''} card h-fit space-y-1 p-4`}>
           <Link to="/" className="mb-3 block font-display text-lg font-medium text-ink transition hover:opacity-75">
             ← На головну
           </Link>
@@ -113,8 +142,9 @@ export function GuidesAccountLayout() {
               <AccountNavLink to="/account/guide/profile">Стати гідом</AccountNavLink>
           )}
         </aside>
-        <div><Outlet /></div>
+        <div className="min-w-0"><Outlet /></div>
       </div>
+
     </div>
   )
 }

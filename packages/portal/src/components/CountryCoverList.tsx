@@ -1,3 +1,4 @@
+import { useSaveNotification } from '@gaido/ui-primitives/SaveNotification'
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { adminApi } from '@gaido/api-client/api/client'
@@ -42,6 +43,7 @@ function CountryCoverRow({
 }
 
 export default function CountryCoverList() {
+  const notify = useSaveNotification()
   const qc = useQueryClient()
   const [query, setQuery] = useState('')
   const [savedId, setSavedId] = useState<number | null>(null)
@@ -53,9 +55,11 @@ export default function CountryCoverList() {
     mutationFn: ({ id, cover }: { id: number; cover: string }) => adminApi.updateCountryCover(id, cover),
     onSuccess: (_data, variables) => {
       setSavedId(variables.id)
+      notify('Обкладинку країни оновлено.')
       void qc.invalidateQueries({ queryKey: ['mod-geo-countries'] })
       void qc.invalidateQueries({ queryKey: ['country-catalog'] })
     },
+    onError: (error: Error) => notify(error.message || 'Спробуйте ще раз.', 'error'),
   })
 
   const items = useMemo(() => {

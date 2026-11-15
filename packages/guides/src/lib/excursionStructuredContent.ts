@@ -11,6 +11,7 @@ export type ExcursionComfortItem = {
 
 export type ExcursionStructuredContent = {
   gallery: string[]
+  gallery_managed?: boolean
   gallery_mobile_cover?: string
   route_stops: string[]
   route_disclaimer?: string
@@ -39,6 +40,7 @@ export function normalizeStructuredContent(
 ): ExcursionStructuredContent {
   if (!raw) return { ...EMPTY_STRUCTURED_CONTENT }
   return {
+    gallery_managed: raw.gallery_managed,
     gallery: raw.gallery?.map((s) => s.trim()).filter(isValidMediaRef) ?? [],
     gallery_mobile_cover: isValidMediaRef(raw.gallery_mobile_cover ?? '')
       ? raw.gallery_mobile_cover!.trim()
@@ -46,9 +48,9 @@ export function normalizeStructuredContent(
     route_stops: raw.route_stops ?? [],
     route_disclaimer: raw.route_disclaimer,
     photo_locations: raw.photo_locations?.map((s) => s.trim()).filter(isValidMediaRef) ?? [],
-    video: raw.video?.url?.trim()
+    video: raw.video
       ? {
-          url: raw.video.url.trim(),
+          url: raw.video.url?.trim() ?? '',
           preview_desktop: isValidMediaRef(raw.video.preview_desktop ?? '')
             ? raw.video.preview_desktop!.trim()
             : undefined,
@@ -70,8 +72,13 @@ export function sanitizeStructuredContentForSave(
   content: ExcursionStructuredContent,
 ): ExcursionStructuredContent {
   const c = normalizeStructuredContent(content)
+  const videoUrl = content.video?.url?.trim() ?? ''
+  const preview = isValidMediaRef(content.video?.preview_desktop ?? '')
+    ? content.video!.preview_desktop!.trim()
+    : undefined
   return {
     ...c,
+    video: content.video ? (videoUrl ? { url: videoUrl, preview_desktop: preview } : { url: '' }) : c.video,
     route_stops: c.route_stops.map((s) => s.trim()).filter(Boolean),
     route_disclaimer: c.route_disclaimer?.trim() || undefined,
     comfort_items: c.comfort_items
@@ -102,7 +109,7 @@ export function galleryUrls(
   cover?: string,
 ): string[] {
   const c = normalizeStructuredContent(content)
-  const candidates = [...c.gallery, c.gallery_mobile_cover, cover?.trim()].filter(Boolean) as string[]
+  const candidates = (c.gallery_managed ? c.gallery : [...c.gallery, c.gallery_mobile_cover, cover?.trim()]).filter(Boolean) as string[]
   const seen = new Set<string>()
   const out: string[] = []
   for (const item of candidates) {
@@ -118,8 +125,8 @@ export function syncCoverFromGallery(
   content: ExcursionStructuredContent,
 ): { cover: string; content: ExcursionStructuredContent } {
   const normalized = normalizeStructuredContent(content)
-  if (normalized.gallery.length > 0) {
-    return { cover: normalized.gallery[0], content: normalized }
+  if (normalized.gallery_managed || normalized.gallery.length > 0) {
+    return { cover: normalized.gallery[0] ?? '', content: normalized }
   }
   if (isValidMediaRef(cover)) {
     return {
@@ -146,12 +153,18 @@ export function mergePersistedPhotos(
   return sanitizeStructuredContentForSave({
     ...current,
     gallery: photos.gallery,
+    gallery_managed: photos.gallery_managed,
     gallery_mobile_cover: photos.gallery_mobile_cover,
     photo_locations: photos.photo_locations,
-    video: {
-      url: current.video?.url ?? '',
-      preview_desktop: photos.video?.preview_desktop,
-      preview_mobile: photos.video?.preview_mobile,
-    },
+    video: incoming.video
+      ? (incoming.video.url?.trim()
+        ? {
+            url: incoming.video.url.trim(),
+            preview_desktop: isValidMediaRef(incoming.video.preview_desktop ?? '')
+              ? incoming.video.preview_desktop!.trim()
+              : undefined,
+          }
+        : undefined)
+      : current.video,
   })
 }

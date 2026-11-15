@@ -172,6 +172,7 @@ export function excursionCardPropsFromPartial(
     status: item.status ?? 'PUBLISHED',
     description: item.description,
     body_html: item.body_html,
+    description_html: item.description_html,
     cover_image_url: item.cover_image_url,
     city_name: item.city_name,
     country_name: item.country_name,

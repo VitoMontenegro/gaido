@@ -9,6 +9,8 @@ type Props = {
   required?: boolean
   defaultCountrySlug?: string
   label?: string
+  onCountryChange?: (countrySlug: string) => void
+  onPendingChange?: (pending: boolean) => void
 }
 
 export default function GeoCityPicker({
@@ -17,6 +19,8 @@ export default function GeoCityPicker({
   required,
   defaultCountrySlug = '',
   label,
+  onCountryChange,
+  onPendingChange,
 }: Props) {
   const qc = useQueryClient()
   const [countrySlug, setCountrySlug] = useState(defaultCountrySlug)
@@ -68,15 +72,21 @@ export default function GeoCityPicker({
     },
   })
 
+  useEffect(() => {
+    onPendingChange?.(createCity.isPending)
+  }, [createCity.isPending, onPendingChange])
+
   return (
     <div className="space-y-3">
       {label && <p className="text-sm font-medium text-ink">{label}</p>}
       <div className="grid gap-3 sm:grid-cols-2">
         <select
           className="input w-full"
+          aria-label="Країна"
           value={countrySlug}
           onChange={(e) => {
             setCountrySlug(e.target.value)
+            onCountryChange?.(e.target.value)
             onChange(0)
             setShowCustom(false)
             setCustomName('')
@@ -92,6 +102,7 @@ export default function GeoCityPicker({
 
         <select
           className="input w-full"
+          aria-label="Місто"
           value={value > 0 ? value : ''}
           disabled={!countrySlug || showCustom}
           onChange={(e) => onChange(Number(e.target.value))}

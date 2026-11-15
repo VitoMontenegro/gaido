@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { ApiClientError, getAccessToken } from '../api/http'
 import { notificationsApi, type NotificationItem } from '../api/notifications'
 import { useMe } from './useAuth'
 
@@ -23,7 +24,7 @@ export function useNotifications() {
   })
 
   useEffect(() => {
-    if (!me) return
+    if (!me || !getAccessToken()) return
     const ac = new AbortController()
     let alive = true
 
@@ -40,8 +41,9 @@ export function useNotifications() {
               return [...map.values()].sort((a, b) => b.id - a.id)
             })
           }
-        } catch {
+        } catch (error) {
           if (!alive || ac.signal.aborted) return
+          if (error instanceof ApiClientError && error.code === 'UNAUTHORIZED') return
           await new Promise((r) => setTimeout(r, 2000))
         }
       }

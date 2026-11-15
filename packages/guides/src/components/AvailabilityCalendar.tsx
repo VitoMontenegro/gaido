@@ -10,7 +10,7 @@ import {
 } from '../lib/calendarUtils'
 
 const shellClass =
-  'flex w-full max-w-full flex-col gap-3 overflow-hidden rounded-[32px] sm:border sm:border-[#eeeeee] bg-white sm:py-3 sm:px-4 sm:shadow-[0_0_20px_0_rgba(15,26,40,0.04)]'
+  'flex w-full max-w-full flex-col gap-3 overflow-hidden rounded-2xl bg-white px-3 py-4 sm:rounded-[32px] sm:border sm:border-[#eeeeee] sm:px-4 sm:py-3 sm:shadow-[0_0_20px_0_rgba(15,26,40,0.04)]'
 
 type Props = {
   year: number
@@ -25,11 +25,14 @@ type Props = {
   monthTabCount?: number
   readOnly?: boolean
   loading?: boolean
+  busy?: boolean
   emptyHint?: string
   footnote?: string
   selectMode?: boolean
   pickMode?: boolean
   onToggleMonthDays?: (dateKeys: string[]) => void
+  mobileSingleMonth?: boolean
+  inquiryMode?: boolean
 }
 
 function MonthGrid({
@@ -44,6 +47,7 @@ function MonthGrid({
   selectMode,
   pickMode,
   onToggleMonthDays,
+  busy,
 }: {
   year: number
   month: number
@@ -56,6 +60,7 @@ function MonthGrid({
   selectMode?: boolean
   pickMode?: boolean
   onToggleMonthDays?: (dateKeys: string[]) => void
+  busy?: boolean
 }) {
   const cells = buildMonthGrid(year, month)
   const monthDays = cells.map((c) => c.dateKey).filter((key): key is string => !!key && !isPastDate(key))
@@ -66,17 +71,19 @@ function MonthGrid({
       {(!hideTitle || pickMode) && (
         <div className={`mb-2 flex items-center gap-2 ${hideTitle ? 'justify-end' : 'justify-between'}`}>
           {!hideTitle && (
-            <p className="text-sm font-semibold text-stone-800">
+            <p className="text-base font-semibold text-stone-800" aria-live="polite">
               {monthLabelShort(year, month)} {year}
             </p>
           )}
-          {pickMode && onToggleMonthDays && monthDays.length > 0 && (
+          {onToggleMonthDays && !readOnly && monthDays.length > 0 && (
             <button
               type="button"
-              className="shrink-0 text-xs font-medium text-teal hover:underline"
+              className="min-h-10 shrink-0 rounded-xl border border-teal/40 bg-white px-3 text-sm font-medium text-teal-dark transition hover:bg-teal/10"
               onClick={() => onToggleMonthDays(monthDays)}
+              disabled={busy}
+              aria-label={`${monthAllOpen ? 'Зняти всі дати' : 'Вибрати всі дати'}: ${monthLabelShort(year, month)} ${year}`}
             >
-              {monthAllOpen ? 'Зняти всі' : 'Вибрати всі дні'}
+              {monthAllOpen ? 'Зняти всі' : 'Вибрати всі'}
             </button>
           )}
         </div>
@@ -142,6 +149,7 @@ function MonthGrid({
               key={dateKey}
               type="button"
               onClick={() => onDateClick?.(dateKey, item)}
+              disabled={busy}
               className={`${cellClass} transition`}
             >
               {content}
@@ -202,11 +210,14 @@ export default function AvailabilityCalendar({
   monthTabCount = 8,
   readOnly = false,
   loading,
+  busy = false,
   emptyHint,
   footnote,
   selectMode = false,
   pickMode = false,
   onToggleMonthDays,
+  mobileSingleMonth = false,
+  inquiryMode = false,
 }: Props) {
   const byDate = useMemo(() => {
     const map = new Map<string, CalendarDateItem>()
@@ -227,29 +238,17 @@ export default function AvailabilityCalendar({
   }
 
   return (
-    <div className={shellClass}>
-      <div className="flex items-center justify-between gap-2 px-0.5">
-        {!showMonthTabs && (
-          <div className="flex shrink-0 items-center gap-1">
-            <button
-              type="button"
-              className="flex h-8 w-8 items-center justify-center rounded-full text-lg text-stone-600 hover:bg-stone-100"
-              onClick={prev}
-              aria-label="Попередній місяць"
-            >
-              ‹
-            </button>
-            <button
-              type="button"
-              className="flex h-8 w-8 items-center justify-center rounded-full text-lg text-stone-600 hover:bg-stone-100"
-              onClick={next}
-              aria-label="Наступний місяць"
-            >
-              ›
-            </button>
-          </div>
-        )}
-      </div>
+    <div className={shellClass} aria-busy={busy}>
+      {!showMonthTabs && (
+        <div className="flex items-center justify-between gap-2" aria-label="Перемикання місяців">
+          <button type="button" className="btn-secondary min-h-11 flex-1 px-2 text-sm" onClick={prev} aria-label="Попередній місяць">
+            ← Попередній
+          </button>
+          <button type="button" className="btn-secondary min-h-11 flex-1 px-2 text-sm" onClick={next} aria-label="Наступний місяць">
+            Наступний →
+          </button>
+        </div>
+      )}
 
       {showMonthTabs && (
         <MonthTabs year={year} month={month} count={monthTabCount} onChange={onMonthChange} />
@@ -273,8 +272,10 @@ export default function AvailabilityCalendar({
             selectMode={selectMode}
             pickMode={pickMode}
             onToggleMonthDays={onToggleMonthDays}
+            busy={busy}
           />
           {!singleMonth && (
+            <div className={mobileSingleMonth ? 'hidden sm:block' : ''}>
             <MonthGrid
               year={second.year}
               month={second.month}
@@ -285,7 +286,9 @@ export default function AvailabilityCalendar({
               selectMode={selectMode}
               pickMode={pickMode}
               onToggleMonthDays={onToggleMonthDays}
+              busy={busy}
             />
+            </div>
           )}
         </div>
       )}
@@ -299,11 +302,12 @@ export default function AvailabilityCalendar({
       )}
 
       {mode === 'edit' && !selectMode && (
-        <p className="text-xs text-stone-500">Натисніть день, щоб додати або зняти дату.</p>
+        <p className="text-sm leading-relaxed text-stone-600">Натисніть день, щоб додати або зняти дату.</p>
       )}
       {selectMode && (
         <div className="flex flex-wrap gap-3 text-xs text-stone-500">
-          <span className="inline-flex items-center gap-1"><span className="h-3 w-3 rounded bg-teal-100" /> вільний</span>
+          {!inquiryMode && <span className="inline-flex items-center gap-1"><span className="h-3 w-3 rounded bg-teal-100" /> вільний</span>}
+          {inquiryMode && <span className="inline-flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-stone-400" /> діалог / в роботі</span>}
           <span className="inline-flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-amber-500" /> очікує підтвердження</span>
           <span className="inline-flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-ink" /> заброньовано</span>
         </div>

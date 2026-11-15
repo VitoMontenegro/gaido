@@ -2,6 +2,8 @@ package excursion
 
 import (
 	"context"
+	"math"
+	"strings"
 
 	"github.com/vitomonte/experts-tourister/internal/apperrors"
 	"github.com/vitomonte/experts-tourister/internal/domain"
@@ -36,6 +38,9 @@ func (s *Service) ModerationEnabled(ctx context.Context) bool {
 }
 
 func (s *Service) PrepareNew(guideID int64, e *domain.Excursion) error {
+	if err := validatePrice(e.PriceFrom); err != nil {
+		return err
+	}
 	if err := guidesvc.ValidateMaxGuests(e.MaxGuests); err != nil {
 		return apperrors.New("VALIDATION_ERROR", err.Error(), 400)
 	}
@@ -64,6 +69,10 @@ func (s *Service) PrepareNew(guideID int64, e *domain.Excursion) error {
 func sanitizeExcursionHTML(e *domain.Excursion) {
 	e.Description = sanitize.Text(e.Description)
 	e.BodyHTML = sanitize.HTML(e.BodyHTML)
+	if e.DescriptionHTML != nil {
+		value := sanitize.HTML(*e.DescriptionHTML)
+		e.DescriptionHTML = &value
+	}
 	e.OrganizationalDetails = sanitize.HTML(e.OrganizationalDetails)
 }
 
@@ -97,6 +106,13 @@ func (s *Service) Update(ctx context.Context, guideID, id int64, patch *domain.E
 	if err != nil || existing == nil || existing.GuideID != guideID {
 		return nil, apperrors.ErrForbidden
 	}
+	if err := validatePrice(patch.PriceFrom); err != nil {
+		return nil, err
+	}
+	usesNewDescription := patch.DescriptionHTML != nil
+	if patch.DescriptionHTML == nil {
+		patch.DescriptionHTML = existing.DescriptionHTML
+	}
 	patch.ID = id
 	patch.GuideID = guideID
 	patch.Slug = existing.Slug
@@ -108,6 +124,15 @@ func (s *Service) Update(ctx context.Context, guideID, id int64, patch *domain.E
 		patch.ExcludedItems = []string{}
 	}
 	sanitizeExcursionHTML(patch)
+	if usesNewDescription {
+		if existing.Description != "" || existing.BodyHTML != "" || (existing.DescriptionHTML != nil && *existing.DescriptionHTML != "") {
+			if err := validateDescription(patch.DescriptionHTML); err != nil {
+				return nil, err
+			}
+		}
+		patch.Description = existing.Description
+		patch.BodyHTML = existing.BodyHTML
+	}
 	patch.Status = s.StatusAfterUpdate(ctx, existing)
 	if err := guidesvc.ValidateMaxGuests(patch.MaxGuests); err != nil {
 		return nil, apperrors.New("VALIDATION_ERROR", err.Error(), 400)
@@ -179,4 +204,17 @@ func CanTransition(from, to string) bool {
 		}
 	}
 	return false
+}
+
+func validateDescription(value *string) error {
+	if value != nil && strings.TrimSpace(strings.ReplaceAll(sanitize.Text(*value), "\u00a0", " ")) == "" {
+		return apperrors.New("VALIDATION_ERROR", "Додайте опис екскурсії. Порожній опис не збережено.", 400)
+	}
+	return nil
+}
+func validatePrice(price float64) error {
+	if math.IsNaN(price) || math.IsInf(price, 0) || price < 0 {
+		return apperrors.New("VALIDATION_ERROR", "Вкажіть коректну ціну екскурсії.", 400)
+	}
+	return nil
 }

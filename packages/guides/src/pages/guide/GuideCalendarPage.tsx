@@ -1,16 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { api } from '@gaido/api-client/api/client'
+import { useQuery } from '@tanstack/react-query'
 import { inquiriesApi, type Inquiry } from '@gaido/api-client/api/inquiries'
 import AvailabilityCalendar from '../../components/AvailabilityCalendar'
-import { addMonths, dateKeyFromISO, isPastDate, toDateKey, type CalendarDateItem } from '../../lib/calendarUtils'
-import { inquiryDayKey, inquiryHour, inquiryStatusLabel, inquiryWhenLabel } from '../../lib/inquiryLabels'
-
-type Slot = { id: number; starts_at: string; ends_at: string; note: string }
-type CalMode = 'view' | 'availability'
-
-const HOURS = Array.from({ length: 13 }, (_, i) => i + 8)
+import { addMonths, toDateKey, type CalendarDateItem } from '../../lib/calendarUtils'
+import { inquiryDayKey, inquiryStatusLabel, inquiryWhenLabel } from '../../lib/inquiryLabels'
 
 function monthRange(year: number, month: number) {
   const from = toDateKey(year, month, 1)
@@ -28,52 +22,22 @@ function dayTitle(dateKey: string) {
 }
 
 export function GuideCalendarPage() {
-  const qc = useQueryClient()
   const now = new Date()
   const [year, setYear] = useState(now.getFullYear())
   const [month, setMonth] = useState(now.getMonth() + 1)
-  const [mode, setMode] = useState<CalMode>('view')
   const [day, setDay] = useState<string | null>(null)
 
   const { from, to } = monthRange(year, month)
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['slots'],
-    queryFn: () => api<{ items: Slot[] }>('/api/v1/account/guide/calendar'),
-  })
   const agenda = useQuery({
     queryKey: ['guide-agenda', from, to],
     queryFn: () => inquiriesApi.agenda(from, to),
   })
 
-  const addSlot = useMutation({
-    mutationFn: (date: string) =>
-      api('/api/v1/account/guide/calendar/by-date', {
-        method: 'POST',
-        body: JSON.stringify({ date }),
-      }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['slots'] }),
-  })
-
-  const removeSlot = useMutation({
-    mutationFn: (id: number) => api(`/api/v1/account/guide/calendar/${id}`, { method: 'DELETE' }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['slots'] }),
-  })
-
   const items = agenda.data?.items ?? []
-  const slots = data?.items ?? []
 
   const dates: CalendarDateItem[] = useMemo(() => {
     const map = new Map<string, CalendarDateItem>()
-    for (const s of slots) {
-      const date = dateKeyFromISO(s.starts_at)
-      map.set(date, {
-        id: s.id,
-        date,
-        starts_at: s.starts_at,
-        ends_at: s.ends_at,
-      })
-    }
     for (const inq of items) {
       const date = inquiryDayKey(inq)
       if (!date) continue
@@ -84,162 +48,50 @@ export function GuideCalendarPage() {
       map.set(date, cur)
     }
     return [...map.values()]
-  }, [slots, items])
-
-  const byDate = useMemo(() => {
-    const map = new Map<string, CalendarDateItem>()
-    for (const d of dates) map.set(d.date, d)
-    return map
-  }, [dates])
-
-  const [bulkBusy, setBulkBusy] = useState(false)
-  const [bulkError, setBulkError] = useState('')
-  const pending = addSlot.isPending || removeSlot.isPending || bulkBusy
-
-  const setCalMode = (next: CalMode) => {
-    setMode(next)
-    setDay(null)
-    setBulkError('')
-  }
-
-  const toggleDay = (dateKey: string) => {
-    if (isPastDate(dateKey) || bulkBusy) return
-    const slot = byDate.get(dateKey)
-    if (slot?.id) removeSlot.mutate(slot.id)
-    else addSlot.mutate(dateKey)
-  }
-
-  const toggleMonthDays = async (keys: string[]) => {
-    if (pending) return
-    setBulkError('')
-    setBulkBusy(true)
-    try {
-      const allOpen = keys.every((key) => !!byDate.get(key)?.id)
-      await Promise.all(
-        keys.flatMap((key) => {
-          const slot = byDate.get(key)
-          if (allOpen) return slot?.id ? [removeSlot.mutateAsync(slot.id)] : []
-          return slot?.id ? [] : [addSlot.mutateAsync(key)]
-        }),
-      )
-    } catch (err) {
-      setBulkError(err instanceof Error ? err.message : 'Не вдалося оновити дні')
-    } finally {
-      setBulkBusy(false)
-    }
-  }
+  }, [items])
 
   return (
     <div className="card space-y-5">
       <div>
-        <h2 className="font-display mb-1 text-xl font-bold">Календар роботи</h2>
-        <p className="text-sm text-stone-500">
-          Два місяці поруч. У перегляді клік відкриває розклад дня. Доступність змінюється одразу по кліку.
-        </p>
+        <h2 className="font-display mb-1 text-xl font-bold">Календар заявок</h2>
+        <p className="text-sm text-stone-600">Тут відображаються дати із заявок туристів. Натисніть на день, щоб переглянути деталі та відкрити листування.</p>
       </div>
-
-      <div className="flex rounded-full bg-sand-100 p-1" role="tablist" aria-label="Режим календаря">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={mode === 'view'}
-          className={`flex-1 rounded-full px-3 py-1.5 text-sm ${mode === 'view' ? 'bg-white font-semibold text-ink shadow-sm' : 'text-stone-600'}`}
-          onClick={() => setCalMode('view')}
-        >
-          Перегляд
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={mode === 'availability'}
-          className={`flex-1 rounded-full px-3 py-1.5 text-sm ${mode === 'availability' ? 'bg-white font-semibold text-ink shadow-sm' : 'text-stone-600'}`}
-          onClick={() => setCalMode('availability')}
-        >
-          Доступність
-        </button>
+      <div className="rounded-xl bg-sand-50 px-4 py-3 text-sm text-stone-600">
+        Доступні для бронювання дати змінюються в розділі <Link to="/account/guide/excursions" className="font-medium text-teal-dark underline">«Мої екскурсії»</Link>, у налаштуваннях екскурсії.
       </div>
-
-      {mode === 'availability' && (
-        <p className="text-sm text-stone-500">
-          Клік по дню вмикає або вимикає вільний слот. Можна вибрати весь місяць і зняти вихідні. Броні на календарі
-          лишаються.
-        </p>
-      )}
-
+      {agenda.isError && <p role="alert" className="text-sm text-red-700">Не вдалося завантажити заявки. Спробуйте ще раз.</p>}
       <AvailabilityCalendar
         year={year}
         month={month}
         dates={dates}
-        selected={mode === 'view' ? day : null}
-        pickMode={mode === 'availability'}
+        selected={day}
+        inquiryMode
         selectMode
+        mobileSingleMonth
         onMonthChange={(y, m) => {
           setYear(y)
           setMonth(m)
         }}
-        onToggleMonthDays={(keys) => void toggleMonthDays(keys)}
-        onDateClick={(dateKey) => {
-          if (mode === 'availability') {
-            toggleDay(dateKey)
-            return
-          }
-          setDay(dateKey)
-        }}
-        mode="edit"
-        loading={isLoading}
+        onDateClick={setDay}
+        loading={agenda.isLoading}
       />
 
-      {(addSlot.isError || removeSlot.isError || bulkError) && (
-        <p className="text-sm text-red-600">{bulkError || (addSlot.error ?? removeSlot.error)?.message}</p>
-      )}
-
-      {mode === 'view' && day && (
+      {day && (
         <DayScheduleDialog
           dateKey={day}
-          item={byDate.get(day)}
           inquiries={items.filter((inq) => inquiryDayKey(inq) === day)}
-          busy={pending}
           onClose={() => setDay(null)}
-          onToggle={() => {
-            const slot = byDate.get(day)
-            if (slot?.id) removeSlot.mutate(slot.id)
-            else addSlot.mutate(day)
-          }}
         />
       )}
     </div>
   )
 }
 
-function DayScheduleDialog({
-  dateKey,
-  item,
-  inquiries,
-  busy,
-  onClose,
-  onToggle,
-}: {
+function DayScheduleDialog({ dateKey, inquiries, onClose }: {
   dateKey: string
-  item?: CalendarDateItem
   inquiries: Inquiry[]
-  busy: boolean
   onClose: () => void
-  onToggle: () => void
 }) {
-  const open = !!item?.id
-  const byHour = new Map<number, Inquiry[]>()
-  const untimed: Inquiry[] = []
-  for (const inq of inquiries) {
-    const h = inquiryHour(inq)
-    if (h == null) untimed.push(inq)
-    else {
-      const list = byHour.get(h) ?? []
-      list.push(inq)
-      byHour.set(h, list)
-    }
-  }
-  const busyHours = [...byHour.entries()].filter(([, list]) => list.some((i) => i.status === 'booked' || i.status === 'pending'))
-
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
@@ -261,61 +113,24 @@ function DayScheduleDialog({
             <h3 id="day-schedule-title" className="font-display text-lg font-bold capitalize">
               {dayTitle(dateKey)}
             </h3>
-            <p className="text-sm text-stone-500">
-              {open ? 'День відкритий для нових запитів' : 'День закритий для нових запитів'}
-              {inquiries.length ? ` · ${inquiries.length} заявок` : ''}
-            </p>
+            <p className="text-sm text-stone-500">{inquiries.length ? `Заявок: ${inquiries.length}` : 'На цей день заявок немає'}</p>
           </div>
           <button type="button" className="text-stone-400 hover:text-ink" onClick={onClose} aria-label="Закрити">
             ✕
           </button>
         </div>
 
-        <div className="mt-3 flex flex-wrap gap-2">
-          <button type="button" className={open ? 'btn-secondary text-sm' : 'btn-primary text-sm'} disabled={busy} onClick={onToggle}>
-            {open ? 'Закрити день' : 'Відкрити день'}
-          </button>
-        </div>
-
-        {busyHours.length > 1 && (
-          <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-900">
-            На цей день уже кілька броней. Перевірте години, перш ніж брати ще одну групу.
-          </p>
-        )}
-
-        <div className="mt-4 min-h-0 flex-1 space-y-3 overflow-y-auto">
-          {untimed.length > 0 && (
-            <div className="space-y-2">
-              <p className="text-sm font-medium">Без узгодженого часу</p>
-              {untimed.map((inq) => (
-                <DayInquiryRow key={inq.id} inq={inq} />
-              ))}
-            </div>
+        <div className="mt-4 min-h-0 flex-1 space-y-2 overflow-y-auto">
+          {inquiries.length ? inquiries.map((inq) => <DayInquiryRow key={inq.id} inq={inq} />) : (
+            <p className="rounded-xl bg-sand-50 px-4 py-3 text-sm text-stone-600">Коли турист надішле заявку з цією датою, вона з’явиться тут.</p>
           )}
-          <div className="divide-y divide-divider overflow-hidden rounded-2xl border border-divider">
-            {HOURS.map((hour) => {
-              const list = byHour.get(hour) ?? []
-              return (
-                <div key={hour} className="grid grid-cols-[4.5rem_1fr] gap-3 px-3 py-2 text-sm">
-                  <p className="pt-1 font-medium text-stone-500">{String(hour).padStart(2, '0')}:00</p>
-                  <div className="min-w-0 space-y-1.5">
-                    {list.length === 0 ? (
-                      <p className="text-stone-400">вільно</p>
-                    ) : (
-                      list.map((inq) => <DayInquiryRow key={inq.id} inq={inq} compact />)
-                    )}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
         </div>
       </div>
     </div>
   )
 }
 
-function DayInquiryRow({ inq, compact }: { inq: Inquiry; compact?: boolean }) {
+function DayInquiryRow({ inq }: { inq: Inquiry }) {
   return (
     <Link
       to={`/account/guide/inquiries/${inq.id}`}
@@ -327,7 +142,7 @@ function DayInquiryRow({ inq, compact }: { inq: Inquiry; compact?: boolean }) {
         <span className="block font-medium">{inq.tourist_name}</span>
         <span className="block truncate text-xs text-stone-500">
           {inq.excursion_title || `${inq.party_size} ос.`}
-          {compact ? '' : ` · ${inquiryWhenLabel(inq)}`}
+          {` · ${inquiryWhenLabel(inq)}`}
         </span>
       </span>
       <span className="shrink-0 text-xs text-stone-500">{inquiryStatusLabel(inq.status)}</span>

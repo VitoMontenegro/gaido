@@ -3,6 +3,9 @@ package postgres
 import (
 	"context"
 	"errors"
+	"github.com/vitomonte/experts-tourister/internal/sanitize"
+	"regexp"
+	"strings"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/vitomonte/experts-tourister/internal/domain"
@@ -83,8 +86,8 @@ func (r *FavoriteRepo) Enrich(ctx context.Context, items []domain.FavoriteRef, p
 		switch f.TargetType {
 		case domain.FavoriteExcursion:
 			q := `
-				SELECT e.title, e.slug, COALESCE(NULLIF(BTRIM(e.cover_image_url), ''), NULLIF(BTRIM(e.structured_content->'photo_locations'->>0), ''), ''), COALESCE(c.name,''), e.price_from, e.currency,
-					COALESCE(e.description, ''),
+				SELECT e.title, e.slug, CASE WHEN e.structured_content->>'gallery_managed' = 'true' THEN COALESCE(e.structured_content->'gallery'->>0, '') ELSE COALESCE(NULLIF(BTRIM(e.cover_image_url), ''), NULLIF(BTRIM(e.structured_content->'photo_locations'->>0), ''), '') END, COALESCE(c.name,''), e.price_from, e.currency,
+					COALESCE(e.description, ''), COALESCE(e.body_html, ''), COALESCE(e.description_html, ''),
 					COALESCE((SELECT AVG(r.rating)::float8 FROM guide_reviews r WHERE r.excursion_id=e.id AND r.status=$2), 0),
 					COALESCE((SELECT COUNT(*)::int FROM guide_reviews r WHERE r.excursion_id=e.id AND r.status=$2), 0)
 				FROM excursions e LEFT JOIN cities c ON c.id = e.city_id WHERE e.id=$1`
@@ -95,10 +98,16 @@ func (r *FavoriteRepo) Enrich(ctx context.Context, items []domain.FavoriteRef, p
 			}
 			err := r.db.Pool.QueryRow(ctx, q, args...).
 				Scan(&item.Title, &item.Slug, &item.CoverImageURL, &item.CityName, &item.PriceFrom, &item.Currency,
-					&item.Description, &item.RatingAvg, &item.RatingCount)
-			if err != nil {
+					&item.Description, &item.BodyHTML, &item.DescriptionHTML, &item.RatingAvg, &item.RatingCount)
+			if errors.Is(err, pgx.ErrNoRows) {
 				continue
 			}
+			if err != nil {
+				return nil, err
+			}
+			item.Description = favoriteExcursionPreview(item)
+			item.BodyHTML = ""
+			item.DescriptionHTML = ""
 		case domain.FavoriteGuide:
 			q := `SELECT display_name, website_slug, COALESCE(avatar_url,'') FROM guide_profiles WHERE id=$1`
 			args := []any{f.TargetID}
@@ -108,8 +117,11 @@ func (r *FavoriteRepo) Enrich(ctx context.Context, items []domain.FavoriteRef, p
 			}
 			err := r.db.Pool.QueryRow(ctx, q, args...).
 				Scan(&item.Title, &item.Slug, &item.AvatarURL)
-			if err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
 				continue
+			}
+			if err != nil {
+				return nil, err
 			}
 		default:
 			continue
@@ -117,4 +129,26 @@ func (r *FavoriteRepo) Enrich(ctx context.Context, items []domain.FavoriteRef, p
 		out = append(out, item)
 	}
 	return out, nil
+}
+
+var favoriteHTMLTags = regexp.MustCompile(`<[^>]*>`)
+
+func favoriteExcursionPreview(item domain.FavoriteEnriched) string {
+	value := item.DescriptionHTML
+	if strings.TrimSpace(value) == "" {
+		value = item.BodyHTML
+	}
+	if strings.TrimSpace(value) == "" {
+		value = item.Description
+	}
+	text := strings.Join(strings.Fields(sanitize.Text(favoriteHTMLTags.ReplaceAllString(value, " "))), " ")
+	chars := []rune(text)
+	if len(chars) <= 160 {
+		return text
+	}
+	fragment := string(chars[:159])
+	if i := strings.LastIndex(fragment, " "); i > len(fragment)/2 {
+		fragment = fragment[:i]
+	}
+	return strings.TrimSpace(fragment) + "…"
 }

@@ -129,7 +129,7 @@ export default function GuidesListPage() {
             </div>
             <GuideCardGrid>
               {(topGuides?.items ?? []).map((g) => (
-                <GuideCard key={g.id} guide={g} compact promoted={g.is_promoted} />
+                <GuideCard key={g.id} guide={g} compact promoted={g.is_promoted} alwaysLink />
               ))}
             </GuideCardGrid>
           </section>
@@ -145,7 +145,7 @@ export default function GuidesListPage() {
             <>
               <GuideCardGrid>
                 {allGuideItems.map((g) => (
-                  <GuideCard key={g.id} guide={g} compact />
+                  <GuideCard key={g.id} guide={g} compact alwaysLink />
                 ))}
               </GuideCardGrid>
               {hasNextPage && (

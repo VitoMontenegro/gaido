@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 type CalendarRepo struct{ db *DB }
@@ -136,4 +137,44 @@ func scanPublicDates(rows interface {
 		out = append(out, d)
 	}
 	return out, nil
+}
+
+// SetDays applies an explicit target state in one transaction. Repeating the same
+// request after a lost response is safe: selected days are not duplicated.
+func (r *CalendarRepo) SetDays(ctx context.Context, guideID, excursionID int64, days []time.Time, selected bool, duration int) error {
+	tx, err := r.db.Pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.Serializable})
+	if err != nil {
+		return err
+	}
+	return setCalendarDays(ctx, tx, guideID, excursionID, days, selected, duration)
+}
+
+type calendarDaysTx interface {
+	Exec(context.Context, string, ...any) (pgconn.CommandTag, error)
+	Commit(context.Context) error
+	Rollback(context.Context) error
+}
+
+func setCalendarDays(ctx context.Context, tx calendarDaysTx, guideID, excursionID int64, days []time.Time, selected bool, duration int) error {
+	defer tx.Rollback(ctx)
+	table, owner := "guide_availability_slots", "guide_id"
+	ownerID := guideID
+	if excursionID != 0 {
+		table, owner, ownerID = "excursion_dates", "excursion_id", excursionID
+	}
+	for _, day := range days {
+		var err error
+		start := day.Add(10 * time.Hour)
+		end := start.Add(time.Duration(duration) * time.Minute)
+		next := day.AddDate(0, 0, 1)
+		if selected {
+			_, err = tx.Exec(ctx, "INSERT INTO "+table+" ("+owner+", starts_at, ends_at) SELECT $1,$2,$3 WHERE NOT EXISTS (SELECT 1 FROM "+table+" WHERE "+owner+"=$1 AND starts_at >= $4 AND starts_at < $5)", ownerID, start, end, day, next)
+		} else {
+			_, err = tx.Exec(ctx, "DELETE FROM "+table+" WHERE "+owner+"=$1 AND starts_at >= $2 AND starts_at < $3", ownerID, day, next)
+		}
+		if err != nil {
+			return err
+		}
+	}
+	return tx.Commit(ctx)
 }

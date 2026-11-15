@@ -35,11 +35,12 @@ func main() {
 	defer application.Close()
 
 	srv := &http.Server{
-		Addr:         cfg.HTTPAddr,
-		Handler:      application.Router(),
-		ReadTimeout:  15 * time.Second,
-		WriteTimeout: 30 * time.Second,
-		IdleTimeout:  60 * time.Second,
+		Addr:              cfg.HTTPAddr,
+		Handler:           application.Router(),
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       3 * time.Minute,
+		WriteTimeout:      90 * time.Second,
+		IdleTimeout:       60 * time.Second,
 	}
 
 	go func() {

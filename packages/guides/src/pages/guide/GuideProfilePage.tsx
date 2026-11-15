@@ -1,3 +1,4 @@
+import { useSaveNotification } from '@gaido/ui-primitives/SaveNotification'
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -35,6 +36,7 @@ function resolveCountries(data?: GuideProfile): GuideCountry[] {
 }
 
 function GuideProfileForm() {
+  const notify = useSaveNotification()
   const qc = useQueryClient()
   const navigate = useNavigate()
   const location = useLocation()
@@ -52,7 +54,12 @@ function GuideProfileForm() {
   const [geoCountries, setGeoCountries] = useState<GuideCountry[] | null>(null)
   const [geoCities, setGeoCities] = useState<GuideCity[] | null>(null)
   const [avatarSaved, setAvatarSaved] = useState(false)
-  const patch = (next: Partial<GuideProfile>) => setForm((prev) => ({ ...prev, ...next }))
+  const [geoPending, setGeoPending] = useState(false)
+  const [profileSaved, setProfileSaved] = useState(false)
+  const patch = (next: Partial<GuideProfile>) => {
+    setProfileSaved(false)
+    setForm((prev) => ({ ...prev, ...next }))
+  }
   const profileExists = Boolean(data?.id)
 
   useEffect(() => {
@@ -64,9 +71,9 @@ function GuideProfileForm() {
   const mutation = useMutation({
     mutationFn: async (body: Partial<GuideProfile>) => {
       await guideApi.updateProfile(guideProfilePayload(body))
+      if (profileExists) return
       const countries = geoCountries ?? resolveCountries(data)
       const cities = geoCities ?? body.cities ?? data?.cities ?? []
-      if (!countries.length && !cities.length) return
       const primaryCountry = countries.find((c) => c.is_primary)?.id ?? countries[0]?.id
       const primaryCity = cities.find((c) => c.is_primary)?.id ?? cities[0]?.id
       await guideApi.setCountries({
@@ -85,8 +92,11 @@ function GuideProfileForm() {
       await qc.invalidateQueries({ queryKey: ['guide-profile'] })
       await qc.invalidateQueries({ queryKey: ['me'] })
       qc.invalidateQueries({ queryKey: ['countries-with-guides'] })
+      setProfileSaved(true)
+      notify('Профіль гіда оновлено.')
       if (afterSavePath) navigate(afterSavePath)
     },
+    onError: (error) => notify(formatApiError(error), 'error'),
   })
 
   const avatarMutation = useMutation({
@@ -108,11 +118,55 @@ function GuideProfileForm() {
     },
   })
 
+  const geoSave = useMutation({
+    mutationFn: async ({ countries, cities }: { countries: GuideCountry[]; cities: GuideCity[] }) => {
+      await guideApi.setCountries({
+        country_ids: countries.map((country) => country.id),
+        primary_country_id: countries.find((country) => country.is_primary)?.id ?? countries[0]?.id,
+      })
+      await guideApi.setCities({
+        city_ids: cities.map((city) => city.id),
+        primary_city_id: cities.find((city) => city.is_primary)?.id ?? cities[0]?.id,
+      })
+    },
+    onSuccess: (_result, saved) => {
+      qc.setQueryData(['guide-profile'], (previous: GuideProfile | undefined) => previous && ({
+        ...previous,
+        countries: saved.countries,
+        cities: saved.cities,
+        country_id: saved.countries.find((country) => country.is_primary)?.id ?? saved.countries[0]?.id ?? null,
+      }))
+      setGeoCountries(null)
+      setGeoCities(null)
+      void qc.invalidateQueries({ queryKey: ['guide-profile'] })
+      void qc.invalidateQueries({ queryKey: ['countries-with-guides'] })
+    },
+  })
+
   const f = { ...data, ...form }
   const countries = geoCountries ?? resolveCountries(data)
   const cities = geoCities ?? f.cities ?? []
   const aboutValue = f.about ?? ''
   const aboutLen = guideAboutLen(aboutValue)
+  const profileChanged = (!profileExists && Boolean((f.display_name ?? '').trim())) || JSON.stringify(guideProfilePayload(f)) !== JSON.stringify(guideProfilePayload(data ?? {}))
+  const geoKey = (items: (GuideCity | GuideCountry)[]) =>
+    JSON.stringify(items.map(({ id, is_primary }) => ({ id, is_primary })).sort((a, b) => a.id - b.id))
+  const geoChanged = geoKey(countries) !== geoKey(resolveCountries(data)) || geoKey(cities) !== geoKey(data?.cities ?? [])
+  const countriesWithoutCities = countries.filter((country) => !cities.some((city) => city.country_slug === country.slug))
+  const saveDisabled = !data || mutation.isPending || avatarMutation.isPending || geoSave.isPending || geoPending || !(f.display_name ?? '').trim() || (!profileChanged && (!geoChanged || profileExists)) || countriesWithoutCities.length > 0 || (profileExists && geoChanged)
+
+  useEffect(() => {
+    if (!profileExists || !geoChanged || countriesWithoutCities.length || geoPending || mutation.isPending || geoSave.isPending || geoSave.isError) return
+    const timer = window.setTimeout(() => geoSave.mutate({ countries, cities }), 400)
+    return () => window.clearTimeout(timer)
+  }, [profileExists, geoChanged, geoKey(countries), geoKey(cities), countriesWithoutCities.length, geoPending, mutation.isPending, geoSave.isPending, geoSave.isError])
+  const saveProfile = () => {
+    if (!saveDisabled) {
+      setProfileSaved(false)
+      mutation.mutate({ ...f, cities, countries })
+    }
+  }
+
 
   return (
     <div className="card space-y-3">
@@ -129,6 +183,7 @@ function GuideProfileForm() {
         <div className="min-w-0 flex-1">
           <ImageUrlField
             label="Фото профілю"
+            simpleUpload
             value={f.avatar_url ?? ''}
             cropAspect={1}
             outputFormat="webp"
@@ -178,6 +233,26 @@ function GuideProfileForm() {
         cities={cities}
         onCountriesChange={setGeoCountries}
         onCitiesChange={setGeoCities}
+        onPendingChange={setGeoPending}
+        disabled={mutation.isPending || geoSave.isPending}
+        saveStatus={
+          countriesWithoutCities.length > 0 ? (
+            <p className="text-sm text-amber-800">Оберіть місто для кожної країни. Після цього зміни збережуться автоматично.</p>
+          ) : !profileExists && geoChanged ? (
+            <p className="text-sm text-stone-600">Географія збережеться разом із новим профілем. Заповніть контакти нижче та натисніть «Зберегти профіль».</p>
+          ) : geoSave.isError && geoChanged ? (
+            <div role="alert" className="space-y-2 text-sm text-red-700">
+              <p>Не вдалося зберегти географію. {formatApiError(geoSave.error)}</p>
+              <button type="button" className="btn-secondary" onClick={() => geoSave.mutate({ countries, cities })}>Спробувати ще раз</button>
+            </div>
+          ) : geoPending || geoSave.isPending || (profileExists && geoChanged) ? (
+            <p role="status" className="text-sm text-stone-600">Збереження міст і країн…</p>
+          ) : geoSave.isSuccess ? (
+            <p role="status" className="text-sm text-emerald-700">Країни та міста збережено автоматично.</p>
+          ) : (
+            <p className="text-sm text-stone-500">Країни та міста зберігаються автоматично.</p>
+          )
+        }
       />
       <div className="space-y-3 rounded-xl border border-border bg-sand-50/80 p-4">
         <p className="font-medium">Контакти для клієнтів</p>
@@ -222,17 +297,35 @@ function GuideProfileForm() {
           onChange={(e) => patch({ response_hours: e.target.value })}
         />
       </div>
-      {mutation.isError && (
-        <p className="text-base text-red-600">{formatApiError(mutation.error)}</p>
-      )}
-      <button
-        type="button"
-        className="btn-primary"
-        disabled={mutation.isPending || !(f.display_name ?? '').trim()}
-        onClick={() => mutation.mutate({ ...f, cities, countries })}
-      >
-        {mutation.isPending ? 'Збереження…' : 'Зберегти'}
-      </button>
+      <div className="space-y-2 border-t border-border pt-4">
+        <button
+          type="button"
+          className="btn-primary w-full disabled:cursor-not-allowed disabled:bg-stone-200 disabled:text-stone-500 sm:w-auto"
+          disabled={saveDisabled}
+          onClick={saveProfile}
+        >
+          {mutation.isPending ? 'Зберігаємо…' : 'Зберегти профіль'}
+        </button>
+        <div aria-live="polite" aria-atomic="true">
+          {mutation.isPending ? (
+            <p className="text-sm text-stone-600">Зберігаємо зміни профілю…</p>
+          ) : mutation.isError && !profileSaved ? (
+            <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">Не вдалося зберегти профіль. {formatApiError(mutation.error)}</p>
+          ) : profileSaved && !profileChanged ? (
+            <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">✓ Профіль успішно збережено.</p>
+          ) : countriesWithoutCities.length > 0 ? (
+            <p className="text-sm text-amber-800">Оберіть місто для кожної країни в розділі «Географія роботи».</p>
+          ) : !(f.display_name ?? '').trim() ? (
+            <p className="text-sm text-stone-600">Вкажіть ім’я для відображення, щоб зберегти профіль.</p>
+          ) : geoPending || geoSave.isPending || (profileExists && geoChanged && !geoSave.isError) ? (
+            <p className="text-sm text-stone-600">Зачекайте, поки збережуться країни та міста.</p>
+          ) : geoSave.isError && geoChanged ? (
+            <p className="text-sm text-red-700">Спочатку повторіть збереження міст і країн у розділі «Географія роботи».</p>
+          ) : !profileChanged && !geoChanged ? (
+            <p className="text-sm text-stone-500">Усі зміни збережено. Кнопка стане активною після редагування профілю.</p>
+          ) : null}
+        </div>
+      </div>
     </div>
   )
 }

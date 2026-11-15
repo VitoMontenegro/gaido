@@ -74,18 +74,20 @@ type FavoriteRef struct {
 }
 
 type FavoriteEnriched struct {
-	TargetType    string
-	TargetID      int64
-	Title         string
-	Slug          string
-	CoverImageURL string
-	CityName      string
-	PriceFrom     float64
-	Currency      string
-	Description   string
-	RatingAvg     float64
-	RatingCount   int
-	AvatarURL     string
+	TargetType      string
+	TargetID        int64
+	Title           string
+	Slug            string
+	CoverImageURL   string
+	CityName        string
+	PriceFrom       float64
+	Currency        string
+	Description     string
+	BodyHTML        string
+	DescriptionHTML string
+	RatingAvg       float64
+	RatingCount     int
+	AvatarURL       string
 }
 
 func ValidFavoriteType(t string) bool {

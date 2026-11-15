@@ -36,6 +36,7 @@ type ExcursionEventSource = Pick<
   | 'slug'
   | 'description'
   | 'body_html'
+  | 'description_html'
   | 'cover_image_url'
   | 'price_from'
   | 'currency'

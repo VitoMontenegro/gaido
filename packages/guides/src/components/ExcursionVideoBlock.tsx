@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { resolveMediaUrl } from '@gaido/api-client/api/client'
 import { openVideo } from '../lib/fancybox'
 import type { ExcursionVideoContent } from '../lib/excursionStructuredContent'
+import { videoSource } from '../lib/videoSource'
 import { autoVideoPosterUrl, youtubePosterUrl, youtubeVideoId } from '../lib/videoEmbed'
 
 function VideoPoster({
@@ -30,24 +31,40 @@ function VideoPoster({
 
 type Props = {
   video?: ExcursionVideoContent
+  poster?: string
 }
 
-export default function ExcursionVideoBlock({ video }: Props) {
+export default function ExcursionVideoBlock({ video, poster }: Props) {
   if (!video?.url?.trim()) return null
 
+  const source = videoSource(video.url)
   const ytId = youtubeVideoId(video.url)
-  const autoPoster = autoVideoPosterUrl(video.url)
+  const framePoster = video.preview_desktop ? resolveMediaUrl(video.preview_desktop) : ''
+  const posterSrc = (source?.kind === 'file' && framePoster ? framePoster : '')
+    || autoVideoPosterUrl(video.url)
+    || (poster ? resolveMediaUrl(poster) : '')
+    || framePoster
+    || (video.preview_mobile ? resolveMediaUrl(video.preview_mobile) : '')
 
-  const desktopPoster = video.preview_desktop
-    ? resolveMediaUrl(video.preview_desktop)
-    : autoPoster
-  const mobilePoster = video.preview_mobile
-    ? resolveMediaUrl(video.preview_mobile)
-    : video.preview_desktop
-      ? resolveMediaUrl(video.preview_desktop)
-      : autoPoster
+  if (!source) return null
 
-  const hasPoster = !!(desktopPoster || mobilePoster)
+  if (source.kind === 'file') {
+    return (
+      <section className="excursion-parus-section shadow-lg p-4">
+        <h2 className="excursion-parus-section__title">Відео екскурсії</h2>
+        <video
+          src={resolveMediaUrl(source.url)}
+          poster={posterSrc || undefined}
+          controls
+          playsInline
+          preload="metadata"
+          className="max-h-[70vh] w-full rounded-2xl bg-stone-900"
+        >
+          Ваш браузер не підтримує відео. <a href={resolveMediaUrl(source.url)}>Відкрити відео</a>
+        </video>
+      </section>
+    )
+  }
 
   return (
     <section className="excursion-parus-section shadow-lg p-4">
@@ -55,25 +72,10 @@ export default function ExcursionVideoBlock({ video }: Props) {
       <button
         type="button"
         className="excursion-parus-video group relative block w-full overflow-hidden rounded-2xl"
-        onClick={() => openVideo(video.url)}
+        onClick={() => openVideo(source.url)}
       >
-        {hasPoster ? (
-          <>
-            {desktopPoster && (
-              <VideoPoster
-                src={desktopPoster}
-                youtubeId={ytId}
-                className="hidden aspect-video w-full object-cover md:block"
-              />
-            )}
-            {mobilePoster && (
-              <VideoPoster
-                src={mobilePoster}
-                youtubeId={ytId}
-                className="aspect-4/3 w-full object-cover md:hidden"
-              />
-            )}
-          </>
+        {posterSrc ? (
+          <VideoPoster src={posterSrc} youtubeId={ytId} className="aspect-video w-full object-cover" />
         ) : (
           <div className="flex aspect-video w-full items-center justify-center bg-stone-200 text-base text-stone-600">
             Переглянути відео

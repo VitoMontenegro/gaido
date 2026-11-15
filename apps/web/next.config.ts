@@ -27,6 +27,7 @@ const nextConfig: NextConfig = {
   ],
   experimental: {
     externalDir: true,
+    middlewareClientMaxBodySize: '52mb',
   },
   images: {
     remotePatterns: [

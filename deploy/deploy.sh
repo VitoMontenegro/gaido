@@ -146,12 +146,16 @@ fi
 mkdir -p "$APP_ROOT/bin"
 # One compile thread: go build + leftover Node should not fight for RAM.
 export GOMAXPROCS="${GOMAXPROCS:-1}"
-"$GO_BIN" build -ldflags="-s -w" -o "$APP_ROOT/bin/tourister-api" ./cmd/api
+"$GO_BIN" build -ldflags="-s -w" -o "$APP_ROOT/bin/tourister-api.next" ./cmd/api
 "$GO_BIN" build -ldflags="-s -w" -o "$APP_ROOT/bin/tourister-migrate" ./cmd/migrate
-"$GO_BIN" build -ldflags="-s -w" -o "$APP_ROOT/bin/tourister-news" ./cmd/news
+"$GO_BIN" build -ldflags="-s -w" -o "$APP_ROOT/bin/tourister-news.next" ./cmd/news
 
 echo "→ migrations"
 "$APP_ROOT/bin/tourister-migrate" -cmd up
+
+# Publish only after the schema is ready; restart-on-crash must still use the old API until then.
+mv -f "$APP_ROOT/bin/tourister-api.next" "$APP_ROOT/bin/tourister-api"
+mv -f "$APP_ROOT/bin/tourister-news.next" "$APP_ROOT/bin/tourister-news"
 
 # Mark success BEFORE restart: systemctl kills the API process that started us.
 write_status "success" 0 "1"

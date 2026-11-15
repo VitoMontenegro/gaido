@@ -366,7 +366,7 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 		if err != nil || e == nil || e.Status != domain.ExcursionPublished {
 			return nil
 		}
-		desc := truncateDesc(e.Description, 160)
+		desc := truncateDesc(excursionDescriptionText(&e.Excursion), 160)
 		if desc == "" {
 			desc = truncateDesc(e.Title, 160)
 		}

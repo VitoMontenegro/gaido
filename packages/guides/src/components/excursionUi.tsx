@@ -9,6 +9,7 @@ export type ExcursionItem = {
   description?: string
   cover_image_url?: string
   body_html?: string
+  description_html?: string
   map_embed_url?: string
   structured_content?: ExcursionStructuredContent
   type: string
@@ -43,10 +44,21 @@ export function stripHtml(html: string) {
   return html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
 }
 
-export function excursionPreviewText(e: Pick<ExcursionItem, 'description' | 'body_html'>) {
-  if (e.description?.trim()) return e.description.trim()
-  if (e.body_html?.trim()) return stripHtml(e.body_html)
-  return ''
+export function descriptionFromHtml(html: string, limit = 160) {
+  const source = html.replace(/<[^>]*>/g, ' ')
+  const text = (typeof document !== 'undefined'
+    ? (() => { const el = document.createElement('textarea'); el.innerHTML = source; return el.value })()
+    : source.replace(/&nbsp;|&#160;/gi, ' ').replace(/&amp;/gi, '&').replace(/&lt;/gi, '<').replace(/&gt;/gi, '>').replace(/&quot;/gi, '"').replace(/&#(?:39|x27);|&apos;/gi, "'"))
+    .replace(/\s+/g, ' ').trim()
+  if (Array.from(text).length <= limit) return text
+  const fragment = Array.from(text).slice(0, limit - 1).join('')
+  const boundary = fragment.lastIndexOf(' ')
+  return `${(boundary > limit / 2 ? fragment.slice(0, boundary) : fragment).trimEnd()}…`
+}
+
+export function excursionPreviewText(e: Pick<ExcursionItem, 'description' | 'body_html' | 'description_html'>) {
+  const html = e.description_html?.trim() || e.body_html?.trim()
+  return html ? descriptionFromHtml(html) : descriptionFromHtml(e.description ?? '')
 }
 
 export function formatExcursionRating(avg?: number, count?: number) {

@@ -221,3 +221,70 @@ func (h *Handlers) CreateSlotByDate(w http.ResponseWriter, r *http.Request) {
 	}
 	response.JSON(w, r, 201, map[string]int64{"id": id})
 }
+
+// SetCalendarDays serves both the shared guide calendar and group excursion dates.
+func (h *Handlers) SetCalendarDays(w http.ResponseWriter, r *http.Request) {
+	g, _ := h.Guides.GetByUserID(r.Context(), middleware.UserIDFromContext(r.Context()))
+	if g == nil {
+		response.Error(w, r, apperrors.ErrNotFound)
+		return
+	}
+	var req struct {
+		Dates    []string `json:"dates"`
+		Selected *bool    `json:"selected"`
+	}
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 4096)).Decode(&req); err != nil || req.Selected == nil {
+		response.Error(w, r, apperrors.ErrValidation)
+		return
+	}
+	days, err := parseCalendarDays(req.Dates)
+	if err != nil {
+		response.Error(w, r, err)
+		return
+	}
+	var excursionID int64
+	duration := 180
+	if rawID := chi.URLParam(r, "id"); rawID != "" {
+		excursionID, err = strconv.ParseInt(rawID, 10, 64)
+		if err != nil || excursionID <= 0 {
+			response.Error(w, r, apperrors.ErrValidation)
+			return
+		}
+		exc, err := h.Exc.GetByID(r.Context(), excursionID)
+		if err != nil || exc == nil || exc.GuideID != g.ID {
+			response.Error(w, r, apperrors.ErrNotFound)
+			return
+		}
+		if exc.Type != "GROUP" {
+			response.Error(w, r, apperrors.ErrValidation)
+			return
+		}
+		if exc.DurationMinutes > 0 {
+			duration = exc.DurationMinutes
+		}
+	}
+	if err := h.Calendar.SetDays(r.Context(), g.ID, excursionID, days, *req.Selected, duration); err != nil {
+		response.Error(w, r, apperrors.ErrInternal)
+		return
+	}
+	response.JSON(w, r, 200, map[string]string{"status": "saved"})
+}
+
+func parseCalendarDays(keys []string) ([]time.Time, error) {
+	if len(keys) == 0 || len(keys) > 31 {
+		return nil, apperrors.ErrValidation
+	}
+	days := make([]time.Time, 0, len(keys))
+	seen := make(map[string]bool)
+	for _, key := range keys {
+		day, err := time.Parse("2006-01-02", key)
+		if err != nil || (len(days) > 0 && (day.Year() != days[0].Year() || day.Month() != days[0].Month())) {
+			return nil, apperrors.ErrValidation
+		}
+		if !seen[key] {
+			days = append(days, day)
+			seen[key] = true
+		}
+	}
+	return days, nil
+}

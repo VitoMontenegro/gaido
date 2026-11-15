@@ -53,3 +53,19 @@ func TestGuideCrawlParagraphsListsExcursions(t *testing.T) {
 		}
 	}
 }
+
+func TestExcursionDescriptionPriority(t *testing.T) {
+	newText := "<p>Нове &amp; текст</p>"
+	e := domain.Excursion{Description: "Коротке", BodyHTML: "<p>Повне</p>", DescriptionHTML: &newText}
+	if got := excursionDescriptionText(&e); got != "Нове & текст" {
+		t.Fatalf("new description: %q", got)
+	}
+	e.DescriptionHTML = nil
+	if got := excursionDescriptionText(&e); got != "Повне" {
+		t.Fatalf("full description: %q", got)
+	}
+	e.BodyHTML = ""
+	if got := excursionDescriptionText(&e); got != "Коротке" {
+		t.Fatalf("short description: %q", got)
+	}
+}

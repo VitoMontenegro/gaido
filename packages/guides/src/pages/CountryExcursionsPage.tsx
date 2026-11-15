@@ -25,6 +25,7 @@ import {
 } from '../lib/seoTemplates'
 import { pageTitle } from '@gaido/site-urls/brand'
 import { cn } from '@gaido/ui-primitives/cn'
+import { rankGuidesByExcursions } from '../lib/rankGuides'
 
 function lowestOffer(items: ExcursionItem[]) {
   let price = 0
@@ -111,7 +112,10 @@ export default function CountryExcursionsPage() {
 
   const title = country?.name ?? countrySlug
   const items = excursions?.items ?? []
-  const guideItems = guides?.items ?? []
+  const guideItems = useMemo(
+    () => rankGuidesByExcursions(guides?.items ?? []),
+    [guides?.items],
+  )
   const cities = useMemo(() => {
     const bySlug = new Map<string, { slug: string; name: string }>()
     for (const item of items) {

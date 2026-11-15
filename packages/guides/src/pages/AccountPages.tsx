@@ -1,3 +1,4 @@
+import { useSaveNotification } from '@gaido/ui-primitives/SaveNotification'
 import { Link, Navigate } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
@@ -47,6 +48,7 @@ export default function AccountPage() {
 }
 
 export function SettingsPage() {
+  const notify = useSaveNotification()
   const qc = useQueryClient()
   const { data: me } = useMe()
   const [firstName, setFirstName] = useState('')
@@ -64,6 +66,7 @@ export function SettingsPage() {
     onSuccess: (data) => {
       qc.setQueryData(['me'], data)
       setSaved(true)
+      notify('Налаштування профілю оновлено.')
     },
   })
 

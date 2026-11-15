@@ -138,7 +138,9 @@ func excursionSchemaImages(e *domain.ExcursionView, base string) []string {
 	for _, img := range e.StructuredContent.Gallery {
 		add(img)
 	}
-	add(e.StructuredContent.GalleryMobileCover)
+	if !e.StructuredContent.GalleryManaged {
+		add(e.StructuredContent.GalleryMobileCover)
+	}
 	if len(out) == 0 {
 		out = append(out, jsonLdAssetBase(base)+"/api/v1/media/public/"+fallbackOgImageKey)
 	}
@@ -189,7 +191,7 @@ func buildReviewJSON(items []domain.Review) []map[string]any {
 }
 
 func buildExcursionProductJSON(e *domain.ExcursionView, base, url string, reviews []domain.Review) map[string]any {
-	desc := truncateDesc(e.Description, 500)
+	desc := truncateDesc(excursionDescriptionText(&e.Excursion), 500)
 	if desc == "" {
 		desc = truncateDesc(e.Title, 500)
 	}
@@ -236,7 +238,7 @@ func buildExcursionProductJSON(e *domain.ExcursionView, base, url string, review
 }
 
 func buildExcursionEventJSON(e *domain.ExcursionView, base, url string, startsAt, endsAt time.Time) map[string]any {
-	desc := truncateDesc(e.Description, 500)
+	desc := truncateDesc(excursionDescriptionText(&e.Excursion), 500)
 	if desc == "" {
 		desc = truncateDesc(e.Title, 500)
 	}

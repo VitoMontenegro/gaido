@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 
 type Props<T> = {
   label: string
@@ -19,6 +19,15 @@ export default function RepeaterField<T>({
   renderItem,
   addLabel = 'Додати',
 }: Props<T>) {
+  const listRef = useRef<HTMLUListElement>(null)
+  const focusNewItem = useRef(false)
+
+  useEffect(() => {
+    if (!focusNewItem.current) return
+    focusNewItem.current = false
+    listRef.current?.lastElementChild?.querySelector<HTMLElement>('input, textarea, select')?.focus()
+  }, [items.length])
+
   const updateAt = (index: number, patch: Partial<T>) => {
     onChange(items.map((item, i) => (i === index ? { ...item, ...patch } : item)))
   }
@@ -33,24 +42,15 @@ export default function RepeaterField<T>({
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between gap-2">
-        <span className="form-field-label">{label}</span>
-        <button
-          type="button"
-          className="excursion-parus-link"
-          onClick={() => onChange([...items, createItem()])}
-        >
-          + {addLabel}
-        </button>
-      </div>
+      <span className="form-field-label">{label}</span>
       {hint && <p className="form-field-hint">{hint}</p>}
 
       {items.length === 0 ? (
         <p className="excursion-parus-muted rounded-lg border border-dashed border-stone-200 px-3 py-4">
-          Поки немає рядків — натисніть «{addLabel}».
+          Тут поки нічого немає.
         </p>
       ) : (
-        <ul className="space-y-2">
+        <ul ref={listRef} className="space-y-2">
           {items.map((item, i) => (
             <li
               key={i}
@@ -63,27 +63,27 @@ export default function RepeaterField<T>({
               <div className="flex shrink-0 flex-col gap-1">
                 <button
                   type="button"
-                  className="rounded border border-border bg-white px-2 py-1 text-xs disabled:opacity-40"
+                  className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-white text-base disabled:opacity-40"
                   disabled={i === 0}
                   onClick={() => move(i, i - 1)}
-                  aria-label="Вгору"
+                  aria-label={`Перемістити пункт ${i + 1} вгору`}
                 >
                   ↑
                 </button>
                 <button
                   type="button"
-                  className="rounded border border-border bg-white px-2 py-1 text-xs text-red-600"
+                  className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-white text-lg text-red-600"
                   onClick={() => onChange(items.filter((_, j) => j !== i))}
-                  aria-label="Видалити"
+                  aria-label={`Видалити пункт ${i + 1}`}
                 >
                   ×
                 </button>
                 <button
                   type="button"
-                  className="rounded border border-border bg-white px-2 py-1 text-xs disabled:opacity-40"
+                  className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-white text-base disabled:opacity-40"
                   disabled={i === items.length - 1}
                   onClick={() => move(i, i + 1)}
-                  aria-label="Вниз"
+                  aria-label={`Перемістити пункт ${i + 1} вниз`}
                 >
                   ↓
                 </button>
@@ -92,6 +92,17 @@ export default function RepeaterField<T>({
           ))}
         </ul>
       )}
+      <button
+        type="button"
+        className="btn-secondary mt-2 w-full gap-2 border-teal/40 text-teal-dark sm:w-auto"
+        onClick={() => {
+          focusNewItem.current = true
+          onChange([...items, createItem()])
+        }}
+      >
+        <span aria-hidden="true" className="text-xl leading-none">+</span>
+        {addLabel}
+      </button>
     </div>
   )
 }

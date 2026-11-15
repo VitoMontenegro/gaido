@@ -1,3 +1,4 @@
+import { useSaveNotification } from '@gaido/ui-primitives/SaveNotification'
 import { Suspense, useEffect, useState } from 'react'
 import { lazyRichTextEditor } from '@gaido/ui-primitives/lazyRichTextEditor'
 import { useQueryClient } from '@tanstack/react-query'
@@ -20,6 +21,7 @@ const emptyDraft = (): Partial<Article> => ({
 })
 
 export function ArticlesEditor({ apiBase }: Props) {
+  const notify = useSaveNotification()
   const qc = useQueryClient()
   const cms =
     apiBase === 'admin' ? articlesApi.admin : apiBase === 'moderator' ? articlesApi.moderator : articlesApi.guide
@@ -87,8 +89,10 @@ export function ArticlesEditor({ apiBase }: Props) {
       qc.invalidateQueries({ queryKey: ['articles'] })
       qc.invalidateQueries({ queryKey: ['guide-articles'] })
       setMessage('Збережено')
+      notify(`Статтю збережено.`)
     } catch (e) {
       setMessage(e instanceof Error ? e.message : 'Помилка збереження')
+      notify(e instanceof Error ? e.message : 'Спробуйте ще раз.', 'error')
     } finally {
       setSaving(false)
     }

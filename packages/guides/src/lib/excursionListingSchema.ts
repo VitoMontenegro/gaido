@@ -17,6 +17,7 @@ type ListingItem = Pick<
   | 'slug'
   | 'description'
   | 'body_html'
+  | 'description_html'
   | 'cover_image_url'
   | 'price_from'
   | 'currency'
@@ -237,7 +238,7 @@ export function buildExcursionProductJsonLd(excursion: ListingItem, reviews: Rev
   if (excursion.status && excursion.status !== 'PUBLISHED') return null
 
   const url = absoluteUrl(`/excursion/${excursion.slug}`)
-  const description = excursion.description?.trim() || excursionPreviewText(excursion)
+  const description = excursionPreviewText(excursion)
   const images = excursionSchemaImages(excursion)
   const review = reviewJsonLd(reviews)
 

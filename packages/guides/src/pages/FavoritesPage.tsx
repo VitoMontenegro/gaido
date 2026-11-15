@@ -66,6 +66,8 @@ function FavoriteCard({ item }: { item: FavoriteItem }) {
           title: item.title,
           city_name: item.city_name,
           description: item.description,
+          body_html: item.body_html,
+          description_html: item.description_html,
           price_from: item.price_from,
           currency: item.currency,
           cover_image_url: item.cover_image_url,

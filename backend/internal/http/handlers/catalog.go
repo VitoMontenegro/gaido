@@ -54,6 +54,7 @@ func (h *Handlers) ListGuides(w http.ResponseWriter, r *http.Request) {
 		_ = h.Guides.TouchShown(r.Context(), ids)
 	}
 	h.attachGuideCities(r.Context(), out)
+	h.attachGuideExcursionCounts(r.Context(), out, cityID, countryID)
 	payload := map[string]any{"items": out, "limit": limit, "offset": offset}
 	if byName {
 		payload["total"] = total

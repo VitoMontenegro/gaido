@@ -379,6 +379,46 @@ func guideSortName(displayName, firstName, lastName string) string {
 	return strings.TrimSpace(firstName + " " + lastName)
 }
 
+// PublishedExcursionCounts returns published excursion totals for the given guides.
+// cityID and countryID narrow the count to that place; both nil counts every published excursion.
+func (r *GuideRepo) PublishedExcursionCounts(ctx context.Context, ids []int64, cityID, countryID *int64) (map[int64]int, error) {
+	out := make(map[int64]int, len(ids))
+	if len(ids) == 0 {
+		return out, nil
+	}
+	q := `
+		SELECT e.guide_id, COUNT(*)::int
+		FROM excursions e
+		LEFT JOIN cities c ON c.id = e.city_id
+		WHERE e.status = $2 AND e.guide_id = ANY($1)`
+	args := []any{ids, domain.ExcursionPublished}
+	n := 3
+	if cityID != nil {
+		q += fmt.Sprintf(` AND e.city_id = $%d`, n)
+		args = append(args, *cityID)
+		n++
+	}
+	if countryID != nil {
+		q += fmt.Sprintf(` AND c.country_id = $%d`, n)
+		args = append(args, *countryID)
+	}
+	q += ` GROUP BY e.guide_id`
+	rows, err := r.db.Pool.Query(ctx, q, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var guideID int64
+		var count int
+		if err := rows.Scan(&guideID, &count); err != nil {
+			return nil, err
+		}
+		out[guideID] = count
+	}
+	return out, rows.Err()
+}
+
 func (r *GuideRepo) ListPublic(ctx context.Context, cityID, countryID *int64, guideType string, limit, offset int) ([]domain.GuideProfile, error) {
 	where, args := publicGuideFilter(cityID, countryID, guideType)
 	n := len(args) + 1

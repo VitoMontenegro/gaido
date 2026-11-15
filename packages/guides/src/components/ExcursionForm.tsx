@@ -1,3 +1,4 @@
+import { useSaveNotification } from '@gaido/ui-primitives/SaveNotification'
 import { Suspense, useEffect, useRef, useState, type ReactNode } from 'react'
 import { lazyRichTextEditor } from '@gaido/ui-primitives/lazyRichTextEditor'
 import { normalizeItems } from '../lib/bookingTerms'
@@ -14,8 +15,12 @@ import {
   type ExcursionStructuredContent,
 } from '../lib/excursionStructuredContent'
 import { stripEditorArtifacts } from '../lib/html'
-import { ImageUrlField } from './ImageUrlField'
+import ExcursionVideoField from './ExcursionVideoField'
+import { videoLinkProblem, videoSource } from '../lib/videoSource'
 import ExcursionDatesEditor from './ExcursionDatesEditor'
+import { descriptionFromHtml } from './excursionUi'
+import { asHtml } from '../lib/html'
+import { ROUTE_STOP_MAX_LENGTH, nextRouteStop, routeStopLength } from '../lib/routeStop'
 import { durationPartsToMinutes, minutesToDurationParts } from '../lib/duration'
 
 const RichTextEditor = lazyRichTextEditor(() => import('./RichTextEditor'))
@@ -38,22 +43,26 @@ export type ExcursionFormData = {
   excluded_items: string[]
   cover_image_url: string
   body_html: string
+  description_html?: string
   map_embed_url: string
   structured_content: ExcursionStructuredContent
 }
 
-type TabId = 'basic' | 'media' | 'route' | 'video' | 'locations' | 'comfort' | 'program' | 'terms'
+type TabId = 'basic' | 'media' | 'route' | 'video' | 'locations' | 'comfort' | 'program' | 'terms' | 'review'
 
 const TABS: { id: TabId; label: string }[] = [
   { id: 'basic', label: 'Основне' },
-  { id: 'media', label: 'Фото шапки' },
+  { id: 'media', label: 'Фото і відео' },
   { id: 'route', label: 'Маршрут' },
-  { id: 'video', label: 'Відео' },
-  { id: 'locations', label: 'Фото-локації' },
-  { id: 'comfort', label: 'Комфорт' },
-  { id: 'program', label: 'Програма' },
   { id: 'terms', label: 'Умови' },
+  { id: 'review', label: 'Перевірка' },
 ]
+
+const normalizeTab = (tab: string): TabId => {
+  if (tab === 'video' || tab === 'locations') return 'media'
+  if (tab === 'comfort' || tab === 'program') return 'route'
+  return TABS.some((item) => item.id === tab) ? tab as TabId : 'basic'
+}
 
 export type ExcursionPhotoPersist = {
   cover_image_url: string
@@ -80,6 +89,7 @@ export function excursionWritePayload(e: Partial<ExcursionFormData>): ExcursionF
     excluded_items: e.excluded_items ?? [],
     cover_image_url: e.cover_image_url ?? '',
     body_html: e.body_html ?? '',
+    description_html: e.description_html,
     map_embed_url: e.map_embed_url ?? '',
     structured_content: sanitizeStructuredContentForSave(normalizeStructuredContent(e.structured_content)),
   }
@@ -107,7 +117,7 @@ function readStoredTab(key?: string): TabId {
   if (!key) return 'basic'
   try {
     const saved = sessionStorage.getItem(`excursion-form-tab:${key}`)
-    if (saved && TABS.some((t) => t.id === saved)) return saved as TabId
+    if (saved) return normalizeTab(saved)
   } catch {
     /* ignore */
   }
@@ -178,6 +188,7 @@ function DurationPartInput({
 }
 
 export default function ExcursionForm({ initial, submitLabel, successMessage = 'Збережено', onSubmit, onPersistPhotos, persistTabKey, datesEditor, footerExtra }: Props) {
+  const notify = useSaveNotification()
   const [tab, setTab] = useState<TabId>(() => readStoredTab(persistTabKey))
 
   useEffect(() => {
@@ -190,7 +201,6 @@ export default function ExcursionForm({ initial, submitLabel, successMessage = '
   }, [tab, persistTabKey])
   const [cityId, setCityId] = useState(initial?.city_id ?? 0)
   const [title, setTitle] = useState(initial?.title ?? '')
-  const [description, setDescription] = useState(initial?.description ?? '')
   const [type, setType] = useState(initial?.type ?? 'INDIVIDUAL')
   const [maxGuests, setMaxGuests] = useState(initial?.max_guests ?? 4)
   const [priceFrom, setPriceFrom] = useState(initial?.price_from ?? 0)
@@ -207,11 +217,12 @@ export default function ExcursionForm({ initial, submitLabel, successMessage = '
   const [structured, setStructured] = useState(() =>
     normalizeStructuredContent(initial?.structured_content),
   )
-  const [bodyHtml, setBodyHtml] = useState(initial?.body_html || initial?.description || '')
+  const [bodyHtml, setBodyHtml] = useState(initial?.description_html?.trim() || initial?.body_html?.trim() || asHtml(initial?.description))
   const [bookingHtml, setBookingHtml] = useState(initial?.organizational_details ?? '')
   const [included, setIncluded] = useState(() => normalizeItems(initial?.included_items))
   const [excluded, setExcluded] = useState(() => normalizeItems(initial?.excluded_items))
   const [submitting, setSubmitting] = useState(false)
+  const [videoUploading, setVideoUploading] = useState(false)
   const [saveFeedback, setSaveFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [photoFeedback, setPhotoFeedback] = useState<{ type: 'pending' | 'success' | 'error'; text: string } | null>(null)
   const feedbackRef = useRef<HTMLDivElement>(null)
@@ -269,17 +280,29 @@ export default function ExcursionForm({ initial, submitLabel, successMessage = '
   const persistPhotos = (nextCover: string, nextStructured: ExcursionStructuredContent) => {
     if (!onPersistPhotos || submittingRef.current) return
     const gallery = nextStructured.gallery
-    const coverUrl = gallery[0] ?? nextCover
+    const coverUrl = nextStructured.gallery_managed ? gallery[0] ?? '' : gallery[0] ?? nextCover
+    const playableVideo = videoSource(nextStructured.video?.url ?? '')
+    const { video: _video, ...contentWithoutVideo } = nextStructured
     const structured_content = sanitizeStructuredContentForSave({
-      ...nextStructured,
-      gallery: gallery.length ? gallery : coverUrl ? [coverUrl] : [],
+      ...contentWithoutVideo,
+      gallery: nextStructured.gallery_managed ? gallery : gallery.length ? gallery : coverUrl ? [coverUrl] : [],
+      ...(playableVideo || !(nextStructured.video?.url ?? '').trim()
+        ? {
+            video: playableVideo
+              ? {
+                  url: playableVideo.url,
+                  preview_desktop: playableVideo.kind === 'file' ? nextStructured.video?.preview_desktop : undefined,
+                }
+              : { url: '' },
+          }
+        : {}),
     })
     persistPending.current = {
       cover_image_url: coverUrl,
       structured_content,
       draft: excursionWritePayload({
         title,
-        description,
+        description: initial?.description ?? '',
         city_id: cityId,
         type,
         max_guests: Math.max(1, Number.isFinite(maxGuests) ? maxGuests : 1),
@@ -294,7 +317,8 @@ export default function ExcursionForm({ initial, submitLabel, successMessage = '
         included_items: included,
         excluded_items: excluded,
         cover_image_url: coverUrl,
-        body_html: stripEditorArtifacts(bodyHtml || (description ? `<p>${description}</p>` : '')),
+        body_html: initial?.body_html ?? '',
+        description_html: stripEditorArtifacts(bodyHtml),
         map_embed_url: resolveMapEmbed(mapEmbedUrl) ?? '',
         structured_content,
       }),
@@ -303,7 +327,7 @@ export default function ExcursionForm({ initial, submitLabel, successMessage = '
   }
 
   const commitStructured = (patch: Partial<ExcursionStructuredContent>, nextCover = coverRef.current) => {
-    const next = normalizeStructuredContent({ ...structuredRef.current, ...patch })
+    const next = normalizeStructuredContent({ ...structuredRef.current, ...patch, ...(patch.gallery !== undefined ? { gallery_managed: true, gallery_mobile_cover: undefined } : {}) })
     setStructured(next)
     if (patch.gallery) {
       nextCover = patch.gallery[0] ?? ''
@@ -324,9 +348,24 @@ export default function ExcursionForm({ initial, submitLabel, successMessage = '
 
   return (
     <form
+      noValidate
       className="space-y-4"
       onSubmit={async (e) => {
         e.preventDefault()
+        if (videoUploading) { notify('Дочекайтеся завершення завантаження відео.', 'error'); return }
+        const videoUrl = structured.video?.url?.trim() ?? ''
+        if (videoUrl && !videoSource(videoUrl)) {
+          setTab('media')
+          notify(videoLinkProblem(videoUrl) === 'instagram'
+            ? 'Instagram не показуємо на сторінці — завантажте MP4 або вставте YouTube чи Vimeo.'
+            : 'Перевірте посилання на відео: підходять YouTube, Vimeo та MP4.', 'error')
+          return
+        }
+        if (!title.trim() || !descriptionFromHtml(bodyHtml) || !cityId || !Number.isInteger(maxGuests) || maxGuests < 1 || !Number.isFinite(priceFrom) || priceFrom < 0) {
+          setTab('basic')
+          notify('Заповніть назву, опис, місто та перевірте ціну і кількість гостей.', 'error')
+          return
+        }
         submittingRef.current = true
         persistPending.current = null
         setSubmitting(true)
@@ -338,7 +377,7 @@ export default function ExcursionForm({ initial, submitLabel, successMessage = '
           const synced = syncCoverFromGallery(cover, structured)
           await onSubmit({
             title,
-            description,
+            description: initial?.description ?? '',
             city_id: cityId,
             type,
             max_guests: Math.max(1, Number.isFinite(maxGuests) ? maxGuests : 1),
@@ -353,12 +392,26 @@ export default function ExcursionForm({ initial, submitLabel, successMessage = '
             included_items: included,
             excluded_items: excluded,
             cover_image_url: synced.cover,
-            body_html: stripEditorArtifacts(bodyHtml || `<p>${description}</p>`),
+            body_html: initial?.body_html ?? '',
+            description_html: stripEditorArtifacts(bodyHtml),
             map_embed_url: resolveMapEmbed(mapEmbedUrl) ?? '',
-            structured_content: sanitizeStructuredContentForSave(synced.content),
+            structured_content: sanitizeStructuredContentForSave({
+              ...synced.content,
+              video: (() => {
+                const playable = videoSource(synced.content.video?.url ?? '')
+                return playable
+                  ? {
+                      url: playable.url,
+                      preview_desktop: playable.kind === 'file' ? synced.content.video?.preview_desktop : undefined,
+                    }
+                  : { url: '' }
+              })(),
+            }),
           })
           setSaveFeedback({ type: 'success', text: successMessage })
+          notify(successMessage)
         } catch (err) {
+          notify(err instanceof Error ? err.message : 'Спробуйте ще раз.', 'error')
           setSaveFeedback({
             type: 'error',
             text: err instanceof Error ? err.message : 'Не вдалося зберегти',
@@ -369,6 +422,7 @@ export default function ExcursionForm({ initial, submitLabel, successMessage = '
         }
       }}
     >
+      <p className="text-sm text-stone-600">Крок {TABS.findIndex((item) => item.id === tab) + 1} з {TABS.length}. Оберіть розділ або скористайтеся кнопками нижче.</p>
       <nav className="flex flex-wrap gap-1 rounded-xl bg-stone-100 p-1">
         {TABS.map(({ id, label }) => (
           <button
@@ -389,23 +443,32 @@ export default function ExcursionForm({ initial, submitLabel, successMessage = '
           <Field label="Назва">
             <input name="title" className="input w-full" value={title} onChange={(e) => setTitle(e.target.value)} required />
           </Field>
-          <Field label="Короткий опис" hint="Тизер на сторінці та в картках каталогу">
-            <textarea name="description" className="input min-h-24 w-full" value={description} onChange={(e) => setDescription(e.target.value)} required />
+          <Field label="Опис екскурсії" hint="Розкажіть, що побачать гості. Початок опису з’явиться в картці екскурсії та пошукових системах.">
+            <Suspense fallback={<div className="input min-h-40 form-field-hint">Завантаження редактора…</div>}>
+              <RichTextEditor value={bodyHtml} onChange={setBodyHtml} disabled={submitting} />
+            </Suspense>
           </Field>
           <Field label="Країна та місто">
             <CityPicker value={cityId} onChange={setCityId} required />
           </Field>
           <Field label="Формат">
-            <select name="type" className="input w-full" value={type} onChange={(e) => setType(e.target.value)}>
+            <select name="type" aria-label="Формат екскурсії" aria-describedby="excursion-format-help" className="input w-full" value={type} onChange={(e) => setType(e.target.value)}>
               <option value="INDIVIDUAL">Індивідуальна</option>
               <option value="GROUP">Групова</option>
             </select>
+            <div id="excursion-format-help" className="mt-2 space-y-2 rounded-xl border border-border bg-sand-50 px-4 py-3 text-sm text-stone-700">
+              <p><strong>Індивідуальна:</strong> ціна за всю екскурсію для групи гостей.</p>
+              <p><strong>Групова:</strong> ціна за одну людину.</p>
+            </div>
           </Field>
           <Field label="Максимум гостей">
-            <input name="max_guests" type="number" min={1} className="input w-full" value={maxGuests} onChange={(e) => setMaxGuests(Number(e.target.value))} required />
+            <input name="max_guests" type="number" min={1} className="input w-full" value={Number.isFinite(maxGuests) ? maxGuests : ''} onChange={(e) => setMaxGuests(e.target.valueAsNumber)} required />
           </Field>
-          <Field label="Ціна від, €">
-            <input name="price_from" type="number" min={0} step="1" className="input w-full" value={priceFrom} onChange={(e) => setPriceFrom(Number(e.target.value))} required />
+          <Field label={type === 'GROUP' ? 'Ціна від за одну людину, €' : 'Ціна від за всю екскурсію, €'}>
+            <input name="price_from" type="number" min={0} step="1" aria-label={type === 'GROUP' ? 'Ціна від за одну людину, євро' : 'Ціна від за всю екскурсію, євро'} aria-describedby="excursion-price-help" className="input w-full" value={Number.isFinite(priceFrom) ? priceFrom : ''} onChange={(e) => setPriceFrom(e.target.valueAsNumber)} required />
+            <p id="excursion-price-help" className="rounded-xl bg-teal/10 px-4 py-3 text-sm font-medium text-ink" aria-live="polite">
+              {type === 'GROUP' ? 'Вкажіть вартість для однієї людини.' : 'Вкажіть загальну вартість екскурсії, а не ціну за людину.'}
+            </p>
           </Field>
           <Field label="Тривалість">
             <div className="flex flex-wrap items-end gap-3">
@@ -453,37 +516,17 @@ export default function ExcursionForm({ initial, submitLabel, successMessage = '
 
       {tab === 'media' && (
         <div className="space-y-4">
+          {!cityId && <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">Щоб зберегти фото, спочатку оберіть місто на кроці «Основне».</p>}
           <GalleryField
-            label="Галерея"
-            value={structured.gallery}
+            label="Фото екскурсії"
+            value={structured.gallery_managed ? structured.gallery : structured.gallery.length ? structured.gallery : cover ? [cover] : []}
+            showCover
             onChange={(gallery) => commitStructured({ gallery })}
-            hint="Фото в шапці сторінки. Перше фото — обкладинка в каталозі. Зберігається одразу."
+            hint="Перше фото буде обкладинкою екскурсії в каталозі. Фото зберігаються після завантаження."
             cropAspect={16 / 10}
           />
-          <ImageUrlField
-            label="Галерея (перше фото для mobile)"
-            value={structured.gallery_mobile_cover ?? ''}
-            onChange={(gallery_mobile_cover) => updateStructured({ gallery_mobile_cover })}
-            onPersist={(gallery_mobile_cover) => commitStructured({ gallery_mobile_cover })}
-            cropAspect={4 / 3}
-            maxBytes={400 * 1024}
-            hint="Якщо не заповнено — використовується перше фото галереї"
-          />
-          {!structured.gallery.length && (
-            <ImageUrlField
-              label="Обкладинка (якщо галерея порожня)"
-              value={cover}
-              onChange={setCover}
-              onPersist={(nextCover) => {
-                setCover(nextCover)
-                persistPhotos(nextCover, structuredRef.current)
-              }}
-              cropAspect={16 / 10}
-              maxBytes={400 * 1024}
-            />
-          )}
           {photoFeedback && (
-            <p className={`text-sm ${photoFeedback.type === 'error' ? 'text-red-600' : photoFeedback.type === 'success' ? 'text-emerald-700' : 'text-stone-500'}`}>
+            <p role={photoFeedback.type === 'error' ? 'alert' : 'status'} className={`text-sm ${photoFeedback.type === 'error' ? 'text-red-600' : photoFeedback.type === 'success' ? 'text-emerald-700' : 'text-stone-500'}`}>
               {photoFeedback.text}
             </p>
           )}
@@ -494,21 +537,30 @@ export default function ExcursionForm({ initial, submitLabel, successMessage = '
         <div className="space-y-4">
           <RepeaterField
             label="Маршрут"
-            hint="Пункти маршруту — «Які місця ви побачите»"
+            addLabel="Додати пункт маршруту"
+            hint="Один пункт — одна назва місця. Додайте кожну локацію окремо, до 60 символів."
             items={structured.route_stops}
             onChange={(route_stops) => updateStructured({ route_stops })}
             createItem={() => ''}
             renderItem={(text, i) => (
-              <input
-                className="input w-full"
-                value={text}
-                placeholder="Назва локації"
-                onChange={(e) => {
-                  const next = [...structured.route_stops]
-                  next[i] = e.target.value
-                  updateStructured({ route_stops: next })
-                }}
-              />
+              <div className="space-y-1">
+                <input
+                  className="input w-full"
+                  value={text}
+                  aria-label={`Назва місця ${i + 1}`}
+                  aria-describedby={`route-stop-hint-${i}`}
+                  placeholder="Наприклад: Готичний квартал"
+                  onChange={(e) => {
+                    const next = [...structured.route_stops]
+                    next[i] = nextRouteStop(text, e.target.value)
+                    updateStructured({ route_stops: next })
+                  }}
+                />
+                <p id={`route-stop-hint-${i}`} className={`text-xs ${routeStopLength(text) > ROUTE_STOP_MAX_LENGTH ? 'text-amber-800' : 'text-stone-500'}`}>
+                  {routeStopLength(text)}/{ROUTE_STOP_MAX_LENGTH}
+                  {routeStopLength(text) > ROUTE_STOP_MAX_LENGTH && ' · Раніше збережений текст залишиться без змін. За бажанням скоротіть його до назви місця.'}
+                </p>
+              </div>
             )}
           />
           <Field label="Примітка під маршрутом">
@@ -534,55 +586,20 @@ export default function ExcursionForm({ initial, submitLabel, successMessage = '
         </div>
       )}
 
-      {tab === 'video' && (
-        <div className="space-y-4">
-          <Field label="Відео екскурсії" hint="Посилання YouTube / Vimeo або embed URL">
-            <input
-              className="input w-full"
-              value={structured.video?.url ?? ''}
-              placeholder="https://www.youtube.com/watch?v=..."
-              onChange={(e) =>
-                updateStructured({
-                  video: { ...structured.video, url: e.target.value, preview_desktop: structured.video?.preview_desktop, preview_mobile: structured.video?.preview_mobile },
-                })
-              }
-            />
-          </Field>
-          <ImageUrlField
-            label="Превʼю відео (desktop)"
-            value={structured.video?.preview_desktop ?? ''}
-            onChange={(preview_desktop) =>
-              updateStructured({ video: { url: structured.video?.url ?? '', preview_desktop, preview_mobile: structured.video?.preview_mobile } })
-            }
-            onPersist={(preview_desktop) =>
-              commitStructured({
-                video: { url: structuredRef.current.video?.url ?? '', preview_desktop, preview_mobile: structuredRef.current.video?.preview_mobile },
-              })
-            }
-            cropAspect={16 / 9}
+      {tab === 'media' && (
+        <div className="space-y-4 rounded-xl border border-border bg-white p-4">
+          <h2 className="font-display text-lg font-bold">Відео екскурсії</h2>
+          <ExcursionVideoField
+            value={structured.video}
+            onChange={(video) => updateStructured({ video })}
+            onPersist={(video) => commitStructured({ video })}
+            onBusyChange={setVideoUploading}
+            disabled={submitting}
           />
-          <ImageUrlField
-            label="Превʼю відео (mobile)"
-            value={structured.video?.preview_mobile ?? ''}
-            onChange={(preview_mobile) =>
-              updateStructured({ video: { url: structured.video?.url ?? '', preview_desktop: structured.video?.preview_desktop, preview_mobile } })
-            }
-            onPersist={(preview_mobile) =>
-              commitStructured({
-                video: { url: structuredRef.current.video?.url ?? '', preview_desktop: structuredRef.current.video?.preview_desktop, preview_mobile },
-              })
-            }
-            cropAspect={4 / 3}
-          />
-          {photoFeedback && tab === 'video' && (
-            <p className={`text-sm ${photoFeedback.type === 'error' ? 'text-red-600' : photoFeedback.type === 'success' ? 'text-emerald-700' : 'text-stone-500'}`}>
-              {photoFeedback.text}
-            </p>
-          )}
         </div>
       )}
 
-      {tab === 'locations' && (
+      {tab === 'media' && (
         <div className="space-y-2">
           <GalleryField
             label="Фото-локації на маршруті"
@@ -592,16 +609,17 @@ export default function ExcursionForm({ initial, submitLabel, successMessage = '
             cropAspect={1}
           />
           {photoFeedback && (
-            <p className={`text-sm ${photoFeedback.type === 'error' ? 'text-red-600' : photoFeedback.type === 'success' ? 'text-emerald-700' : 'text-stone-500'}`}>
+            <p role={photoFeedback.type === 'error' ? 'alert' : 'status'} className={`text-sm ${photoFeedback.type === 'error' ? 'text-red-600' : photoFeedback.type === 'success' ? 'text-emerald-700' : 'text-stone-500'}`}>
               {photoFeedback.text}
             </p>
           )}
         </div>
       )}
 
-      {tab === 'comfort' && (
+      {tab === 'route' && (
         <RepeaterField
           label="Ваш комфорт — в пріоритеті"
+          addLabel="Додати умову комфорту"
           items={structured.comfort_items}
           onChange={(comfort_items) => updateStructured({ comfort_items })}
           createItem={() => ({ title: '', text: '' })}
@@ -624,14 +642,6 @@ export default function ExcursionForm({ initial, submitLabel, successMessage = '
         />
       )}
 
-      {tab === 'program' && (
-        <Field label="Повний опис" hint="Розкривається по кнопці «Читати повністю»">
-          <Suspense fallback={<div className="input min-h-105 form-field-hint">Завантаження редактора…</div>}>
-            <RichTextEditor value={bodyHtml} onChange={setBodyHtml} disabled={submitting} />
-          </Suspense>
-        </Field>
-      )}
-
       {tab === 'terms' && (
         <BookingTermsEditor
           included={included}
@@ -647,6 +657,17 @@ export default function ExcursionForm({ initial, submitLabel, successMessage = '
         />
       )}
 
+      {tab === 'review' && (
+        <section className="space-y-3 rounded-xl border border-border bg-sand-50 p-4">
+          <h2 className="font-semibold">Перевірте основну інформацію</h2>
+          <p>Назва: <strong>{title || 'Не вказано'}</strong></p>
+          <p>Опис: {descriptionFromHtml(bodyHtml) || 'Не вказано'}</p>
+          <p>Місто: {cityId ? 'Обрано' : 'Не обрано'}</p>
+          <p>Формат: {type === 'INDIVIDUAL' ? 'Індивідуальна' : 'Групова'} · до {maxGuests} гостей</p>
+          <p>Ціна від: {priceFrom} €</p>
+          <button type="button" className="btn-secondary" onClick={() => setTab('basic')}>Змінити основну інформацію</button>
+        </section>
+      )}
       {saveFeedback && (
         <div
           ref={feedbackRef}
@@ -662,7 +683,12 @@ export default function ExcursionForm({ initial, submitLabel, successMessage = '
       )}
 
       <div className="flex flex-wrap gap-3">
-        <button type="submit" className="btn-primary" disabled={!cityId || submitting}>
+        {TABS.findIndex((item) => item.id === tab) > 0 && <button type="button" className="btn-secondary" onClick={() => setTab(TABS[TABS.findIndex((item) => item.id === tab) - 1].id)}>← Назад</button>}
+        {TABS.findIndex((item) => item.id === tab) < TABS.length - 1 && <button type="button" className="btn-secondary" onClick={() => setTab(TABS[TABS.findIndex((item) => item.id === tab) + 1].id)}>Далі: {TABS[TABS.findIndex((item) => item.id === tab) + 1].label} →</button>}
+      </div>
+      <p className="text-sm text-stone-600">Фото і відео зберігаються одразу. Текст маршруту й умов — після кнопки «Зберегти».</p>
+      <div className="flex flex-wrap gap-3">
+        <button type="submit" className="btn-primary" disabled={submitting || videoUploading}>
           {submitting ? 'Збереження…' : submitLabel}
         </button>
         {footerExtra}

@@ -13,6 +13,15 @@ EMAIL="${CERTBOT_EMAIL:-admin@${DOMAIN}}"
 
 proxy_block() {
   cat <<'NGX'
+    location = /api/v1/account/guide/video {
+        client_max_body_size 51m;
+        client_body_timeout 120s;
+        proxy_pass http://127.0.0.1:8081;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
     location / {
         proxy_pass http://127.0.0.1:8081;
         proxy_http_version 1.1;

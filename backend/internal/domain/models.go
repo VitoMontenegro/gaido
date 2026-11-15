@@ -184,6 +184,7 @@ type ExcursionComfortItem struct {
 }
 
 type ExcursionStructuredContent struct {
+	GalleryManaged     bool                   `json:"gallery_managed,omitempty"`
 	Gallery            []string               `json:"gallery,omitempty"`
 	GalleryMobileCover string                 `json:"gallery_mobile_cover,omitempty"`
 	RouteStops         []string               `json:"route_stops,omitempty"`
@@ -214,6 +215,7 @@ type Excursion struct {
 	MeetingPoint          string                     `json:"meeting_point"`
 	CoverImageURL         string                     `json:"cover_image_url"`
 	BodyHTML              string                     `json:"body_html"`
+	DescriptionHTML       *string                    `json:"description_html,omitempty"`
 	MapEmbedURL           string                     `json:"map_embed_url"`
 	IncludedItems         []string                   `json:"included_items"`
 	ExcludedItems         []string                   `json:"excluded_items"`
@@ -300,6 +302,9 @@ type PublicGuideDTO struct {
 	Status      string      `json:"status"`
 	Contacts    ContactsDTO `json:"contacts"`
 	IsPromoted  bool        `json:"is_promoted,omitempty"`
+	// ExcursionCount is set on catalog lists. Nil means the count was not loaded.
+	// Zero means the guide has no published excursions in the list scope (city, country, or all).
+	ExcursionCount *int `json:"excursion_count,omitempty"`
 }
 
 func UserDisplayName(firstName, lastName, login string) string {

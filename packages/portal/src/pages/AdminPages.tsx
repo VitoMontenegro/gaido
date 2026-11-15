@@ -1,3 +1,4 @@
+import { useSaveNotification } from '@gaido/ui-primitives/SaveNotification'
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -52,6 +53,7 @@ function tabFromSearch(search: URLSearchParams, mode: SiteMode): AdminTab | unde
 }
 
 export default function AdminPage() {
+  const notify = useSaveNotification()
   const isAdmin = useHasRole('ROLE_ADMIN')
   const qc = useQueryClient()
   const siteMode = getSiteMode()
@@ -87,6 +89,7 @@ export default function AdminPage() {
 
   const updateSetting = async (patch: Partial<AdminSettings>) => {
     await adminApi.updateSettings(patch)
+    notify('Налаштування оновлено.')
     qc.invalidateQueries({ queryKey: ['settings'] })
     qc.invalidateQueries({ queryKey: ['site'] })
   }
@@ -349,6 +352,7 @@ export default function AdminPage() {
 }
 
 function AdminAuthorPhoto() {
+  const notify = useSaveNotification()
   const qc = useQueryClient()
   const { data: me } = useMe()
   const [value, setValue] = useState('')
@@ -365,6 +369,7 @@ function AdminAuthorPhoto() {
     mutationFn: (avatar_url: string) => authApi.updateAvatar(avatar_url),
     onSuccess: () => {
       setMessage('Збережено')
+      notify('Зміни збережено.')
       qc.invalidateQueries({ queryKey: ['me'] })
     },
     onError: (err: Error) => setMessage(err.message),
@@ -404,6 +409,7 @@ type AdminSettings = {
 }
 
 function MailServerSettings({ mail }: { mail?: MailSettings }) {
+  const notify = useSaveNotification()
   const qc = useQueryClient()
   const [form, setForm] = useState({
     enabled: false,
@@ -452,6 +458,7 @@ function MailServerSettings({ mail }: { mail?: MailSettings }) {
     onSuccess: () => {
       setForm((f) => ({ ...f, password: '' }))
       setMessage('Збережено')
+      notify('Зміни збережено.')
       qc.invalidateQueries({ queryKey: ['settings'] })
     },
     onError: (err: Error) => setMessage(err.message),

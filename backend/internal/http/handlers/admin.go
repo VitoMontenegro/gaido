@@ -479,5 +479,8 @@ func (h *Handlers) UploadMedia(w http.ResponseWriter, r *http.Request) {
 func (h *Handlers) ServePublicMedia(w http.ResponseWriter, r *http.Request) {
 	key := chi.URLParam(r, "key")
 	w.Header().Set("Cache-Control", cacheheaders.Immutable)
+	if strings.HasSuffix(strings.ToLower(key), ".mp4") {
+		w.Header().Set("Content-Type", "video/mp4")
+	}
 	http.ServeFile(w, r, h.Media.PublicPath(key))
 }

@@ -108,6 +108,24 @@ func (h *Handlers) publicGuideDTO(ctx context.Context, g *domain.GuideProfile) d
 	return guidesvc.BuildPublicGuideDTO(g, sub, hasLicense, requireSub)
 }
 
+func (h *Handlers) attachGuideExcursionCounts(ctx context.Context, guides []domain.PublicGuideDTO, cityID, countryID *int64) {
+	if len(guides) == 0 || h.Guides == nil {
+		return
+	}
+	ids := make([]int64, len(guides))
+	for i := range guides {
+		ids[i] = guides[i].ID
+	}
+	counts, err := h.Guides.PublishedExcursionCounts(ctx, ids, cityID, countryID)
+	if err != nil {
+		return
+	}
+	for i := range guides {
+		n := counts[guides[i].ID]
+		guides[i].ExcursionCount = &n
+	}
+}
+
 func (h *Handlers) attachGuideCities(ctx context.Context, guides []domain.PublicGuideDTO) {
 	if len(guides) == 0 {
 		return

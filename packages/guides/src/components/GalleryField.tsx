@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
-import { Bars2Icon } from '@heroicons/react/24/outline'
 import { adminApi, formatApiError, resolveMediaUrl } from '@gaido/api-client/api/client'
 import {
   createCropImageSource,
@@ -20,6 +19,7 @@ type Props = {
   cropAspect?: number
   maxBytes?: number
   outputFormat?: RasterFormat
+  showCover?: boolean
 }
 
 type DragState = {
@@ -64,6 +64,7 @@ export default function GalleryField({
   cropAspect = 4 / 3,
   maxBytes = 400 * 1024,
   outputFormat = 'webp',
+  showCover = false,
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
   const valueRef = useRef(value)
@@ -249,7 +250,7 @@ export default function GalleryField({
     }
   }, [])
 
-  const onTilePointerDown = (index: number, url: string, e: ReactPointerEvent<HTMLLIElement>) => {
+  const onTilePointerDown = (index: number, url: string, e: ReactPointerEvent<HTMLDivElement>) => {
     if (e.button !== 0 && e.pointerType === 'mouse') return
 
     const rect = e.currentTarget.getBoundingClientRect()
@@ -273,59 +274,39 @@ export default function GalleryField({
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between gap-2">
-        <span className="form-field-label">{label}</span>
-        <button
-          type="button"
-          className="excursion-parus-link disabled:opacity-50"
-          disabled={uploading || preparing || currentCrop != null}
-          onClick={() => inputRef.current?.click()}
-        >
-          {uploading ? 'Завантаження…' : preparing ? 'Підготовка…' : '+ Додати зображення'}
-        </button>
+      <div>
+        <h3 className="font-semibold text-ink">{label}</h3>
+        {hint && <p className="mt-1 text-sm text-stone-600">{hint}</p>}
       </div>
-      {hint && <p className="form-field-hint">{hint}</p>}
-      <p className="form-field-hint">Можна обрати кілька файлів одразу.</p>
-      {value.length > 1 && (
-        <p className="form-field-hint">Перетягніть фото, щоб змінити порядок.</p>
-      )}
-      {error && <p className="text-base text-red-600">{error}</p>}
-
-      {value.length > 0 && (
-        <ul className={`grid grid-cols-3 gap-2 sm:grid-cols-4 ${dragging ? 'select-none' : ''}`}>
+      {error && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+      {value.length > 0 ? (
+        <ul className={`grid grid-cols-2 gap-3 sm:grid-cols-3 ${dragging ? 'select-none' : ''}`}>
           {value.map((url, i) => (
-            <li
-              key={url}
-              data-gallery-index={i}
-              className={`relative aspect-[4/3] overflow-hidden rounded-lg border border-border bg-stone-100 ${
-                value.length > 1 ? 'touch-none' : ''
-              } ${dragging ? 'cursor-grabbing' : value.length > 1 ? 'cursor-grab' : ''} ${
-                dragFromIndex === i ? 'pointer-events-none opacity-40' : ''
-              } ${dragging && dropIndex === i && dragFromIndex !== i ? 'ring-2 ring-sky-400' : ''}`}
-              onPointerDown={(e) => onTilePointerDown(i, url, e)}
-            >
-              <img
-                src={resolveMediaUrl(url)}
-                alt=""
-                draggable={false}
-                className="pointer-events-none h-full w-full object-cover"
-              />
-              <button
-                type="button"
-                className="absolute right-0.5 top-0.5 z-10 rounded-full bg-black/60 px-1.5 text-xs text-white"
-                onPointerDown={(e) => e.stopPropagation()}
-                onClick={() => removeAt(i)}
-                aria-label="Видалити"
-              >
-                ×
-              </button>
-              <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center bg-black/40 py-0.5">
-                <Bars2Icon className="h-4 w-4 text-white/90" aria-hidden />
+            <li key={`${url}-${i}`} data-gallery-index={i} className={`min-w-0 overflow-hidden rounded-xl border border-border bg-white ${dragFromIndex === i ? 'opacity-40' : ''} ${dragging && dropIndex === i && dragFromIndex !== i ? 'ring-2 ring-teal' : ''}`}>
+              <div className={`relative aspect-[4/3] bg-stone-100 ${value.length > 1 ? 'touch-none' : ''}`} onPointerDown={(e) => onTilePointerDown(i, url, e)}>
+                <img src={resolveMediaUrl(url)} alt={`Фото ${i + 1}`} draggable={false} className="pointer-events-none h-full w-full object-cover" />
+                {showCover && i === 0 && <span className="absolute left-2 top-2 rounded-lg bg-ink/85 px-2 py-1 text-xs font-medium text-white">Обкладинка</span>}
+              </div>
+              <div className="flex flex-wrap items-center justify-between gap-1 p-2">
+                <span className="text-xs font-medium text-stone-600">Фото {i + 1}</span>
+                <div className="flex items-center gap-1">
+                  <button type="button" className="flex h-9 w-9 items-center justify-center rounded-lg border border-border text-lg disabled:opacity-30" disabled={i === 0 || uploading || preparing} onClick={() => move(i, i - 1)} aria-label={`Перемістити фото ${i + 1} раніше`}>←</button>
+                  <button type="button" className="flex h-9 w-9 items-center justify-center rounded-lg border border-border text-lg disabled:opacity-30" disabled={i === value.length - 1 || uploading || preparing} onClick={() => move(i, i + 1)} aria-label={`Перемістити фото ${i + 1} пізніше`}>→</button>
+                </div>
+                {showCover && i > 0 && <button type="button" className="w-full rounded-lg bg-sand-50 px-2 py-2 text-left text-xs font-medium text-ink" onClick={() => move(i, 0)}>Зробити обкладинкою</button>}
+                <button type="button" className="min-h-9 w-full text-left text-xs text-red-700" onClick={() => removeAt(i)} aria-label={`Видалити фото ${i + 1}`}>Видалити фото</button>
               </div>
             </li>
           ))}
         </ul>
+      ) : (
+        <div className="rounded-xl border border-dashed border-border bg-sand-50 px-4 py-5 text-center text-sm text-stone-600">Фото ще немає. Оберіть зображення з телефону або комп’ютера.</div>
       )}
+      {value.length > 1 && <p className="text-sm text-stone-600">Змінюйте порядок стрілками або перетягніть фото.</p>}
+      <button type="button" className="btn-secondary w-full sm:w-auto" disabled={uploading || preparing || currentCrop != null} onClick={() => inputRef.current?.click()}>
+        {uploading ? 'Завантаження…' : preparing ? 'Підготовка фото…' : value.length ? '+ Додати ще фото' : '+ Обрати фото'}
+      </button>
+      <p className="text-sm text-stone-500">Можна обрати декілька фото. Після вибору перевірте обрізку кожного з них.</p>
 
       {ghost && (
         <div

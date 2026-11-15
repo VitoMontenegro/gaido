@@ -251,8 +251,7 @@ func excursionCrawlParagraphs(e *domain.ExcursionView) []string {
 	if excluded := joinList(e.ExcludedItems); excluded != "" {
 		lines = append(lines, "Не включено: "+excluded+".")
 	}
-	lines = append(lines, e.Description)
-	lines = append(lines, htmlParagraphs(e.BodyHTML)...)
+	lines = append(lines, excursionDescriptionParagraphs(&e.Excursion)...)
 	return compactParagraphs(lines)
 }
 
@@ -305,6 +304,20 @@ func excursionTitleList(items []domain.ExcursionView) string {
 		}
 	}
 	return strings.Join(titles, ", ")
+}
+
+func excursionDescriptionParagraphs(e *domain.Excursion) []string {
+	if e.DescriptionHTML != nil && strings.TrimSpace(*e.DescriptionHTML) != "" {
+		return htmlParagraphs(*e.DescriptionHTML)
+	}
+	if strings.TrimSpace(e.BodyHTML) != "" {
+		return htmlParagraphs(e.BodyHTML)
+	}
+	return compactParagraphs([]string{e.Description})
+}
+
+func excursionDescriptionText(e *domain.Excursion) string {
+	return strings.Join(excursionDescriptionParagraphs(e), " ")
 }
 
 func htmlParagraphs(s string) []string {

@@ -1,3 +1,4 @@
+import { useSaveNotification } from '@gaido/ui-primitives/SaveNotification'
 import { Suspense, useMemo, useState } from 'react'
 import { lazyRichTextEditor } from '@gaido/ui-primitives/lazyRichTextEditor'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -33,6 +34,7 @@ function emptyPage(type: PlaceType, id: number, slug: string, name: string, coun
 }
 
 export function PlacePagesEditor() {
+  const notify = useSaveNotification()
   const qc = useQueryClient()
   const [countryId, setCountryId] = useState(0)
   const [cityId, setCityId] = useState(0)
@@ -144,8 +146,10 @@ export function PlacePagesEditor() {
       })
       qc.invalidateQueries({ queryKey: ['place-page'] })
       setMessage('Збережено')
+      notify(`Сторінку «${draft.name}» збережено.`)
     } catch (e) {
       setMessage(e instanceof Error ? e.message : 'Помилка збереження')
+      notify(e instanceof Error ? e.message : 'Спробуйте ще раз.', 'error')
     } finally {
       setSaving(false)
     }

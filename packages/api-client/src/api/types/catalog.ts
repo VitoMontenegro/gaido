@@ -23,6 +23,8 @@ export type PublicGuide = {
   status: string
   contacts: Contacts
   is_promoted?: boolean
+  /** Published excursions in the list scope. Absent when the endpoint did not count them. */
+  excursion_count?: number
 }
 
 export type Excursion = {
@@ -31,6 +33,8 @@ export type Excursion = {
   title: string
   slug: string
   description: string
+  body_html?: string
+  description_html?: string
   type: string
   max_guests: number
   price_from: number
@@ -92,6 +96,8 @@ export type FavoriteItem = {
   price_from?: number
   currency?: string
   description?: string
+  body_html?: string
+  description_html?: string
   rating_avg?: number
   rating_count?: number
   avatar_url?: string

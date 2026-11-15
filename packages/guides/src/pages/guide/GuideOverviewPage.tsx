@@ -28,19 +28,23 @@ export function GuideOverviewPage() {
     { label: 'Фото профілю', done: !!data.avatar_url, link: '/account/guide/profile' },
     { label: 'Опублікована екскурсія', done: data.excursions.published > 0, link: '/account/guide/excursions' },
     { label: 'Розміщення в каталозі', done: !!data.subscription_expires, link: '/account/guide/billing' },
-    { label: 'Слоти в календарі', done: data.slots_upcoming > 0, link: '/account/guide/calendar' },
+    { label: 'Дати індивідуальних екскурсій', done: data.slots_upcoming > 0, link: '/account/guide/excursions' },
   ]
   const pending = inbox.data?.items ?? []
   const meetings = agenda.data?.items ?? []
 
   return (
     <div className="space-y-5">
+      <section className="card space-y-2">
+        <h2 className="font-semibold">Що зробити далі</h2>
+        {pending.length ? <Link className="btn-primary inline-flex" to="/account/guide/inquiries">Відповісти на заявки ({pending.length})</Link> : !data.avatar_url ? <Link className="btn-primary inline-flex" to="/account/guide/profile">Додати фото профілю</Link> : data.excursions.published === 0 ? <Link className="btn-primary inline-flex" to="/account/guide/excursions">Додати екскурсію</Link> : data.slots_upcoming === 0 ? <Link className="btn-primary inline-flex" to="/account/guide/excursions">Вказати дати індивідуальних екскурсій</Link> : <p className="text-sm text-stone-600">Нових завдань немає.</p>}
+      </section>
       <div className="card flex flex-wrap items-center gap-4">
         <GuideAvatar avatar={data.avatar_url} name={data.display_name} className="h-16 w-16 rounded-2xl" />
         <div className="min-w-0 flex-1">
           <h2 className="font-display text-xl font-bold">{data.display_name || 'Ваш профіль'}</h2>
           <p className="text-sm text-stone-600">
-            Статус: {data.status} · Каталог: {catalogStatusText(data.catalog_status)}
+            Статус: {data.status === 'ACTIVE' ? 'Активний' : data.status} · Каталог: {catalogStatusText(data.catalog_status)}
           </p>
           {data.website_slug && (
             <Link to={`/guide/${data.website_slug}`} className="mt-1 inline-block text-sm text-teal hover:underline">
@@ -88,7 +92,7 @@ export function GuideOverviewPage() {
           <Link to="/account/guide/calendar" className="text-sm text-teal hover:underline">Календар</Link>
         </div>
         {meetings.length === 0 ? (
-          <p className="text-sm text-stone-500">Немає заявок із датою. Календар доступності лишається окремо.</p>
+          <p className="text-sm text-stone-500">Немає заявок із датою. Вони з’являться тут після звернення туристів.</p>
         ) : (
           <ul className="space-y-2">
             {meetings.slice(0, 6).map((inq) => (
@@ -120,11 +124,11 @@ export function GuideOverviewPage() {
               <dd className="font-medium">{data.featured_excursions_count} активних</dd>
             </div>
           </dl>
-          <Link to="/account/guide/billing" className="btn-secondary inline-flex text-sm">Керувати білінгом</Link>
+          <Link to="/account/guide/billing" className="btn-secondary inline-flex text-sm">Розміщення та оплати</Link>
         </section>
 
         <section className="card space-y-3">
-          <h3 className="font-semibold">Чеклист для старту</h3>
+          <h3 className="font-semibold">Перші кроки</h3>
           <ul className="space-y-2">
             {checklist.map((item) => (
               <li key={item.label}>

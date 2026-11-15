@@ -25,6 +25,7 @@ import {
   SEO_COUNTRIES_HEADING,
 } from '../lib/seoTemplates'
 import { pageTitle } from '@gaido/site-urls/brand'
+import { rankGuidesByExcursions } from '../lib/rankGuides'
 
 function BreadcrumbSkeleton() {
   return (
@@ -70,7 +71,22 @@ export default function CityPage() {
   })
   const { data: guides, isLoading: guidesLoading } = useQuery({
     queryKey: ['guides', city?.id],
-    queryFn: () => catalogApi.guides(city ? { city_id: String(city.id) } : undefined),
+    queryFn: async () => {
+      const pageSize = 50
+      const items = []
+      let offset = 0
+      for (;;) {
+        const page = await catalogApi.guides({
+          city_id: String(city?.id),
+          limit: String(pageSize),
+          offset: String(offset),
+        })
+        items.push(...page.items)
+        offset += page.items.length
+        if (page.items.length < pageSize) break
+      }
+      return { items }
+    },
     enabled: !!city?.id,
   })
   const { data: excursions, isLoading: excursionsLoading } = useQuery({
@@ -91,7 +107,10 @@ export default function CityPage() {
   })
   const countryName = (countries?.items ?? []).find((c) => c.slug === city?.country_slug)?.name
 
-  const guideItems = guides?.items ?? []
+  const guideItems = useMemo(
+    () => rankGuidesByExcursions(guides?.items ?? []),
+    [guides?.items],
+  )
   const excursionItems = excursions?.items ?? []
   const faqItems = placeFaqOrDefault(
     placePage?.faq,
