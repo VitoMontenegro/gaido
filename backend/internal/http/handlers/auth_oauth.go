@@ -133,13 +133,19 @@ func (h *Handlers) OAuthStart(w http.ResponseWriter, r *http.Request) {
 	} else {
 		redirect = oauth.FacebookAuthURL(h.Cfg.FacebookAppID, cb, state, verifier)
 	}
-	// 200 + HTML refresh so the browser stores oauth_tx before leaving for Google.
-	// A 302 Location to accounts.google.com often drops the Set-Cookie on that hop.
-	safe := html.EscapeString(redirect)
+	// 200 HTML so the browser stores oauth_tx before leaving. JS location keeps
+	// raw "&" in the Google URL; html.EscapeString in meta-refresh turns them
+	// into "&amp;" and Google then returns a mismatching state.
+	jsURL, err := json.Marshal(redirect)
+	if err != nil {
+		h.oauthLog(provider, "unavailable")
+		response.Error(w, r, apperrors.ErrOAuthUnavailable)
+		return
+	}
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
-	_, _ = fmt.Fprintf(w, `<!DOCTYPE html><html><head><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=%s"></head><body><a href="%s">Continue</a></body></html>`, safe, safe)
+	_, _ = fmt.Fprintf(w, `<!DOCTYPE html><html><head><meta charset="utf-8"><script>location.replace(%s)</script></head><body><a href="%s">Continue</a></body></html>`, jsURL, html.EscapeString(redirect))
 }
 
 func (h *Handlers) OAuthCallback(w http.ResponseWriter, r *http.Request) {
@@ -157,12 +163,14 @@ func (h *Handlers) OAuthCallback(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case h.OAuth == nil:
 		reason = "unavailable"
-	case state == "" || code == "":
+	case state == "":
 		reason = "state"
+	case code == "":
+		reason = "code"
 	case err != nil || c == nil:
 		reason = "cookie"
 	case c.Value != state:
-		reason = "state"
+		reason = "mismatch"
 	}
 	if reason != "" {
 		h.oauthLog(provider, reason)
@@ -172,7 +180,7 @@ func (h *Handlers) OAuthCallback(w http.ResponseWriter, r *http.Request) {
 	tx, err := h.OAuth.ConsumeTx(r.Context(), state)
 	h.clearOAuthCookie(w, oauthTxCookie)
 	if err != nil || tx == nil || tx.Provider != provider {
-		h.oauthLog(provider, "state")
+		h.oauthLog(provider, "redis")
 		h.redirectAuth(w, r, h.resolveAuthOrigin(r, ""), "/login?oauth=invalid")
 		return
 	}
