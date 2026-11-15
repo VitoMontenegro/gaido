@@ -71,7 +71,6 @@ export function RegisterForm() {
 
   return (
     <form onSubmit={submit} className="card space-y-4">
-      <OAuthButtons acceptPrivacy={form.accept_privacy} acceptSiteRules={form.accept_site_rules} />
       <div className="grid gap-4 sm:grid-cols-2">
         <input className="input" autoComplete="given-name" placeholder="Імʼя" value={form.first_name} onChange={(e) => setForm({ ...form, first_name: e.target.value })} />
         <input className="input" autoComplete="family-name" placeholder="Прізвище" value={form.last_name} onChange={(e) => setForm({ ...form, last_name: e.target.value })} />
@@ -97,6 +96,7 @@ export function RegisterForm() {
       <button type="submit" className="btn-accent w-full" disabled={!canSubmit}>
         Створити акаунт
       </button>
+      <OAuthButtons acceptPrivacy={form.accept_privacy} acceptSiteRules={form.accept_site_rules} />
     </form>
   )
 }
