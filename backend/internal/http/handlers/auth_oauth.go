@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"html"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -131,7 +133,13 @@ func (h *Handlers) OAuthStart(w http.ResponseWriter, r *http.Request) {
 	} else {
 		redirect = oauth.FacebookAuthURL(h.Cfg.FacebookAppID, cb, state, verifier)
 	}
-	http.Redirect(w, r, redirect, http.StatusFound)
+	// 200 + HTML refresh so the browser stores oauth_tx before leaving for Google.
+	// A 302 Location to accounts.google.com often drops the Set-Cookie on that hop.
+	safe := html.EscapeString(redirect)
+	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	_, _ = fmt.Fprintf(w, `<!DOCTYPE html><html><head><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=%s"></head><body><a href="%s">Continue</a></body></html>`, safe, safe)
 }
 
 func (h *Handlers) OAuthCallback(w http.ResponseWriter, r *http.Request) {
@@ -144,9 +152,20 @@ func (h *Handlers) OAuthCallback(w http.ResponseWriter, r *http.Request) {
 	}
 	state := strings.TrimSpace(r.URL.Query().Get("state"))
 	code := strings.TrimSpace(r.URL.Query().Get("code"))
-	c, _ := r.Cookie(oauthTxCookie)
-	if h.OAuth == nil || state == "" || code == "" || c == nil || c.Value != state {
-		h.oauthLog(provider, "state")
+	c, err := r.Cookie(oauthTxCookie)
+	reason := ""
+	switch {
+	case h.OAuth == nil:
+		reason = "unavailable"
+	case state == "" || code == "":
+		reason = "state"
+	case err != nil || c == nil:
+		reason = "cookie"
+	case c.Value != state:
+		reason = "state"
+	}
+	if reason != "" {
+		h.oauthLog(provider, reason)
 		h.redirectAuth(w, r, h.resolveAuthOrigin(r, ""), "/login?oauth=invalid")
 		return
 	}
