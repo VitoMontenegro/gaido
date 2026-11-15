@@ -141,7 +141,7 @@ export default function ExcursionVideoField({ value, onChange, onPersist, onBusy
         />
       </label>
       <p id="video-link-help" className="text-sm leading-relaxed text-stone-500">
-        Ролик має лишатися на сайті: YouTube, Vimeo або MP4. Посилання на Instagram, TikTok чи Facebook не приймаємо.
+        *YouTube, Vimeo або MP4. Посилання на Instagram, TikTok чи Facebook не дозволено.
       </p>
       {source?.kind === 'file' && (
         <video
