@@ -4,6 +4,7 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified_at TIMESTAMPTZ;
 
 UPDATE users SET email = lower(btrim(email)) WHERE email IS DISTINCT FROM lower(btrim(email));
 
+-- +goose StatementBegin
 DO $$
 BEGIN
     IF EXISTS (
@@ -13,6 +14,7 @@ BEGIN
         RAISE EXCEPTION 'duplicate live emails after lower(btrim(email)); resolve before applying 000082';
     END IF;
 END $$;
+-- +goose StatementEnd
 
 DROP INDEX IF EXISTS idx_users_email_active;
 CREATE UNIQUE INDEX idx_users_email_active ON users (lower(btrim(email))) WHERE deleted_at IS NULL;
