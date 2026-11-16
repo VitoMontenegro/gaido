@@ -731,6 +731,13 @@ func (h *Handlers) GuideAgenda(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, r, 200, map[string]any{"items": items})
 }
 
+// guideStatsPeriod includes today and the preceding 27 UTC calendar days.
+// The upper bound is exclusive, matching the repository's date filters.
+func guideStatsPeriod(now time.Time) (from, to time.Time) {
+	today := now.UTC().Truncate(24 * time.Hour)
+	return today.AddDate(0, 0, -27), today.AddDate(0, 0, 1)
+}
+
 func (h *Handlers) GuideInquiryStats(w http.ResponseWriter, r *http.Request) {
 	uid := middleware.UserIDFromContext(r.Context())
 	g, err := h.Guides.GetByUserID(r.Context(), uid)
@@ -738,8 +745,7 @@ func (h *Handlers) GuideInquiryStats(w http.ResponseWriter, r *http.Request) {
 		response.Error(w, r, apperrors.ErrForbidden)
 		return
 	}
-	to := time.Now().UTC().Add(24 * time.Hour)
-	from := to.AddDate(0, 0, -30)
+	from, to := guideStatsPeriod(time.Now())
 	if ds := r.URL.Query().Get("from"); ds != "" {
 		if t := parseOptDate(ds); t != nil {
 			from = *t

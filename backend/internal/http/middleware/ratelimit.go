@@ -116,6 +116,19 @@ func (l *keyLimiter) record(key string) {
 	l.hits[key] = append(filtered, now)
 }
 
+func (l *keyLimiter) clearPrefix(prefix string) bool {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	cleared := false
+	for k := range l.hits {
+		if strings.HasPrefix(k, prefix) {
+			delete(l.hits, k)
+			cleared = true
+		}
+	}
+	return cleared
+}
+
 func (l *keyLimiter) clearKey(key string) bool {
 	l.mu.Lock()
 	defer l.mu.Unlock()
@@ -126,15 +139,22 @@ func (l *keyLimiter) clearKey(key string) bool {
 	return true
 }
 
+// ClientIP returns the client address used as a rate-limit key.
+//
+// Behind nginx the first X-Forwarded-For entry is whatever the client sent
+// ($proxy_add_x_forwarded_for appends), so it must never be trusted. With
+// trustProxy we take X-Real-IP (set by nginx to $remote_addr) or, failing
+// that, the right-most X-Forwarded-For hop, which our proxy appended.
 func ClientIP(r *http.Request, trustProxy bool) string {
 	if trustProxy {
+		if ip := parseIP(r.Header.Get("X-Real-IP")); ip != "" {
+			return ip
+		}
 		if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
-			if ip := strings.TrimSpace(strings.Split(xff, ",")[0]); ip != "" {
+			parts := strings.Split(xff, ",")
+			if ip := parseIP(parts[len(parts)-1]); ip != "" {
 				return ip
 			}
-		}
-		if xrip := strings.TrimSpace(r.Header.Get("X-Real-IP")); xrip != "" {
-			return xrip
 		}
 	}
 	host, _, err := net.SplitHostPort(r.RemoteAddr)
@@ -142,6 +162,14 @@ func ClientIP(r *http.Request, trustProxy bool) string {
 		return r.RemoteAddr
 	}
 	return host
+}
+
+func parseIP(raw string) string {
+	ip := net.ParseIP(strings.TrimSpace(raw))
+	if ip == nil {
+		return ""
+	}
+	return ip.String()
 }
 
 // AuthRateLimit limits requests per client IP (in-memory, single instance).
@@ -168,9 +196,15 @@ func AuthRateLimit(max int, window time.Duration, trustProxy bool) func(http.Han
 }
 
 // Login brute-force limiters (package-level, single API instance).
+//
+// A per-login lock keyed only by the login lets anyone lock out any account
+// (admin included) by sending 5 wrong passwords. So the strict limit is per
+// (login, IP) pair, and the per-login limit is high enough to only slow down
+// distributed guessing.
 var (
-	loginIPLimiter    = newKeyLimiter(10, time.Minute)
-	loginLoginLimiter = newKeyLimiter(5, 15*time.Minute)
+	loginIPLimiter     = newKeyLimiter(10, time.Minute)
+	loginPairLimiter   = newKeyLimiter(5, 15*time.Minute)
+	loginGlobalLimiter = newKeyLimiter(30, 15*time.Minute)
 )
 
 func normalizeLoginKey(login string) string {
@@ -181,30 +215,43 @@ func normalizeLoginKey(login string) string {
 	return login
 }
 
-// LoginRateLimitBlocked checks IP + login dual-key limits without recording a hit.
+func loginPairKey(login, ip string) string {
+	return "pair:" + login + "|" + ip
+}
+
+// LoginRateLimitBlocked checks IP, (login, IP) and per-login limits without recording a hit.
 func LoginRateLimitBlocked(r *http.Request, login string, trustProxy bool) (blocked bool, retryAfter int) {
 	login = normalizeLoginKey(login)
 	ip := ClientIP(r, trustProxy)
 	if blocked, retryAfter = loginIPLimiter.atLimit("ip:" + ip); blocked {
 		return true, retryAfter
 	}
-	if blocked, retryAfter = loginLoginLimiter.atLimit("login:" + login); blocked {
+	if blocked, retryAfter = loginPairLimiter.atLimit(loginPairKey(login, ip)); blocked {
+		return true, retryAfter
+	}
+	if blocked, retryAfter = loginGlobalLimiter.atLimit("login:" + login); blocked {
 		return true, retryAfter
 	}
 	return false, 0
 }
 
-// RecordFailedLogin records a failed login attempt against IP and login keys.
+// RecordFailedLogin records a failed login attempt against all login keys.
 func RecordFailedLogin(r *http.Request, login string, trustProxy bool) {
 	login = normalizeLoginKey(login)
 	ip := ClientIP(r, trustProxy)
 	loginIPLimiter.record("ip:" + ip)
-	loginLoginLimiter.record("login:" + login)
+	loginPairLimiter.record(loginPairKey(login, ip))
+	loginGlobalLimiter.record("login:" + login)
 }
 
-// ClearLoginRateLimit removes rate-limit state for a login key.
+// ClearLoginRateLimit removes rate-limit state for a login (all IPs).
 func ClearLoginRateLimit(login string) bool {
-	return loginLoginLimiter.clearKey("login:" + normalizeLoginKey(login))
+	login = normalizeLoginKey(login)
+	cleared := loginGlobalLimiter.clearKey("login:" + login)
+	if loginPairLimiter.clearPrefix("pair:" + login + "|") {
+		cleared = true
+	}
+	return cleared
 }
 
 // ClearIPRateLimit removes rate-limit state for an IP key.
@@ -217,12 +264,11 @@ func ClearIPRateLimit(ip string) bool {
 }
 
 func clearAllLoginLimiters() {
-	loginIPLimiter.mu.Lock()
-	loginIPLimiter.hits = map[string][]time.Time{}
-	loginIPLimiter.mu.Unlock()
-	loginLoginLimiter.mu.Lock()
-	loginLoginLimiter.hits = map[string][]time.Time{}
-	loginLoginLimiter.mu.Unlock()
+	for _, l := range []*keyLimiter{loginIPLimiter, loginPairLimiter, loginGlobalLimiter} {
+		l.mu.Lock()
+		l.hits = map[string][]time.Time{}
+		l.mu.Unlock()
+	}
 }
 
 // ResetLoginLimitersForTest clears login buckets (tests only).

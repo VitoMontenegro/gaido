@@ -58,9 +58,26 @@ fi
 
 # deploy user
 id deploy &>/dev/null || useradd -m deploy
-usermod -aG wheel deploy
-echo 'deploy ALL=(ALL) NOPASSWD: /bin/systemctl restart tourister-api, /bin/systemctl status tourister-api, /usr/bin/systemd-run' \
-  > /etc/sudoers.d/tourister-deploy
+# No wheel membership: deploy runs the API, so it must not get general sudo.
+# Keep in sync with deploy/sudoers.d/tourister-deploy.
+cat > /etc/sudoers.d/tourister-deploy <<'SUDOERS'
+# Only the exact commands deploy/deploy.sh needs. Never allow bare systemd-run:
+# "sudo systemd-run <anything>" runs any command as root.
+# In sudoers arguments "=" must be escaped as "\=".
+Cmnd_Alias TOURISTER_SVC = \
+    /bin/systemctl restart tourister-api, \
+    /bin/systemctl status tourister-api, \
+    /bin/systemctl restart tourister-web, \
+    /bin/systemctl status tourister-web, \
+    /bin/systemctl restart tourister-news, \
+    /bin/systemctl status tourister-news
+Cmnd_Alias TOURISTER_RUN = \
+    /usr/bin/systemd-run --quiet --wait /bin/systemctl stop tourister-web, \
+    /usr/bin/systemd-run --quiet --collect --on-active\=2s /bin/systemctl restart tourister-api, \
+    /usr/bin/systemd-run --quiet --collect --on-active\=3s /bin/systemctl restart tourister-web, \
+    /usr/bin/systemd-run --quiet --collect --on-active\=4s /bin/systemctl restart tourister-news
+deploy ALL=(root) NOPASSWD: TOURISTER_SVC, TOURISTER_RUN
+SUDOERS
 chmod 440 /etc/sudoers.d/tourister-deploy
 visudo -cf /etc/sudoers.d/tourister-deploy
 

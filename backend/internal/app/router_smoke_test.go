@@ -22,6 +22,8 @@ import (
 
 func testConfig() config.Config {
 	cfg := config.Load()
+	// Load() defaults to production; smoke tests rely on dev_token responses.
+	cfg.AppEnv = "test"
 	cfg.SeedDemoData = false
 	return cfg
 }

@@ -44,3 +44,22 @@ func TestUnreadMailRecipients(t *testing.T) {
 		t.Fatalf("admin both: %+v", got)
 	}
 }
+
+func TestShouldMarkUnreadMailSent(t *testing.T) {
+	cases := []struct {
+		recipients, failures int
+		want                 bool
+	}{
+		{0, 0, true},
+		{1, 0, true},
+		{2, 0, true},
+		{2, 1, true},  // partial failure: do not spam the recipient who got it
+		{2, 2, false}, // nothing delivered: retry next tick
+		{1, 1, false},
+	}
+	for _, c := range cases {
+		if got := shouldMarkUnreadMailSent(c.recipients, c.failures); got != c.want {
+			t.Errorf("recipients=%d failures=%d: got %v want %v", c.recipients, c.failures, got, c.want)
+		}
+	}
+}

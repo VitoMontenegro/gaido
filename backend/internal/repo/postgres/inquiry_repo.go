@@ -468,7 +468,8 @@ func (r *InquiryRepo) InsertFunnel(ctx context.Context, guideID int64, excursion
 func (r *InquiryRepo) FunnelStats(ctx context.Context, guideID int64, from, to time.Time) (domain.GuideFunnelStats, error) {
 	var st domain.GuideFunnelStats
 	st.From = from.Format("2006-01-02")
-	st.To = to.Format("2006-01-02")
+	// Queries use an exclusive upper bound; display the last included day.
+	st.To = to.Add(-time.Nanosecond).Format("2006-01-02")
 	err := r.db.Pool.QueryRow(ctx, `
 		SELECT
 			COUNT(*) FILTER (WHERE event_type='profile_view' AND visitor)::int,

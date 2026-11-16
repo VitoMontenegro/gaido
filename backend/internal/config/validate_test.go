@@ -78,3 +78,26 @@ func TestValidate_productionLocalPostgresSSLDisableOK(t *testing.T) {
 		t.Fatalf("local postgres sslmode=disable should pass, got %v", err)
 	}
 }
+
+func TestValidate_unknownAppEnvFails(t *testing.T) {
+	for _, env := range []string{"prod", "staging", ""} {
+		if err := Validate(Config{AppEnv: env}); err == nil {
+			t.Errorf("APP_ENV=%q: expected error", env)
+		}
+	}
+}
+
+func TestLoad_failsClosedWithoutEnv(t *testing.T) {
+	t.Setenv("APP_ENV", "")
+	t.Setenv("PAYMENT_STUB_ENABLED", "")
+	cfg := Load()
+	if cfg.AppEnv != "production" {
+		t.Fatalf("default APP_ENV = %q, want production", cfg.AppEnv)
+	}
+	if cfg.PaymentStubEnabled {
+		t.Fatal("payment stub must be off by default")
+	}
+	if cfg.IsDevelopment() {
+		t.Fatal("default config must not be development")
+	}
+}

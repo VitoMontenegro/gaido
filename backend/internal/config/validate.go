@@ -13,8 +13,13 @@ const (
 
 // Validate returns an error when production configuration is unsafe.
 func Validate(cfg Config) error {
-	if cfg.AppEnv != "production" {
+	switch cfg.AppEnv {
+	case "development", "test":
 		return nil
+	case "production":
+	default:
+		// A typo such as "prod" must not silently skip production checks.
+		return fmt.Errorf("APP_ENV must be one of development, test, production; got %q", cfg.AppEnv)
 	}
 	var errs []string
 	if cfg.PaymentStubEnabled {
@@ -28,6 +33,9 @@ func Validate(cfg Config) error {
 	}
 	if cfg.JWTRefreshSecret == defaultRefreshSecret || len(cfg.JWTRefreshSecret) < 32 {
 		errs = append(errs, "JWT_REFRESH_SECRET must be unique and at least 32 characters")
+	}
+	if cfg.JWTAccessSecret != "" && cfg.JWTAccessSecret == cfg.JWTRefreshSecret {
+		errs = append(errs, "JWT_ACCESS_SECRET and JWT_REFRESH_SECRET must differ")
 	}
 	for _, origin := range cfg.CORSOrigins {
 		if origin == "*" {

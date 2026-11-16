@@ -59,7 +59,9 @@ type Config struct {
 
 func Load() Config {
 	return Config{
-		AppEnv:                getEnv("APP_ENV", "development"),
+		// Fail closed: an unset APP_ENV means production, so a missing line in
+		// .env never turns on dev secrets, payment stubs or dev_token responses.
+		AppEnv:                getEnv("APP_ENV", "production"),
 		HTTPAddr:              getEnv("HTTP_ADDR", ":8081"),
 		CORSOrigins:           splitCSV(getEnv("CORS_ORIGINS", "http://localhost:5173")),
 		PublicBaseURL:         getEnv("PUBLIC_BASE_URL", "http://localhost:5173"),
@@ -71,10 +73,10 @@ func Load() Config {
 		JWTRefreshSecret:      getEnv("JWT_REFRESH_SECRET", "dev-refresh-secret-min-32-characters!"),
 		JWTAccessTTL:          parseDuration(getEnv("JWT_ACCESS_TTL", "15m"), 15*time.Minute),
 		JWTRefreshTTL:         parseDuration(getEnv("JWT_REFRESH_TTL", "720h"), 720*time.Hour),
-		PaymentStubEnabled:    getEnv("PAYMENT_STUB_ENABLED", "true") == "true",
+		PaymentStubEnabled:    getEnv("PAYMENT_STUB_ENABLED", "false") == "true",
 		MediaStoragePath:      getEnv("MEDIA_STORAGE_PATH", "./storage"),
 		MediaMaxUploadBytes:   int64(getEnvInt("MEDIA_MAX_UPLOAD_MB", 10)) * 1024 * 1024,
-		SeedDemoData:          seedDemoDataEnabled(getEnv("APP_ENV", "development"), getEnv("SEED_DEMO_DATA", "")),
+		SeedDemoData:          seedDemoDataEnabled(getEnv("APP_ENV", "production"), getEnv("SEED_DEMO_DATA", "")),
 		TrustProxy:            getEnv("TRUST_PROXY", "false") == "true",
 		StaticDir:             getEnv("STATIC_DIR", "../apps/portal/dist"),
 		StaticRoot:            getEnv("STATIC_ROOT", ""),
@@ -107,6 +109,12 @@ func Load() Config {
 		FacebookAppSecret:     getEnv("FACEBOOK_APP_SECRET", ""),
 		OAuthRedirectBase:     getEnv("OAUTH_REDIRECT_BASE", ""),
 	}
+}
+
+// IsDevelopment reports a local/test environment. Anything else is treated
+// as production by security-sensitive code (dev tokens, cookies, stubs).
+func (c Config) IsDevelopment() bool {
+	return c.AppEnv == "development" || c.AppEnv == "test"
 }
 
 func getEnv(key, fallback string) string {

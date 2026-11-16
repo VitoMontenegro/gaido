@@ -63,19 +63,19 @@ func (h *Handlers) NotifyUnreadInquiryMails(ctx context.Context) (int, error) {
 	sent := 0
 	for _, m := range due {
 		recips := unreadMailRecipients(m)
-		ok := true
+		failures := 0
 		for _, rec := range recips {
 			didSend, err := h.sendUnreadInquiryMail(ctx, m, rec)
 			if err != nil {
 				h.Log.Warn("inquiry unread mail failed", "error", err, "message_id", m.MessageID, "user_id", rec.userID)
-				ok = false
+				failures++
 				continue
 			}
 			if didSend {
 				sent++
 			}
 		}
-		if ok {
+		if shouldMarkUnreadMailSent(len(recips), failures) {
 			ids = append(ids, m.MessageID)
 		}
 	}
@@ -97,4 +97,12 @@ func (h *Handlers) sendUnreadInquiryMail(ctx context.Context, m domain.UnreadInq
 		return false, err
 	}
 	return true, nil
+}
+
+// shouldMarkUnreadMailSent decides whether a message leaves the queue.
+// Retrying a message after a partial failure would resend it to the
+// recipients that already got it on every tick (every 45s), so the message
+// is retried only when every recipient failed (e.g. SMTP is down).
+func shouldMarkUnreadMailSent(recipients, failures int) bool {
+	return failures == 0 || failures < recipients
 }

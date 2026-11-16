@@ -538,7 +538,7 @@ func (h *Handlers) setOAuthCookie(w http.ResponseWriter, name, value string, ttl
 		Path:     oauthCookiePath,
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
-		Secure:   h.Cfg.AppEnv != "development",
+		Secure:   !h.Cfg.IsDevelopment(),
 		Expires:  time.Now().Add(ttl),
 	}
 	if h.Cfg.CookieDomain != "" {
@@ -548,7 +548,7 @@ func (h *Handlers) setOAuthCookie(w http.ResponseWriter, name, value string, ttl
 }
 
 func (h *Handlers) clearOAuthCookie(w http.ResponseWriter, name string) {
-	c := &http.Cookie{Name: name, Value: "", Path: oauthCookiePath, MaxAge: -1, HttpOnly: true, SameSite: http.SameSiteLaxMode, Secure: h.Cfg.AppEnv != "development"}
+	c := &http.Cookie{Name: name, Value: "", Path: oauthCookiePath, MaxAge: -1, HttpOnly: true, SameSite: http.SameSiteLaxMode, Secure: !h.Cfg.IsDevelopment()}
 	if h.Cfg.CookieDomain != "" {
 		c.Domain = h.Cfg.CookieDomain
 	}

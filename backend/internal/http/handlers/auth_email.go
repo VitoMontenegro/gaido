@@ -325,8 +325,11 @@ func (h *Handlers) sendAuthMail(ctx context.Context, to, subject, body string) e
 	return apperrors.ErrMailNotConfigured
 }
 
+// devTokenEnabled returns confirmation/reset tokens in API responses.
+// Only for explicit development: returning a reset token anywhere else
+// lets anyone take over an account by email.
 func (h *Handlers) devTokenEnabled() bool {
-	return h.Cfg.AppEnv != "production"
+	return h.Cfg.IsDevelopment()
 }
 
 func registerMailBody(link string) string {
@@ -411,9 +414,9 @@ func (h *Handlers) originAllowed(origin string) bool {
 	host := strings.ToLower(u.Hostname())
 	if _, ok := h.Cfg.StaticHostMap[host]; ok {
 		if host == "localhost" || host == "127.0.0.1" {
-			return h.Cfg.AppEnv != "production"
+			return h.Cfg.IsDevelopment()
 		}
-		return u.Scheme == "https" || h.Cfg.AppEnv != "production"
+		return u.Scheme == "https" || h.Cfg.IsDevelopment()
 	}
 	want := strings.TrimRight(origin, "/")
 	for _, allowed := range h.Cfg.CORSOrigins {

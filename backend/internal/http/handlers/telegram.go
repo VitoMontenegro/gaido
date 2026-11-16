@@ -14,14 +14,20 @@ func (h *Handlers) TelegramWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Without a secret anyone can POST a fake "manager reply" and make the bot
+	// message any client. Refuse updates until TELEGRAM_WEBHOOK_SECRET is set.
 	secret := h.Cfg.TelegramWebhookSecret
-	if secret != "" {
-		got := r.Header.Get("X-Telegram-Bot-Api-Secret-Token")
-		if subtle.ConstantTimeCompare([]byte(got), []byte(secret)) != 1 {
-			http.Error(w, "forbidden", http.StatusForbidden)
-			return
-		}
+	if secret == "" {
+		h.Log.Error("telegram webhook rejected: TELEGRAM_WEBHOOK_SECRET is not set")
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
 	}
+	got := r.Header.Get("X-Telegram-Bot-Api-Secret-Token")
+	if subtle.ConstantTimeCompare([]byte(got), []byte(secret)) != 1 {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 
 	var update tgsvc.Update
 	if err := json.NewDecoder(r.Body).Decode(&update); err != nil {

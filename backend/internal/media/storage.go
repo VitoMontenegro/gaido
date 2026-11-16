@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"image"
 	"image/color"
@@ -67,20 +68,49 @@ func (s *Storage) SaveUpload(r io.Reader, mime string, maxBytes int64) (privateK
 		return "", "", 0, fmt.Errorf("unsupported mime type")
 	}
 
+	// Check pixel dimensions from the header before any full decode: a small
+	// file can declare e.g. 30000x30000 px and decode into gigabytes of RAM.
+	decodable := true
+	if strings.HasPrefix(mime, "image/") {
+		cfg, _, cfgErr := image.DecodeConfig(bytes.NewReader(data))
+		if cfgErr != nil {
+			decodable = false
+		} else if err := checkImageDimensions(cfg.Width, cfg.Height); err != nil {
+			return "", "", 0, err
+		}
+	}
+
 	privateKey = s.randomKey(ext)
 	publicKey = s.randomKey(ext)
 	if err := os.WriteFile(filepath.Join(s.BasePath, "private", privateKey), data, 0o600); err != nil {
 		return "", "", 0, err
 	}
 
-	wm, err := applyWatermark(data, mime)
-	if err != nil {
-		wm = data
+	wm := data
+	if decodable {
+		if out, err := applyWatermark(data, mime); err == nil {
+			wm = out
+		}
 	}
 	if err := os.WriteFile(filepath.Join(s.BasePath, "public", publicKey), wm, 0o644); err != nil {
 		return "", "", 0, err
 	}
 	return privateKey, publicKey, int64(len(data)), nil
+}
+
+const (
+	MaxImageSide   = 12000
+	MaxImagePixels = 40_000_000 // ~160 MB as RGBA; enough for any phone photo
+)
+
+// ErrImageTooLarge is returned for images whose pixel size is unsafe to decode.
+var ErrImageTooLarge = errors.New("image dimensions too large")
+
+func checkImageDimensions(w, h int) error {
+	if w <= 0 || h <= 0 || w > MaxImageSide || h > MaxImageSide || int64(w)*int64(h) > MaxImagePixels {
+		return ErrImageTooLarge
+	}
+	return nil
 }
 
 func (s *Storage) PublicPath(key string) string {

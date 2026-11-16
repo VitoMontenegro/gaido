@@ -1,6 +1,10 @@
 package media
 
 import (
+	"bytes"
+	"encoding/binary"
+	"errors"
+	"hash/crc32"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -75,5 +79,36 @@ func TestSaveUpload_rejectsOversize(t *testing.T) {
 	_, _, _, err = s.SaveUpload(strings.NewReader("hello"), "image/jpeg", 3)
 	if err == nil {
 		t.Fatal("expected error for oversized read")
+	}
+}
+
+func TestSaveUpload_rejectsHugeImageDimensions(t *testing.T) {
+	dir := t.TempDir()
+	s, err := NewStorage(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Minimal PNG header declaring 30000x30000 px: tiny file, huge decode.
+	var buf bytes.Buffer
+	buf.Write([]byte{0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A})
+	ihdr := []byte{0, 0, 0x75, 0x30, 0, 0, 0x75, 0x30, 8, 6, 0, 0, 0}
+	_ = binary.Write(&buf, binary.BigEndian, uint32(len(ihdr)))
+	chunk := append([]byte("IHDR"), ihdr...)
+	buf.Write(chunk)
+	_ = binary.Write(&buf, binary.BigEndian, crc32.ChecksumIEEE(chunk))
+	_, _, _, err = s.SaveUpload(bytes.NewReader(buf.Bytes()), "image/png", 1<<20)
+	if !errors.Is(err, ErrImageTooLarge) {
+		t.Fatalf("expected ErrImageTooLarge, got %v", err)
+	}
+}
+
+func TestCheckImageDimensions(t *testing.T) {
+	if err := checkImageDimensions(4032, 3024); err != nil {
+		t.Fatalf("phone photo rejected: %v", err)
+	}
+	for _, d := range [][2]int{{0, 10}, {13000, 10}, {8000, 8000}} {
+		if checkImageDimensions(d[0], d[1]) == nil {
+			t.Fatalf("%v should be rejected", d)
+		}
 	}
 }

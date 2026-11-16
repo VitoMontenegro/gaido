@@ -4,7 +4,7 @@
 
 | Variable | Dev default | Production |
 |----------|-------------|------------|
-| `APP_ENV` | `development` | `production` (enables `config.Validate`) |
+| `APP_ENV` | `production` (if unset) | `development`, `test` or `production`; any other value stops the API |
 | `HTTP_ADDR` | `:8081` / `:8091` | as deployed |
 | `CORS_ORIGINS` | `http://localhost:5173` | concrete origins, never `*` |
 | `PUBLIC_BASE_URL` | `http://localhost:5173` | public site origin for sitemap/robots |

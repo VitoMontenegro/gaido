@@ -14,6 +14,8 @@ func mediaUploadError(err error) *apperrors.AppError {
 	switch {
 	case strings.Contains(msg, "file too large"):
 		return apperrors.New("VALIDATION_ERROR", "file too large", 400)
+	case strings.Contains(msg, "image dimensions too large"):
+		return apperrors.New("VALIDATION_ERROR", "image dimensions too large", 400)
 	case strings.Contains(msg, "unknown file type"), strings.Contains(msg, "unsupported mime"):
 		return apperrors.New("VALIDATION_ERROR", "unsupported image format", 400)
 	default:

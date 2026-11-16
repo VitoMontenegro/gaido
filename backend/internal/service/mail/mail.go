@@ -85,6 +85,9 @@ func (s *Service) SendHTML(ctx context.Context, to, subject, text, html string) 
 
 var ErrNotConfigured = errors.New("mail is not configured")
 
+// smtpSessionTimeout bounds one whole SMTP conversation (connect to QUIT).
+const smtpSessionTimeout = 60 * time.Second
+
 func defaultSettings() domain.MailSettings {
 	return domain.MailSettings{
 		Port:       587,
@@ -140,7 +143,8 @@ func sendSMTP(cfg domain.MailSettings, to, subject, text, html string) error {
 	case domain.MailEncryptionTLS:
 		return sendTLS(addr, cfg.Host, auth, from, to, msg)
 	case domain.MailEncryptionNone:
-		return smtp.SendMail(addr, auth, from, []string{to}, msg)
+		// Same as smtp.SendMail (opportunistic STARTTLS) but with deadlines.
+		return sendStartTLS(addr, cfg.Host, auth, from, to, msg)
 	default:
 		return sendStartTLS(addr, cfg.Host, auth, from, to, msg)
 	}
@@ -155,6 +159,9 @@ func sendStartTLS(addr, host string, auth smtp.Auth, from, to string, msg []byte
 	if err != nil {
 		return err
 	}
+	// Without a deadline a stalled SMTP server hangs the caller forever
+	// (registration requests, the unread-mail background job).
+	_ = conn.SetDeadline(time.Now().Add(smtpSessionTimeout))
 	client, err := smtp.NewClient(conn, host)
 	if err != nil {
 		_ = conn.Close()
@@ -174,6 +181,7 @@ func sendTLS(addr, host string, auth smtp.Auth, from, to string, msg []byte) err
 	if err != nil {
 		return err
 	}
+	_ = conn.SetDeadline(time.Now().Add(smtpSessionTimeout))
 	client, err := smtp.NewClient(conn, host)
 	if err != nil {
 		_ = conn.Close()

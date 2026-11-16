@@ -482,5 +482,11 @@ func (h *Handlers) ServePublicMedia(w http.ResponseWriter, r *http.Request) {
 	if strings.HasSuffix(strings.ToLower(key), ".mp4") {
 		w.Header().Set("Content-Type", "video/mp4")
 	}
-	http.ServeFile(w, r, h.Media.PublicPath(key))
+	path := h.Media.PublicPath(key)
+	if path == "" {
+		// http.ServeFile("") would serve the process working directory.
+		http.NotFound(w, r)
+		return
+	}
+	http.ServeFile(w, r, path)
 }

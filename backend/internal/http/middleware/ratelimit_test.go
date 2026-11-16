@@ -88,8 +88,28 @@ func TestClientIP_trustProxy(t *testing.T) {
 	if got := ClientIP(req, false); got != "10.0.0.1" {
 		t.Fatalf("without trust: got %q", got)
 	}
-	if got := ClientIP(req, true); got != "203.0.113.50" {
-		t.Fatalf("with trust: got %q", got)
+	// Left-most XFF entry is client-controlled; the right-most is our proxy's.
+	if got := ClientIP(req, true); got != "10.0.0.2" {
+		t.Fatalf("with trust (xff): got %q", got)
+	}
+	req.Header.Set("X-Real-IP", "198.51.100.7")
+	if got := ClientIP(req, true); got != "198.51.100.7" {
+		t.Fatalf("with trust (x-real-ip): got %q", got)
+	}
+}
+
+func TestClientIP_spoofedForwardedForIgnored(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.RemoteAddr = "127.0.0.1:1234"
+	// Client sends a fake XFF; nginx appends the real address.
+	req.Header.Set("X-Forwarded-For", "1.2.3.4, 203.0.113.9")
+	req.Header.Set("X-Real-IP", "203.0.113.9")
+	if got := ClientIP(req, true); got != "203.0.113.9" {
+		t.Fatalf("got %q, want real client 203.0.113.9", got)
+	}
+	req.Header.Set("X-Real-IP", "not-an-ip")
+	if got := ClientIP(req, true); got != "203.0.113.9" {
+		t.Fatalf("invalid X-Real-IP: got %q", got)
 	}
 }
 
@@ -97,19 +117,36 @@ func TestLoginRateLimitBlocked_afterFailures(t *testing.T) {
 	ResetLoginLimitersForTest()
 	defer ResetLoginLimitersForTest()
 
+	attacker := httptest.NewRequest(http.MethodPost, "/auth/login", nil)
+	attacker.RemoteAddr = "198.51.100.1:1234"
 	for i := 0; i < 5; i++ {
+		RecordFailedLogin(attacker, "victim", false)
+	}
+	if blocked, ra := LoginRateLimitBlocked(attacker, "victim", false); !blocked || ra <= 0 {
+		t.Fatal("same IP + login should be blocked after 5 failures")
+	}
+
+	// The real owner from another IP must not be locked out by someone else.
+	owner := httptest.NewRequest(http.MethodPost, "/auth/login", nil)
+	owner.RemoteAddr = "203.0.113.200:1234"
+	if blocked, _ := LoginRateLimitBlocked(owner, "victim", false); blocked {
+		t.Fatal("other IP must not be locked out by 5 failures")
+	}
+}
+
+func TestLoginRateLimitBlocked_distributedGuessing(t *testing.T) {
+	ResetLoginLimitersForTest()
+	defer ResetLoginLimitersForTest()
+
+	for i := 0; i < 30; i++ {
 		req := httptest.NewRequest(http.MethodPost, "/auth/login", nil)
 		req.RemoteAddr = "198.51.100." + itoa(i+1) + ":1234"
 		RecordFailedLogin(req, "victim", false)
 	}
 	req := httptest.NewRequest(http.MethodPost, "/auth/login", nil)
 	req.RemoteAddr = "198.51.100.99:1234"
-	blocked, ra := LoginRateLimitBlocked(req, "victim", false)
-	if !blocked {
-		t.Fatal("6th check on same login should be blocked")
-	}
-	if ra <= 0 {
-		t.Fatal("expected retry-after > 0")
+	if blocked, _ := LoginRateLimitBlocked(req, "victim", false); !blocked {
+		t.Fatal("30 failures across IPs should block the login")
 	}
 }
 

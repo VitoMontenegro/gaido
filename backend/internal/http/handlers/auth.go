@@ -153,7 +153,7 @@ func (h *Handlers) issueSession(w http.ResponseWriter, r *http.Request, userID i
 		Path:     "/api/v1/auth",
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
-		Secure:   h.Cfg.AppEnv != "development",
+		Secure:   !h.Cfg.IsDevelopment(),
 		Expires:  exp,
 	}
 	if h.Cfg.CookieDomain != "" {
@@ -179,7 +179,7 @@ func (h *Handlers) clearRefreshCookie(w http.ResponseWriter) {
 		MaxAge:   -1,
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
-		Secure:   h.Cfg.AppEnv != "development",
+		Secure:   !h.Cfg.IsDevelopment(),
 	}
 	if h.Cfg.CookieDomain != "" {
 		cookie.Domain = h.Cfg.CookieDomain
