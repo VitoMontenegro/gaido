@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import AccountExitButton from '../../components/AccountExitButton'
 
 const LINKS = [
   { to: '/account/guide/profile', label: 'Мій профіль', hint: 'Фото, опис та контакти' },
@@ -25,6 +26,9 @@ export function GuideMorePage() {
           </Link>
         </li>
       ))}
+      <li className="border-t border-divider pt-3">
+        <AccountExitButton className="border border-red-100 bg-white px-4" />
+      </li>
     </ul>
   )
 }

@@ -12,6 +12,7 @@ import { SectionTopNav } from '@gaido/ui-primitives/SectionTopNav'
 import { BellIcon as BellOutline } from '@heroicons/react/24/outline'
 import { useFavorites, useSyncGuestFavorites } from '../hooks/useFavorites'
 import NotificationBell from './NotificationBell'
+import AccountExitButton from './AccountExitButton'
 
 const GUIDES_NAV = [
   { to: '/search', label: 'Пошук' },
@@ -241,6 +242,7 @@ export default function GuidesHeader() {
                     <span>Особистий кабінет</span>
                   </Link>
                   <p className="px-3 text-xs text-muted-light">{userDisplayName(me)}</p>
+                  <AccountExitButton onExit={() => setMenuOpen(false)} />
                 </>
               ) : (
                 <Link to="/login" className="flex min-h-11 items-center rounded-xl px-3 text-base font-medium text-ink transition hover:bg-sand-100">
