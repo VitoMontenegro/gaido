@@ -158,6 +158,10 @@ func (h *Handlers) GetSite(w http.ResponseWriter, r *http.Request) {
 	featuredExcursions := h.ResolveFeaturedExcursions(ctx, 6)
 	latestExcursions := h.ResolveLatestExcursions(ctx, 8)
 	destinations := h.ResolvePopularDestinations(ctx, content.PopularCitySlugs)
+	var excursionStats *domain.ExcursionStats
+	if h.Geo != nil {
+		excursionStats, _ = h.Geo.PublishedExcursionStats(ctx)
+	}
 
 	response.JSON(w, r, 200, domain.SitePayload{
 		Home: domain.SiteHomePayload{
@@ -166,6 +170,7 @@ func (h *Handlers) GetSite(w http.ResponseWriter, r *http.Request) {
 			FeaturedExcursions:  featuredExcursions,
 			LatestExcursions:    latestExcursions,
 			PopularDestinations: destinations,
+			ExcursionStats:      excursionStats,
 		},
 		PortalHub:       portalHub,
 		Footer:          footer,

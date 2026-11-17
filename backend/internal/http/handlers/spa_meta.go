@@ -234,6 +234,26 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 		if desc == "" || desc == legacyHomeSEODescription {
 			desc = seoHomeDescription
 		}
+		if h.Guides != nil && h.Geo != nil {
+			_, guideCount, guideErr := h.Guides.ListPublicByName(ctx, nil, nil, "", 1, 0)
+			countries, countryErr := h.Geo.ListCountryCatalog(ctx)
+			countryCount := len(countries)
+			if countryErr == nil && countryCount == 0 {
+				points, err := h.Geo.ListMapPoints(ctx)
+				if err != nil {
+					countryErr = err
+				} else {
+					slugs := make(map[string]struct{})
+					for _, point := range points {
+						slugs[point.CountrySlug] = struct{}{}
+					}
+					countryCount = len(slugs)
+				}
+			}
+			if guideErr == nil && countryErr == nil && guideCount >= 10 && countryCount >= 5 {
+				desc = fmt.Sprintf("%d+ україномовних гідів у %d+ країнах. Обирайте екскурсію за містом і зв’язуйтеся з гідом напряму на Gaido UA.", guideCount/10*10, countryCount/5*5)
+			}
+		}
 		destinations := h.ResolvePopularDestinations(ctx, content.PopularCitySlugs)
 		featured := h.ResolveLatestExcursions(ctx, 8)
 		if len(featured) == 0 {

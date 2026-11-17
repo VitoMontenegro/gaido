@@ -121,6 +121,13 @@ type SiteHomePayload struct {
 	FeaturedExcursions  []ExcursionView    `json:"featured_excursions"`
 	LatestExcursions    []ExcursionView    `json:"latest_excursions"`
 	PopularDestinations []DestinationGroup `json:"popular_destinations"`
+	ExcursionStats      *ExcursionStats    `json:"excursion_stats,omitempty"`
+}
+
+type ExcursionStats struct {
+	Excursions int `json:"excursions"`
+	Cities     int `json:"cities"`
+	Countries  int `json:"countries"`
 }
 
 type PortalHubCard struct {

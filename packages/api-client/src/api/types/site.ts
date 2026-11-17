@@ -105,6 +105,7 @@ export type SitePayload = {
     featured_excursions: Excursion[]
     latest_excursions: Excursion[]
     popular_destinations: DestinationGroup[]
+    excursion_stats?: { excursions: number; cities: number; countries: number }
   }
   portal_hub: PortalHubContent
   footer: FooterContent

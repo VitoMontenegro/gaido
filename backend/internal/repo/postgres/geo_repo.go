@@ -14,6 +14,20 @@ type GeoRepo struct{ db *DB }
 
 func NewGeoRepo(db *DB) *GeoRepo { return &GeoRepo{db: db} }
 
+func (r *GeoRepo) PublishedExcursionStats(ctx context.Context) (*domain.ExcursionStats, error) {
+	var stats domain.ExcursionStats
+	err := r.db.Pool.QueryRow(ctx, `
+		SELECT COUNT(DISTINCT e.id), COUNT(DISTINCT c.id), COUNT(DISTINCT c.country_id)
+		FROM excursions e
+		LEFT JOIN cities c ON c.id = e.city_id
+		WHERE e.status = $1
+	`, domain.ExcursionPublished).Scan(&stats.Excursions, &stats.Cities, &stats.Countries)
+	if err != nil {
+		return nil, err
+	}
+	return &stats, nil
+}
+
 type Country struct {
 	ID       int64  `json:"id"`
 	Slug     string `json:"slug"`

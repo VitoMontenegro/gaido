@@ -1,6 +1,7 @@
 import { type ReactNode, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
+import { MapIcon, MapPinIcon, UserGroupIcon } from '@heroicons/react/24/outline'
 import { catalogApi, articlesApi, resolveMediaUrl, type PublicGuide } from '@gaido/api-client/api/client'
 import { reviewsApi } from '@gaido/api-client/api/reviews'
 import JournalArticleCard from '../components/JournalArticleCard'
@@ -108,6 +109,11 @@ export default function GuidesHomePage() {
     queryKey: ['country-catalog'],
     queryFn: () => catalogApi.countryCatalog(),
   })
+  const { data: guidesSummary } = useQuery({
+    queryKey: ['guides', 'home-count'],
+    queryFn: () => catalogApi.guides({ sort: 'name', limit: '1' }),
+    staleTime: 60_000,
+  })
   const { data: articlesData } = useQuery({
     queryKey: ['articles', 'journal', 'home'],
     queryFn: () => articlesApi.list(4, 'journal'),
@@ -161,12 +167,16 @@ export default function GuidesHomePage() {
   }
 
   const content = site.home.content
+  const excursionStats = site.home.excursion_stats
+  const roundedCount = (count: number) => count >= 10 ? `${Math.floor(count / 10) * 10}+` : String(count)
   const featuredGuides = site.home.featured_guides ?? []
   const latestExcursions = (site.home.latest_excursions ?? []) as ExcursionItem[]
   const newExcursions = latestExcursions.slice(0, 8)
   const destinations = site.home.popular_destinations ?? []
   const homeFaq = content.faq.map((item) => ({ question: item.question, answer: item.answer }))
-  const seoDescription = homeSeoDescription(content.seo_description, content.hero_subtitle)
+  const seoDescription = guidesSummary?.total != null && guidesSummary.total >= 10 && !directoryLoading && countries.length >= 5
+    ? `${roundedCount(guidesSummary.total)} україномовних гідів у ${Math.floor(countries.length / 5) * 5}+ країнах. Обирайте екскурсію за містом і зв’язуйтеся з гідом напряму на Gaido UA.`
+    : homeSeoDescription(content.seo_description, content.hero_subtitle)
   const homeJsonLd = buildGuidesHomeJsonLd({
     excursions: newExcursions.length > 0 ? newExcursions : ((site.home.featured_excursions ?? []) as ExcursionItem[]),
     guides: featuredGuides.map((g) => ({ display_name: g.display_name, slug: g.slug })),
@@ -200,23 +210,26 @@ export default function GuidesHomePage() {
         heading={homeSeoHeading(content.seo_title)}
         eyebrow={(content.hero_title ?? '').trim() || undefined}
         subtitle={(content.hero_subtitle ?? '').trim()}
+        stats={excursionStats && guidesSummary?.total != null ? (
+          <div className="mt-6 grid w-full max-w-2xl grid-cols-3 gap-2 [text-shadow:none] sm:gap-8 md:mt-8" aria-label="Gaido UA у цифрах">
+            {[
+              { value: guidesSummary.total, label: 'гідів', icon: UserGroupIcon },
+              { value: excursionStats.cities, label: 'міст', icon: MapPinIcon },
+              { value: directoryLoading ? '—' : countries.length >= 5 ? `${Math.floor(countries.length / 5) * 5}+` : String(countries.length), label: 'країн', icon: MapIcon },
+            ].map(({ value, label, icon: Icon }) => (
+              <div key={label} className="min-w-0 rounded-2xl bg-white px-2 py-2 sm:py-4 text-center sm:px-4 sm:py-3">
+                <div className="flex items-center justify-center gap-2">
+                  <Icon className="h-5 w-5 shrink-0 text-teal sm:h-6 sm:w-6" aria-hidden />
+                  <span className="text-2xl font-semibold leading-tight tabular-nums text-ink sm:text-3xl">{typeof value === 'number' ? roundedCount(value) : value}</span>
+                </div>
+                <span className="sm:mt-1 block font-medium sm:leading-snug text-muted">{label}</span>
+              </div>
+            ))}
+          </div>
+        ) : undefined}
       />
 
-      {popularCountries.length > 0 && (
-        <section className="container-site py-10 md:py-12">
-          <SectionTitle
-            title="Популярні напрямки"
-            action={
-              <Link to="/countries" className="link-accent text-sm normal-case">
-                Дивитись усі →
-              </Link>
-            }
-          />
-          <PopularDestinationsRow countries={popularCountries} />
-        </section>
-      )}
-
-      <section className="container-site pb-10 md:pb-14">
+      <section className="container-site pt-10 md:pt-12">
         <CountriesDirectory
           variant="home"
           points={points}
@@ -224,6 +237,13 @@ export default function GuidesHomePage() {
           loading={directoryLoading}
         />
       </section>
+
+      {popularCountries.length > 0 && (
+        <section className="container-site py-10 md:py-12">
+          <SectionTitle title="Популярні напрямки" />
+          <PopularDestinationsRow countries={popularCountries} />
+        </section>
+      )}
 
       {newExcursions.length > 0 && (
         <section className="border-t border-divider py-8 md:py-10">
