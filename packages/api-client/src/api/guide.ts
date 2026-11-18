@@ -17,7 +17,21 @@ export type GuideCountry = {
   is_primary: boolean
 }
 
+export type AiImproveTextKind = 'about' | 'excursion'
+
+export type AiImproveTextRequest = {
+  kind: AiImproveTextKind
+  text: string
+  name?: string
+  city?: string
+  city_id?: number
+  title?: string
+}
+
 export const guideApi = {
+  /** Rewrites a draft with AI. Nothing is saved: the result goes back into the form. */
+  improveText: (body: AiImproveTextRequest) =>
+    api<{ text: string }>('/api/v1/account/guide/ai/improve-text', { method: 'POST', body: JSON.stringify(body) }),
   dashboard: () => api<GuideDashboard>('/api/v1/account/guide/dashboard'),
   updateProfile: (body: Record<string, unknown>) =>
     api('/api/v1/account/guide/profile', { method: 'PUT', body: JSON.stringify(body) }),

@@ -130,6 +130,10 @@ func NewRouter(cfg config.Config, log *slog.Logger, h *handlers.Handlers) http.H
 			pr.Delete("/account/identities/{provider}", h.UnlinkAccountIdentity)
 			pr.Get("/account/guide/profile", h.GetGuideProfile)
 			pr.Put("/account/guide/profile", h.UpdateGuideProfile)
+			pr.With(
+				middleware.UserRateLimit(10, time.Minute, cfg.TrustProxy),
+				middleware.UserRateLimit(60, time.Hour, cfg.TrustProxy),
+			).Post("/account/guide/ai/improve-text", h.AIImproveText)
 			pr.Get("/favorites", h.ListFavorites)
 			pr.Post("/favorites", h.ToggleFavorite)
 			pr.Post("/favorites/import", h.ImportFavorites)

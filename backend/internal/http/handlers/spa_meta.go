@@ -386,10 +386,7 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 		if err != nil || e == nil || e.Status != domain.ExcursionPublished {
 			return nil
 		}
-		desc := truncateDesc(excursionDescriptionText(&e.Excursion), 160)
-		if desc == "" {
-			desc = truncateDesc(e.Title, 160)
-		}
+		desc := seoMetaDescription(seoExcursionMetaPrefix(e.Title, e.CityName, e.GuideName), excursionDescriptionText(&e.Excursion))
 		img := defaultImage
 		if e.CoverImageURL != "" {
 			img = h.mediaPublicURL(e.CoverImageURL)
@@ -429,11 +426,7 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 			}
 		}
 		heading := seoGuideHeading(g.DisplayName, cityName)
-		about := domain.PublicGuideAbout(g.About)
-		desc := truncateDesc(about, 160)
-		if desc == "" {
-			desc = heading
-		}
+		desc := seoMetaDescription(heading, domain.PublicGuideAbout(g.About))
 		img := defaultImage
 		if g.AvatarURL != "" {
 			img = h.mediaPublicURL(g.AvatarURL)

@@ -48,6 +48,9 @@ type Config struct {
 	NewsFeedURLs          []string
 	OpenAIAPIKey          string
 	OpenAIModel           string
+	AIAPIKey              string
+	AIBaseURL             string
+	AIModel               string
 	OAuthGoogleEnabled    bool
 	OAuthFacebookEnabled  bool
 	GoogleOAuthClientID   string
@@ -101,6 +104,9 @@ func Load() Config {
 		NewsFeedURLs:          splitCSVTrim(getEnv("NEWS_FEED_URLS", "")),
 		OpenAIAPIKey:          getEnv("OPENAI_API_KEY", ""),
 		OpenAIModel:           getEnv("OPENAI_MODEL", "gpt-4o-mini"),
+		AIAPIKey:              getEnv("AI_API_KEY", getEnv("OPENAI_API_KEY", "")),
+		AIBaseURL:             getEnv("AI_BASE_URL", "https://api.openai.com/v1"),
+		AIModel:               getEnv("AI_MODEL", getEnv("OPENAI_MODEL", "gpt-4o-mini")),
 		OAuthGoogleEnabled:    getEnv("OAUTH_GOOGLE_ENABLED", "false") == "true",
 		OAuthFacebookEnabled:  getEnv("OAUTH_FACEBOOK_ENABLED", "false") == "true",
 		GoogleOAuthClientID:   getEnv("GOOGLE_OAUTH_CLIENT_ID", ""),

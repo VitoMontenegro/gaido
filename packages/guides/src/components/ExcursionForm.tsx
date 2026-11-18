@@ -16,6 +16,7 @@ import {
 } from '../lib/excursionStructuredContent'
 import { stripEditorArtifacts } from '../lib/html'
 import ExcursionVideoField from './ExcursionVideoField'
+import AiImproveButton, { keepMediaBlocks } from './AiImproveButton'
 import { videoLinkProblem, videoSource } from '../lib/videoSource'
 import ExcursionDatesEditor from './ExcursionDatesEditor'
 import { descriptionFromHtml } from './excursionUi'
@@ -447,6 +448,14 @@ export default function ExcursionForm({ initial, submitLabel, successMessage = '
             <Suspense fallback={<div className="input min-h-40 form-field-hint">Завантаження редактора…</div>}>
               <RichTextEditor value={bodyHtml} onChange={setBodyHtml} disabled={submitting} />
             </Suspense>
+            <AiImproveButton
+              kind="excursion"
+              value={bodyHtml}
+              onApply={setBodyHtml}
+              transform={keepMediaBlocks}
+              context={{ title: title.trim() || undefined, city_id: cityId || undefined }}
+              disabled={submitting}
+            />
           </Field>
           <Field label="Країна та місто">
             <CityPicker value={cityId} onChange={setCityId} required />

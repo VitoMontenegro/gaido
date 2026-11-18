@@ -195,6 +195,29 @@ func AuthRateLimit(max int, window time.Duration, trustProxy bool) func(http.Han
 	}
 }
 
+// UserRateLimit limits requests per authenticated user (falls back to client IP).
+// Use after Auth middleware. In-memory, single instance.
+func UserRateLimit(max int, window time.Duration, trustProxy bool) func(http.Handler) http.Handler {
+	limiter := newKeyLimiter(max, window)
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			key := "ip:" + ClientIP(r, trustProxy)
+			if uid := UserIDFromContext(r.Context()); uid > 0 {
+				key = "user:" + strconv.FormatInt(uid, 10)
+			}
+			ok, retryAfter := limiter.Allow(key)
+			if !ok {
+				if retryAfter > 0 {
+					w.Header().Set("Retry-After", strconv.Itoa(retryAfter))
+				}
+				writeError(w, r, 429, "RATE_LIMITED", "Too many requests, try again later")
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
 // Login brute-force limiters (package-level, single API instance).
 //
 // A per-login lock keyed only by the login lets anyone lock out any account

@@ -12,6 +12,7 @@ import type { GuideCity, GuideCountry, GuideProfile } from './shared'
 import { CatalogStatusBanner, guideProfilePayload } from './shared'
 import { GUIDE_ABOUT_MAX_LEN, guideAboutLen, nextGuideAbout } from '../../lib/guideAbout'
 import GuideProfileTabs from '../../components/crm/GuideProfileTabs'
+import AiImproveButton from '../../components/AiImproveButton'
 
 export function GuideProfilePage() {
   return (
@@ -228,6 +229,16 @@ function GuideProfileForm() {
           {aboutLen}/{GUIDE_ABOUT_MAX_LEN}. Посилання на публічних сторінках не показуються.
         </span>
       </label>
+      <AiImproveButton
+        kind="about"
+        value={aboutValue}
+        onApply={(about) => patch({ about })}
+        context={{
+          name: (f.display_name ?? '').trim() || undefined,
+          city: (cities.find((city) => city.is_primary) ?? cities[0])?.name,
+        }}
+        disabled={mutation.isPending}
+      />
       <GuideGeoSection
         countries={countries}
         cities={cities}

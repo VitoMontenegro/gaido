@@ -10,6 +10,7 @@ import (
 	"github.com/vitomonte/experts-tourister/internal/media"
 	"github.com/vitomonte/experts-tourister/internal/rbac"
 	"github.com/vitomonte/experts-tourister/internal/repo/postgres"
+	"github.com/vitomonte/experts-tourister/internal/service/aiwriter"
 	"github.com/vitomonte/experts-tourister/internal/service/billing"
 	excsvc "github.com/vitomonte/experts-tourister/internal/service/excursion"
 	guidesvc "github.com/vitomonte/experts-tourister/internal/service/guide"
@@ -61,4 +62,5 @@ type Handlers struct {
 	Identities        *postgres.UserIdentityRepo
 	SlugAliases       *postgres.ProfileSlugAliasRepo
 	OAuth             *oauth.Store
+	AIWriter          *aiwriter.Service
 }

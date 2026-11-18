@@ -227,3 +227,35 @@ var transportHomeTiles = []struct {
 	{Label: "Перевізники", Path: "/carriers"},
 	{Label: "Стати перевізником", Path: "/register/driver"},
 }
+
+// seoMetaDescriptionMax is the meta description length Google typically shows in full.
+const seoMetaDescriptionMax = 160
+
+// seoMetaDescription builds "<who/where>. <start of the page text>" capped at 160 runes
+// (cut on a word boundary). Only the meta tag is shortened, never the page text itself.
+func seoMetaDescription(prefix, text string) string {
+	prefix = strings.Join(strings.Fields(prefix), " ")
+	text = strings.Join(strings.Fields(text), " ")
+	if prefix == "" {
+		return truncateDesc(text, seoMetaDescriptionMax)
+	}
+	if text == "" {
+		return truncateDesc(prefix, seoMetaDescriptionMax)
+	}
+	if !strings.HasSuffix(prefix, ".") && !strings.HasSuffix(prefix, "!") && !strings.HasSuffix(prefix, "?") {
+		prefix += "."
+	}
+	return truncateDesc(prefix+" "+text, seoMetaDescriptionMax)
+}
+
+// seoExcursionMetaPrefix: "Назва — екскурсія у Барселоні. Гід — Олена".
+func seoExcursionMetaPrefix(title, city, guideName string) string {
+	prefix := strings.TrimSpace(title)
+	if loc := ukInLocative(primaryCityName(city)); loc != "" {
+		prefix += " — екскурсія " + loc
+	}
+	if name := strings.TrimSpace(guideName); name != "" {
+		prefix += ". Гід — " + name
+	}
+	return prefix
+}

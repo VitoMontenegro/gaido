@@ -17,6 +17,7 @@ import (
 	"github.com/vitomonte/experts-tourister/internal/rbac"
 	"github.com/vitomonte/experts-tourister/internal/repo/postgres"
 	"github.com/vitomonte/experts-tourister/internal/seed"
+	"github.com/vitomonte/experts-tourister/internal/service/aiwriter"
 	"github.com/vitomonte/experts-tourister/internal/service/billing"
 	excsvc "github.com/vitomonte/experts-tourister/internal/service/excursion"
 	guidesvc "github.com/vitomonte/experts-tourister/internal/service/guide"
@@ -99,6 +100,13 @@ func New(ctx context.Context, cfg config.Config, log *slog.Logger) (*App, error)
 		OAuth:             oauth.NewStore(rdb.Session),
 	}
 	h.Mail = mailsvc.NewService(h.Settings)
+	h.AIWriter = aiwriter.New(aiwriter.Options{
+		APIKey:  cfg.AIAPIKey,
+		BaseURL: cfg.AIBaseURL,
+		Model:   cfg.AIModel,
+		SiteURL: cfg.PublicBaseURL,
+		AppName: "Gaido",
+	})
 	billingSvc := &billing.Service{
 		DB: db, Guides: h.Guides, Subs: h.Subs, Payments: h.Payments,
 		Featured: h.Featured, Exc: h.Exc, Settings: h.Settings, Audit: h.Audit,
