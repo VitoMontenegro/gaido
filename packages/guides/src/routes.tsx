@@ -41,6 +41,7 @@ const GuidePage = lazyImport(() => import('@gaido/guides/pages/GuidePage'))
 const ExcursionPage = lazyImport(() => import('@gaido/guides/pages/ExcursionPage'))
 const GuidesListPage = lazyImport(() => import('@gaido/guides/pages/CatalogPages').then((m) => ({ default: m.default })))
 const LoginPage = lazyImport(() => import('@gaido/guides/pages/AuthPages').then((m) => ({ default: m.default })))
+const RegisterChoicePage = lazyImport(() => import('@gaido/guides/pages/AuthPages').then((m) => ({ default: m.RegisterChoicePage })))
 const RegisterTouristPage = lazyImport(() => import('@gaido/guides/pages/AuthPages').then((m) => ({ default: m.RegisterTouristPage })))
 const RegisterGuidePage = lazyImport(() => import('@gaido/guides/pages/AuthPages').then((m) => ({ default: m.RegisterGuidePage })))
 const ForgotPasswordPage = lazyImport(() => import('@gaido/guides/pages/AuthPages').then((m) => ({ default: m.ForgotPasswordPage })))
@@ -172,7 +173,8 @@ export function svitPublicRoutes() {
       <Route path="forums/:slug/:topicId" element={<Lazy><ForumTopicPage /></Lazy>} />
       <Route path="about" element={<Lazy><AboutPage /></Lazy>} />
       <Route path="login" element={<Lazy><LoginPage /></Lazy>} />
-      <Route path="register" element={<Lazy><RegisterTouristPage /></Lazy>} />
+      <Route path="register" element={<Lazy><RegisterChoicePage /></Lazy>} />
+      <Route path="register/traveler" element={<Lazy><RegisterTouristPage /></Lazy>} />
       <Route path="register/guide" element={<Lazy><RegisterGuidePage /></Lazy>} />
       <Route path="forgot-password" element={<Lazy><ForgotPasswordPage /></Lazy>} />
       <Route path="reset-password" element={<Lazy><ResetPasswordPage /></Lazy>} />

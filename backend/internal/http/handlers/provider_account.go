@@ -39,6 +39,9 @@ func (h *Handlers) GetProviderAccount(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handlers) RegisterProvider(w http.ResponseWriter, r *http.Request) {
 	userID := middleware.UserIDFromContext(r.Context())
+	if h.rejectIfRoleRevoked(w, r, userID, domain.RoleProvider) {
+		return
+	}
 	existing, _ := h.Providers.GetProviderByUserID(r.Context(), userID)
 	if existing != nil && roleProvider(r.Context()) {
 		response.Error(w, r, apperrors.ErrConflict)

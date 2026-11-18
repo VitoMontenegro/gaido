@@ -105,6 +105,9 @@ func (h *Handlers) UpdateGuideProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	userID := middleware.UserIDFromContext(r.Context())
+	if h.rejectIfRoleRevoked(w, r, userID, domain.RoleGuide) {
+		return
+	}
 	if _, err := h.ensureGuideProfile(r, userID, req.DisplayName); err != nil {
 		if appErr, ok := err.(*apperrors.AppError); ok {
 			response.Error(w, r, appErr)

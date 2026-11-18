@@ -23,9 +23,7 @@ export default function LoginPage() {
         </p>
         <p className="mt-4 text-center text-sm text-muted">
           Немає акаунта?{' '}
-          <Link to="/register" className="text-brand-700 hover:underline">Реєстрація</Link>
-          {' · '}
-          <Link to="/register/guide" className="text-brand-700 hover:underline">Стати гідом</Link>
+          <Link to="/register" className="text-brand-700 hover:underline">Зареєструватися</Link>
         </p>
       </div>
     </>
@@ -55,8 +53,8 @@ export function RegisterGuidePage() {
       <Helmet><title>{pageTitle('Реєстрація гіда')}</title></Helmet>
       <div className="container-site max-w-md py-12">
         <h1 className="section-title-sm mb-2">Реєстрація гіда</h1>
-        <p className="mb-6 text-sm text-muted">Спочатку створіть акаунт. Профіль гіда заповнюється після входу.</p>
-        <RegisterForm />
+        <p className="mb-6 text-sm text-muted">Після підтвердження email акаунт отримає роль гіда, і ви одразу перейдете до заповнення профілю.</p>
+        <RegisterForm asGuide />
         <p className="mt-4 text-center text-sm text-muted">
           Шукаєте екскурсію?{' '}
           <Link to="/register" className="text-brand-700 hover:underline">Реєстрація мандрівника</Link>

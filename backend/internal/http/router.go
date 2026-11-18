@@ -277,6 +277,7 @@ func NewRouter(cfg config.Config, log *slog.Logger, h *handlers.Handlers) http.H
 			ar.Get("/admin/users", h.AdminUsers)
 			ar.Delete("/admin/users/{id}", h.AdminDeleteUser)
 			ar.Patch("/admin/users/{id}/login", h.AdminUpdateUserLogin)
+			ar.Put("/admin/users/{id}/roles", h.AdminSetUserRole)
 			ar.Patch("/admin/guides/{id}/slug", h.AdminUpdateGuideSlug)
 			ar.Patch("/admin/providers/{id}/slug", h.AdminUpdateProviderSlug)
 			ar.Patch("/admin/carriers/{id}/slug", h.AdminUpdateCarrierSlug)

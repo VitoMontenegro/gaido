@@ -186,19 +186,12 @@ export function LoginForm({ onSuccess }: { onSuccess?: (token: string, roles: st
       <form onSubmit={submit} className="space-y-4" autoComplete="off">
         <input className="input" name="login" autoComplete="off" placeholder="Логін або email" value={login} onChange={(e) => setLogin(e.target.value)} />
         <PasswordInput name="password" autoComplete="current-password" placeholder="Пароль" value={password} onChange={setPassword} />
-        <div className="space-y-3">
-          <ConsentCheckbox checked={privacy} onChange={setPrivacy}>
-            Ознайомлений(-на) з політикою конфіденційності
-          </ConsentCheckbox>
-          <ConsentCheckbox checked={site} onChange={setSite}>
-            Ознайомлений(-на) з правилами сайту
-          </ConsentCheckbox>
-        </div>
         {confirmHint && <p className="text-sm text-red-600">{confirmHint}</p>}
         {error && <p className="text-sm text-red-600">{error}</p>}
         <button type="submit" className="btn-accent w-full">Увійти</button>
       </form>
-      <OAuthButtons acceptPrivacy={privacy} acceptSiteRules={site} />
+      {/* Вхід через Google/Facebook може створити новий акаунт — згода показується текстом біля кнопок. */}
+      <OAuthButtons acceptPrivacy acceptSiteRules showConsentNote />
     </div>
   )
 }

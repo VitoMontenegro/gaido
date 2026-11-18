@@ -295,6 +295,9 @@ function adminListQuery(params?: AdminListParams): string {
   return q ? `?${q}` : ''
 }
 
+/** Ролі, які адміністратор може видавати й знімати вручну. */
+export type AdminManagedRole = 'ROLE_GUIDE' | 'ROLE_CARRIER' | 'ROLE_PROVIDER'
+
 export const adminApi = {
   analytics: () => api<AdminAnalytics>('/api/v1/admin/analytics'),
   settings: () => api<AdminSettings>('/api/v1/admin/settings'),
@@ -321,6 +324,8 @@ export const adminApi = {
     api<AdminPaged<AdminUser>>(`/api/v1/admin/users${adminListQuery(params)}`),
   deleteUser: (id: number) =>
     api<{ status: string }>(`/api/v1/admin/users/${id}`, { method: 'DELETE' }),
+  setUserRole: (id: number, role: AdminManagedRole, enabled: boolean) =>
+    api<{ id: number; roles: string[] }>(`/api/v1/admin/users/${id}/roles`, { method: 'PUT', body: JSON.stringify({ role, enabled }) }),
   updateUserLogin: (id: number, login: string) =>
     api<{ status: string; login: string }>(`/api/v1/admin/users/${id}/login`, { method: 'PATCH', body: JSON.stringify({ login }) }),
   updateGuideSlug: (id: number, slug: string) =>

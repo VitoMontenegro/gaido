@@ -78,6 +78,7 @@ const nextConfig: NextConfig = {
       { source: '/account/:path*', destination: '/svit/account/:path*', permanent: true },
       { source: '/register', destination: '/svit/register', permanent: true },
       { source: '/register/guide', destination: '/svit/register/guide', permanent: true },
+      { source: '/register/traveler', destination: '/svit/register/traveler', permanent: true },
       { source: '/legal/:slug', destination: '/svit/legal/:slug', permanent: true },
       { source: '/about', destination: '/', permanent: true },
       { source: '/jobs', destination: '/', permanent: true },

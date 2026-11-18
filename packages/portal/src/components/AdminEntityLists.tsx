@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useState } from 'react'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { adminApi, formatApiError, userDisplayName, type AdminCarrier, type AdminExcursion, type AdminGuide, type AdminListParams, type AdminProvider, type AdminOffering, type AdminComplaint, type AdminReview, type AdminTransportRide, type AdminUser } from '@gaido/api-client/api/client'
+import { adminApi, formatApiError, userDisplayName, type AdminCarrier, type AdminExcursion, type AdminGuide, type AdminListParams, type AdminProvider, type AdminOffering, type AdminComplaint, type AdminReview, type AdminTransportRide, type AdminUser, type AdminManagedRole } from '@gaido/api-client/api/client'
 import { setActAsGuideId } from '@gaido/api-client/api/http'
 import { isTransportSite, isServicesSite, transportUrl, servicesUrl, guidesUrl } from '@gaido/site-urls/site'
 import { useMe } from '@gaido/api-client/hooks/useAuth'
@@ -216,6 +216,18 @@ function AdminPager({
   )
 }
 
+const MANAGED_ROLES: { role: AdminManagedRole; label: string }[] = [
+  { role: 'ROLE_GUIDE', label: 'Гід' },
+  { role: 'ROLE_CARRIER', label: 'Перевізник' },
+  { role: 'ROLE_PROVIDER', label: 'Автор оголошень' },
+]
+
+const SERVICE_ROLE_LABELS: Record<string, string> = {
+  ROLE_TOURIST: 'мандрівник',
+  ROLE_MODERATOR: 'модератор',
+  ROLE_ADMIN: 'адмін',
+}
+
 export function AdminUsersList() {
   const qc = useQueryClient()
   const { data: me } = useMe()
@@ -240,6 +252,18 @@ export function AdminUsersList() {
     mutationFn: ({ id, login }: { id: number; login: string }) => adminApi.updateUserLogin(id, login),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-users'] }),
     onError: (err: Error) => window.alert(err.message),
+  })
+
+  const setRole = useMutation({
+    mutationFn: ({ id, role, enabled }: { id: number; role: AdminManagedRole; enabled: boolean }) =>
+      adminApi.setUserRole(id, role, enabled),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-users'] })
+      qc.invalidateQueries({ queryKey: ['admin-guides'] })
+      qc.invalidateQueries({ queryKey: ['admin-carriers'] })
+      qc.invalidateQueries({ queryKey: ['admin-providers'] })
+    },
+    onError: (err: Error) => window.alert(formatApiError(err)),
   })
 
   const clearLoginBlock = useMutation({
@@ -290,9 +314,40 @@ export function AdminUsersList() {
                   {` · ${formatAdminDate(u.created_at)}`}
                 </p>
               </div>
-              <span className="rounded-full bg-sand-100 px-2 py-0.5 text-xs font-medium text-stone-600">
-                {u.roles.join(', ')}
-              </span>
+              <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Ролі">
+                {MANAGED_ROLES.map(({ role, label }) => {
+                  const active = u.roles.includes(role)
+                  const pending = setRole.isPending && setRole.variables?.id === u.id && setRole.variables?.role === role
+                  return (
+                    <button
+                      key={role}
+                      type="button"
+                      aria-pressed={active}
+                      disabled={setRole.isPending}
+                      title={active ? `Зняти роль «${label}»` : `Видати роль «${label}»`}
+                      className={`rounded-full border px-2 py-0.5 text-xs font-medium transition disabled:opacity-50 ${
+                        active
+                          ? 'border-brand-500 bg-brand-50 text-brand-700 hover:bg-brand-100'
+                          : 'border-dashed border-divider text-stone-400 hover:border-stone-400 hover:text-stone-600'
+                      }`}
+                      onClick={() => {
+                        const name = userDisplayName(u)
+                        if (active) {
+                          if (!window.confirm(`Зняти роль «${label}» з «${name}»? Публічний профіль буде приховано, кабінет стане недоступним. Повернути роль можна тут же.`)) return
+                        }
+                        setRole.mutate({ id: u.id, role, enabled: !active })
+                      }}
+                    >
+                      {pending ? '…' : active ? `✓ ${label}` : `+ ${label}`}
+                    </button>
+                  )
+                })}
+                {u.roles.filter((r) => SERVICE_ROLE_LABELS[r]).map((r) => (
+                  <span key={r} className="rounded-full bg-sand-100 px-2 py-0.5 text-xs text-stone-500">
+                    {SERVICE_ROLE_LABELS[r]}
+                  </span>
+                ))}
+              </div>
               <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusBadge(u.status)}`}>
                 {statusLabel(u.status)}
               </span>

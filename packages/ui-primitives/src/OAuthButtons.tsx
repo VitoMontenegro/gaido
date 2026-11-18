@@ -1,6 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
 import { authApi } from '@gaido/api-client/api/auth'
+import { Link } from 'react-router-dom'
 import { authReturnOrigin } from '@gaido/site-urls/site'
+import { legalPath } from './legalPaths'
 
 const oauthBtn =
   'inline-flex min-h-11 w-full items-center justify-center gap-2.5 rounded-xl border-2 border-ink bg-white px-3 py-2 text-base font-semibold text-ink shadow-sm transition hover:bg-sand-50 focus:outline-none focus:ring-2 focus:ring-ink/20 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white'
@@ -28,10 +30,13 @@ export default function OAuthButtons({
   acceptPrivacy,
   acceptSiteRules,
   intent = 'login',
+  showConsentNote = false,
 }: {
   acceptPrivacy: boolean
   acceptSiteRules: boolean
   intent?: 'login' | 'link'
+  /** Показати текст «Продовжуючи, ви погоджуєтесь…» замість чекбоксів (сторінка входу) */
+  showConsentNote?: boolean
 }) {
   const providers = useQuery({
     queryKey: ['oauth-providers'],
@@ -78,6 +83,14 @@ export default function OAuthButtons({
         </button>
       )}
       {blocked && <p className="text-sm text-stone-500">{hint}</p>}
+      {showConsentNote && (
+        <p className="text-xs text-stone-500">
+          Продовжуючи через Google або Facebook, ви погоджуєтесь з{' '}
+          <Link to={legalPath('privacy')} className="text-brand-700 hover:underline" target="_blank" rel="noreferrer">політикою конфіденційності</Link>
+          {' '}та{' '}
+          <Link to={legalPath('site-rules')} className="text-brand-700 hover:underline" target="_blank" rel="noreferrer">правилами сайту</Link>.
+        </p>
+      )}
     </div>
   )
 }

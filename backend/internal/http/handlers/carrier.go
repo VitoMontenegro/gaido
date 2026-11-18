@@ -146,6 +146,9 @@ func (h *Handlers) GetCarrierAccount(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handlers) UpsertCarrierAccount(w http.ResponseWriter, r *http.Request) {
 	userID := middleware.UserIDFromContext(r.Context())
+	if h.rejectIfRoleRevoked(w, r, userID, domain.RoleCarrier) {
+		return
+	}
 	var req carrierProfileReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		response.Error(w, r, apperrors.ErrValidation)
