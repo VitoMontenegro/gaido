@@ -8,9 +8,11 @@ export type RegisterFormData = {
   last_name: string
   accept_privacy: boolean
   accept_site_rules: boolean
+  /** Лише для реєстрації гіда */
+  accept_placement_rules?: boolean
 }
 
-export function validateRegisterForm(form: RegisterFormData): string | null {
+export function validateRegisterForm(form: RegisterFormData, opts: { asGuide?: boolean } = {}): string | null {
   const email = form.email.trim()
   const firstName = form.first_name.trim()
   const lastName = form.last_name.trim()
@@ -24,6 +26,7 @@ export function validateRegisterForm(form: RegisterFormData): string | null {
   if (form.password !== form.password_confirm) return 'Паролі не співпадають'
   if (!form.accept_privacy) return 'Потрібна згода з політикою конфіденційності'
   if (!form.accept_site_rules) return 'Потрібна згода з правилами сайту'
+  if (opts.asGuide && !form.accept_placement_rules) return 'Потрібна згода з правилами розміщення'
   return null
 }
 

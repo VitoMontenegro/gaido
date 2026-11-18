@@ -74,12 +74,14 @@ func (h *Handlers) Register(w http.ResponseWriter, r *http.Request) {
 	}
 	origin := h.resolveAuthOrigin(r, req.ReturnOrigin)
 	payload, err := json.Marshal(domain.RegisterEmailPayload{
-		PasswordHash: hash,
-		FirstName:    req.FirstName,
-		LastName:     req.LastName,
-		AcceptPrivacy: req.AcceptPrivacy,
-		AcceptSiteRules: req.AcceptSiteRules,
-		Origin:       origin,
+		PasswordHash:         hash,
+		FirstName:            req.FirstName,
+		LastName:             req.LastName,
+		AsGuide:              req.AsGuide,
+		AcceptPrivacy:        req.AcceptPrivacy,
+		AcceptSiteRules:      req.AcceptSiteRules,
+		AcceptPlacementRules: req.AcceptPlacementRules,
+		Origin:               origin,
 	})
 	if err != nil {
 		response.Error(w, r, apperrors.ErrInternal)

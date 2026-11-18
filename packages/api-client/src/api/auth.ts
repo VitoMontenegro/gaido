@@ -56,6 +56,8 @@ export const authApi = {
     last_name: string
     accept_privacy: boolean
     accept_site_rules?: boolean
+    accept_placement_rules?: boolean
+    as_guide?: boolean
     return_origin?: string
   }) =>
     api<RegisterPending>('/api/v1/auth/register', { method: 'POST', body: JSON.stringify(body) }),

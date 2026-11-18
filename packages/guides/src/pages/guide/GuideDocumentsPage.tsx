@@ -1,5 +1,7 @@
 import { useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { Link } from 'react-router-dom'
+import { useHasRole } from '@gaido/api-client/hooks/useAuth'
 import { api, guideApi } from '@gaido/api-client/api/client'
 import type { GuideDocument, GuideProfile } from './shared'
 import { CatalogStatusBanner, formatSize } from './shared'
@@ -7,13 +9,17 @@ import GuideProfileTabs from '../../components/crm/GuideProfileTabs'
 
 export function GuideDocumentsPage() {
   const qc = useQueryClient()
-  const { data: profile } = useQuery({
+  const isGuide = useHasRole('ROLE_GUIDE')
+  const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: ['guide-profile'],
     queryFn: () => api<GuideProfile>('/api/v1/account/guide/profile'),
   })
+  // Документи доступні лише після першого збереження профілю (тоді видається роль гіда).
+  const profileReady = isGuide && Boolean(profile?.id)
   const { data: docs } = useQuery({
     queryKey: ['guide-documents'],
     queryFn: () => api<{ items: GuideDocument[] }>('/api/v1/account/guide/documents'),
+    enabled: profileReady,
   })
 
   const items = docs?.items ?? []
@@ -36,10 +42,24 @@ export function GuideDocumentsPage() {
         </p>
       </div>
 
-      {profile && <CatalogStatusBanner profile={profile} />}
-
-      <GuideLicenseForm document={guideDoc} active={!!guideDoc} onUploaded={invalidate} />
-      <EntertainerLicenseForm document={entertainerDoc} active={!!entertainerDoc} onUploaded={invalidate} />
+      {profileReady ? (
+        <>
+          {profile && <CatalogStatusBanner profile={profile} />}
+          <GuideLicenseForm document={guideDoc} active={!!guideDoc} onUploaded={invalidate} />
+          <EntertainerLicenseForm document={entertainerDoc} active={!!entertainerDoc} onUploaded={invalidate} />
+        </>
+      ) : profileLoading ? (
+        <p className="text-sm text-stone-500">Завантаження…</p>
+      ) : (
+        <div className="card space-y-3">
+          <p className="text-sm text-stone-700">
+            Спочатку збережіть профіль гіда — після цього можна завантажити документи.
+          </p>
+          <Link to="/account/guide/profile" className="btn-primary inline-flex">
+            Перейти до профілю
+          </Link>
+        </div>
+      )}
     </div>
   )
 }

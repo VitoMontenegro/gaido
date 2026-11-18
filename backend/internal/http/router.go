@@ -130,6 +130,8 @@ func NewRouter(cfg config.Config, log *slog.Logger, h *handlers.Handlers) http.H
 			pr.Delete("/account/identities/{provider}", h.UnlinkAccountIdentity)
 			pr.Get("/account/guide/profile", h.GetGuideProfile)
 			pr.Put("/account/guide/profile", h.UpdateGuideProfile)
+			// Фото профілю гіда до першого збереження: роль гіда ще не видана, тому /media (RBAC) недоступний.
+			pr.With(middleware.UserRateLimit(20, time.Minute, cfg.TrustProxy)).Post("/account/guide/avatar", h.UploadMedia)
 			pr.With(
 				middleware.UserRateLimit(10, time.Minute, cfg.TrustProxy),
 				middleware.UserRateLimit(60, time.Hour, cfg.TrustProxy),

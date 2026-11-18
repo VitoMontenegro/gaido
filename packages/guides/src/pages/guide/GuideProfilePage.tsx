@@ -185,6 +185,7 @@ function GuideProfileForm() {
           <ImageUrlField
             label="Фото профілю"
             simpleUpload
+            upload={guideApi.uploadAvatar}
             value={f.avatar_url ?? ''}
             cropAspect={1}
             outputFormat="webp"
@@ -193,11 +194,15 @@ function GuideProfileForm() {
             onPersist={(avatar_url) => {
               patch({ avatar_url })
               setAvatarSaved(false)
-              if (profileExists || (f.display_name ?? '').trim()) avatarMutation.mutate(avatar_url)
+              // До першого збереження фото йде разом з формою, щоб не створювати профіль частково.
+              if (profileExists) avatarMutation.mutate(avatar_url)
             }}
           />
           {avatarMutation.isPending && (
             <p className="mt-1 text-sm text-stone-500">Збереження фото…</p>
+          )}
+          {!profileExists && f.avatar_url && (
+            <p className="mt-1 text-sm text-stone-500">Фото збережеться разом з профілем.</p>
           )}
           {avatarSaved && !avatarMutation.isPending && (
             <p className="mt-1 text-sm text-emerald-700">Фото збережено</p>

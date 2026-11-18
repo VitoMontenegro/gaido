@@ -1,5 +1,6 @@
 import { catalogApi } from './catalog'
 import { api } from './http'
+import { buildUploadForm, type UploadFile } from './upload'
 import type { GuideDashboard } from './types/catalog'
 
 export type GuideCity = {
@@ -29,6 +30,9 @@ export type AiImproveTextRequest = {
 }
 
 export const guideApi = {
+  /** Фото профілю гіда; доступно і до видачі ролі гіда (перше заповнення профілю). */
+  uploadAvatar: (file: File | UploadFile) =>
+    api<{ public_key: string }>('/api/v1/account/guide/avatar', { method: 'POST', body: buildUploadForm(file) }),
   /** Rewrites a draft with AI. Nothing is saved: the result goes back into the form. */
   improveText: (body: AiImproveTextRequest) =>
     api<{ text: string }>('/api/v1/account/guide/ai/improve-text', { method: 'POST', body: JSON.stringify(body) }),

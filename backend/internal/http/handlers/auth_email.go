@@ -90,6 +90,7 @@ func (h *Handlers) ConfirmRegister(w http.ResponseWriter, r *http.Request) {
 			_ = h.Identities.RecordConsent(r.Context(), id, "placement_rules", ver)
 		}
 	}
+	redirectPath := "/"
 	if payload.AsGuide {
 		if err := h.createGuideProfileTx(r.Context(), id, payload.FirstName, payload.LastName, login); err != nil {
 			h.Log.Warn("guide profile creation failed", "user_id", id, "error", err)
@@ -97,6 +98,7 @@ func (h *Handlers) ConfirmRegister(w http.ResponseWriter, r *http.Request) {
 			h.Log.Warn("guide role after profile failed", "user_id", id, "error", err)
 		} else {
 			roles = append(roles, domain.RoleGuide)
+			redirectPath = "/account/guide/profile"
 		}
 	}
 	if _, err := h.issueSession(w, r, id, roles); err != nil {
@@ -104,7 +106,7 @@ func (h *Handlers) ConfirmRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.sendWelcomeMail(r.Context(), tok.Email, payload.FirstName, payload.AsGuide)
-	h.redirectAuth(w, r, payload.Origin, "/")
+	h.redirectAuth(w, r, payload.Origin, redirectPath)
 }
 
 func (h *Handlers) ResendRegister(w http.ResponseWriter, r *http.Request) {

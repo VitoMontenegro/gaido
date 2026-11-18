@@ -62,8 +62,8 @@ export function RegisterGuidePage() {
       <Seo title={pageTitle('Реєстрація гіда')} path="/register/guide" noIndex />
       <div className="container-site max-w-md py-12">
         <h1 className="section-title-sm mb-2">Реєстрація гіда</h1>
-        <p className="mb-6 text-sm text-muted">Спочатку створіть акаунт мандрівника. Профіль гіда заповнюється після входу, без вибору адреси вручну.</p>
-        <RegisterForm />
+        <p className="mb-6 text-sm text-muted">Після підтвердження email акаунт отримає роль гіда, і ви одразу перейдете до заповнення профілю.</p>
+        <RegisterForm asGuide />
         <p className="mt-4 text-center text-sm text-muted">
           Шукаєте екскурсію?{' '}
           <Link to="/register" className="text-brand-700 hover:underline">Реєстрація мандрівника</Link>

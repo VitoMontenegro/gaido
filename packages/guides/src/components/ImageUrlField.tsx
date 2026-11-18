@@ -24,6 +24,8 @@ export type ImageUrlFieldProps = {
   /** Примусовий формат для гідів / аватарів */
   outputFormat?: RasterFormat
   simpleUpload?: boolean
+  /** Власний завантажувач; за замовчуванням POST /api/v1/media */
+  upload?: (file: ProcessedImage) => Promise<{ public_key: string }>
 }
 
 export function ImageUrlField({
@@ -36,6 +38,7 @@ export function ImageUrlField({
   maxBytes = 150 * 1024,
   outputFormat = 'webp',
   simpleUpload = false,
+  upload: uploadFile = adminApi.uploadMedia,
 }: ImageUrlFieldProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const cropRef = useRef<CropImageSource | null>(null)
@@ -56,7 +59,7 @@ export function ImageUrlField({
     setUploading(true)
     setError('')
     try {
-      const { public_key } = await adminApi.uploadMedia(file)
+      const { public_key } = await uploadFile(file)
       onChange(public_key)
       onPersist?.(public_key)
       setLastSize(file.blob.size)

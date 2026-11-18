@@ -38,15 +38,15 @@ const emptyRegisterForm = (): RegisterFormData => ({
   accept_site_rules: true,
 })
 
-export function RegisterForm() {
-  const [form, setForm] = useState<RegisterFormData>(emptyRegisterForm)
+export function RegisterForm({ asGuide = false }: { asGuide?: boolean } = {}) {
+  const [form, setForm] = useState<RegisterFormData>(() => ({ ...emptyRegisterForm(), accept_placement_rules: asGuide }))
   const [error, setError] = useState('')
   const [pendingEmail, setPendingEmail] = useState('')
-  const canSubmit = validateRegisterForm(form) === null
+  const canSubmit = validateRegisterForm(form, { asGuide }) === null
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const validationError = validateRegisterForm(form)
+    const validationError = validateRegisterForm(form, { asGuide })
     if (validationError) {
       setError(validationError)
       return
@@ -59,6 +59,7 @@ export function RegisterForm() {
         last_name: form.last_name.trim(),
         accept_privacy: form.accept_privacy,
         accept_site_rules: form.accept_site_rules,
+        ...(asGuide ? { as_guide: true, accept_placement_rules: !!form.accept_placement_rules } : {}),
         return_origin: authReturnOrigin(),
       })
       setPendingEmail(res.email)
@@ -91,6 +92,14 @@ export function RegisterForm() {
             правилами сайту
           </Link>
         </ConsentCheckbox>
+        {asGuide && (
+          <ConsentCheckbox checked={!!form.accept_placement_rules} onChange={(accept_placement_rules) => setForm({ ...form, accept_placement_rules })}>
+            Ознайомлений(-на) з{' '}
+            <Link to={legalPath('placement-rules')} className="text-brand-700 hover:underline" target="_blank" rel="noreferrer">
+              правилами розміщення
+            </Link>
+          </ConsentCheckbox>
+        )}
       </div>
       {error && <p className="text-sm text-red-600">{error}</p>}
       <button type="submit" className="btn-accent w-full" disabled={!canSubmit}>
