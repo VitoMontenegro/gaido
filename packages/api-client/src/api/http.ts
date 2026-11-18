@@ -19,15 +19,17 @@ export function resetApiBaseForTests() {
 }
 
 export type ApiError = {
-  error: { code: string; message: string; request_id: string }
+  error: { code: string; message: string; request_id: string; details?: unknown }
 }
 
 export class ApiClientError extends Error {
   code: string
   requestId?: string
+  details?: unknown
 
-  constructor(code: string, message: string, requestId?: string) {
+  constructor(code: string, message: string, requestId?: string, details?: unknown) {
     super(message)
+    this.details = details
     this.name = 'ApiClientError'
     this.code = code
     this.requestId = requestId
@@ -93,6 +95,15 @@ export function formatApiError(error: unknown, hints?: string | ApiErrorHints): 
   }
   if (error instanceof Error && error.message) return error.message
   return 'Сталася помилка. Спробуйте ще раз.'
+}
+
+export type PublishMissingItem = { code: string; step: string; required: boolean; message: string }
+
+/** Список незаповнених обовʼязкових пунктів із відповіді 422 PUBLISH_REQUIREMENTS. */
+export function getPublishMissing(error: unknown): PublishMissingItem[] {
+  if (!(error instanceof ApiClientError) || error.code !== 'PUBLISH_REQUIREMENTS') return []
+  const missing = (error.details as { missing?: PublishMissingItem[] } | undefined)?.missing
+  return Array.isArray(missing) ? missing : []
 }
 
 export function getApiErrorCode(error: unknown): string | undefined {
@@ -183,7 +194,7 @@ async function parseApiError(res: Response): Promise<ApiClientError> {
   const err = (await res.json().catch(() => null)) as ApiError | null
   const code = err?.error?.code ?? 'UNKNOWN'
   const message = err?.error?.message ?? res.statusText
-  return new ApiClientError(code, message, err?.error?.request_id)
+  return new ApiClientError(code, message, err?.error?.request_id, err?.error?.details)
 }
 
 export async function refreshAccessToken(): Promise<boolean> {

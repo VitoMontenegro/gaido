@@ -77,6 +77,7 @@ func New(ctx context.Context, cfg config.Config, log *slog.Logger) (*App, error)
 		Reviews:           postgres.NewReviewRepo(db),
 		Favs:              postgres.NewFavoriteRepo(db),
 		Notif:             postgres.NewNotificationRepo(db),
+		WizardEvents:      postgres.NewWizardEventsRepo(db),
 		Settings:          postgres.NewSettingsRepo(db),
 		Audit:             postgres.NewAuditRepo(db),
 		Calendar:          postgres.NewCalendarRepo(db),
@@ -113,7 +114,7 @@ func New(ctx context.Context, cfg config.Config, log *slog.Logger) (*App, error)
 		Notify: h.CreateNotification,
 	}
 	h.Billing = billingSvc
-	h.ExcSvc = &excsvc.Service{Exc: h.Exc, Settings: h.Settings}
+	h.ExcSvc = &excsvc.Service{Exc: h.Exc, Settings: h.Settings, Dates: h.Exc}
 	h.ReviewSvc = &reviewsvc.Service{Reviews: h.Reviews, Exc: h.Exc, Settings: h.Settings}
 	h.GuideSvc = &guidesvc.Service{Guides: h.Guides, Exc: h.Exc, Settings: h.Settings}
 	h.Telegram = tgsvc.NewService(cfg, log, db)

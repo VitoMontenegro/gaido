@@ -647,7 +647,44 @@ func TestSmoke_excursionCRUD(t *testing.T) {
 		ID int64 `json:"id"`
 	}](t, createRes.body)
 
-	submitRes := smokeRequest(t, a, http.MethodPost, "/api/v1/account/guide/excursions/"+strconv.FormatInt(created.ID, 10)+"/submit", nil, guideToken, nil)
+	base := "/api/v1/account/guide/excursions/" + strconv.FormatInt(created.ID, 10)
+
+	// Порожня картка не публікується: 422 зі списком недостатніх пунктів.
+	blocked := smokeRequest(t, a, http.MethodPost, base+"/submit", nil, guideToken, nil)
+	if blocked.code != http.StatusUnprocessableEntity || !strings.Contains(blocked.body, "PUBLISH_REQUIREMENTS") {
+		t.Fatalf("submit incomplete excursion: expected 422 PUBLISH_REQUIREMENTS, got %d %s", blocked.code, blocked.body)
+	}
+
+	// Заповнюємо мінімум: опис ≥150, ≥3 фото, місце зустрічі, ціна, тривалість, дата.
+	updRes := smokeRequest(t, a, http.MethodPut, base, map[string]any{
+		"title":            "Smoke excursion",
+		"description":      "Short desc",
+		"description_html": "<p>" + strings.Repeat("Цікава екскурсія містом. ", 8) + "</p>",
+		"city_id":          city.ID,
+		"max_guests":       4,
+		"price_from":       1000,
+		"currency":         "UAH",
+		"type":             "GROUP",
+		"duration_minutes": 120,
+		"meeting_point":    "Біля фонтану",
+		"structured_content": map[string]any{
+			"gallery_managed": true,
+			"gallery":         []string{"/a.jpg", "/b.jpg", "/c.jpg"},
+			"route_stops":     []string{"Ратуша"},
+		},
+		"included_items": []string{"Гід"},
+	}, guideToken, nil)
+	if updRes.code != http.StatusOK {
+		t.Fatalf("update excursion: %d %s", updRes.code, updRes.body)
+	}
+	dateRes := smokeRequest(t, a, http.MethodPost, base+"/dates", map[string]any{
+		"date": time.Now().AddDate(0, 0, 10).Format("2006-01-02"),
+	}, guideToken, nil)
+	if dateRes.code >= 300 {
+		t.Fatalf("create date: %d %s", dateRes.code, dateRes.body)
+	}
+
+	submitRes := smokeRequest(t, a, http.MethodPost, base+"/submit", nil, guideToken, nil)
 	if submitRes.code != http.StatusOK {
 		t.Fatalf("submit excursion: %d %s", submitRes.code, submitRes.body)
 	}

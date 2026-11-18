@@ -66,7 +66,7 @@ type chatResponse struct {
 func (c *openAIClient) Complete(ctx context.Context, system, user string) (string, error) {
 	body, err := json.Marshal(chatRequest{
 		Model:       c.model,
-		Temperature: 0.4,
+		Temperature: 0.2,
 		Messages: []chatMessage{
 			{Role: "system", Content: system},
 			{Role: "user", Content: user},

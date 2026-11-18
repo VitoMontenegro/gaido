@@ -1,3 +1,4 @@
+import { track } from '../lib/analytics'
 import { useSaveNotification } from '@gaido/ui-primitives/SaveNotification'
 import { Suspense, useEffect, useRef, useState, type ReactNode } from 'react'
 import { lazyRichTextEditor } from '@gaido/ui-primitives/lazyRichTextEditor'
@@ -100,7 +101,8 @@ type Props = {
   initial?: Partial<ExcursionFormData>
   submitLabel: string
   successMessage?: string
-  onSubmit: (data: ExcursionFormData) => Promise<void>
+  /** `nextTab` — крок, на який переходить гід після «Далі» (для сторінки створення). */
+  onSubmit: (data: ExcursionFormData, meta?: { nextTab?: string }) => Promise<void>
   /** Зберігає фото одразу, без кнопки «Зберегти». */
   onPersistPhotos?: (payload: ExcursionPhotoPersist) => Promise<void>
   /** Зберігає активну вкладку між збереженнями (id екскурсії або "new"). */
@@ -111,7 +113,8 @@ type Props = {
     priceFrom: number
     currency: string
   }
-  footerExtra?: ReactNode
+  /** Дія публікації: показується лише на кроці «Перевірка». */
+  publishAction?: { label: string; pending?: boolean; onPublish: () => void | Promise<void>; missing?: { code: string; step: string; message: string }[] }
 }
 
 function readStoredTab(key?: string): TabId {
@@ -188,7 +191,7 @@ function DurationPartInput({
   )
 }
 
-export default function ExcursionForm({ initial, submitLabel, successMessage = 'Збережено', onSubmit, onPersistPhotos, persistTabKey, datesEditor, footerExtra }: Props) {
+export default function ExcursionForm({ initial, submitLabel, successMessage = 'Збережено', onSubmit, onPersistPhotos, persistTabKey, datesEditor, publishAction }: Props) {
   const notify = useSaveNotification()
   const [tab, setTab] = useState<TabId>(() => readStoredTab(persistTabKey))
 
@@ -223,6 +226,7 @@ export default function ExcursionForm({ initial, submitLabel, successMessage = '
   const [included, setIncluded] = useState(() => normalizeItems(initial?.included_items))
   const [excluded, setExcluded] = useState(() => normalizeItems(initial?.excluded_items))
   const [submitting, setSubmitting] = useState(false)
+  const [hasUpcomingDates, setHasUpcomingDates] = useState<boolean | null>(null)
   const [videoUploading, setVideoUploading] = useState(false)
   const [saveFeedback, setSaveFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [photoFeedback, setPhotoFeedback] = useState<{ type: 'pending' | 'success' | 'error'; text: string } | null>(null)
@@ -347,80 +351,150 @@ export default function ExcursionForm({ initial, submitLabel, successMessage = '
     persistPhotos(coverRef.current, next)
   }, [cityId])
 
+  const tabIndex = TABS.findIndex((item) => item.id === tab)
+  const stepShownAt = useRef(Date.now())
+
+  useEffect(() => {
+    stepShownAt.current = Date.now()
+    track('wizard_step_view', { step: tab, step_index: TABS.findIndex((item) => item.id === tab) + 1 })
+  }, [tab])
+
+  const photoCount = (structured.gallery_managed ? structured.gallery : structured.gallery.length ? structured.gallery : cover ? [cover] : []).filter((u) => u.trim()).length
+  const descriptionLength = Array.from(descriptionFromHtml(bodyHtml) || '').length
+
+  /** Обовʼязкові пункти кожного кроку (ті самі, що перевіряє сервер при публікації). */
+  const requirements: { code: string; tab: TabId; text: string; done: boolean }[] = [
+    { code: 'title', tab: 'basic', text: 'Назва (від 5 символів)', done: Array.from(title.trim()).length >= 5 },
+    { code: 'city', tab: 'basic', text: 'Місто', done: cityId > 0 },
+    { code: 'description', tab: 'basic', text: `Опис — від 150 символів (зараз ${descriptionLength})`, done: descriptionLength >= 150 },
+    { code: 'price', tab: 'basic', text: 'Ціна більше нуля', done: Number.isFinite(priceFrom) && priceFrom > 0 },
+    { code: 'meeting_point', tab: 'basic', text: 'Місце зустрічі', done: meetingPoint.trim().length >= 3 },
+    ...(datesEditor ? [{ code: 'dates', tab: 'basic' as TabId, text: 'Хоча б одна відкрита дата в календарі', done: hasUpcomingDates !== false }] : []),
+    { code: 'photos', tab: 'media', text: `Щонайменше 3 фото (зараз ${photoCount})`, done: photoCount >= 3 },
+    { code: 'route', tab: 'route', text: 'Хоча б одна точка маршруту', done: structured.route_stops.some((stop) => stop.trim() !== '') },
+    { code: 'terms', tab: 'terms', text: 'Хоча б один пункт у «Входить у вартість»', done: included.some((item) => item.trim() !== '') },
+  ]
+  const tabRequirements = requirements.filter((r) => r.tab === tab)
+  const unmet = requirements.filter((r) => !r.done)
+  const stepComplete = tabRequirements.every((r) => r.done)
+
+  // Коли гід виправив усе потрібне, плашка про незаповнені поля зникає.
+  useEffect(() => {
+    if (stepComplete) {
+      setSaveFeedback((prev) => (prev?.type === 'error' && prev.text.startsWith('Щоб перейти далі') ? null : prev))
+    }
+  }, [stepComplete])
+
+  /** Зберігає форму через onSubmit. Повертає true, якщо збережено. */
+  const saveCurrent = async (silent: boolean, nextTab?: string): Promise<boolean> => {
+    const fail = (text: string, goTo?: TabId) => {
+      if (goTo) setTab(goTo)
+      setSaveFeedback({ type: 'error', text })
+      return false
+    }
+    if (videoUploading) return fail('Дочекайтеся завершення завантаження відео.')
+    const videoUrl = structured.video?.url?.trim() ?? ''
+    if (videoUrl && !videoSource(videoUrl)) {
+      return fail(videoLinkProblem(videoUrl) === 'instagram'
+        ? 'Instagram не показуємо на сторінці — завантажте MP4 або вставте YouTube чи Vimeo.'
+        : 'Перевірте посилання на відео: підходять YouTube, Vimeo та MP4.', 'media')
+    }
+    if (!title.trim() || !cityId) {
+      return fail('Вкажіть назву та оберіть місто — без цього чернетку не створити.', 'basic')
+    }
+    if (tab !== 'review') {
+      const open = tabRequirements.filter((r) => !r.done)
+      if (open.length) return fail(`Щоб перейти далі, заповніть: ${open.map((r) => r.text.replace(/ \(зараз \d+\)/, '')).join('; ')}.`)
+    }
+    submittingRef.current = true
+    persistPending.current = null
+    setSubmitting(true)
+    setSaveFeedback(null)
+    try {
+      while (persistInflight.current) {
+        await new Promise((resolve) => window.setTimeout(resolve, 40))
+      }
+      const synced = syncCoverFromGallery(cover, structured)
+      await onSubmit({
+        title,
+        description: initial?.description ?? '',
+        city_id: cityId,
+        type,
+        max_guests: Math.max(1, Number.isFinite(maxGuests) ? maxGuests : 1),
+        price_from: Number.isFinite(priceFrom) ? priceFrom : 0,
+        currency: 'EUR',
+        duration_minutes: Math.max(1, durationPartsToMinutes({ days: durationDays, hours: durationHours, minutes: durationMinutes }) || 180),
+        transport_mode: transportMode,
+        children_allowed: childrenAllowed,
+        language,
+        organizational_details: stripEditorArtifacts(bookingHtml),
+        meeting_point: meetingPoint,
+        included_items: included,
+        excluded_items: excluded,
+        cover_image_url: synced.cover,
+        body_html: initial?.body_html ?? '',
+        description_html: stripEditorArtifacts(bodyHtml),
+        map_embed_url: resolveMapEmbed(mapEmbedUrl) ?? '',
+        structured_content: sanitizeStructuredContentForSave({
+          ...synced.content,
+          video: (() => {
+            const playable = videoSource(synced.content.video?.url ?? '')
+            return playable
+              ? {
+                  url: playable.url,
+                  preview_desktop: playable.kind === 'file' ? synced.content.video?.preview_desktop : undefined,
+                }
+              : { url: '' }
+          })(),
+        }),
+      }, { nextTab })
+      if (!silent) {
+        setSaveFeedback({ type: 'success', text: successMessage })
+        notify(successMessage)
+      }
+      return true
+    } catch (err) {
+      setSaveFeedback({
+        type: 'error',
+        text: err instanceof Error ? err.message : 'Не вдалося зберегти',
+      })
+      return false
+    } finally {
+      submittingRef.current = false
+      setSubmitting(false)
+    }
+  }
+
+  /** «Далі»: тихо зберігає поточний стан і переходить на наступний крок. */
+  const goNext = async () => {
+    if (submitting || videoUploading) return
+    const next = TABS[tabIndex + 1]
+    const ok = await saveCurrent(true, next?.id)
+    track(ok ? 'wizard_next' : 'wizard_next_blocked', { step: tab, duration_ms: Date.now() - stepShownAt.current })
+    if (ok && next) {
+      setTab(next.id)
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }
+
+  const goBack = () => {
+    if (tabIndex > 0) setTab(TABS[tabIndex - 1].id)
+  }
+
+  const publish = async () => {
+    if (!publishAction || submitting) return
+    track('publish_click', { step: 'review' })
+    const ok = await saveCurrent(true)
+    if (ok) await publishAction.onPublish()
+  }
+
   return (
     <form
       noValidate
       className="space-y-4"
-      onSubmit={async (e) => {
+      onSubmit={(e) => {
         e.preventDefault()
-        if (videoUploading) { notify('Дочекайтеся завершення завантаження відео.', 'error'); return }
-        const videoUrl = structured.video?.url?.trim() ?? ''
-        if (videoUrl && !videoSource(videoUrl)) {
-          setTab('media')
-          notify(videoLinkProblem(videoUrl) === 'instagram'
-            ? 'Instagram не показуємо на сторінці — завантажте MP4 або вставте YouTube чи Vimeo.'
-            : 'Перевірте посилання на відео: підходять YouTube, Vimeo та MP4.', 'error')
-          return
-        }
-        if (!title.trim() || !descriptionFromHtml(bodyHtml) || !cityId || !Number.isInteger(maxGuests) || maxGuests < 1 || !Number.isFinite(priceFrom) || priceFrom < 0) {
-          setTab('basic')
-          notify('Заповніть назву, опис, місто та перевірте ціну і кількість гостей.', 'error')
-          return
-        }
-        submittingRef.current = true
-        persistPending.current = null
-        setSubmitting(true)
-        setSaveFeedback(null)
-        try {
-          while (persistInflight.current) {
-            await new Promise((resolve) => window.setTimeout(resolve, 40))
-          }
-          const synced = syncCoverFromGallery(cover, structured)
-          await onSubmit({
-            title,
-            description: initial?.description ?? '',
-            city_id: cityId,
-            type,
-            max_guests: Math.max(1, Number.isFinite(maxGuests) ? maxGuests : 1),
-            price_from: Number.isFinite(priceFrom) ? priceFrom : 0,
-            currency: 'EUR',
-            duration_minutes: Math.max(1, durationPartsToMinutes({ days: durationDays, hours: durationHours, minutes: durationMinutes }) || 180),
-            transport_mode: transportMode,
-            children_allowed: childrenAllowed,
-            language,
-            organizational_details: stripEditorArtifacts(bookingHtml),
-            meeting_point: meetingPoint,
-            included_items: included,
-            excluded_items: excluded,
-            cover_image_url: synced.cover,
-            body_html: initial?.body_html ?? '',
-            description_html: stripEditorArtifacts(bodyHtml),
-            map_embed_url: resolveMapEmbed(mapEmbedUrl) ?? '',
-            structured_content: sanitizeStructuredContentForSave({
-              ...synced.content,
-              video: (() => {
-                const playable = videoSource(synced.content.video?.url ?? '')
-                return playable
-                  ? {
-                      url: playable.url,
-                      preview_desktop: playable.kind === 'file' ? synced.content.video?.preview_desktop : undefined,
-                    }
-                  : { url: '' }
-              })(),
-            }),
-          })
-          setSaveFeedback({ type: 'success', text: successMessage })
-          notify(successMessage)
-        } catch (err) {
-          notify(err instanceof Error ? err.message : 'Спробуйте ще раз.', 'error')
-          setSaveFeedback({
-            type: 'error',
-            text: err instanceof Error ? err.message : 'Не вдалося зберегти',
-          })
-        } finally {
-          submittingRef.current = false
-          setSubmitting(false)
-        }
+        void goNext()
       }}
     >
       <p className="text-sm text-stone-600">Крок {TABS.findIndex((item) => item.id === tab) + 1} з {TABS.length}. Оберіть розділ або скористайтеся кнопками нижче.</p>
@@ -512,11 +586,15 @@ export default function ExcursionForm({ initial, submitLabel, successMessage = '
 
           {datesEditor && (
             <div className="border-t border-divider pt-5">
+              <p className="mb-3 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                Останній крок цієї сторінки: відкрийте дати, коли можна забронювати екскурсію. Без дат екскурсію не можна опублікувати.
+              </p>
               <ExcursionDatesEditor
                 excursionId={datesEditor.excursionId}
                 excursionType={datesEditor.excursionType}
                 priceFrom={datesEditor.priceFrom}
                 currency={datesEditor.currency}
+                onUpcomingChange={setHasUpcomingDates}
               />
             </div>
           )}
@@ -691,16 +769,51 @@ export default function ExcursionForm({ initial, submitLabel, successMessage = '
         </div>
       )}
 
-      <div className="flex flex-wrap gap-3">
-        {TABS.findIndex((item) => item.id === tab) > 0 && <button type="button" className="btn-secondary" onClick={() => setTab(TABS[TABS.findIndex((item) => item.id === tab) - 1].id)}>← Назад</button>}
-        {TABS.findIndex((item) => item.id === tab) < TABS.length - 1 && <button type="button" className="btn-secondary" onClick={() => setTab(TABS[TABS.findIndex((item) => item.id === tab) + 1].id)}>Далі: {TABS[TABS.findIndex((item) => item.id === tab) + 1].label} →</button>}
-      </div>
-      <p className="text-sm text-stone-600">Фото і відео зберігаються одразу. Текст маршруту й умов — після кнопки «Зберегти».</p>
-      <div className="flex flex-wrap gap-3">
-        <button type="submit" className="btn-primary" disabled={submitting || videoUploading}>
-          {submitting ? 'Збереження…' : submitLabel}
-        </button>
-        {footerExtra}
+      <div className="space-y-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+        {tab !== 'review' && tabRequirements.length > 0 && (
+          <div className="rounded-xl border border-border bg-sand-50 px-4 py-3 text-sm">
+            <p className="font-semibold">Обовʼязково на цьому кроці:</p>
+            <ul className="mt-1 space-y-1">
+              {tabRequirements.map((r) => (
+                <li key={r.code} className={r.done ? 'text-emerald-700' : 'text-stone-800'}>
+                  <span aria-hidden="true">{r.done ? '✓' : '○'}</span> {r.text}
+                  <span className="sr-only">{r.done ? ' — виконано' : ' — не виконано'}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {tab === 'review' && unmet.length > 0 && (
+          <div role="alert" className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            <p className="font-semibold">Щоб опублікувати, ще потрібно:</p>
+            <ul className="mt-1 list-disc pl-5">
+              {unmet.map((r) => (
+                <li key={r.code}>
+                  {r.text}{' '}
+                  <button type="button" className="text-teal underline" onClick={() => setTab(r.tab)}>Перейти</button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        <div className="flex items-center gap-3">
+          {tabIndex > 0 && (
+            <button type="button" className="btn-secondary min-h-12 shrink-0" onClick={goBack} disabled={submitting}>← Назад</button>
+          )}
+          {tab !== 'review' ? (
+            <button type="submit" className="btn-primary min-h-12 flex-1 text-base sm:flex-none" disabled={submitting || videoUploading}>
+              {submitting ? 'Збереження…' : 'Далі'}
+            </button>
+          ) : publishAction ? (
+            <button type="button" className="btn-primary min-h-12 flex-1 text-base sm:flex-none" disabled={submitting || publishAction.pending || videoUploading || unmet.length > 0} onClick={() => void publish()}>
+              {submitting || publishAction.pending ? 'Публікація…' : publishAction.label}
+            </button>
+          ) : (
+            <button type="button" className="btn-primary min-h-12 flex-1 text-base sm:flex-none" disabled={submitting || videoUploading} onClick={() => void saveCurrent(false)}>
+              {submitting ? 'Збереження…' : submitLabel}
+            </button>
+          )}
+        </div>
       </div>
     </form>
   )

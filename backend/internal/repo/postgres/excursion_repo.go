@@ -702,3 +702,15 @@ func (r *ExcursionRepo) ListByStatus(ctx context.Context, status string, limit i
 	defer rows.Close()
 	return scanExcursions(rows)
 }
+
+// HasUpcomingDates: для групових — майбутня дата екскурсії, для індивідуальних — слот у календарі гіда.
+func (r *ExcursionRepo) HasUpcomingDates(ctx context.Context, e *domain.Excursion) (bool, error) {
+	var ok bool
+	var err error
+	if e.Type == "INDIVIDUAL" {
+		err = r.db.Pool.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM guide_availability_slots WHERE guide_id=$1 AND ends_at > NOW())`, e.GuideID).Scan(&ok)
+	} else {
+		err = r.db.Pool.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM excursion_dates WHERE excursion_id=$1 AND ends_at > NOW())`, e.ID).Scan(&ok)
+	}
+	return ok, err
+}

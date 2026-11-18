@@ -13,6 +13,7 @@ type errorBody struct {
 		Code      string `json:"code"`
 		Message   string `json:"message"`
 		RequestID string `json:"request_id"`
+		Details   any    `json:"details,omitempty"`
 	} `json:"error"`
 }
 
@@ -29,6 +30,7 @@ func Error(w http.ResponseWriter, r *http.Request, err error) {
 		body.Error.Code = ae.Code
 		body.Error.Message = ae.Message
 		body.Error.RequestID = reqID
+		body.Error.Details = ae.Details
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(ae.Status)
 		_ = json.NewEncoder(w).Encode(body)

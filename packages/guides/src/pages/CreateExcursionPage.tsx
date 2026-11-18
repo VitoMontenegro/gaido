@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
 import { guideApi } from '@gaido/api-client/api/guide'
@@ -8,6 +8,7 @@ import ExcursionForm, {
   type ExcursionPhotoPersist,
 } from '../components/ExcursionForm'
 import { mergePersistedPhotos, normalizeStructuredContent } from '../lib/excursionStructuredContent'
+import { track } from '../lib/analytics'
 import { Seo } from '../lib/seo'
 import { pageTitle } from '@gaido/site-urls/brand'
 
@@ -16,14 +17,25 @@ export default function CreateExcursionPage() {
   const createdId = useRef<number | null>(null)
   const lastSaved = useRef<ExcursionFormData | null>(null)
 
+  useEffect(() => {
+    track('wizard_start', { source: 'account' })
+  }, [])
+
   const mutation = useMutation({
     mutationFn: (body: Record<string, unknown>) =>
       guideApi.createExcursion(body) as Promise<{ id: number; slug?: string }>,
-    onSuccess: (created) => {
-      const ref = created.slug || String(created.id)
-      navigate(`/excursion/${ref}`)
-    },
   })
+
+  /** Після створення чернетки гід залишається в майстрі: відкриваємо редагування на наступному кроці. */
+  const continueInWizard = (id: number) => {
+    try {
+      // Календар зʼявляється лише після створення чернетки, тому повертаємо гіда на «Основне».
+      sessionStorage.setItem(`excursion-form-tab:${id}`, 'basic')
+    } catch {
+      /* ignore */
+    }
+    navigate(`/account/guide/excursions/${id}/edit`, { replace: true })
+  }
 
   return (
     <>
@@ -32,8 +44,8 @@ export default function CreateExcursionPage() {
         <h1 className="font-display text-2xl font-bold">Нова екскурсія</h1>
         <ExcursionForm
           persistTabKey="new"
-          submitLabel="Зберегти"
-          successMessage="Екскурсію створено"
+          submitLabel="Далі"
+          successMessage="Чернетку збережено"
           onPersistPhotos={async (photos: ExcursionPhotoPersist) => {
             if (!photos.draft.city_id) {
               throw new Error('Оберіть місто на вкладці «Основне», щоб фото збереглось')
@@ -59,11 +71,12 @@ export default function CreateExcursionPage() {
           onSubmit={async (data) => {
             if (createdId.current) {
               await guideApi.updateExcursion(createdId.current, data)
-              const ref = String(createdId.current)
-              navigate(`/excursion/${ref}`)
+              continueInWizard(createdId.current)
               return
             }
-            await mutation.mutateAsync(data)
+            const created = await mutation.mutateAsync(data)
+            createdId.current = created.id
+            continueInWizard(created.id)
           }}
         />
       </div>

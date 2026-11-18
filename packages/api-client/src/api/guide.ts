@@ -50,6 +50,12 @@ export const guideApi = {
     api('/api/v1/account/guide/excursions', { method: 'POST', body: JSON.stringify(body) }),
   updateExcursion: (id: number, body: unknown) =>
     api(`/api/v1/account/guide/excursions/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+  sendWizardEvents: (events: unknown[], keepalive = false) =>
+    api<void>('/api/v1/account/guide/wizard-events', {
+      method: 'POST',
+      body: JSON.stringify({ events }),
+      keepalive,
+    }),
   submitExcursion: (id: number) =>
     api(`/api/v1/account/guide/excursions/${id}/submit`, { method: 'POST' }),
   draftExcursion: (id: number) =>

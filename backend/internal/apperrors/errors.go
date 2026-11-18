@@ -6,6 +6,8 @@ type AppError struct {
 	Code    string
 	Message string
 	Status  int
+	// Details is optional structured data returned to the client (e.g. missing fields).
+	Details any
 }
 
 func (e *AppError) Error() string {
@@ -14,6 +16,13 @@ func (e *AppError) Error() string {
 
 func New(code, message string, status int) *AppError {
 	return &AppError{Code: code, Message: message, Status: status}
+}
+
+// WithDetails returns a copy of the error carrying structured details.
+func (e *AppError) WithDetails(details any) *AppError {
+	c := *e
+	c.Details = details
+	return &c
 }
 
 var (
@@ -36,4 +45,9 @@ var (
 	ErrNoPassword         = New("NO_PASSWORD", "Set a password via email reset first", 400)
 	ErrLastIdentity       = New("LAST_IDENTITY", "Cannot disconnect the last sign-in method", 400)
 	ErrOAuthUnavailable   = New("OAUTH_UNAVAILABLE", "This sign-in method is not available", 503)
+)
+
+var (
+	ErrPublishRequirements = New("PUBLISH_REQUIREMENTS", "Щоб опублікувати екскурсію, заповніть обовʼязкові пункти", 422)
+	ErrRevisionConflict    = New("REVISION_CONFLICT", "Екскурсію змінено на іншому пристрої", 409)
 )

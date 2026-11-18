@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, guideApi } from '@gaido/api-client/api/client'
+import { getPublishMissing } from '@gaido/api-client/api/http'
 import ExcursionForm, { excursionWritePayload, type ExcursionFormData, type ExcursionPhotoPersist } from '../components/ExcursionForm'
 import { mergePersistedPhotos, normalizeStructuredContent } from '../lib/excursionStructuredContent'
 import { Seo } from '../lib/seo'
@@ -65,16 +66,6 @@ export default function EditExcursionPage() {
                   {data.status === 'PUBLISHED' ? 'Переглянути в каталозі' : 'Попередній перегляд'}
                 </Link>
               )}
-              {isDraft && (
-                <button
-                  type="button"
-                  className="btn-accent py-1.5 text-sm"
-                  disabled={submit.isPending}
-                  onClick={() => submit.mutate()}
-                >
-                  {submit.isPending ? 'Публікація…' : publishLabel}
-                </button>
-              )}
               {canUnpublish && (
                 <button
                   type="button"
@@ -95,7 +86,7 @@ export default function EditExcursionPage() {
                 : 'Екскурсію опубліковано'}
             </p>
           )}
-          {(submit.error || toDraft.error) && (
+          {(submit.error || toDraft.error) && getPublishMissing(submit.error).length === 0 && (
             <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
               {(submit.error ?? toDraft.error)?.message}
             </p>
@@ -103,7 +94,7 @@ export default function EditExcursionPage() {
           <ExcursionForm
             persistTabKey={id}
             initial={data}
-            submitLabel="Зберегти"
+            submitLabel="Зберегти зміни"
             successMessage="Зміни збережено"
             datesEditor={{
               excursionId,
@@ -111,17 +102,21 @@ export default function EditExcursionPage() {
               priceFrom: data.price_from ?? 0,
               currency: data.currency ?? 'EUR',
             }}
-            footerExtra={
-              isDraft ? (
-                <button
-                  type="button"
-                  className="btn-accent"
-                  disabled={submit.isPending}
-                  onClick={() => submit.mutate()}
-                >
-                  {submit.isPending ? 'Публікація…' : publishLabel}
-                </button>
-              ) : undefined
+            publishAction={
+              isDraft
+                ? {
+                    label: publishLabel,
+                    pending: submit.isPending,
+                    missing: getPublishMissing(submit.error),
+                    onPublish: async () => {
+                      try {
+                        await submit.mutateAsync()
+                      } catch {
+                        /* помилку показує форма (422) або блок угорі */
+                      }
+                    },
+                  }
+                : undefined
             }
             onPersistPhotos={async (photos: ExcursionPhotoPersist) => {
               const current = (qc.getQueryData(['my-excursion', id]) ?? data) as ExcursionFormData

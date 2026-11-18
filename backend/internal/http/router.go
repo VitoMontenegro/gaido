@@ -165,6 +165,7 @@ func NewRouter(cfg config.Config, log *slog.Logger, h *handlers.Handlers) http.H
 			gr.Use(authMW, rbacMW)
 			gr.Get("/account/guide/dashboard", h.GuideDashboard)
 			gr.Post("/account/guide/documents", h.UploadDocument)
+			gr.With(middleware.AuthRateLimit(60, time.Minute, cfg.TrustProxy)).Post("/account/guide/wizard-events", h.TrackWizardEvents)
 			gr.Post("/account/guide/video", h.UploadGuideVideo)
 			gr.Get("/account/guide/documents", h.ListDocuments)
 			gr.Post("/account/guide/cities", h.AddGuideCity)

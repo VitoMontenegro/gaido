@@ -35,6 +35,7 @@ type Handlers struct {
 	Reviews           *postgres.ReviewRepo
 	Favs              *postgres.FavoriteRepo
 	Notif             *postgres.NotificationRepo
+	WizardEvents      *postgres.WizardEventsRepo
 	Settings          *postgres.SettingsRepo
 	Audit             *postgres.AuditRepo
 	Calendar          *postgres.CalendarRepo

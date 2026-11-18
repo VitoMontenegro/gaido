@@ -34,8 +34,11 @@ func TestImproveAboutReturnsPlainText(t *testing.T) {
 	if !strings.Contains(llm.user, "Місто: Барселона") || !strings.Contains(llm.user, draft) {
 		t.Fatalf("user prompt missing context: %s", llm.user)
 	}
-	if !strings.Contains(llm.system, "Нічого не вигадуй") {
-		t.Fatal("system prompt must forbid invented facts")
+	if !strings.Contains(llm.system, "Нічого не вигадуй") || !strings.Contains(llm.system, "Географія — закритий список") {
+		t.Fatal("system prompt must forbid invented facts and places")
+	}
+	if !strings.Contains(llm.user, "Дозволене місто з контексту: Барселона") {
+		t.Fatalf("user prompt must lock the context city: %s", llm.user)
 	}
 }
 

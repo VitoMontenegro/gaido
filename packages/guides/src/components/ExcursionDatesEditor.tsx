@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, formatApiError } from '@gaido/api-client/api/client'
 import AvailabilityCalendar from './AvailabilityCalendar'
@@ -12,6 +12,8 @@ type Props = {
   excursionType: string
   priceFrom: number
   currency: string
+  /** Повідомляє, чи є хоча б одна відкрита майбутня дата (null — ще завантажується). */
+  onUpcomingChange?: (hasUpcoming: boolean | null) => void
 }
 
 export default function ExcursionDatesEditor({
@@ -19,6 +21,7 @@ export default function ExcursionDatesEditor({
   excursionType,
   priceFrom,
   currency,
+  onUpcomingChange,
 }: Props) {
   const qc = useQueryClient()
   const now = new Date()
@@ -85,6 +88,15 @@ export default function ExcursionDatesEditor({
   }, [isGroup, excursionDates.data, guideSlots.data, priceFrom, currency])
 
   const loading = isGroup ? excursionDates.isLoading : guideSlots.isLoading
+  useEffect(() => {
+    if (!onUpcomingChange) return
+    if (loading) {
+      onUpcomingChange(null)
+      return
+    }
+    const nowMs = Date.now()
+    onUpcomingChange(dates.some((d) => d.ends_at && new Date(d.ends_at).getTime() > nowMs))
+  }, [loading, dates, onUpcomingChange])
   const pending =
     bulkBusy ||
     addExcursionDate.isPending ||

@@ -24,9 +24,15 @@ type SettingsReader interface {
 	GetBool(ctx context.Context, key string, fallback bool) (bool, error)
 }
 
+// DatesChecker перевіряє наявність відкритої майбутньої дати (групової або в календарі гіда).
+type DatesChecker interface {
+	HasUpcomingDates(ctx context.Context, e *domain.Excursion) (bool, error)
+}
+
 type Service struct {
 	Exc      ExcursionRepository
 	Settings SettingsReader
+	Dates    DatesChecker
 }
 
 func (s *Service) ModerationEnabled(ctx context.Context) bool {
@@ -147,6 +153,17 @@ func (s *Service) Submit(ctx context.Context, guideID, id int64) (string, error)
 	e, err := s.Exc.GetByID(ctx, id)
 	if err != nil || e == nil || e.GuideID != guideID {
 		return "", apperrors.ErrForbidden
+	}
+	hasDates := true
+	if s.Dates != nil {
+		ok, err := s.Dates.HasUpcomingDates(ctx, e)
+		if err != nil {
+			return "", apperrors.ErrInternal
+		}
+		hasDates = ok
+	}
+	if missing := ValidateForPublish(e, hasDates); len(missing) > 0 {
+		return "", apperrors.ErrPublishRequirements.WithDetails(map[string]any{"missing": missing})
 	}
 	status := domain.ExcursionPendingModeration
 	if !s.ModerationEnabled(ctx) {
