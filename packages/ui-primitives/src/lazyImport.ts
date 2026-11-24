@@ -1,9 +1,10 @@
 import { lazy, type ComponentType } from 'react'
 
-const CHUNK_RE = /Failed to fetch dynamically imported module|Loading chunk \d+ failed|Importing a module script failed|Unable to preload CSS/i
+const CHUNK_RE =
+  /Failed to fetch dynamically imported module|Loading (?:CSS )?chunk [\w./-]+ failed|ChunkLoadError|Importing a module script failed|Unable to preload CSS/i
 
 function isChunkLoadError(err: unknown): boolean {
-  if (err instanceof Error) return CHUNK_RE.test(err.message)
+  if (err instanceof Error) return err.name === 'ChunkLoadError' || CHUNK_RE.test(err.message)
   return typeof err === 'string' && CHUNK_RE.test(err)
 }
 
@@ -11,14 +12,23 @@ export const CHUNK_RELOAD_KEY = 'chunk-reload-once'
 
 /** One automatic full reload per tab session after deploy/chunk mismatch. */
 export function reloadAppOnChunkError(): boolean {
-  if (sessionStorage.getItem(CHUNK_RELOAD_KEY)) return false
-  sessionStorage.setItem(CHUNK_RELOAD_KEY, '1')
+  try {
+    if (sessionStorage.getItem(CHUNK_RELOAD_KEY)) return false
+    sessionStorage.setItem(CHUNK_RELOAD_KEY, '1')
+  } catch {
+    // No storage (crawler / privacy mode): never reload, avoid loops.
+    return false
+  }
   window.location.reload()
   return true
 }
 
 export function clearChunkReloadFlag() {
-  sessionStorage.removeItem(CHUNK_RELOAD_KEY)
+  try {
+    sessionStorage.removeItem(CHUNK_RELOAD_KEY)
+  } catch {
+    // ignore
+  }
 }
 
 /** lazy() with reload on stale chunk after deploy. */

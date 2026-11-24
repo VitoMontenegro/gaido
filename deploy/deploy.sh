@@ -109,6 +109,15 @@ npm run build -w @gaido/web
 
 echo "→ publish Next standalone to $WEB_ROOT"
 mkdir -p "$WEB_ROOT"
+# Keep previous builds' hashed chunks: Googlebot (and open tabs) render cached HTML
+# days later; deleting old /_next/static → ChunkLoadError → "Доступна нова версія сайту"
+# ends up in Google snippets. Hashed filenames never collide, so merging is safe.
+STATIC_KEEP="$(dirname "$WEB_ROOT")/.next-static-keep"
+STATIC_KEEP_DAYS="${STATIC_KEEP_DAYS:-30}"
+if [ -d "$WEB_ROOT/apps/web/.next/static" ]; then
+  mkdir -p "$STATIC_KEEP"
+  cp -an "$WEB_ROOT/apps/web/.next/static"/. "$STATIC_KEEP/" 2>/dev/null || true
+fi
 rm -rf "${WEB_ROOT:?}/"*
 # Next standalone layout: apps/web/.next/standalone (+ static + public)
 STANDALONE="$REPO/apps/web/.next/standalone"
@@ -121,6 +130,13 @@ fi
 cp -a "$STANDALONE"/. "$WEB_ROOT/"
 mkdir -p "$WEB_ROOT/apps/web/.next"
 cp -a "$STATIC_SRC" "$WEB_ROOT/apps/web/.next/static"
+if [ -d "$STATIC_KEEP" ]; then
+  # Drop chunks older than STATIC_KEEP_DAYS, then add the rest back without overwriting the new build.
+  find "$STATIC_KEEP" -type f -mtime +"$STATIC_KEEP_DAYS" -delete 2>/dev/null || true
+  find "$STATIC_KEEP" -type d -empty -delete 2>/dev/null || true
+  [ -d "$STATIC_KEEP" ] && cp -an "$STATIC_KEEP"/. "$WEB_ROOT/apps/web/.next/static/" 2>/dev/null || true
+  echo "→ kept old Next chunks (≤ ${STATIC_KEEP_DAYS}d) for cached HTML / crawlers"
+fi
 # Copy public assets next to server (resolve symlinks)
 mkdir -p "$WEB_ROOT/apps/web/public"
 rsync -aL --delete "$PUBLIC_SRC"/ "$WEB_ROOT/apps/web/public/" 2>/dev/null \

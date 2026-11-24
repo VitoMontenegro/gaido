@@ -7,6 +7,8 @@ import { BrowserRouter } from 'react-router-dom'
 import { siteModeFromPath, sectionBasePathForMode, type SiteMode } from '@gaido/site-urls/site'
 import { ApiClientError, bootstrapAuth } from '@gaido/api-client/api/http'
 import { handleDynamicImportRejection } from '@gaido/ui-primitives/lazyImport'
+import ErrorBoundary from '@gaido/ui-primitives/ErrorBoundary'
+import { CrawlFallbackContext } from '@gaido/ui-primitives/crawlFallback'
 import BodyFontSync from '@gaido/ui-primitives/BodyFontSync'
 import { applyBodyFont } from '@gaido/ui-primitives/bodyFont'
 import { UniqueDocumentTitle } from '@gaido/ui-primitives/useDocumentTitle'
@@ -36,7 +38,16 @@ function DefaultSocialMeta() {
   return null
 }
 
-export function ClientShell({ pathname, children }: { pathname: string; children?: ReactNode }) {
+export function ClientShell({
+  pathname,
+  children,
+  fallback,
+}: {
+  pathname: string
+  children?: ReactNode
+  /** Visible server-rendered page text, shown if the client app crashes or its chunks fail to load. */
+  fallback?: ReactNode
+}) {
   const mode = siteModeFromPath(pathname)
   const basename = sectionBasePathForMode(mode) || undefined
   const App = appForMode(mode)
@@ -103,18 +114,22 @@ export function ClientShell({ pathname, children }: { pathname: string; children
 
   return (
     <StrictMode>
-      <HelmetProvider>
-        <QueryClientProvider client={queryClient}>
-          <SaveNotificationProvider>
-            <BrowserRouter basename={basename}>
-              <BodyFontSync />
-              <UniqueDocumentTitle />
-              <DefaultSocialMeta />
-              <App />
-            </BrowserRouter>
-          </SaveNotificationProvider>
-        </QueryClientProvider>
-      </HelmetProvider>
+      <CrawlFallbackContext.Provider value={fallback ?? null}>
+        <ErrorBoundary>
+          <HelmetProvider>
+            <QueryClientProvider client={queryClient}>
+              <SaveNotificationProvider>
+                <BrowserRouter basename={basename}>
+                  <BodyFontSync />
+                  <UniqueDocumentTitle />
+                  <DefaultSocialMeta />
+                  <App />
+                </BrowserRouter>
+              </SaveNotificationProvider>
+            </QueryClientProvider>
+          </HelmetProvider>
+        </ErrorBoundary>
+      </CrawlFallbackContext.Provider>
     </StrictMode>
   )
 }

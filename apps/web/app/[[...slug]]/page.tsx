@@ -28,7 +28,10 @@ export default async function CatchAllPage({ params }: Props) {
       {lcp ? <link rel="preload" as="image" href={lcp.src} fetchPriority="high" /> : null}
       {noIndex ? null : <JsonLd blocks={meta.json_ld} />}
       <div id="root">
-        <ClientShell pathname={pathname}>
+        <ClientShell
+          pathname={pathname}
+          fallback={<CrawlBody body={meta.crawl_body} noIndex={noIndex} visible />}
+        >
           <CrawlBody body={meta.crawl_body} noIndex={noIndex} />
         </ClientShell>
       </div>
