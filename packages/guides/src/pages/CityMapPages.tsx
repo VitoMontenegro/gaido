@@ -1,5 +1,5 @@
 import { Link, useParams } from 'react-router-dom'
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { catalogApi, placePagesApi } from '@gaido/api-client/api/client'
 import Breadcrumbs from '../components/Breadcrumbs'
@@ -26,6 +26,8 @@ import {
 } from '../lib/seoTemplates'
 import { pageTitle } from '@gaido/site-urls/brand'
 import { rankGuidesByExcursions } from '../lib/rankGuides'
+
+const CITY_EXCURSIONS_PAGE = 12
 
 function BreadcrumbSkeleton() {
   return (
@@ -91,9 +93,30 @@ export default function CityPage() {
   })
   const { data: excursions, isLoading: excursionsLoading } = useQuery({
     queryKey: ['excursions', city?.id],
-    queryFn: () => catalogApi.excursions(city ? { city_id: String(city.id) } : undefined),
+    queryFn: async () => {
+      // API віддає максимум одну сторінку (типово 20) — догружаємо всі, як на сторінці країни.
+      const pageSize = 50
+      const items: Awaited<ReturnType<typeof catalogApi.excursions>>["items"] = []
+      let offset = 0
+      for (;;) {
+        const page = await catalogApi.excursions({
+          city_id: String(city?.id),
+          limit: String(pageSize),
+          offset: String(offset),
+        })
+        const batch = page.items ?? []
+        items.push(...batch)
+        offset += batch.length
+        if (batch.length < pageSize) break
+      }
+      return { items }
+    },
     enabled: !!city?.id,
   })
+  const [shownExcursions, setShownExcursions] = useState(CITY_EXCURSIONS_PAGE)
+  useEffect(() => {
+    setShownExcursions(CITY_EXCURSIONS_PAGE)
+  }, [slug])
   const { data: placePage } = useQuery({
     queryKey: ['place-page', 'city', slug],
     queryFn: () => placePagesApi.public('city', slug),
@@ -187,11 +210,27 @@ export default function CityPage() {
               ) : excursionItems.length === 0 ? (
                 <p className="text-sm text-muted">Поки немає екскурсій у цьому місті.</p>
               ) : (
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                  {excursionItems.map((e, index) => (
-                    <ExcursionCard key={e.id} e={e} priority={index === 0} />
-                  ))}
-                </div>
+                <>
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    {excursionItems.slice(0, shownExcursions).map((e, index) => (
+                      <ExcursionCard key={e.id} e={e} priority={index === 0} />
+                    ))}
+                  </div>
+                  {shownExcursions < excursionItems.length && (
+                    <div className="pt-6 text-center">
+                      <button
+                        type="button"
+                        className="btn-secondary px-6"
+                        onClick={() => setShownExcursions((n) => n + CITY_EXCURSIONS_PAGE)}
+                      >
+                        Показати ще
+                        <span className="ml-1.5 text-muted">
+                          ({excursionItems.length - shownExcursions})
+                        </span>
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
             </section>
 

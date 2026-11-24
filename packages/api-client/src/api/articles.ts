@@ -55,8 +55,10 @@ function cmsArticlesApi(prefix: '/api/v1/admin' | '/api/v1/moderator' | '/api/v1
 }
 
 export const articlesApi = {
-  list: (limit = 20, kind: 'journal' | 'news' = 'journal') =>
-    api<{ items: ArticleListItem[] }>(`/api/v1/articles?limit=${limit}&kind=${kind}`),
+  list: (limit = 20, kind: 'journal' | 'news' = 'journal', offset = 0) =>
+    api<{ items: ArticleListItem[] }>(
+      `/api/v1/articles?limit=${limit}&kind=${kind}${offset > 0 ? `&offset=${offset}` : ''}`,
+    ),
   get: (slug: string, kind: 'journal' | 'news' = 'journal') =>
     api<Article>(`/api/v1/articles/${slug}?kind=${kind}`),
   byGuide: (guideSlug: string, limit = 20) =>

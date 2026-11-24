@@ -310,7 +310,8 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 	case path == "/journal":
 		var articles []domain.ArticleListItem
 		if h.Articles != nil {
-			articles, _ = h.Articles.ListPublished(ctx, domain.ArticleKindJournal, 50, 0)
+			// Ліміт репозиторію — 100: віддаємо краулеру максимум посилань (на клієнті — «Показати ще»).
+			articles, _ = h.Articles.ListPublished(ctx, domain.ArticleKindJournal, 100, 0)
 		}
 		return (&SpaPageMeta{
 			Title:       pageTitleSuffix(seoJournalHeading),

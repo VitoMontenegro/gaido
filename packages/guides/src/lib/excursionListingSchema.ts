@@ -314,20 +314,39 @@ export function buildArticleJsonLd(article: {
   excerpt?: string
   cover_image_url?: string
   published_at?: string
+  updated_at?: string
+  author?: { display_name: string; guide_slug?: string }
+  word_count?: number
 }) {
-  return {
+  const url = absoluteUrl(`/journal/${article.slug}`)
+  const schema: Record<string, unknown> = {
     '@context': 'https://schema.org',
     '@type': 'Article',
     headline: article.title,
-    description: article.excerpt ?? article.title,
-    url: absoluteUrl(`/journal/${article.slug}`),
-    ...(article.cover_image_url ? { image: resolveOgImage(article.cover_image_url) } : {}),
-    ...(article.published_at ? { datePublished: article.published_at } : {}),
+    description: article.excerpt || article.title,
+    url,
+    mainEntityOfPage: { '@type': 'WebPage', '@id': url },
+    inLanguage: 'uk',
     publisher: {
       '@type': 'Organization',
       name: 'Gaido UA',
+      url: absoluteUrl('/'),
     },
   }
+  if (article.cover_image_url) schema.image = [resolveOgImage(article.cover_image_url)]
+  if (article.published_at) schema.datePublished = article.published_at
+  if (article.updated_at || article.published_at) {
+    schema.dateModified = article.updated_at || article.published_at
+  }
+  if (article.word_count) schema.wordCount = article.word_count
+  if (article.author?.display_name) {
+    schema.author = {
+      '@type': 'Person',
+      name: article.author.display_name,
+      ...(article.author.guide_slug ? { url: absoluteUrl(`/guide/${article.author.guide_slug}`) } : {}),
+    }
+  }
+  return schema
 }
 
 export function buildPersonJsonLd(guide: {

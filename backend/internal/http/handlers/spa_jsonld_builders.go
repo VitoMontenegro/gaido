@@ -400,6 +400,23 @@ func buildArticleJSON(a *domain.Article, base, pageURL string) map[string]any {
 	if a.PublishedAt != nil {
 		article["datePublished"] = a.PublishedAt.UTC().Format("2006-01-02T15:04:05Z07:00")
 	}
+	if !a.UpdatedAt.IsZero() {
+		article["dateModified"] = a.UpdatedAt.UTC().Format("2006-01-02T15:04:05Z07:00")
+	} else if a.PublishedAt != nil {
+		article["dateModified"] = article["datePublished"]
+	}
+	article["mainEntityOfPage"] = map[string]any{"@type": "WebPage", "@id": pageURL}
+	article["inLanguage"] = "uk"
+	if a.Author != nil && strings.TrimSpace(a.Author.DisplayName) != "" {
+		author := map[string]any{
+			"@type": "Person",
+			"name":  a.Author.DisplayName,
+		}
+		if a.Author.GuideSlug != "" {
+			author["url"] = base + "/guide/" + a.Author.GuideSlug
+		}
+		article["author"] = author
+	}
 	return article
 }
 
