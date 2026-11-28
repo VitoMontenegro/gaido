@@ -35,6 +35,7 @@ function PortalHomeRedirect() {
   return <Navigate to="/" replace />
 }
 
+const AllReviewsPage = lazyImport(() => import('@gaido/guides/pages/AllReviewsPage'))
 const GuidesHomePage = lazyImport(() => import('@gaido/guides/pages/GuidesHomePage'))
 const SearchPage = lazyImport(() => import('@gaido/guides/pages/SearchPage'))
 const GuidePage = lazyImport(() => import('@gaido/guides/pages/GuidePage'))
@@ -146,6 +147,7 @@ export function svitPublicRoutes() {
   return (
     <>
       <Route index element={<Lazy><GuidesHomePage /></Lazy>} />
+      <Route path="reviews" element={<Lazy><AllReviewsPage /></Lazy>} />
       <Route path="guides/countries/:countrySlug" element={<GuideCountryLegacyRedirect />} />
       <Route path="guides/countries" element={<Navigate to="/guides" replace />} />
       <Route path="guides/:countrySlug" element={<GuideCountryLegacyRedirect />} />

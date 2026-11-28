@@ -316,3 +316,27 @@ func (h *Handlers) forumTopicJsonLd(base string, t *domain.ForumTopic) []string 
 		{t.Title, base + "/forums/" + t.ForumSlug + "/" + id},
 	}))
 }
+
+// reviewsPageJsonLd describes only reviews shown on the initial page.
+func (h *Handlers) reviewsPageJsonLd(ctx context.Context, base, path string, limit int) []string {
+	if h.Reviews == nil {
+		return nil
+	}
+	reviews, err := h.Reviews.ListRecentPublished(ctx, limit, 0)
+	if err != nil || len(reviews) == 0 {
+		return nil
+	}
+	var items []map[string]any
+	for _, review := range reviews {
+		if review.ExcursionSlug == "" || review.ExcursionTitle == "" || review.Rating < 1 || review.Rating > 5 {
+			continue
+		}
+		entry := buildReviewJSON([]domain.Review{review})[0]
+		entry["itemReviewed"] = map[string]any{"@type": "Product", "name": review.ExcursionTitle, "url": base + "/excursion/" + review.ExcursionSlug}
+		items = append(items, map[string]any{"@type": "ListItem", "position": len(items) + 1, "item": entry})
+	}
+	if len(items) == 0 {
+		return nil
+	}
+	return appendJsonLd(nil, map[string]any{"@context": "https://schema.org", "@type": "CollectionPage", "name": "Відгуки мандрівників", "url": base + path, "mainEntity": map[string]any{"@type": "ItemList", "numberOfItems": len(items), "itemListElement": items}})
+}

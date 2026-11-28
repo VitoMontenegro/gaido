@@ -1,3 +1,4 @@
+import { reviewsSchema } from '../lib/reviewsSchema'
 import { type ReactNode, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
@@ -187,6 +188,7 @@ export default function GuidesHomePage() {
     pagePath: '/',
     pageImage: content.seo_image_url || undefined,
   })
+  if (homeReviews?.items.length) homeJsonLd.push(reviewsSchema(homeReviews.items, '/'))
   const seoTextParagraphs = GUIDES_HOME_SEO_TEXT.split(/\n\n+/).map((p) => p.trim()).filter(Boolean)
   const journalArticles = articlesData?.items ?? []
   const cta = content.cta

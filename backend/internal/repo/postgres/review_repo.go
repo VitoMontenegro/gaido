@@ -95,16 +95,16 @@ func (r *ReviewRepo) ListRecentPublished(ctx context.Context, limit, offset int)
 		offset = 0
 	}
 	return r.listReviews(ctx, reviewListSelect+`
-		WHERE r.status=$1 AND TRIM(r.text) <> ''
+		WHERE r.status=$1
 		ORDER BY r.created_at DESC, r.id DESC
 		LIMIT $2 OFFSET $3
 	`, domain.ReviewPublished, limit, offset)
 }
 
-func (r *ReviewRepo) CountPublishedWithText(ctx context.Context) (int, error) {
+func (r *ReviewRepo) CountPublished(ctx context.Context) (int, error) {
 	var total int
 	err := r.db.Pool.QueryRow(ctx, `
-		SELECT COUNT(*) FROM guide_reviews WHERE status=$1 AND TRIM(text) <> ''
+		SELECT COUNT(*) FROM guide_reviews WHERE status=$1
 	`, domain.ReviewPublished).Scan(&total)
 	return total, err
 }

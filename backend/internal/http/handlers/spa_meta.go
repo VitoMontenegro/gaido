@@ -266,6 +266,15 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 		body := newCrawlBody(title, append([]string{desc}, splitParagraphs(seoGuidesHomeText)...)...)
 		body = body.withSection("", nil, categoryTileLinks(base, content.CategoryTiles))
 		body = body.withSection("Нові маршрути", nil, excursionCrawlLinks(base, featured))
+		if h.Reviews != nil {
+			if reviews, err := h.Reviews.ListRecentPublished(ctx, 6, 0); err == nil && len(reviews) > 0 {
+				var paragraphs []string
+				for _, review := range reviews {
+					paragraphs = append(paragraphs, fmt.Sprintf("%s: %s", review.AuthorName, review.Text))
+				}
+				body = body.withSection("Відгуки мандрівників", paragraphs, []CrawlLink{crawlLink("Усі відгуки", base+"/reviews")})
+			}
+		}
 		body = body.withSection("Фаворити мандрівників", nil, guideCrawlLinks(base, guides))
 		body = body.withSection("Популярні напрямки", nil, destinationCrawlLinks(base, destinations))
 		if content.AboutText != "" || content.AboutTitle != "" {
@@ -281,8 +290,20 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 			Description: desc,
 			Canonical:   base + "/",
 			OgImage:     h.resolveSEOImage(content.SEOImageURL, defaultImage),
-			JsonLd:      h.homePageJsonLd(ctx, base, content),
+			JsonLd:      append(h.homePageJsonLd(ctx, base, content), h.reviewsPageJsonLd(ctx, base, "/", 6)...),
 		}).withBody(body)
+	case path == "/reviews":
+		heading := "Відгуки мандрівників"
+		desc := "Відгуки та фото мандрівників про екскурсії українською на Gaido UA."
+		var paragraphs []string
+		if h.Reviews != nil {
+			if reviews, err := h.Reviews.ListRecentPublished(ctx, 10, 0); err == nil {
+				for _, review := range reviews {
+					paragraphs = append(paragraphs, fmt.Sprintf("%s: %s", review.AuthorName, review.Text))
+				}
+			}
+		}
+		return (&SpaPageMeta{Title: pageTitleSuffix(heading), Description: desc, Canonical: base + "/reviews", OgImage: defaultImage, JsonLd: h.reviewsPageJsonLd(ctx, base, "/reviews", 10)}).withBody(newCrawlBody(heading, desc).withSection("Відгуки", paragraphs, nil))
 	case path == "/search":
 		return (&SpaPageMeta{
 			Title:       pageTitleSuffix(seoSearchHeading),

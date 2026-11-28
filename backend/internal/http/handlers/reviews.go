@@ -187,7 +187,7 @@ func (h *Handlers) ListReviewsPublic(w http.ResponseWriter, r *http.Request) {
 	default:
 		items, err = h.Reviews.ListRecentPublished(r.Context(), limit, offset)
 		if err == nil {
-			total, err = h.Reviews.CountPublishedWithText(r.Context())
+			total, err = h.Reviews.CountPublished(r.Context())
 		}
 	}
 	if err != nil {
