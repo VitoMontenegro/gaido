@@ -55,7 +55,7 @@ export function ReviewQuote({ review, full = false }: { review: Review; full?: b
     {!!review.comments?.length && <div className="space-y-5 bg-stone-100/80 p-5 sm:px-7 sm:py-6">{review.comments.map(comment => <ReviewResponse key={comment.id} comment={comment} />)}</div>}
   </article>
 
-  return <article className="rounded-2xl bg-white p-5 shadow-[0_3px_24px_rgba(0,0,0,0.07)]">
+  return <article className="flex h-full flex-col rounded-2xl bg-white p-5 shadow-[0_3px_24px_rgba(0,0,0,0.07)]">
     <div className="flex items-start justify-between gap-2">{header}{photos.length > 0 && <button type="button" onClick={() => openImageGallery(photos)} className="shrink-0 rounded-full bg-teal px-2 py-1 text-xs font-semibold text-white">{photos.length} фото</button>}</div>
     <div className="mt-3"><StarRating value={review.rating} size="sm" /></div>
     {content}
@@ -71,6 +71,6 @@ export default function HomeReviews({ reviews, ratingAvg, ratingCount }: { revie
       <Link to="/reviews" className="inline-flex items-center rounded-full bg-teal px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-dark">Усі відгуки <span aria-hidden className="ml-2">→</span></Link>
     </div>
     <AllReviewPhotos compact />
-    <div className="grid items-start gap-4 md:grid-cols-2 lg:grid-cols-3">{reviews.slice(0, 6).map(review => <ReviewQuote key={review.id} review={review} />)}</div>
+    <div className="grid items-stretch gap-4 md:grid-cols-2 lg:grid-cols-3">{reviews.slice(0, 6).map(review => <ReviewQuote key={review.id} review={review} />)}</div>
   </section>
 }

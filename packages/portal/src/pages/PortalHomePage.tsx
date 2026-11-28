@@ -2,6 +2,8 @@ import { useMemo, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { catalogApi, articlesApi, resolveMediaUrl, type CountryWithGuides, type Excursion, type PublicGuide, type ArticleListItem } from '@gaido/api-client/api/client'
+import { reviewsApi } from '@gaido/api-client/api/reviews'
+import type { Review } from '@gaido/api-client/api/types/reviews'
 import { forumsApi, type ForumTopic } from '@gaido/api-client/api/forums'
 import { guidesUrl } from '@gaido/site-urls/site'
 import { staticAssetUrl } from '@gaido/site-urls/staticAsset'
@@ -235,6 +237,25 @@ function HubExcursionCard({ item }: { item: Excursion }) {
   )
 }
 
+function HubReviews({ reviews }: { reviews: Review[] }) {
+  if (!reviews.length) return null
+  return <section className="container-site py-14" aria-labelledby="hub-reviews-title">
+    <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
+      <h2 id="hub-reviews-title" className="section-title">Відгуки про гідів та екскурсії</h2>
+      <a href={guidesUrl('/reviews')} className="link-accent text-sm normal-case">Усі відгуки →</a>
+    </div>
+    <div className="grid gap-4 md:grid-cols-3">{reviews.map((review) => {
+      const date = review.created_at ? new Date(review.created_at) : null
+      return <article key={review.id} className="flex h-full flex-col rounded-2xl bg-surface p-5 shadow-[0_3px_24px_rgba(0,0,0,0.06)]">
+        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1"><span className="font-semibold text-ink">{review.author_name?.trim() || 'Мандрівник'}</span>{date && !Number.isNaN(date.getTime()) && <time dateTime={review.created_at} className="text-xs text-muted">{date.toLocaleDateString('uk-UA', { day: 'numeric', month: 'long', year: 'numeric' })}</time>}</div>
+        <span className="mt-3 text-[#ffe72f]" aria-label={`Оцінка ${review.rating} з 5`}>{'★'.repeat(Math.max(0, Math.min(5, review.rating)))}<span className="text-stone-300">{'☆'.repeat(5 - Math.max(0, Math.min(5, review.rating)))}</span></span>
+        <p className="mt-3 line-clamp-5 whitespace-pre-wrap text-sm leading-relaxed text-ink">{review.text?.trim() || 'Без коментаря'}</p>
+        {review.excursion_slug && review.excursion_title && <a href={guidesUrl(`/excursion/${review.excursion_slug}`)} className="mt-auto pt-4 text-sm font-medium text-teal hover:underline">{review.excursion_title} →</a>}
+      </article>
+    })}</div>
+  </section>
+}
+
 export default function PortalHomePage() {
   const { data: site, isError: siteError, error: siteErr } = useQuery({
     queryKey: ['site'],
@@ -254,6 +275,12 @@ export default function PortalHomePage() {
     queryKey: ['forums', 'recent'],
     queryFn: () => forumsApi.recentTopics(8),
     staleTime: 30_000,
+  })
+
+  const { data: reviews } = useQuery({
+    queryKey: ['reviews', 'portal-home'],
+    queryFn: () => reviewsApi.list({ limit: 3, offset: 0 }),
+    staleTime: 60_000,
   })
 
   const hub = normalizePortalHub(site?.portal_hub)
@@ -354,6 +381,8 @@ export default function PortalHomePage() {
           </div>
         </section>
       )}
+
+      <HubReviews reviews={reviews?.items ?? []} />
 
       {destinations.length > 0 && (
         <section className="container-site py-14">

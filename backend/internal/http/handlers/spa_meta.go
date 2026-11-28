@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"html"
+	"math"
 	"strconv"
 	"strings"
 	"unicode"
@@ -126,6 +127,23 @@ func (h *Handlers) portalHomePageMeta(ctx context.Context) *SpaPageMeta {
 			href = absURL(apex, "/servis/")
 		}
 		body = body.withSection(card.Title, splitParagraphs(card.Text), []CrawlLink{crawlLink(card.Title, href)})
+	}
+	if h.Reviews != nil {
+		if reviews, err := h.Reviews.ListRecentPublished(ctx, 3, 0); err == nil && len(reviews) > 0 {
+			var paragraphs []string
+			for _, review := range reviews {
+				name := strings.TrimSpace(review.AuthorName)
+				if name == "" {
+					name = "Мандрівник"
+				}
+				text := strings.TrimSpace(review.Text)
+				if text == "" {
+					text = "Без коментаря"
+				}
+				paragraphs = append(paragraphs, fmt.Sprintf("%s · %d з 5: %s", name, review.Rating, text))
+			}
+			body = body.withSection("Відгуки про гідів та екскурсії", paragraphs, []CrawlLink{crawlLink("Усі відгуки", apex+"/svit/reviews")})
+		}
 	}
 	body = body.withFAQ(portalHomeFAQ())
 	return (&SpaPageMeta{
@@ -269,6 +287,9 @@ func (h *Handlers) ResolveSpaPageMeta(ctx context.Context, host, path string) *S
 		if h.Reviews != nil {
 			if reviews, err := h.Reviews.ListRecentPublished(ctx, 6, 0); err == nil && len(reviews) > 0 {
 				var paragraphs []string
+				if avg, count, err := h.Reviews.PublishedRatingStats(ctx); err == nil && count > 0 {
+					paragraphs = append(paragraphs, fmt.Sprintf("%.1f · %d відгуків", math.Round(avg*10)/10, count))
+				}
 				for _, review := range reviews {
 					paragraphs = append(paragraphs, fmt.Sprintf("%s: %s", review.AuthorName, review.Text))
 				}
