@@ -55,7 +55,7 @@ export default function GuideCard({
             </span>
           )}
           <p className="mt-auto pt-1.5 text-xs text-muted-light">
-            ★ {guide.rating_avg.toFixed(1)}
+            <span className="text-[#ffe72f]" aria-hidden="true">★</span> {guide.rating_avg.toFixed(1)}
             {guide.rating_count > 0 && ` · ${guide.rating_count}`}
           </p>
         </div>
@@ -89,7 +89,7 @@ export default function GuideCard({
         {guide.type_badge && <span className="badge-teal mt-2">{guide.type_badge}</span>}
         <p className="mt-2 line-clamp-2 text-sm text-muted">{displayGuideAbout(guide.about) || 'Місцевий експерт з авторськими маршрутами'}</p>
         <p className="mt-2 text-sm text-muted-light">
-          ★ {guide.rating_avg.toFixed(1)} · {guide.rating_count} відгуків
+          <span className="text-[#ffe72f]" aria-hidden="true">★</span> {guide.rating_avg.toFixed(1)} · {guide.rating_count} відгуків
         </p>
       </div>
     </>

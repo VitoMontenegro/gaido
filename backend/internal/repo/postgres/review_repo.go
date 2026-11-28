@@ -14,15 +14,19 @@ type ReviewRepo struct{ db *DB }
 
 func NewReviewRepo(db *DB) *ReviewRepo { return &ReviewRepo{db: db} }
 
-const reviewListSelect = `
+var reviewListSelect = `
 	SELECT r.id, r.guide_id, r.author_id, r.rating, r.text, r.status, r.excursion_id,
 		r.created_at,
 		COALESCE(NULLIF(TRIM(CONCAT(u.first_name, ' ', u.last_name)), ''), u.login) AS author_name,
 		COALESCE(e.title, '') AS excursion_title,
-		COALESCE(e.slug, '') AS excursion_slug
+		COALESCE(e.slug, '') AS excursion_slug,
+		CASE WHEN gp.status = 'ACTIVE' AND ` + GuideHasPublicContactSQL("gp") + ` THEN COALESCE(gp.display_name, '') ELSE '' END,
+		COALESCE(` + PublicGuideSlugExpr("gp") + `, ''),
+		CASE WHEN gp.status = 'ACTIVE' AND ` + GuideHasPublicContactSQL("gp") + ` THEN COALESCE(gp.avatar_url, '') ELSE '' END
 	FROM guide_reviews r
 	JOIN users u ON u.id = r.author_id
-	LEFT JOIN excursions e ON e.id = r.excursion_id`
+	LEFT JOIN excursions e ON e.id = r.excursion_id
+	LEFT JOIN guide_profiles gp ON gp.id = r.guide_id`
 
 func (r *ReviewRepo) Create(ctx context.Context, guideID, authorID, excursionID int64, rating int, text string) (int64, error) {
 	var id int64
@@ -144,7 +148,7 @@ func (r *ReviewRepo) listReviews(ctx context.Context, sql string, args ...any) (
 	for rows.Next() {
 		var rv domain.Review
 		var createdAt time.Time
-		if err := rows.Scan(&rv.ID, &rv.GuideID, &rv.AuthorID, &rv.Rating, &rv.Text, &rv.Status, &rv.ExcursionID, &createdAt, &rv.AuthorName, &rv.ExcursionTitle, &rv.ExcursionSlug); err != nil {
+		if err := rows.Scan(&rv.ID, &rv.GuideID, &rv.AuthorID, &rv.Rating, &rv.Text, &rv.Status, &rv.ExcursionID, &createdAt, &rv.AuthorName, &rv.ExcursionTitle, &rv.ExcursionSlug, &rv.GuideName, &rv.GuideSlug, &rv.GuideAvatarURL); err != nil {
 			return nil, err
 		}
 		rv.CreatedAt = createdAt.UTC().Format(time.RFC3339)
@@ -204,6 +208,21 @@ func (r *ReviewRepo) ListPhotosByReviewIDs(ctx context.Context, reviewIDs []int6
 		out[reviewID] = append(out[reviewID], key)
 	}
 	return out, rows.Err()
+}
+
+func (r *ReviewRepo) CountPublishedPhotos(ctx context.Context) (int, error) {
+	var total int
+	err := r.db.Pool.QueryRow(ctx, `SELECT COUNT(*) FROM review_photos p JOIN guide_reviews r ON r.id = p.review_id WHERE r.status = $1`, domain.ReviewPublished).Scan(&total)
+	return total, err
+}
+
+func (r *ReviewRepo) ListPublishedPhotos(ctx context.Context, limit, offset int) ([]domain.ReviewPhotoItem, error) {
+	rows, err := r.db.Pool.Query(ctx, `SELECT p.public_key, p.review_id FROM review_photos p JOIN guide_reviews r ON r.id = p.review_id WHERE r.status = $1 ORDER BY r.id DESC, p.sort_order ASC, p.id ASC LIMIT $2 OFFSET $3`, domain.ReviewPublished, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return scanReviewPhotoItems(rows)
 }
 
 func (r *ReviewRepo) CountPhotosByExcursion(ctx context.Context, excursionID int64) (int, error) {

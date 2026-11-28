@@ -242,6 +242,9 @@ type ExcursionView struct {
 type Review struct {
 	ID             int64           `json:"id"`
 	GuideID        int64           `json:"guide_id"`
+	GuideName      string          `json:"guide_name,omitempty"`
+	GuideSlug      string          `json:"guide_slug,omitempty"`
+	GuideAvatarURL string          `json:"guide_avatar_url,omitempty"`
 	AuthorID       int64           `json:"author_id"`
 	AuthorName     string          `json:"author_name,omitempty"`
 	ExcursionID    int64           `json:"excursion_id"`

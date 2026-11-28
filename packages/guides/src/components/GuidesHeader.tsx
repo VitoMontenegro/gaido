@@ -18,6 +18,7 @@ const GUIDES_NAV = [
   { to: '/search', label: 'Пошук' },
   { to: '/countries', label: 'Країни' },
   { to: '/guides', label: 'Гіди' },
+  { to: '/reviews', label: 'Відгуки' },
   { to: '/journal', label: 'Журнал' },
   { to: '/forums', label: 'Форум' },
 ] as const

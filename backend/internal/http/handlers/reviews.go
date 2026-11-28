@@ -228,8 +228,10 @@ func (h *Handlers) ListReviewPhotosPublic(w http.ResponseWriter, r *http.Request
 			total, err = h.Reviews.CountPhotosByGuide(r.Context(), guideID)
 		}
 	default:
-		response.Error(w, r, apperrors.ErrValidation)
-		return
+		items, err = h.Reviews.ListPublishedPhotos(r.Context(), limit, offset)
+		if err == nil {
+			total, err = h.Reviews.CountPublishedPhotos(r.Context())
+		}
 	}
 	if err != nil {
 		response.Error(w, r, apperrors.ErrInternal)

@@ -1,82 +1,76 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { resolveMediaUrl } from '@gaido/api-client/api/client'
+import type { Review, ReviewComment } from '@gaido/api-client/api/types/reviews'
 import { openImageGallery } from '../lib/fancybox'
-import type { Review } from '@gaido/api-client/api/types/reviews'
+import GuideAvatar from './GuideAvatar'
+import AllReviewPhotos from './reviews/AllReviewPhotos'
 import StarRating from './reviews/StarRating'
 import { formatReviewDate } from './reviews/types'
 
-function reviewsWord(count: number) {
-  const n10 = count % 10
-  const n100 = count % 100
-  if (n10 === 1 && n100 !== 11) return 'відгук'
-  if (n10 >= 2 && n10 <= 4 && (n100 < 12 || n100 > 14)) return 'відгуки'
-  return 'відгуків'
+function ReviewResponse({ comment }: { comment: ReviewComment }) {
+  const [expanded, setExpanded] = useState(false)
+  const long = comment.text.length > 300
+  return <div>
+    <p className="mb-3 text-base font-bold text-stone-900">{comment.is_guide ? 'Відповідь гіда' : `Коментар: ${comment.author_name || 'Мандрівник'}`}</p>
+    <div className="rounded-2xl bg-white p-4">
+      <p className={`whitespace-pre-wrap text-sm leading-relaxed text-stone-700 ${long && !expanded ? 'line-clamp-4' : ''}`}>{comment.text}</p>
+      {long && <button type="button" aria-expanded={expanded} onClick={() => setExpanded(!expanded)} className="mt-2 rounded-full bg-stone-100 px-3 py-1 text-sm font-medium text-stone-800 hover:bg-stone-200">{expanded ? 'Згорнути ↑' : 'Читати повністю ↓'}</button>}
+    </div>
+  </div>
 }
 
 export function ReviewQuote({ review, full = false }: { review: Review; full?: boolean }) {
-  const text = review.text.trim()
+  const [expanded, setExpanded] = useState(false)
+  const text = review.text?.trim() || ''
   const photos = (review.photos ?? []).map(resolveMediaUrl).filter(Boolean)
-  const dateLabel = formatReviewDate(review.created_at)
+  const date = formatReviewDate(review.created_at)
   const excursionUrl = review.excursion_slug ? `/excursion/${review.excursion_slug}` : ''
+  const long = text.length > (full ? 450 : 220)
+  const displayedText = long && !expanded ? `${text.slice(0, full ? 450 : 220).trim()}…` : text
 
-  return (
-    <article className="flex h-full flex-col rounded-[28px] border border-divider bg-surface p-5 shadow-[0_2px_10px_rgba(0,0,0,0.04)] md:p-6">
-      <StarRating value={review.rating} size="sm" ariaLabel={`Оцінка ${review.rating} з 5`} />
-      <p className={`mt-4 flex-1 whitespace-pre-wrap text-base leading-relaxed text-ink ${full ? "" : "line-clamp-5"}`}>{text || "Без коментаря"}</p>
-      {photos.length > 0 && <div className="mt-4 flex flex-wrap gap-2">{photos.map((src, i) => <button key={src} type="button" aria-label={`Відкрити фото ${i + 1} до відгуку`} className="h-24 w-24 overflow-hidden rounded-xl" onClick={() => openImageGallery(photos, i)}><img src={src} alt="" loading="lazy" className="h-full w-full object-cover" /></button>)}</div>}
-      <div className="mt-5 border-t border-divider pt-4">
-        <p className="font-medium text-ink">{review.author_name?.trim() || 'Мандрівник'}</p>
-        {dateLabel && <p className="mt-0.5 text-sm text-muted">{dateLabel}</p>}
-        {excursionUrl && review.excursion_title && (
-          <Link to={excursionUrl} className="link-accent mt-2 inline-block text-sm normal-case">
-            {review.excursion_title}
-          </Link>
-        )}
-      </div>
-    </article>
-  )
+  const header = <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1"><span className="font-bold text-stone-900">{review.author_name?.trim() || 'Мандрівник'}</span>{date && <time className="text-xs text-stone-500" dateTime={review.created_at}>{date}</time>}</div>
+  const content = <>
+    <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-stone-700">{displayedText || 'Без коментаря'}</p>
+    {long && <button type="button" onClick={() => setExpanded(!expanded)} className="mt-2 text-sm font-medium text-teal hover:underline">{expanded ? 'Згорнути' : 'Читати повністю'}</button>}
+  </>
+  const photoButtons = photos.length > 0 && <div className="mt-4 flex flex-wrap gap-2">{photos.map((src, i) => <button key={`${src}-${i}`} type="button" aria-label={`Відкрити фото ${i + 1} до відгуку`} onClick={() => openImageGallery(photos, i)} className="h-20 w-20 overflow-hidden rounded-xl bg-stone-100"><img src={src} alt="" loading="lazy" className="h-full w-full object-cover" /></button>)}</div>
+
+  if (full) return <article className="overflow-hidden rounded-3xl bg-white shadow-[0_3px_24px_rgba(0,0,0,0.06)]">
+    <div className="grid gap-4 p-3 sm:p-4 md:grid-cols-[minmax(0,1fr)_260px] lg:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="p-3 sm:p-5">{header}{content}{photoButtons}</div>
+      <aside className="rounded-2xl bg-stone-50 p-5">
+        <p className="mb-2 text-xs font-semibold text-stone-700">Оцінка</p>
+        <div className="flex items-center gap-2"><StarRating value={review.rating} size="sm" /><span className="text-sm text-stone-500">({review.rating.toFixed(1)})</span></div>
+        {excursionUrl && review.excursion_title && <div className="mt-5"><p className="mb-1 text-xs font-semibold text-stone-700">Екскурсія</p><Link to={excursionUrl} className="text-sm font-medium text-teal underline underline-offset-2">{review.excursion_title}</Link></div>}
+        {review.guide_name && <div className="mt-5">
+          <p className="mb-2 text-xs font-semibold text-stone-700">Гід</p>
+          <div className="flex items-center justify-between gap-3">
+            {review.guide_slug ? <Link to={`/guide/${review.guide_slug}`} className="font-semibold text-stone-900 hover:text-teal hover:underline">{review.guide_name}</Link> : <span className="font-semibold text-stone-900">{review.guide_name}</span>}
+            <GuideAvatar avatar={review.guide_avatar_url} name={review.guide_name} className="h-12 w-12 shrink-0 rounded-xl" />
+          </div>
+        </div>}
+      </aside>
+    </div>
+    {!!review.comments?.length && <div className="space-y-5 bg-stone-100/80 p-5 sm:px-7 sm:py-6">{review.comments.map(comment => <ReviewResponse key={comment.id} comment={comment} />)}</div>}
+  </article>
+
+  return <article className="rounded-2xl bg-white p-5 shadow-[0_3px_24px_rgba(0,0,0,0.07)]">
+    <div className="flex items-start justify-between gap-2">{header}{photos.length > 0 && <button type="button" onClick={() => openImageGallery(photos)} className="shrink-0 rounded-full bg-teal px-2 py-1 text-xs font-semibold text-white">{photos.length} фото</button>}</div>
+    <div className="mt-3"><StarRating value={review.rating} size="sm" /></div>
+    {content}
+    {excursionUrl && review.excursion_title && <Link to={excursionUrl} className="mt-3 inline-block text-xs font-medium text-teal hover:underline">{review.excursion_title} →</Link>}
+  </article>
 }
 
-export default function HomeReviews({
-  reviews,
-  ratingAvg,
-  ratingCount,
-}: {
-  reviews: Review[]
-  ratingAvg: number
-  ratingCount: number
-}) {
-  if (reviews.length === 0) return null
-
-  const summary = ratingCount > 0 && ratingAvg > 0
-    ? (
-        <div className="flex items-center gap-3">
-          <p className="font-display text-4xl font-medium leading-none text-ink">{ratingAvg.toFixed(1)}</p>
-          <div>
-            <StarRating value={ratingAvg} size="sm" />
-            <p className="mt-1 text-sm text-muted">{ratingCount} {reviewsWord(ratingCount)}</p>
-          </div>
-        </div>
-      )
-    : null
-
-  return (
-    <section className="container-site py-14" aria-labelledby="home-reviews-title">
-      <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h2 id="home-reviews-title" className="section-title">Відгуки мандрівників</h2>
-          <p className="mt-2 text-base text-muted">Що кажуть після екскурсій</p>
-        </div>
-        {summary}
-      </div>
-      <div className="flex flex-wrap justify-center gap-4">
-        {reviews.map((review) => (
-          <div key={review.id} className="w-full md:w-[calc((100%-1rem)/2)] lg:w-[calc((100%-2rem)/3)]">
-            <ReviewQuote review={review} />
-          </div>
-        ))}
-      </div>
-      <div className="mt-8 text-center"><Link to="/reviews" className="btn-secondary inline-flex">Усі відгуки →</Link></div>
-    </section>
-  )
+export default function HomeReviews({ reviews, ratingAvg, ratingCount }: { reviews: Review[]; ratingAvg: number; ratingCount: number }) {
+  if (!reviews.length) return null
+  return <section className="container-site py-14" aria-labelledby="home-reviews-title">
+    <div className="mb-7 flex flex-wrap items-center justify-between gap-4">
+      <div><h2 id="home-reviews-title" className="font-display text-2xl font-bold text-stone-900 md:text-[28px]">Відгуки мандрівників</h2>{ratingCount > 0 && <p className="mt-1 text-sm text-stone-500"><span className="text-[#ffe72f]" aria-hidden="true">★</span> {ratingAvg.toFixed(1)} · {ratingCount} відгуків</p>}</div>
+      <Link to="/reviews" className="inline-flex items-center rounded-full bg-teal px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-dark">Усі відгуки <span aria-hidden className="ml-2">→</span></Link>
+    </div>
+    <AllReviewPhotos compact />
+    <div className="grid items-start gap-4 md:grid-cols-2 lg:grid-cols-3">{reviews.slice(0, 6).map(review => <ReviewQuote key={review.id} review={review} />)}</div>
+  </section>
 }

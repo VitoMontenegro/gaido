@@ -17,6 +17,9 @@ export type ReviewDispute = {
 export type Review = {
   id: number
   author_id: number
+  guide_name?: string
+  guide_slug?: string
+  guide_avatar_url?: string
   rating: number
   text: string
   status: string
