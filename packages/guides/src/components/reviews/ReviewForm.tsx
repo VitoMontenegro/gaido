@@ -74,7 +74,7 @@ export default function ReviewForm({
   if (!me) {
     return (
       <p className="card text-sm text-stone-600">
-        <Link to="/login" state={{ from: location.pathname }} className="link-accent">
+        <Link to="/login" state={{ from: `${location.pathname}${location.search}${location.hash}` }} className="link-accent">
           Увійдіть в акаунт
         </Link>
         , щоб залишити відгук.

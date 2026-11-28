@@ -21,6 +21,7 @@ import { displayGuideAbout } from '../lib/guideAbout'
 import { Seo } from '../lib/seo'
 import DiscussInquiryDialog from '../components/crm/DiscussInquiryDialog'
 import { trackGuideEvent } from '../lib/funnelSession'
+import { QRCodeSVG } from 'qrcode.react'
 
 export default function GuidePage() {
   const { slug = '' } = useParams()
@@ -67,6 +68,12 @@ export default function GuidePage() {
       removeRecentView('guide', slug)
     }
   }, [isError, error, slug])
+
+  useEffect(() => {
+    if (guide && excursions && window.location.hash === '#reviews') {
+      document.getElementById('reviews')?.scrollIntoView()
+    }
+  }, [guide, excursions])
 
   if (isLoading) return <div className="container-site p-8 text-muted">Завантаження…</div>
   if (isError || !guide) return <CatalogNotFound kind="guide" />
@@ -173,6 +180,7 @@ export default function GuidePage() {
 
         <aside className="h-fit lg:sticky lg:top-24">
           <ContactBlock guide={guide} onDiscuss={() => setDiscussOpen(true)} />
+          <ReviewQrCode guide={guide} />
         </aside>
       </div>
       <DiscussInquiryDialog
@@ -186,6 +194,36 @@ export default function GuidePage() {
         <Link to="/guides" className="text-brand-700 hover:underline">← Усі гіди</Link>
       </div>
     </>
+  )
+}
+
+function ReviewQrCode({ guide }: { guide: PublicGuide }) {
+  const [url, setUrl] = useState('')
+
+  useEffect(() => {
+    setUrl(`${window.location.origin}${window.location.pathname}#reviews`)
+  }, [guide.slug])
+
+  if (!url) return null
+
+  return (
+    <div className="card mt-4 border-brand-200 bg-white text-center shadow-md">
+      <div id="review-qr-print">
+        <p className="font-display text-lg font-bold">Залиште відгук про гіда</p>
+        <p className="mt-1 text-sm text-stone-600">{guide.display_name}</p>
+        <QRCodeSVG value={url} size={200} marginSize={4} className="mx-auto mt-3 max-w-full" role="img" aria-label="QR-код для переходу до відгуків" />
+        <p className="mt-2 text-sm text-stone-600">Відскануйте QR-код, щоб залишити відгук</p>
+      </div>
+      <button type="button" className="btn-secondary mt-4 w-full" onClick={() => window.print()}>
+        Роздрукувати QR-код
+      </button>
+      <style>{`@media print {
+        body { height: 0; overflow: hidden; }
+        body * { visibility: hidden !important; }
+        #review-qr-print, #review-qr-print * { visibility: visible !important; }
+        #review-qr-print { position: fixed; left: 0; top: 0; width: 100%; text-align: center; color: #000; }
+      }`}</style>
+    </div>
   )
 }
 
